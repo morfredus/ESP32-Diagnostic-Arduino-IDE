@@ -185,9 +185,9 @@ Accédez via :
 ### Pins par défaut
 
 #### I2C (OLED) - Modifiable via web
-| Modèle | SDA | SCL |
-|--------|-----|-----|
-| ESP32 | 21 | 22 |
+| Modèle   |SDA|SCL|
+|----------|---|---|
+| ESP32    | 21| 2 |
 | ESP32-S2 | 8 | 9 |
 | ESP32-S3 | 8 | 9 |
 | ESP32-C3 | 5 | 6 |
@@ -426,15 +426,6 @@ Développé pour la communauté ESP32.
 
 **Testé sur :**
 - ESP32-S3-DevKitC-1 (16MB Flash, 8MB PSRAM OPI)
-
-## 📸 Captures d'écran
-
-Pour une documentation visuelle complète, incluez :
-1. Vue d'ensemble - Section mémoire avec graphiques
-2. Onglet Écrans - OLED avec message personnalisé
-3. Tests Avancés - Résultats ADC avec voltages
-4. Export - Exemple fichier TXT ouvert
-5. Moniteur Série - Diagnostic PSRAM au démarrage
 
 ## 🔄 Changelog
 
