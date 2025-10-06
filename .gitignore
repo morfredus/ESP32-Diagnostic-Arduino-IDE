@@ -1,5 +1,6 @@
 # Fichier de configuration WiFi (sensible - ne pas versionner)
 config.h
+Test_ESP32_UNIVERSAL.txt
 
 # Fichiers temporaires Arduino IDE
 *.hex
