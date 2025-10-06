@@ -1,32 +1,25 @@
-# Prerequisites
-*.d
+# Fichier de configuration WiFi (sensible - ne pas versionner)
+config.h
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Fichiers temporaires Arduino IDE
+*.hex
+*.elf
+*.bin
+*.eep
+*.lss
+*.map
+*.sym
 
-# Precompiled Headers
-*.gch
-*.pch
+# Dossiers de build
+build/
+.build/
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
+# Fichiers système
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
 
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+# Logs
+*.log
