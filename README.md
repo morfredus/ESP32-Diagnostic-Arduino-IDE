@@ -108,10 +108,22 @@ Téléchargez ou clonez ce projet dans votre dossier Arduino.
 
 **IMPORTANT :** Créez un fichier `config.h` dans le même dossier que le `.ino`
 
-**Option A - Copier le template :**
-```bash
-cp config.h.example config.h
+**Option A - Renommez le fichier Exemple de fichier exemple-config.h :**
+Renommez le fichier exemple-config.h en config.h
+Editez le fichier et ajoutez votre ou vos réseaux wifi en renseignant les valeurs
+
+```cpp
+const char* WIFI_SSID_1 = "SSID1";
+const char* WIFI_PASS_1 = "MotDePasse1";
+
+// Ajoutez autant de réseaux que nécessaire
+// const char* WIFI_SSID_2 = "SSID2";
+// const char* WIFI_PASS_2 = "MotDePasse2";
+
+// const char* WIFI_SSID_3 = "SSID3";
+// const char* WIFI_PASS_3 = "MotDePasse3";
 ```
+
 
 **Option B - Créer manuellement `config.h` :**
 ```cpp
@@ -119,11 +131,15 @@ cp config.h.example config.h
 #define CONFIG_H
 
 // ========== CONFIGURATION WIFI ==========
-const char* WIFI_SSID_1 = "VotreSSID";
-const char* WIFI_PASS_1 = "VotreMotDePasse";
+const char* WIFI_SSID_1 = "SSID1";
+const char* WIFI_PASS_1 = "MotDePasse1";
 
-const char* WIFI_SSID_2 = "SSID2"; // Optionnel
-const char* WIFI_PASS_2 = "Pass2"; // Optionnel
+// Ajoutez autant de réseaux que nécessaire
+// const char* WIFI_SSID_2 = "SSID2";
+// const char* WIFI_PASS_2 = "MotDePasse2";
+
+// const char* WIFI_SSID_3 = "SSID3";
+// const char* WIFI_PASS_3 = "MotDePasse3";
 
 #endif
 ```
