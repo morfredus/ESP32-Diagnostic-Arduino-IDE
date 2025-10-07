@@ -395,6 +395,7 @@ Code libre d'utilisation, modification et distribution.
 Développé pour la communauté ESP32.
 
 **v2.4 - Système multilingue**
+
 **v2.3 - Base exhaustive**
 
 ---
@@ -408,4 +409,5 @@ Développé pour la communauté ESP32.
 🇫🇷🇬🇧 **Changement de langue** : Boutons FR/EN dans l'interface
 
 ```
+
 
