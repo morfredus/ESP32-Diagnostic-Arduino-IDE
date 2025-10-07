@@ -54,7 +54,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **Complete exports** - TXT, JSON, CSV, printable PDF version
 
 ### Network Access
-- **mDNS** - Access via http://ESP32-test.local
+- **mDNS** - Access via http://ESP32-Diagnostic.local
 - **Multi-WiFi** - Automatic connection with failover
 - **REST API** - JSON endpoints for integration
 
@@ -177,7 +177,7 @@ Sketch → Upload
 
 ### 7. Accessing the Interface
 
-- **http://ESP32-test.local** (mDNS)
+- **http://ESP32-Diagnostic.local** (mDNS)
 - **http://[DISPLAYED_IP]** (direct IP)
 
 ## 🌐 Multilingual Usage
@@ -194,13 +194,13 @@ Sketch → Upload
 **Via API:**
 ```bash
 # Switch to English
-curl http://ESP32-test.local/api/set-language?lang=en
+curl http://ESP32-Diagnostic.local/api/set-language?lang=en
 
 # Switch to French
-curl http://ESP32-test.local/api/set-language?lang=fr
+curl http://ESP32-Diagnostic.local/api/set-language?lang=fr
 
 # Get current translations
-curl http://ESP32-test.local/api/get-translations
+curl http://ESP32-Diagnostic.local/api/get-translations
 ```
 
 ### Translated Texts
@@ -411,6 +411,6 @@ Developed for the ESP32 community.
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.1.3+
 
-🌐 **Access**: http://ESP32-test.local  
+🌐 **Access**: http://ESP32-Diagnostic.local  
 🇫🇷🇬🇧 **Language switching**: FR/EN buttons in interface
 ```
