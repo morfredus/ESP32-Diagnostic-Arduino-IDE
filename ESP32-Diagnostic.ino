@@ -42,7 +42,7 @@
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
-#define MDNS_HOSTNAME "ESP32-test"
+#define MDNS_HOSTNAME "ESP32-Diagnostic"
 
 // Pins I2C pour OLED (modifiables via web)
 int I2C_SDA = 8;

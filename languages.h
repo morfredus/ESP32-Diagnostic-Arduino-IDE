@@ -232,7 +232,7 @@ struct Translations {
 // Traductions françaises
 const Translations LANG_FR_TEXTS = {
   // Titres
-  "Diagnostic ESP32 Exhaustif",
+  "ESP32 Diagnostic Exhaustif",
   "v",
   "Accès",
   "ou",
