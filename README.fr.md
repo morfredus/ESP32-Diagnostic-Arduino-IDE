@@ -105,8 +105,8 @@ Téléchargez ou clonez ce projet dans votre dossier Arduino.
 
 **Structure du projet :**
 ```
-Test_ESP32_UNIVERSAL_Travail/
-├── Test_ESP32_UNIVERSAL_Travail.ino  (fichier principal)
+ESP32-Diagnostic/
+├── ESP32-Diagnostic.ino              (fichier principal)
 ├── languages.h                       (NOUVEAU - traductions)
 ├── config.h.example                  (template configuration)
 ├── config.h                          (vos identifiants - à créer)
@@ -356,8 +356,8 @@ Si certains textes restent en français :
 ## 📁 Structure du Projet v2.5
 
 ```
-Test_ESP32_UNIVERSAL_Travail/
-├── Test_ESP32_UNIVERSAL_Travail.ino  (code principal)
+ESP32-Diagnostic/
+├── ESP32-Diagnostic.ino              (code principal)
 ├── languages.h                       (système traduction - NOUVEAU)
 ├── config.h.example                  (template)
 ├── config.h                          (vos identifiants - gitignore)
