@@ -393,6 +393,7 @@ Free to use, modify and distribute.
 Developed for the ESP32 community.
 
 **v2.4 - Multilingual system**
+
 **v2.3 - Comprehensive base**
 
 ---
@@ -404,4 +405,5 @@ Developed for the ESP32 community.
 
 🌐 **Access**: http://ESP32-test.local  
 🇫🇷🇬🇧 **Language switching**: FR/EN buttons in interface
+
 ```
