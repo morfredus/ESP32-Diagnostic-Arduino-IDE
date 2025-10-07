@@ -1,4 +1,9 @@
-# ESP32 Complete Diagnostic v2.4
+<!-- 
+Available in multiple languages:
+- English: README.md
+- Français: README.fr.md
+-->
+# ESP32 Complete Diagnostic v2.5
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -10,7 +15,7 @@
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.4**: Interface available in **French** and **English** with **dynamic language switching without page reload**.
+**What's new in v2.5**: Interface available in **French** and **English** (reload page to set)**.
 
 ## ✨ Features
 
@@ -346,7 +351,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.4
+## 📁 Project Structure v2.5
 
 ```
 Test_ESP32_UNIVERSAL_Travail/
@@ -355,14 +360,17 @@ Test_ESP32_UNIVERSAL_Travail/
 ├── config.h.example                  (template)
 ├── config.h                          (your credentials - gitignore)
 ├── README.md                         (this file)
+├── README.fr.md                      (French version of README)
 └── .gitignore                        (excludes config.h)
 ```
 
 ## 🔄 Changelog
 
+### v2.5 (2025) - MULTILINGUAL
+- ✨ **Exporting files in multilingual** (FR/EN)
+
 ### v2.4 (2025) - MULTILINGUAL
 - ✨ **Complete multilingual system** (FR/EN)
-- ✨ **Dynamic language switching** without reload
 - ✨ New `languages.h` file with translations
 - ✨ FR/EN buttons in interface
 - ✨ REST API for language switching
@@ -392,18 +400,17 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
+**v2.5 - Translation of export files**
 **v2.4 - Multilingual system**
-
 **v2.3 - Comprehensive base**
 
 ---
 
-**Current version**: 2.4 Multilingual  
+**Current version**: 2.5 Multilingual  
 **Last update**: October 2025  
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.1.3+
 
 🌐 **Access**: http://ESP32-test.local  
 🇫🇷🇬🇧 **Language switching**: FR/EN buttons in interface
-
 ```

@@ -1,4 +1,9 @@
-# Diagnostic ESP32 Complet v2.4
+<!-- 
+Available in multiple languages:
+- English: README.md
+- Français: README.fr.md
+-->
+# Diagnostic ESP32 Complet v2.5
 
 🇫🇷 Version française | [🇬🇧 English Version](README.md)
 
@@ -10,7 +15,7 @@
 
 Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, accessible via interface web. Teste automatiquement tous les composants matériels, analyse la mémoire, scanne les périphériques et génère des rapports détaillés.
 
-**Nouveauté v2.4** : Interface disponible en **Français** et **Anglais** avec changement de langue **dynamique sans rechargement de page**.
+**Nouveauté v2.5** : Interface disponible en **Français** et **Anglais** (recharger la page pour appliquer)**.
 
 ## ✨ Fonctionnalités
 
@@ -348,7 +353,7 @@ Si certains textes restent en français :
 
 **Ne jamais partager `config.h` avec vos identifiants WiFi.**
 
-## 📁 Structure du Projet v2.4
+## 📁 Structure du Projet v2.5
 
 ```
 Test_ESP32_UNIVERSAL_Travail/
@@ -356,15 +361,18 @@ Test_ESP32_UNIVERSAL_Travail/
 ├── languages.h                       (système traduction - NOUVEAU)
 ├── config.h.example                  (template)
 ├── config.h                          (vos identifiants - gitignore)
-├── README.md                         (ce fichier)
+├── README.md                         (version Anglaise de README)
+├── README.fr.md                      (ce fichier)
 └── .gitignore                        (exclut config.h)
 ```
 
 ## 🔄 Changelog
 
+### v2.5 (2025) - MULTILINGUAL
+- ✨ **Export des fichiers en multilingue (FR/EN)**
+
 ### v2.4 (2025) - MULTILINGUE
 - ✨ **Système multilingue complet** (FR/EN)
-- ✨ **Changement de langue dynamique** sans rechargement
 - ✨ Nouveau fichier `languages.h` avec traductions
 - ✨ Boutons FR/EN dans l'interface
 - ✨ API REST pour changement de langue
@@ -394,20 +402,17 @@ Code libre d'utilisation, modification et distribution.
 
 Développé pour la communauté ESP32.
 
+**v2.5 - Traduction des fichiers d'exportation**
 **v2.4 - Système multilingue**
-
 **v2.3 - Base exhaustive**
 
 ---
 
-**Version actuelle** : 2.4 Multilingue  
+**Version actuelle** : 2.5 Multilingue  
 **Dernière mise à jour** : Octobre 2025  
 **Langues disponibles** : Français (défaut), Anglais  
 **Support** : ESP32 Arduino Core 3.1.3+
 
 🌐 **Accès** : http://ESP32-test.local  
 🇫🇷🇬🇧 **Changement de langue** : Boutons FR/EN dans l'interface
-
 ```
-
-

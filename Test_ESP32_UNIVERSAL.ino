@@ -5,6 +5,9 @@
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v2.5:
+ * - Traducion des exports (Français/Anglais)
+ * 
  * Nouveautés v2.4:
  * - Interface multilingue (Français/Anglais)
  * - Changement de langue dynamique sans rechargement
@@ -1625,57 +1628,57 @@ void handleExportTXT() {
   collectDetailedMemory();
   
   String txt = "========================================\r\n";
-  txt += String("DIAGNOSTIC COMPLET ESP32 ") + DIAGNOSTIC_VERSION + "\r\n";
+  txt += String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "\r\n";
   txt += "========================================\r\n\r\n";
   
   txt += "=== CHIP ===\r\n";
-  txt += "Modele: " + diagnosticData.chipModel + " Rev" + diagnosticData.chipRevision + "\r\n";
-  txt += "CPU: " + String(diagnosticData.cpuCores) + " coeurs @ " + String(diagnosticData.cpuFreqMHz) + " MHz\r\n";
+  txt += String(T().model) + ": " + diagnosticData.chipModel + " " + String(T().revision) + diagnosticData.chipRevision + "\r\n";
+  txt += "CPU: " + String(diagnosticData.cpuCores) + " " + String(T().cores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz\r\n";
   txt += "MAC WiFi: " + diagnosticData.macAddress + "\r\n";
   txt += "SDK: " + diagnosticData.sdkVersion + "\r\n";
   txt += "ESP-IDF: " + diagnosticData.idfVersion + "\r\n";
   if (diagnosticData.temperature != -999) {
-    txt += "Temperature: " + String(diagnosticData.temperature, 1) + " °C\r\n";
+    txt += String(T().cpu_temp) + ": " + String(diagnosticData.temperature, 1) + " °C\r\n";
   }
   txt += "\r\n";
   
-  txt += "=== MEMOIRE ===\r\n";
-  txt += "Flash (carte): " + String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB\r\n";
+  txt += "=== " + String(T().memory_details) + " ===\r\n";
+  txt += "Flash (" + String(T().board) + "): " + String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB\r\n";
   txt += "Flash (IDE): " + String(detailedMemory.flashSizeChip / 1048576.0, 2) + " MB\r\n";
-  txt += "Type Flash: " + getFlashType() + " @ " + getFlashSpeed() + "\r\n";
+  txt += String(T().flash_type) + ": " + getFlashType() + " @ " + getFlashSpeed() + "\r\n";
   txt += "PSRAM: " + String(detailedMemory.psramTotal / 1048576.0, 2) + " MB";
   if (detailedMemory.psramAvailable) {
-    txt += " (Libre: " + String(detailedMemory.psramFree / 1048576.0, 2) + " MB)\r\n";
+    txt += " (" + String(T().free) + ": " + String(detailedMemory.psramFree / 1048576.0, 2) + " MB)\r\n";
   } else {
-    txt += " (Non detectee)\r\n";
+    txt += " (" + String(T().not_detected) + ")\r\n";
   }
   txt += "SRAM: " + String(detailedMemory.sramTotal / 1024.0, 2) + " KB";
-  txt += " (Libre: " + String(detailedMemory.sramFree / 1024.0, 2) + " KB)\r\n";
-  txt += "Fragmentation: " + String(detailedMemory.fragmentationPercent, 1) + "%\r\n";
-  txt += "Etat memoire: " + detailedMemory.memoryStatus + "\r\n";
+  txt += " (" + String(T().free) + ": " + String(detailedMemory.sramFree / 1024.0, 2) + " KB)\r\n";
+  txt += String(T().memory_fragmentation) + ": " + String(detailedMemory.fragmentationPercent, 1) + "%\r\n";
+  txt += String(T().memory_status) + ": " + detailedMemory.memoryStatus + "\r\n";
   txt += "\r\n";
   
   txt += "=== WIFI ===\r\n";
   txt += "SSID: " + diagnosticData.wifiSSID + "\r\n";
   txt += "RSSI: " + String(diagnosticData.wifiRSSI) + " dBm (" + getWiFiSignalQuality() + ")\r\n";
   txt += "IP: " + diagnosticData.ipAddress + "\r\n";
-  txt += "Masque: " + WiFi.subnetMask().toString() + "\r\n";
-  txt += "Passerelle: " + WiFi.gatewayIP().toString() + "\r\n";
+  txt += String(T().subnet_mask) + ": " + WiFi.subnetMask().toString() + "\r\n";
+  txt += String(T().gateway) + ": " + WiFi.gatewayIP().toString() + "\r\n";
   txt += "DNS: " + WiFi.dnsIP().toString() + "\r\n";
   txt += "\r\n";
   
   txt += "=== GPIO ===\r\n";
-  txt += "Total GPIO: " + String(diagnosticData.totalGPIO) + "\r\n";
-  txt += "Liste: " + diagnosticData.gpioList + "\r\n";
+  txt += String(T().total_gpio) + ": " + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "\r\n";
+  txt += String(T().gpio_list) + ": " + diagnosticData.gpioList + "\r\n";
   txt += "\r\n";
   
-  txt += "=== PERIPHERIQUES ===\r\n";
-  txt += "I2C: " + String(diagnosticData.i2cCount) + " peripherique(s) - " + diagnosticData.i2cDevices + "\r\n";
+  txt += "=== " + String(T().i2c_peripherals) + " ===\r\n";
+  txt += String(T().device_count) + ": " + String(diagnosticData.i2cCount) + " - " + diagnosticData.i2cDevices + "\r\n";
   txt += "SPI: " + spiInfo + "\r\n";
   txt += "\r\n";
   
-  txt += "=== TESTS MATERIELS ===\r\n";
-  txt += "LED integree: " + builtinLedTestResult + "\r\n";
+  txt += "=== " + String(T().test) + " ===\r\n";
+  txt += String(T().builtin_led) + ": " + builtinLedTestResult + "\r\n";
   txt += "NeoPixel: " + neopixelTestResult + "\r\n";
   txt += "TFT: " + tftTestResult + "\r\n";
   txt += "OLED: " + oledTestResult + "\r\n";
@@ -1684,12 +1687,12 @@ void handleExportTXT() {
   txt += "PWM: " + pwmTestResult + "\r\n";
   txt += "\r\n";
   
-  txt += "=== PERFORMANCE ===\r\n";
+  txt += "=== " + String(T().performance_bench) + " ===\r\n";
   if (diagnosticData.cpuBenchmark > 0) {
     txt += "CPU: " + String(diagnosticData.cpuBenchmark) + " us (" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + " MFLOPS)\r\n";
-    txt += "Memoire: " + String(diagnosticData.memBenchmark) + " us\r\n";
+    txt += String(T().memory_benchmark) + ": " + String(diagnosticData.memBenchmark) + " us\r\n";
   } else {
-    txt += "Benchmarks non executes\r\n";
+    txt += String(T().not_tested) + "\r\n";
   }
   txt += "Stress test: " + stressTestResult + "\r\n";
   txt += "\r\n";
@@ -1698,15 +1701,15 @@ void handleExportTXT() {
   unsigned long minutes = seconds / 60;
   unsigned long hours = minutes / 60;
   unsigned long days = hours / 24;
-  txt += "=== SYSTEME ===\r\n";
-  txt += "Uptime: " + String(days) + "j " + String(hours % 24) + "h " + String(minutes % 60) + "m\r\n";
-  txt += "Raison reset: " + getResetReason() + "\r\n";
+  txt += "=== SYSTEM ===\r\n";
+  txt += String(T().uptime) + ": " + String(days) + "d " + String(hours % 24) + "h " + String(minutes % 60) + "m\r\n";
+  txt += String(T().last_reset) + ": " + getResetReason() + "\r\n";
   txt += "\r\n";
   txt += "========================================\r\n";
-  txt += "Rapport genere le " + String(millis()/1000) + "s apres demarrage\r\n";
+  txt += String(T().export_generated) + " " + String(millis()/1000) + "s " + String(T().export_after_boot) + "\r\n";
   txt += "========================================\r\n";
   
-  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v23.txt");
+  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v24.txt");
   server.send(200, "text/plain; charset=utf-8", txt);
 }
 
@@ -1786,12 +1789,13 @@ void handleExportJSON() {
   
   json += "\"system\":{";
   json += "\"uptime_ms\":" + String(diagnosticData.uptime) + ",";
-  json += "\"reset_reason\":\"" + getResetReason() + "\"";
+  json += "\"reset_reason\":\"" + getResetReason() + "\",";
+  json += "\"language\":\"" + String(currentLanguage == LANG_FR ? "fr" : "en") + "\"";
   json += "}";
   
   json += "}";
   
-  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v23.json");
+  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v24.json");
   server.send(200, "application/json", json);
 }
 
@@ -1799,53 +1803,53 @@ void handleExportCSV() {
   collectDiagnosticInfo();
   collectDetailedMemory();
   
-  String csv = "Categorie,Parametre,Valeur\r\n";
+  String csv = String(T().category) + "," + String(T().parameter) + "," + String(T().value) + "\r\n";
   
-  csv += "Chip,Modele," + diagnosticData.chipModel + "\r\n";
-  csv += "Chip,Revision," + diagnosticData.chipRevision + "\r\n";
-  csv += "Chip,Coeurs CPU," + String(diagnosticData.cpuCores) + "\r\n";
-  csv += "Chip,Frequence MHz," + String(diagnosticData.cpuFreqMHz) + "\r\n";
+  csv += "Chip," + String(T().model) + "," + diagnosticData.chipModel + "\r\n";
+  csv += "Chip," + String(T().revision) + "," + diagnosticData.chipRevision + "\r\n";
+  csv += "Chip,CPU " + String(T().cores) + "," + String(diagnosticData.cpuCores) + "\r\n";
+  csv += "Chip," + String(T().frequency) + " MHz," + String(diagnosticData.cpuFreqMHz) + "\r\n";
   csv += "Chip,MAC," + diagnosticData.macAddress + "\r\n";
   if (diagnosticData.temperature != -999) {
-    csv += "Chip,Temperature C," + String(diagnosticData.temperature, 1) + "\r\n";
+    csv += "Chip," + String(T().cpu_temp) + " C," + String(diagnosticData.temperature, 1) + "\r\n";
   }
   
-  csv += "Memoire,Flash MB (carte)," + String(detailedMemory.flashSizeReal / 1048576.0, 2) + "\r\n";
-  csv += "Memoire,Flash MB (config)," + String(detailedMemory.flashSizeChip / 1048576.0, 2) + "\r\n";
-  csv += "Memoire,Type Flash," + getFlashType() + "\r\n";
-  csv += "Memoire,PSRAM MB," + String(detailedMemory.psramTotal / 1048576.0, 2) + "\r\n";
-  csv += "Memoire,PSRAM Libre MB," + String(detailedMemory.psramFree / 1048576.0, 2) + "\r\n";
-  csv += "Memoire,SRAM KB," + String(detailedMemory.sramTotal / 1024.0, 2) + "\r\n";
-  csv += "Memoire,SRAM Libre KB," + String(detailedMemory.sramFree / 1024.0, 2) + "\r\n";
-  csv += "Memoire,Fragmentation %," + String(detailedMemory.fragmentationPercent, 1) + "\r\n";
+  csv += String(T().memory_details) + ",Flash MB (" + String(T().board) + ")," + String(detailedMemory.flashSizeReal / 1048576.0, 2) + "\r\n";
+  csv += String(T().memory_details) + ",Flash MB (config)," + String(detailedMemory.flashSizeChip / 1048576.0, 2) + "\r\n";
+  csv += String(T().memory_details) + "," + String(T().flash_type) + "," + getFlashType() + "\r\n";
+  csv += String(T().memory_details) + ",PSRAM MB," + String(detailedMemory.psramTotal / 1048576.0, 2) + "\r\n";
+  csv += String(T().memory_details) + ",PSRAM " + String(T().free) + " MB," + String(detailedMemory.psramFree / 1048576.0, 2) + "\r\n";
+  csv += String(T().memory_details) + ",SRAM KB," + String(detailedMemory.sramTotal / 1024.0, 2) + "\r\n";
+  csv += String(T().memory_details) + ",SRAM " + String(T().free) + " KB," + String(detailedMemory.sramFree / 1024.0, 2) + "\r\n";
+  csv += String(T().memory_details) + "," + String(T().memory_fragmentation) + " %," + String(detailedMemory.fragmentationPercent, 1) + "\r\n";
   
   csv += "WiFi,SSID," + diagnosticData.wifiSSID + "\r\n";
   csv += "WiFi,RSSI dBm," + String(diagnosticData.wifiRSSI) + "\r\n";
   csv += "WiFi,IP," + diagnosticData.ipAddress + "\r\n";
-  csv += "WiFi,Passerelle," + WiFi.gatewayIP().toString() + "\r\n";
+  csv += "WiFi," + String(T().gateway) + "," + WiFi.gatewayIP().toString() + "\r\n";
   
-  csv += "GPIO,Total," + String(diagnosticData.totalGPIO) + "\r\n";
+  csv += "GPIO," + String(T().total_gpio) + "," + String(diagnosticData.totalGPIO) + "\r\n";
   
-  csv += "Peripheriques,I2C Count," + String(diagnosticData.i2cCount) + "\r\n";
-  csv += "Peripheriques,I2C Devices," + diagnosticData.i2cDevices + "\r\n";
+  csv += String(T().i2c_peripherals) + "," + String(T().device_count) + "," + String(diagnosticData.i2cCount) + "\r\n";
+  csv += String(T().i2c_peripherals) + "," + String(T().devices) + "," + diagnosticData.i2cDevices + "\r\n";
   
-  csv += "Tests,LED Integree," + builtinLedTestResult + "\r\n";
-  csv += "Tests,NeoPixel," + neopixelTestResult + "\r\n";
-  csv += "Tests,TFT," + tftTestResult + "\r\n";
-  csv += "Tests,OLED," + oledTestResult + "\r\n";
-  csv += "Tests,ADC," + adcTestResult + "\r\n";
-  csv += "Tests,Touch," + touchTestResult + "\r\n";
-  csv += "Tests,PWM," + pwmTestResult + "\r\n";
+  csv += String(T().test) + "," + String(T().builtin_led) + "," + builtinLedTestResult + "\r\n";
+  csv += String(T().test) + ",NeoPixel," + neopixelTestResult + "\r\n";
+  csv += String(T().test) + ",TFT," + tftTestResult + "\r\n";
+  csv += String(T().test) + ",OLED," + oledTestResult + "\r\n";
+  csv += String(T().test) + ",ADC," + adcTestResult + "\r\n";
+  csv += String(T().test) + ",Touch," + touchTestResult + "\r\n";
+  csv += String(T().test) + ",PWM," + pwmTestResult + "\r\n";
   
   if (diagnosticData.cpuBenchmark > 0) {
-    csv += "Performance,CPU us," + String(diagnosticData.cpuBenchmark) + "\r\n";
-    csv += "Performance,Memoire us," + String(diagnosticData.memBenchmark) + "\r\n";
+    csv += String(T().performance_bench) + ",CPU us," + String(diagnosticData.cpuBenchmark) + "\r\n";
+    csv += String(T().performance_bench) + "," + String(T().memory_benchmark) + " us," + String(diagnosticData.memBenchmark) + "\r\n";
   }
   
-  csv += "Systeme,Uptime ms," + String(diagnosticData.uptime) + "\r\n";
-  csv += "Systeme,Reset Reason," + getResetReason() + "\r\n";
+  csv += "System," + String(T().uptime) + " ms," + String(diagnosticData.uptime) + "\r\n";
+  csv += "System," + String(T().last_reset) + "," + getResetReason() + "\r\n";
   
-  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v23.csv");
+  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v24.csv");
   server.send(200, "text/csv; charset=utf-8", csv);
 }
 
@@ -1853,9 +1857,7 @@ void handlePrintVersion() {
   collectDiagnosticInfo();
   collectDetailedMemory();
   
-  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Diagnostic ESP32 v";
-  html += DIAGNOSTIC_VERSION;
-  html += "</title>";
+  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</title>";
   html += "<style>";
   html += "@page{size:A4;margin:10mm}";
   html += "body{font:11px Arial;margin:10px;color:#333}";
@@ -1876,10 +1878,10 @@ void handlePrintVersion() {
   html += "</style></head>";
   html += "<body onload='window.print()'>";
   
-  // Header
-  html += "<h1>Diagnostic Complet ESP32 v" + String(DIAGNOSTIC_VERSION) + "</h1>";
+  // Header traduit
+  html += "<h1>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1>";
   html += "<div style='margin:10px 0;font-size:12px;color:#666'>";
-  html += "Généré le " + String(millis()/1000) + "s après démarrage | IP: " + diagnosticData.ipAddress;
+  html += String(T().export_generated) + " " + String(millis()/1000) + "s " + String(T().export_after_boot) + " | IP: " + diagnosticData.ipAddress;
   html += "</div>";
   
   // Chip
