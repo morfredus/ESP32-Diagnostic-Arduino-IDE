@@ -175,6 +175,27 @@ struct Translations {
   const char* pdf_format;
   const char* open;
   
+    // Nouveaux champs pour les exports
+  const char* export_report;
+  const char* export_generated;
+  const char* export_after_boot;
+  const char* category;
+  const char* parameter;
+  const char* value;
+  const char* model;
+  const char* revision;
+  const char* frequency;
+  const char* real;
+  const char* board;
+  const char* psram_mb;
+  const char* detected;
+  const char* sram_kb;
+  const char* connected;
+  const char* signal;
+  const char* list;
+  const char* days;
+  const char* hours;
+  
   // Statuts et messages
   const char* ok;
   const char* fail;
@@ -371,6 +392,27 @@ const Translations LANG_FR_TEXTS = {
   "Version Imprimable",
   "Format PDF",
   "Ouvrir",
+  
+    // Nouveaux champs exports
+  "Rapport de diagnostic",
+  "Rapport généré le",
+  "secondes après démarrage",
+  "Catégorie",
+  "Paramètre",
+  "Valeur",
+  "Modèle",
+  "Révision",
+  "Fréquence",
+  "Réel",
+  "Carte",
+  "PSRAM MB",
+  "Détecté",
+  "SRAM KB",
+  "Connecté",
+  "Signal",
+  "Liste",
+  "jours",
+  "heures"
   
   // Statuts
   "OK",
@@ -569,6 +611,27 @@ const Translations LANG_EN_TEXTS = {
   "PDF Format",
   "Open",
   
+    // Nouveaux champs exports
+  "Diagnostic Report",
+  "Report generated at",
+  "seconds after boot",
+  "Category",
+  "Parameter",
+  "Value",
+  "Model",
+  "Revision",
+  "Frequency",
+  "Real",
+  "Board",
+  "PSRAM MB",
+  "Detected",
+  "SRAM KB",
+  "Connected",
+  "Signal",
+  "List",
+  "days",
+  "hours"
+    
   // Status
   "OK",
   "FAIL",
