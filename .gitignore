@@ -1,5 +1,7 @@
 # Fichier de configuration WiFi (sensible - ne pas versionner)
 config.h
+
+# Fichiers divers
 Test_ESP32_UNIVERSAL.txt
 Test_ESP32_UNIVERSAL_Travail.txt
 
@@ -15,8 +17,10 @@ Test_ESP32_UNIVERSAL_Travail.txt
 # Dossiers de build
 build/
 .build/
+.github/
 
 # Fichiers système
+.gitattributes
 .DS_Store
 Thumbs.db
 *.swp
