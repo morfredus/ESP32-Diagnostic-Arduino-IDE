@@ -42,7 +42,7 @@
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
-#define MDNS_HOSTNAME "ESP32-Diagnostic"
+#define MDNS_HOSTNAME "esp32-diagnostic"
 
 // Pins I2C pour OLED (modifiables via web)
 int I2C_SDA = 8;
@@ -1709,7 +1709,7 @@ void handleExportTXT() {
   txt += String(T().export_generated) + " " + String(millis()/1000) + "s " + String(T().export_after_boot) + "\r\n";
   txt += "========================================\r\n";
   
-  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v24.txt");
+  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v"+ String(DIAGNOSTIC_VERSION) +".txt");
   server.send(200, "text/plain; charset=utf-8", txt);
 }
 
@@ -1795,7 +1795,7 @@ void handleExportJSON() {
   
   json += "}";
   
-  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v24.json");
+  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v" + String(DIAGNOSTIC_VERSION) + ".json");
   server.send(200, "application/json", json);
 }
 
@@ -1849,7 +1849,7 @@ void handleExportCSV() {
   csv += "System," + String(T().uptime) + " ms," + String(diagnosticData.uptime) + "\r\n";
   csv += "System," + String(T().last_reset) + "," + getResetReason() + "\r\n";
   
-  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v24.csv");
+  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v" + String(DIAGNOSTIC_VERSION) + ".csv");
   server.send(200, "text/csv; charset=utf-8", csv);
 }
 
