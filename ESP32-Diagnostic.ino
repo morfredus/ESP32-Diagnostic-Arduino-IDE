@@ -1,12 +1,17 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v3.0-dev
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.5
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.1.3
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v3.0:
- * - Toutes fonctionnalités v2.5 préservées
+ * Nouveautés v2.5:
+ * - Traducion des exports (Français/Anglais)
+ * 
+ * Nouveautés v2.4:
+ * - Interface multilingue (Français/Anglais)
+ * - Changement de langue dynamique sans rechargement
+ * - Toutes fonctionnalités v2.3 préservées
  */
 
 #include <WiFi.h>
@@ -33,7 +38,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0-dev"
+#define DIAGNOSTIC_VERSION "2.5"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
