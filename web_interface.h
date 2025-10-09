@@ -7,6 +7,14 @@
 #define WEB_INTERFACE_H
 
 #include <Arduino.h>
+#include <WebServer.h>
+
+// Déclarations externes (définies dans le fichier principal)
+extern const char* DIAGNOSTIC_VERSION_STR;
+extern const char* MDNS_HOSTNAME_STR;
+extern WebServer server;
+extern struct DiagnosticInfo diagnosticData;
+extern Language currentLanguage;
 
 // Déclaration de la fonction principale
 void handleRoot();
@@ -79,7 +87,7 @@ void handleRoot() {
   html += F("<h1 id='main-title'>");
   html += F("<span class='status-indicator status-online' id='statusIndicator'></span>");
   html += F("ESP32 Diagnostic v");
-  html += DIAGNOSTIC_VERSION;  // ✅ Changement
+  html += DIAGNOSTIC_VERSION_STR;  // ✅ Changement
   html += F("</h1>");
 
   html += F("<div style='font-size:1.2em;margin:10px 0' id='chipModel'>");
@@ -88,9 +96,9 @@ void handleRoot() {
 
   html += F("<div style='font-size:.9em;opacity:.9;margin:10px 0'>");
   html += String(T().access) + F(": <a href='http://");
-  html += MDNS_HOSTNAME;
+  html += MDNS_HOSTNAME_STR;
   html += F(".local' style='color:#fff;text-decoration:underline'><strong>http://");
-  html += MDNS_HOSTNAME;
+  html += MDNS_HOSTNAME_STR;
   html += F(".local</strong></a> ") + String(T().or_text) + F(" <strong id='ipAddress'>");
   html += diagnosticData.ipAddress;
   html += F("</strong></div>");
@@ -136,7 +144,7 @@ void handleRoot() {
   // Fonction principaleexpo
   html += F("document.addEventListener('DOMContentLoaded',function(){");
   html += F("console.log('ESP32 Diagnostic v");
-  html += DIAGNOSTIC_VERSION;  // ✅ Changement
+  html += DIAGNOSTIC_VERSION_STR;  // ✅ Changement
   html += F(" - Init');");
   html += F("document.querySelector('.content').innerHTML='<p style=\"text-align:center;padding:50px\">Interface dynamique chargée!<br><br>Utilisez les onglets ci-dessus pour accéder aux différentes fonctionnalités.</p>';");
   html += F("startAutoUpdate();");

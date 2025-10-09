@@ -38,15 +38,16 @@
 // Système de traduction
 #include "languages.h"
 
-// Interface web dynamique
-#include "web_interface.h"
-
 // ========== CONFIGURATION ==========
 #define DIAGNOSTIC_VERSION "3.0-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
 #define MDNS_HOSTNAME "esp32-diagnostic"
+
+// Variables globales pour web_interface.h
+const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
+const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
 
 // Pins I2C pour OLED (modifiables via web)
 int I2C_SDA = 8;
@@ -222,6 +223,9 @@ std::vector<TouchReading> touchReadings;
 float heapHistory[HISTORY_SIZE];
 float tempHistory[HISTORY_SIZE];
 int historyIndex = 0;
+
+// Interface web dynamique (APRÈS toutes les déclarations)
+#include "web_interface.h"
 
 // ========== DÉTECTION MODÈLE ==========
 String detectChipModel() {
