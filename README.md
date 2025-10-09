@@ -3,414 +3,424 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.5
+# ESP32 Complete Diagnostic Tool v3.0-dev
 
-[🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
+[![Version](https://img.shields.io/badge/version-3.0--dev-blue.svg)](https://github.com/yourusername/esp32-diagnostic)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-ESP32-orange.svg)](https://www.espressif.com/)
+[![Arduino](https://img.shields.io/badge/Arduino-3.1.3-teal.svg)](https://github.com/espressif/arduino-esp32)
 
-> **Note:** This is the English version. Pour la version française, [cliquez ici](README.fr.md).
+A comprehensive web-based diagnostic tool for ESP32 microcontrollers with real-time monitoring, hardware testing, and dynamic interface.
 
----
+[🇫🇷 Version française](README.fr.md) | [📋 Changelog](CHANGELOG.md)
 
-## 📋 Description
+![ESP32 Diagnostic Interface](docs/screenshot.png)
 
-Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
+## 🌟 Key Features
 
-**What's new in v2.5**: Interface available in **French** and **English** (reload page to set)**.
+### 🔄 Real-Time Monitoring (v3.0-dev)
+- **Dynamic web interface** with asynchronous loading
+- **Auto-refresh every 5 seconds** for live data
+- **REST API architecture** for efficient communication
+- **Connection status indicator** (online/offline)
+- **Smooth animations and transitions**
 
-## ✨ Features
+### 🔧 System Information
+- Complete chip identification (ESP32, S2, S3, C3, C6, H2)
+- CPU cores and frequency
+- MAC address
+- SDK and ESP-IDF versions
+- Internal temperature sensor (if available)
+- Uptime tracking
+- Reset reason detection
 
-### 🌍 Multilingual Interface (NEW in v2.4)
-- **French** (default language)
+### 💾 Detailed Memory Analysis
+- **Flash Memory**: Real size vs configured size
+- **PSRAM**: Total, free, used (OPI/QSPI support)
+- **SRAM**: Internal memory statistics
+- **Fragmentation analysis** with status
+- Memory stress testing
+- Real-time memory graphs
+
+### 📡 WiFi Management
+- Multi-network support (WiFiMulti)
+- Network scanner with details:
+  - SSID, BSSID, Channel
+  - Signal strength (RSSI)
+  - Encryption type
+  - Signal quality indicator
+- Connection information (IP, Subnet, Gateway, DNS)
+- mDNS support (esp32-diagnostic.local)
+
+### 🔌 GPIO Testing
+- Individual GPIO testing (Digital I/O)
+- Complete pin mapping for each ESP32 variant
+- Visual OK/FAIL indicators
+- ADC testing (Analog to Digital Converter)
+- Touch sensor testing (ESP32/S3)
+- PWM testing (Pulse Width Modulation)
+
+### 💡 LED Control
+- **Built-in LED**:
+  - Configurable GPIO pin
+  - Blink and fade patterns
+  - Individual control
+- **NeoPixel/WS2812**:
+  - Configurable GPIO and LED count
+  - Rainbow effect
+  - Custom colors with color picker
+  - Blink and fade animations
+
+### 📺 Screen Support
+- **TFT SPI Display**:
+  - Full color test
+  - Checkerboard pattern
+  - Custom resolution detection
+- **OLED 0.96" I2C**:
+  - Complete test suite (10 tests)
+  - Text display (multiple sizes)
+  - Geometric shapes
+  - Line patterns
+  - Animations (moving square, scrolling text)
+  - Progress bar
+  - Custom message display
+
+### 🧪 Advanced Testing
+- I2C peripheral scanner
+- SPI bus detection
+- Flash partition listing
+- Memory stress testing
+- CPU and memory benchmarks (MFLOPS, MB/s)
+
+### 🌐 Multilingual Interface
+- **French** (default)
 - **English**
-- **Dynamic switching**: FR/EN buttons in interface
-- **Real-time update**: No reload required
-- **Complete translations**: All texts, labels, messages and status
+- Dynamic language switching without reload
+- Translated exports
 
-### Hardware Tests
-- **Built-in LED** - Configuration and testing with patterns (blink, fade)
-- **NeoPixel/WS2812B** - Multi-LED support with RGB effects
-- **TFT 320x240 Screen** - Color, shape, text testing
-- **OLED 0.96" I2C Screen** - 10 display tests including animations
-- **GPIO** - Automatic testing of all available GPIO
-- **ADC** - Reading all analog channels
-- **Touch Pads** - Capacitive touch sensor testing
-- **PWM/LEDC** - Pulse width modulation testing
+### 📤 Data Export
+- **TXT**: Human-readable report
+- **JSON**: Structured format for scripts
+- **CSV**: Excel/spreadsheet compatible
+- **Print**: PDF-ready formatted page
 
-### System Analysis
-- **Detailed Memory** - Flash, PSRAM (OPI/QSPI), SRAM with integrity tests
-- **WiFi Scanner** - Network scan with RSSI, channel, encryption
-- **I2C Scan** - Automatic peripheral detection (0x01-0x7F)
-- **SPI Scan** - Available SPI bus information
-- **Flash Partitions** - Complete partition list
-- **Benchmarks** - CPU and memory performance
-- **Stress Test** - Memory allocation limit testing
+## 📋 Hardware Requirements
 
-### Web Interface
-- **8 tabs** - Intuitive navigation (Overview, LEDs, Screens, Advanced Tests, GPIO, WiFi, Performance, Export)
-- **Language selector** - FR/EN buttons in top right
-- **Dynamic configuration** - OLED I2C pins modifiable via web
-- **Real-time** - Data refresh without reload
-- **Responsive** - Mobile/tablet/desktop compatible
-- **Complete exports** - TXT, JSON, CSV, printable PDF version
+### Minimum
+- ESP32 (any variant)
+- USB cable for programming
+- WiFi network
 
-### Network Access
-- **mDNS** - Access via http://ESP32-Diagnostic.local
-- **Multi-WiFi** - Automatic connection with failover
-- **REST API** - JSON endpoints for integration
+### Tested Platforms
+- ✅ ESP32 (original)
+- ✅ ESP32-S2
+- ✅ ESP32-S3 (with PSRAM OPI)
+- ✅ ESP32-C3
+- ⚠️ ESP32-C6, H2 (not fully tested)
 
-## 🎯 Compatible Boards
+### Optional Hardware
+- NeoPixel/WS2812 LED strip
+- TFT SPI display (ST7789/ILI9341)
+- OLED 0.96" I2C display (SSD1306)
+- Touch sensors
+- External peripherals (I2C/SPI)
 
-Tested and optimized for:
-- ✅ **ESP32** (original)
-- ✅ **ESP32-S2**
-- ✅ **ESP32-S3** (recommended - with OPI PSRAM)
-- ✅ **ESP32-C3**
-- ⚠️ **ESP32-C6, ESP32-H2** (not tested but should work)
+## 🚀 Quick Start
 
-## 📦 Requirements
+### 1. Installation
 
-### Hardware
-- ESP32 board (any model)
-- USB cable
-- Optional: NeoPixel LED, TFT screen, OLED screen
+#### Arduino IDE
+1. Install [Arduino IDE](https://www.arduino.cc/en/software) 1.8.19 or later
+2. Add ESP32 board support:
+   - File → Preferences
+   - Additional Board Manager URLs: `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
+   - Tools → Board → Boards Manager → Search "ESP32" → Install
+3. Install required libraries:
+   - Adafruit NeoPixel
+   - TFT_eSPI
+   - Adafruit GFX
+   - Adafruit SSD1306
 
-### Software
-- **Arduino IDE** 2.x or higher
-- **ESP32 Arduino Core** 3.1.3 or higher
-
-### Required Arduino Libraries
-
-**Mandatory (via Library Manager):**
-```
-1. Adafruit BusIO
-2. Adafruit GFX Library
-3. Adafruit SSD1306
-4. Adafruit NeoPixel
-5. TFT_eSPI
+#### PlatformIO
+```ini
+[env:esp32dev]
+platform = espressif32
+board = esp32-s3-devkitc-1
+framework = arduino
+lib_deps =
+    adafruit/Adafruit NeoPixel@^1.12.0
+    bodmer/TFT_eSPI@^2.5.0
+    adafruit/Adafruit GFX Library@^1.11.0
+    adafruit/Adafruit SSD1306@^2.5.0
 ```
 
-**Included with ESP32 Core:**
-```
-WiFi, WebServer, ESPmDNS, Wire, SPI
-esp_chip_info, esp_mac, esp_flash, esp_heap_caps, esp_partition
-```
+### 2. Configuration
 
-## 🚀 Installation
-
-### 1. Download
-
-Download or clone this project to your Arduino folder.
-
-### 2. Required Files
-
-**Project structure:**
-```
-ESP32-Diagnostic/
-├── ESP32-Diagnostic.ino              (main file)
-├── languages.h                       (NEW - translations)
-├── config.h.example                  (configuration template)
-├── config.h                          (your credentials - to create)
-└── README.md
-```
-
-### 3. WiFi Configuration
-
-**IMPORTANT:** Create a `config.h` file in the same folder as the `.ino`
-
-**Option A - Rename the example file:**
-Rename the file `example-config.h` to `config.h`
-Edit the file and add your WiFi network(s) by filling in the values
-
-```cpp
-const char* WIFI_SSID_1 = "SSID1";
-const char* WIFI_PASS_1 = "Password1";
-
-// Add as many networks as needed
-// const char* WIFI_SSID_2 = "SSID2";
-// const char* WIFI_PASS_2 = "Password2";
-
-// const char* WIFI_SSID_3 = "SSID3";
-// const char* WIFI_PASS_3 = "Password3";
-```
-
-**Option B - Create `config.h` manually:**
+Create `config.h`:
 ```cpp
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// ========== WIFI CONFIGURATION ==========
-const char* WIFI_SSID_1 = "SSID1";
-const char* WIFI_PASS_1 = "Password1";
+// WiFi Networks (supports multiple)
+#define WIFI_SSID_1 "YourNetworkName"
+#define WIFI_PASS_1 "YourPassword"
 
-// Add as many networks as needed
-// const char* WIFI_SSID_2 = "SSID2";
-// const char* WIFI_PASS_2 = "Password2";
-
-// const char* WIFI_SSID_3 = "SSID3";
-// const char* WIFI_PASS_3 = "Password3";
+#define WIFI_SSID_2 "SecondaryNetwork"
+#define WIFI_PASS_2 "SecondaryPassword"
 
 #endif
 ```
 
-Replace `YourSSID` and `YourPassword` with your actual WiFi credentials.
+### 3. Upload
 
-### 4. Copy languages.h
+1. Connect your ESP32
+2. Select your board:
+   - Tools → Board → ESP32 Arduino → [Your ESP32 model]
+3. Select port: Tools → Port → [Your COM port]
+4. **Important for PSRAM**: Tools → PSRAM → OPI PSRAM (or QSPI PSRAM)
+5. Upload: Sketch → Upload
 
-Copy the provided `languages.h` file to the same folder as the `.ino`.
+### 4. Access
 
-### 5. Hardware Configuration
-
-**PSRAM (if available):**
-- ESP32-S3: `Tools → PSRAM → OPI PSRAM`
-- ESP32: `Tools → PSRAM → Enabled`
-
-**Flash Size:**
+After upload, open Serial Monitor (115200 baud) to see:
 ```
-Tools → Flash Size → [Your board's actual size]
-```
-
-### 6. Compile and Upload
-
-```
-Sketch → Upload
+http://esp32-diagnostic.local
+or
+http://192.168.x.x
 ```
 
-### 7. Accessing the Interface
+Open your browser and navigate to the displayed URL.
 
-- **http://ESP32-Diagnostic.local** (mDNS)
-- **http://[DISPLAYED_IP]** (direct IP)
+## 📖 Usage Guide
 
-## 🌐 Multilingual Usage
+### Web Interface Tabs
 
-### Language Switching
+#### 🏠 Overview
+- Complete system status
+- Chip information
+- Memory breakdown with progress bars
+- WiFi connection details
+- GPIO and peripherals summary
 
-**In the web interface:**
-1. Click the **FR** or **EN** button in the top right
-2. The interface updates **instantly**
-3. No reload required
+#### 💡 LEDs
+- Built-in LED configuration and testing
+- NeoPixel setup and patterns
+- Real-time control
 
-**Default:** French interface
+#### 📺 Screens
+- TFT display testing
+- OLED display testing
+- Custom message display
 
-**Via API:**
-```bash
-# Switch to English
-curl http://ESP32-Diagnostic.local/api/set-language?lang=en
+#### 🧪 Tests
+- ADC channel testing
+- Touch pad testing
+- PWM testing
+- SPI bus scanning
+- Flash partition listing
+- Memory stress testing
 
-# Switch to French
-curl http://ESP32-Diagnostic.local/api/set-language?lang=fr
+#### 🔌 GPIO
+- Complete GPIO testing
+- Visual pin status
 
-# Get current translations
-curl http://ESP32-Diagnostic.local/api/get-translations
-```
+#### 📡 WiFi
+- Network scanner
+- I2C peripheral scanner
 
-### Translated Texts
+#### ⚡ Performance
+- CPU benchmark
+- Memory benchmark
+- Performance metrics
 
-**All elements are translated:**
-- Section titles
-- Labels and descriptions
-- Status messages (OK, FAIL, Testing...)
-- Action buttons
-- Error messages
-- Signal qualities (Excellent, Good, Weak...)
-- Reset reasons
+#### 📤 Export
+- Download diagnostic reports
+- Multiple format options
 
-## 🔧 Pin Configuration
+### API Endpoints (v3.0-dev)
 
-### Default Pins
+The tool provides a complete REST API:
 
-**I2C (OLED) - Modifiable via web:**
-| Model    | SDA | SCL |
-|----------|-----|-----|
-| ESP32    | 21  | 22  |
-| ESP32-S2 | 8   | 9   |
-| ESP32-S3 | 8   | 9   |
-| ESP32-C3 | 5   | 6   |
+#### Real-Time Data
+- `GET /api/status` - System status (5s refresh)
+- `GET /api/system-info` - Chip and network info
+- `GET /api/overview` - Complete overview
+- `GET /api/memory` - Memory details
+- `GET /api/wifi-info` - WiFi information
+- `GET /api/peripherals` - I2C/SPI devices
 
-**TFT SPI (fixed):**
-```
-MOSI: 45, SCLK: 3, CS: 14, DC: 47, RST: 21, MISO: 46
-```
+#### Hardware Info
+- `GET /api/leds-info` - LED status
+- `GET /api/screens-info` - Screen status
 
-**Built-in LED (auto-detected):**
-- ESP32-S3: GPIO 2
-- ESP32-C3: GPIO 8
-- ESP32: GPIO 2
+#### Testing
+- `GET /api/test-gpio` - Test all GPIO
+- `GET /api/wifi-scan` - Scan WiFi networks
+- `GET /api/i2c-scan` - Scan I2C devices
+- `GET /api/adc-test` - Test ADC channels
+- `GET /api/touch-test` - Test touch pads
+- `GET /api/pwm-test` - Test PWM
+- `GET /api/benchmark` - Run benchmarks
 
-**NeoPixel (auto-detected):**
-- ESP32-S3: GPIO 48
-- ESP32-C3: GPIO 8
+#### Control
+- `GET /api/builtin-led-config?gpio=X` - Configure LED
+- `GET /api/builtin-led-test` - Test LED
+- `GET /api/builtin-led-control?action=[blink|fade|off]` - Control LED
+- `GET /api/neopixel-config?gpio=X&count=Y` - Configure NeoPixel
+- `GET /api/neopixel-pattern?pattern=[rainbow|blink|fade|off]` - NeoPixel pattern
+- `GET /api/neopixel-color?r=X&g=Y&b=Z` - Set NeoPixel color
 
-## 📖 Usage
+## 🔧 Advanced Configuration
 
-### Language Selection
+### Custom Pin Configuration
 
-**FR/EN buttons** in the top right of the header allow instant language switching.
+Edit in the main `.ino` file:
 
-### Available Tabs
-
-1. **Overview** - Complete system information
-2. **LEDs** - Built-in LED and NeoPixel tests
-3. **Screens** - TFT and OLED tests
-4. **Advanced Tests** - ADC, Touch, PWM, SPI, Partitions, Stress Test
-5. **GPIO** - Automatic all GPIO testing
-6. **WiFi** - WiFi network scanner
-7. **Performance** - CPU/Memory benchmarks
-8. **Export** - TXT, JSON, CSV, Printable version
-
-## 🛠️ Customization
-
-### Change Default Language
-
-In `languages.h`:
 ```cpp
-Language currentLanguage = LANG_EN; // For English by default
+// I2C for OLED (can be changed via web interface)
+int I2C_SDA = 8;
+int I2C_SCL = 9;
+
+// TFT SPI (fixed)
+#define TFT_MOSI  45
+#define TFT_SCLK   3
+#define TFT_CS    14
+#define TFT_DC    47
+#define TFT_RST   21
+#define TFT_MISO  46
+
+// NeoPixel (can be changed via web interface)
+#define CUSTOM_LED_PIN -1  // -1 for auto-detect
+#define CUSTOM_LED_COUNT 1
 ```
 
-### Add a New Language
+### TFT_eSPI Configuration
 
-1. Define the enum in `languages.h`:
+Edit `User_Setup.h` in TFT_eSPI library:
+
 ```cpp
-enum Language {
-  LANG_FR = 0,
-  LANG_EN = 1,
-  LANG_ES = 2  // Spanish
-};
+#define ST7789_DRIVER
+#define TFT_WIDTH  240
+#define TFT_HEIGHT 320
+#define TFT_MOSI 45
+#define TFT_SCLK 3
+#define TFT_CS   14
+#define TFT_DC   47
+#define TFT_RST  21
 ```
 
-2. Create the translation structure:
+### mDNS Hostname
+
+Change in `.ino`:
 ```cpp
-const Translations LANG_ES_TEXTS = {
-  "Diagnóstico ESP32 Completo",
-  "v",
-  // ... all translations
-};
+#define MDNS_HOSTNAME "esp32-diagnostic"
 ```
 
-3. Modify the `T()` function:
-```cpp
-const Translations& T() {
-  switch(currentLanguage) {
-    case LANG_FR: return LANG_FR_TEXTS;
-    case LANG_EN: return LANG_EN_TEXTS;
-    case LANG_ES: return LANG_ES_TEXTS;
-    default: return LANG_FR_TEXTS;
-  }
-}
-```
+### Auto-Refresh Interval
 
-## 📊 REST API
-
-**New routes in v2.4:**
-```
-GET /api/set-language?lang=fr    → Change language (fr/en)
-GET /api/get-translations        → Get JSON translations
-```
-
-**Existing routes:**
-```
-GET /                            → Web interface
-GET /api/test-gpio               → GPIO test
-GET /api/wifi-scan               → WiFi scanner
-GET /api/benchmark               → Benchmarks
-GET /export/txt                  → TXT export
-GET /export/json                 → JSON export
-GET /export/csv                  → CSV export
+Edit in `web_interface.h` (JavaScript section):
+```javascript
+const UPDATE_INTERVAL = 5000; // milliseconds (5 seconds)
 ```
 
 ## 🐛 Troubleshooting
 
-### Language switching doesn't work
+### WiFi Connection Issues
+- Check credentials in `config.h`
+- Verify 2.4GHz network (ESP32 doesn't support 5GHz)
+- Try moving closer to router
+- Check Serial Monitor for IP address
 
-1. Verify that `languages.h` is in the folder
-2. Recompile completely (Clean then Upload)
-3. Clear browser cache (Ctrl+F5)
+### PSRAM Not Detected
+1. Enable in Arduino IDE: Tools → PSRAM → OPI PSRAM (or QSPI)
+2. Check your board specifications
+3. View diagnostic in Serial Monitor at startup
 
-### Untranslated texts
+### OLED Not Detected
+- Verify I2C pins (default: SDA=8, SCL=9)
+- Check I2C address (default: 0x3C)
+- Use web interface to change pins
+- Run I2C scan to detect address
 
-If some texts remain in French:
-- Check the `Translations` structure in `languages.h`
-- Ensure all keys are defined
-- Reload the page
+### TFT Not Working
+- Check SPI pins in TFT_eSPI User_Setup.h
+- Verify display driver (ST7789/ILI9341)
+- Run test from web interface
 
-### Compilation error "T() not found"
+### Compilation Errors
+- Update ESP32 core to 3.1.3 or later
+- Install all required libraries
+- Check Arduino IDE board selection
 
-- Verify that `#include "languages.h"` is present
-- The `languages.h` file must be in the same folder as the `.ino`
+## 📊 Performance
 
-## 📈 Performance
+### Memory Usage
+- **Flash**: ~800KB (program)
+- **SRAM**: ~50KB (runtime)
+- **PSRAM**: Optional (8MB recommended)
 
-- **Startup time**: ~5s
-- **Web page generation**: ~200ms
-- **Language switching**: <100ms (no reload)
-- **Heap memory used**: ~250KB
-- **Multilingual overhead**: ~15KB Flash
+### Web Interface
+- Initial load: ~100KB (HTML+CSS+JS)
+- API calls: ~1-5KB per request
+- Auto-refresh: Minimal overhead
 
-## 🔒 Security
-
-⚠️ Local/development use only.
-
-**Never share `config.h` with your WiFi credentials.**
-
-## 📁 Project Structure v2.5
-
-```
-ESP32-Diagnostic/
-├── ESP32-Diagnostic.ino              (main code)
-├── languages.h                       (translation system - NEW)
-├── config.h.example                  (template)
-├── config.h                          (your credentials - gitignore)
-├── README.md                         (this file)
-├── README.fr.md                      (French version of README)
-└── .gitignore                        (excludes config.h)
-```
-
-## 🔄 Changelog
-
-### v2.5 (2025) - MULTILINGUAL
-- ✨ **Exporting files in multilingual** (FR/EN)
-
-### v2.4 (2025) - MULTILINGUAL
-- ✨ **Complete multilingual system** (FR/EN)
-- ✨ New `languages.h` file with translations
-- ✨ FR/EN buttons in interface
-- ✨ REST API for language switching
-- ✨ All v2.3 features preserved
-- 📚 Updated README with multilingual guide
-
-### v2.3 (2025)
-- OLED 0.96" test with 10 animations
-- Dynamic I2C pin configuration
-- TXT/JSON/CSV/Print exports
-- `server.sendContent()` support
-- WiFi externalized to `config.h`
-
-## 📝 License
-
-Free to use, modify and distribute.
+### Benchmarks (ESP32-S3 @ 240MHz)
+- CPU: ~1200µs (83 MFLOPS)
+- Memory: ~800µs
+- Web response: <100ms
 
 ## 🤝 Contributing
 
-**To add a language:**
-1. Fork the project
-2. Add your language in `languages.h`
-3. Test all screens
-4. Pull Request with screenshots
+Contributions are welcome! Please:
 
-## 🎓 Credits
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-Developed for the ESP32 community.
+### Development Guidelines
+- Follow existing code style
+- Comment complex sections
+- Update documentation
+- Test on multiple ESP32 variants
 
-**v2.5 - Translation of export files**
-**v2.4 - Multilingual system**
-**v2.3 - Comprehensive base**
+## 📝 License
+
+MIT License - see [LICENSE](LICENSE) file
+
+## 👤 Author
+
+**morfredus**
+
+## 🙏 Acknowledgments
+
+- Espressif Systems for ESP32 platform
+- Arduino community
+- Adafruit for excellent libraries
+- Bodmer for TFT_eSPI library
+- All contributors and testers
+
+## 📚 Documentation
+
+- [ESP32 Official Docs](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
+- [Arduino ESP32 Core](https://github.com/espressif/arduino-esp32)
+- [TFT_eSPI Wiki](https://github.com/Bodmer/TFT_eSPI)
+- [Adafruit Learning](https://learn.adafruit.com/)
+
+## 🔗 Related Projects
+
+- [ESP32-Web-Server](https://github.com/espressif/arduino-esp32/tree/master/libraries/WebServer)
+- [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer)
+- [ESP32-PSRAM-Analyzer](https://github.com/espressif/esp-idf)
+
+## ⭐ Show Your Support
+
+If this project helped you, please give it a ⭐!
 
 ---
 
-**Current version**: 2.5 Multilingual  
-**Last update**: October 2025  
-**Available languages**: French (default), English  
-**Support**: ESP32 Arduino Core 3.1.3+
-
-🌐 **Access**: http://ESP32-Diagnostic.local  
-🇫🇷🇬🇧 **Language switching**: FR/EN buttons in interface
+**Version**: 3.0-dev
+**Last Updated**: 10/09/2025
+**Status**: Active Development
 ```
