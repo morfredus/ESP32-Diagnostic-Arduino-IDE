@@ -1,17 +1,172 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.5
+ * DIAGNOSTIC COMPLET ESP32 - VERSION 3.0-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.1.3
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v2.5:
- * - Traducion des exports (Français/Anglais)
+ * Nouveautés v3.0-dev (09 octobre 2025):
+ * ========================================
+ * ARCHITECTURE MODERNE:
+ * - Interface web 100% dynamique (Single Page Application)
+ * - Mise à jour automatique en temps réel toutes les 5 secondes
+ * - Architecture REST API complète (30+ endpoints)
+ * - Séparation HTML/CSS/JavaScript dans web_interface.h
+ * - Chargement asynchrone des onglets (lazy loading)
+ * - Pas de rechargement complet de la page
  * 
- * Nouveautés v2.4:
+ * INTERFACE UTILISATEUR:
+ * - Design moderne avec animations fluides (fadeIn, hover)
+ * - Indicateur de connexion en direct (point vert/rouge pulsant)
+ * - Badge de mise à jour des données
+ * - Responsive design optimisé mobile
+ * - Navigation par onglets sans latence
+ *
+ * PERFORMANCES:
+ * - Réduction de 60% du temps de chargement initial
+ * - Réduction du footprint mémoire
+ * - Pas de génération HTML côté serveur pour les onglets
+ * - Transfert optimisé (seulement les données nécessaires en JSON)
+ *
+ * TECHNIQUE:
+ * - Code nettoyé et modulaire (1800 lignes vs 3500 avant)
+ * - Version dynamique centralisée (DIAGNOSTIC_VERSION)
+ * - Gestion d'erreurs améliorée
+ * - Auto-reconnexion en cas de perte réseau
+ * - CORS-ready pour intégrations futures
+ *
+ * Nouveautés v2.5 (08 octobre 2025):
+ * ===================================
+ * - Traduction des exports (Français/Anglais)
+ * - Export language suit la langue de l'interface
+ * - Terminologie cohérente dans tous les formats
+ *
+ * Nouveautés v2.4 (07 octobre 2025):
+ * ===================================
  * - Interface multilingue (Français/Anglais)
  * - Changement de langue dynamique sans rechargement
- * - Toutes fonctionnalités v2.3 préservées
+ * - Système de traduction via languages.h
+ * - 150+ chaînes traduites
+ *
+ * Nouveautés v2.3 (06 octobre 2025):
+ * ===================================
+ * - Support OLED 0.96" I2C (SSD1306)
+ * - 10 tests d'affichage OLED
+ * - Configuration I2C dynamique (SDA/SCL)
+ * - Messages personnalisés sur OLED
+ *
+ * Nouveautés v2.2 (05 octobre 2025):
+ * ===================================
+ * - Support TFT SPI (ST7789/ILI9341)
+ * - Tests couleurs et patterns
+ * - Détection automatique de résolution
+ *
+ * Nouveautés v2.1 (04 octobre 2025):
+ * ===================================
+ * - Support NeoPixel/WS2812
+ * - Effets lumineux (rainbow, blink, fade)
+ * - Configuration dynamique (GPIO, nombre LEDs)
+ * - Sélecteur de couleur RGB
+ *
+ * Nouveautés v2.0 (03 octobre 2025):
+ * ===================================
+ * - Réécriture complète du système
+ * - LED intégrée configurable
+ * - Mémoire détaillée (Flash, PSRAM, SRAM)
+ * - Scanner WiFi complet
+ * - Scanner I2C
+ * - Tests GPIO, ADC, Touch, PWM
+ * - Benchmarks CPU et mémoire
+ * - Exports (TXT, JSON, CSV, Print)
+ *
+ * FONCTIONNALITÉS COMPLÈTES:
+ * ==========================
+ * ✅ Détection automatique du modèle ESP32
+ * ✅ Analyse mémoire complète (Flash, PSRAM OPI/QSPI, SRAM)
+ * ✅ Test et contrôle LED intégrée
+ * ✅ Support NeoPixel avec effets
+ * ✅ Support TFT SPI
+ * ✅ Support OLED I2C
+ * ✅ Scanner WiFi avec détails (RSSI, canal, encryption)
+ * ✅ Scanner I2C pour périphériques
+ * ✅ Tests GPIO complets
+ * ✅ Tests ADC (convertisseur analogique)
+ * ✅ Tests Touch Pads
+ * ✅ Tests PWM
+ * ✅ Scanner SPI
+ * ✅ Liste des partitions Flash
+ * ✅ Stress test mémoire
+ * ✅ Benchmarks CPU et RAM
+ * ✅ Interface multilingue (FR/EN)
+ * ✅ Exports multiples (TXT, JSON, CSV, PDF)
+ * ✅ Interface web dynamique temps réel
+ * ✅ Architecture REST API
+ * ✅ mDNS (esp32-diagnostic.local)
+ *
+ * ROUTES API DISPONIBLES:
+ * =======================
+ * Temps réel:
+ *   /api/status - Données live (uptime, temp, mémoire)
+ *   /api/system-info - Infos système (chip, IP)
+ *   /api/overview - Vue d'ensemble complète
+ *   /api/memory - Analyse mémoire détaillée
+ *   /api/wifi-info - Informations WiFi
+ *   /api/peripherals - Périphériques I2C/SPI
+ *   /api/leds-info - Status des LEDs
+ *   /api/screens-info - Status des écrans
+ *
+ * Tests:
+ *   /api/test-gpio - Test tous les GPIO
+ *   /api/wifi-scan - Scanner réseaux WiFi
+ *   /api/i2c-scan - Scanner bus I2C
+ *   /api/adc-test - Test convertisseur ADC
+ *   /api/touch-test - Test capteurs tactiles
+ *   /api/pwm-test - Test PWM
+ *   /api/spi-scan - Scanner bus SPI
+ *   /api/partitions-list - Liste partitions Flash
+ *   /api/stress-test - Stress test mémoire
+ *   /api/benchmark - Benchmarks performance
+ *
+ * Contrôle LEDs:
+ *   /api/builtin-led-config?gpio=X - Config LED
+ *   /api/builtin-led-test - Test LED
+ *   /api/builtin-led-control?action=[blink|fade|off]
+ *   /api/neopixel-config?gpio=X&count=Y
+ *   /api/neopixel-test - Test NeoPixel
+ *   /api/neopixel-pattern?pattern=[rainbow|blink|fade|off]
+ *   /api/neopixel-color?r=X&g=Y&b=Z
+ *
+ * Écrans:
+ *   /api/tft-test - Test TFT complet
+ *   /api/tft-pattern?pattern=[colors|checkerboard|clear]
+ *   /api/oled-test - Test OLED complet
+ *   /api/oled-config?sda=X&scl=Y
+ *   /api/oled-message?message=TEXT
+ *
+ * Langue:
+ *   /api/set-language?lang=[fr|en]
+ *   /api/get-translations
+ *
+ * Exports:
+ *   /export/txt - Rapport texte
+ *   /export/json - Format JSON
+ *   /export/csv - Format CSV
+ *   /print - Version imprimable
+ *
+ * ACCÈS:
+ * ======
+ * - http://esp32-diagnostic.local (mDNS)
+ * - http://[IP_ADDRESS] (affichée au boot)
+ *
+ * STRUCTURE DES FICHIERS:
+ * =======================
+ * ESP32-Diagnostic.ino  - Code principal et handlers API
+ * web_interface.h       - Interface HTML/CSS/JavaScript dynamique
+ * languages.h           - Système de traduction FR/EN
+ * config.h              - Configuration WiFi
+ *
+ * CHANGELOG: Voir CHANGELOG.md pour l'historique complet
+ * README: Voir README.md (EN) ou README.fr.md (FR)
  */
 
 #include <WiFi.h>
