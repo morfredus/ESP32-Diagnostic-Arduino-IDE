@@ -15,9 +15,9 @@ extern WebServer server;
 extern struct DiagnosticInfo diagnosticData;
 extern Language currentLanguage;
 
-// Déclaration des fonctions
-void handleRoot();
-void handleJavaScript();
+// Déclarations forward des fonctions (pour éviter les erreurs d'ordre)
+String generateHTML();
+String generateJavaScript();
 
 // Implémentation de handleRoot()
 void handleRoot() {
