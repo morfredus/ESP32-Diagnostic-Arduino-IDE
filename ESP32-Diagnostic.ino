@@ -192,15 +192,8 @@
 // Système de traduction
 #include "languages.h"
 
-// Variables globales pour web_interface.h
-const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
-const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
-
-// Generateur de page web
-#include "web_interface.h"
-
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.5"
+#define DIAGNOSTIC_VERSION "3.0-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -223,6 +216,14 @@ int I2C_SCL = 9;
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
 #define SCREEN_ADDRESS 0x3C
+
+
+// Variables globales pour web_interface.h
+const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
+const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
+
+// Generateur de page web
+#include "web_interface.h"
 
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
@@ -2209,7 +2210,8 @@ void handleGetTranslations() {
   server.send(200, "application/json", json);
 }
 
-// ========== INTERFACE WEB PRINCIPALE MULTILINGUE ==========
+/*
+// ========== INTERFACE WEB PRINCIPALE MULTILINGUE (déprécié) ==========
 void handleRoot() {
   collectDiagnosticInfo();
   collectDetailedMemory();
@@ -2643,6 +2645,7 @@ void handleRoot() {
   // Signal de fin
   server.sendContent("");
 }
+*/
 
 // ========== SETUP COMPLET ==========
 void setup() {
