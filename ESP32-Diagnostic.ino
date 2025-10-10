@@ -37,6 +37,13 @@
 // Système de traduction
 #include "languages.h"
 
+// Variables globales pour web_interface.h
+const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
+const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
+
+// Generateur de page web
+#include "web_interface.h"
+
 // ========== CONFIGURATION ==========
 #define DIAGNOSTIC_VERSION "2.5"
 #define CUSTOM_LED_PIN -1
