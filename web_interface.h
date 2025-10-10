@@ -12,7 +12,7 @@
 extern const char* DIAGNOSTIC_VERSION_STR;
 extern const char* MDNS_HOSTNAME_STR;
 extern WebServer server;
-extern struct DiagnosticInfo diagnosticData;
+extern DiagnosticInfo diagnosticData;
 extern Language currentLanguage;
 
 // Déclarations forward des fonctions (pour éviter les erreurs d'ordre)

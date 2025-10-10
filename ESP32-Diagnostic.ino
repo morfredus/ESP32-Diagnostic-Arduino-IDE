@@ -2210,6 +2210,199 @@ void handleGetTranslations() {
   server.send(200, "application/json", json);
 }
 
+// ========== HANDLERS API TEMPS RÉEL v3.0-dev ==========
+
+void handleAPIStatus() {
+  collectDiagnosticInfo();
+  collectDetailedMemory();
+
+  String json = "{";
+  json += "\"uptime\":" + String(diagnosticData.uptime) + ",";
+  json += "\"temperature\":" + String(diagnosticData.temperature) + ",";
+  json += "\"sram\":{";
+  json += "\"total\":" + String(detailedMemory.sramTotal) + ",";
+  json += "\"free\":" + String(detailedMemory.sramFree) + ",";
+  json += "\"used\":" + String(detailedMemory.sramUsed);
+  json += "},";
+  json += "\"psram\":{";
+  json += "\"total\":" + String(detailedMemory.psramTotal) + ",";
+  json += "\"free\":" + String(detailedMemory.psramFree) + ",";
+  json += "\"used\":" + String(detailedMemory.psramUsed);
+  json += "},";
+  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent);
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleAPISystemInfo() {
+  collectDiagnosticInfo();
+
+  String json = "{";
+  json += "\"chipModel\":\"" + diagnosticData.chipModel + "\",";
+  json += "\"ipAddress\":\"" + diagnosticData.ipAddress + "\"";
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleAPIOverview() {
+  collectDiagnosticInfo();
+  collectDetailedMemory();
+
+  String json = "{";
+
+  json += "\"chip\":{";
+  json += "\"model\":\"" + diagnosticData.chipModel + "\",";
+  json += "\"revision\":\"" + diagnosticData.chipRevision + "\",";
+  json += "\"cores\":" + String(diagnosticData.cpuCores) + ",";
+  json += "\"freq\":" + String(diagnosticData.cpuFreqMHz) + ",";
+  json += "\"mac\":\"" + diagnosticData.macAddress + "\",";
+  json += "\"uptime\":" + String(diagnosticData.uptime) + ",";
+  json += "\"temperature\":" + String(diagnosticData.temperature);
+  json += "},";
+
+  json += "\"memory\":{";
+  json += "\"flash\":{";
+  json += "\"real\":" + String(detailedMemory.flashSizeReal) + ",";
+  json += "\"config\":" + String(detailedMemory.flashSizeChip) + ",";
+  json += "\"free\":0,";
+  json += "\"type\":\"" + getFlashType() + "\",";
+  json += "\"speed\":\"" + getFlashSpeed() + "\"";
+  json += "},";
+  json += "\"psram\":{";
+  json += "\"total\":" + String(detailedMemory.psramTotal) + ",";
+  json += "\"free\":" + String(detailedMemory.psramFree) + ",";
+  json += "\"used\":" + String(detailedMemory.psramUsed);
+  json += "},";
+  json += "\"sram\":{";
+  json += "\"total\":" + String(detailedMemory.sramTotal) + ",";
+  json += "\"free\":" + String(detailedMemory.sramFree) + ",";
+  json += "\"used\":" + String(detailedMemory.sramUsed);
+  json += "},";
+  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent);
+  json += "},";
+
+  json += "\"wifi\":{";
+  json += "\"ssid\":\"" + diagnosticData.wifiSSID + "\",";
+  json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
+  json += "\"ip\":\"" + diagnosticData.ipAddress + "\",";
+  json += "\"quality\":\"" + getWiFiSignalQuality() + "\",";
+  json += "\"subnet\":\"" + WiFi.subnetMask().toString() + "\",";
+  json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",";
+  json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
+  json += "},";
+
+  json += "\"gpio\":{";
+  json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
+  json += "\"list\":\"" + diagnosticData.gpioList + "\",";
+  json += "\"i2c_count\":" + String(diagnosticData.i2cCount) + ",";
+  json += "\"i2c_devices\":\"" + diagnosticData.i2cDevices + "\"";
+  json += "}";
+
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleAPIMemory() {
+  collectDetailedMemory();
+
+  String json = "{";
+  json += "\"flash\":{";
+  json += "\"real\":" + String(detailedMemory.flashSizeReal) + ",";
+  json += "\"config\":" + String(detailedMemory.flashSizeChip) + ",";
+  json += "\"type\":\"" + getFlashType() + "\",";
+  json += "\"speed\":\"" + getFlashSpeed() + "\"";
+  json += "},";
+  json += "\"psram\":{";
+  json += "\"total\":" + String(detailedMemory.psramTotal) + ",";
+  json += "\"free\":" + String(detailedMemory.psramFree) + ",";
+  json += "\"used\":" + String(detailedMemory.psramUsed) + ",";
+  json += "\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false");
+  json += "},";
+  json += "\"sram\":{";
+  json += "\"total\":" + String(detailedMemory.sramTotal) + ",";
+  json += "\"free\":" + String(detailedMemory.sramFree) + ",";
+  json += "\"used\":" + String(detailedMemory.sramUsed);
+  json += "},";
+  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent) + ",";
+  json += "\"status\":\"" + detailedMemory.memoryStatus + "\"";
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleAPIWiFiInfo() {
+  String json = "{";
+  json += "\"ssid\":\"" + diagnosticData.wifiSSID + "\",";
+  json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
+  json += "\"quality\":\"" + getWiFiSignalQuality() + "\",";
+  json += "\"ip\":\"" + diagnosticData.ipAddress + "\",";
+  json += "\"subnet\":\"" + WiFi.subnetMask().toString() + "\",";
+  json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",";
+  json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleAPIPeripherals() {
+  String json = "{";
+  json += "\"i2c\":{";
+  json += "\"count\":" + String(diagnosticData.i2cCount) + ",";
+  json += "\"devices\":\"" + diagnosticData.i2cDevices + "\"";
+  json += "},";
+  json += "\"spi\":\"" + spiInfo + "\"";
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleAPILedsInfo() {
+  String json = "{";
+  json += "\"builtin\":{";
+  json += "\"pin\":" + String(BUILTIN_LED_PIN) + ",";
+  json += "\"status\":\"" + builtinLedTestResult + "\",";
+  json += "\"available\":" + String(builtinLedAvailable ? "true" : "false");
+  json += "},";
+  json += "\"neopixel\":{";
+  json += "\"pin\":" + String(LED_PIN) + ",";
+  json += "\"count\":" + String(LED_COUNT) + ",";
+  json += "\"status\":\"" + neopixelTestResult + "\",";
+  json += "\"available\":" + String(neopixelAvailable ? "true" : "false");
+  json += "}";
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleAPIScreensInfo() {
+  String json = "{";
+  json += "\"tft\":{";
+  json += "\"status\":\"" + tftTestResult + "\",";
+  json += "\"available\":" + String(tftAvailable ? "true" : "false") + ",";
+  json += "\"width\":" + String(tftWidth) + ",";
+  json += "\"height\":" + String(tftHeight) + ",";
+  json += "\"pins\":{";
+  json += "\"cs\":" + String(TFT_CS) + ",";
+  json += "\"dc\":" + String(TFT_DC) + ",";
+  json += "\"rst\":" + String(TFT_RST);
+  json += "}";
+  json += "},";
+  json += "\"oled\":{";
+  json += "\"status\":\"" + oledTestResult + "\",";
+  json += "\"available\":" + String(oledAvailable ? "true" : "false") + ",";
+  json += "\"pins\":{";
+  json += "\"sda\":" + String(I2C_SDA) + ",";
+  json += "\"scl\":" + String(I2C_SCL);
+  json += "}";
+  json += "}";
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
 // ========== SETUP COMPLET ==========
 void setup() {
   Serial.begin(115200);
