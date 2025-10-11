@@ -362,6 +362,12 @@ String generateJavaScript() {
   js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"testADC()\">🧪 Lancer test ADC</button>';";
   js += "h+='<div id=\"adc-status\" class=\"status-live\">Cliquez pour tester</div></div>';";
   js += "h+='<div id=\"adc-results\" class=\"info-grid\"></div></div>';";
+  js += "h+='<div class=\"section\"><h2>🔥 Stress Test</h2>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\">';";
+  js += "h+='<p style=\"color:#dc3545;font-weight:bold\">⚠️ Peut ralentir l\\'ESP32 temporairement</p>';";
+  js += "h+='<button class=\"btn btn-danger\" onclick=\"runStressTest()\">🚀 Démarrer Stress Test</button>';";
+  js += "h+='<div id=\"stress-status\" class=\"status-live\">Non testé</div></div>';";
+  js += "h+='<div id=\"stress-results\" class=\"info-grid\"></div></div>';";
   js += "return h;";
   js += "}";
 
@@ -496,6 +502,25 @@ String generateJavaScript() {
   js += "const r=await fetch('/api/benchmark');const d=await r.json();";
   js += "document.getElementById('cpu-bench').textContent=d.cpu+' µs';";
   js += "document.getElementById('mem-bench').textContent=d.memory+' µs';";
+  js += "}";
+
+  js += "async function runStressTest(){";
+  js += "document.getElementById('stress-status').textContent='⚠️ Test en cours... Patientez';";
+  js += "document.getElementById('stress-results').innerHTML='<div class=\"loading\"></div>';";
+  js += "try{";
+  js += "const r=await fetch('/api/stress-test');";
+  js += "const d=await r.json();";
+  js += "let h='';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Temps CPU</div><div class=\"info-value\">'+d.cpu_time+' ms</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Temps Mémoire</div><div class=\"info-value\">'+d.mem_time+' ms</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Allocations</div><div class=\"info-value\">'+d.allocs_success+'/'+d.allocs_total+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Fragmentation</div><div class=\"info-value\">'+d.fragmentation.toFixed(1)+'%</div></div>';";
+  js += "document.getElementById('stress-results').innerHTML=h;";
+  js += "document.getElementById('stress-status').textContent='✅ '+d.message;";
+  js += "}catch(e){";
+  js += "document.getElementById('stress-status').textContent='❌ Erreur: '+e;";
+  js += "document.getElementById('stress-results').innerHTML='';";
+  js += "}";
   js += "}";
 
   // Utility functions

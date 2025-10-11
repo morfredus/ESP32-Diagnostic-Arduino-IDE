@@ -1618,8 +1618,64 @@ void handlePartitionsList() {
 }
 
 void handleStressTest() {
-  memoryStressTest();
-  server.send(200, "application/json", "{\"result\":\"" + stressTestResult + "\"}");
+  Serial.println("\n[STRESS TEST] Démarrage...");
+
+  unsigned long startTime = millis();
+
+  // Test 1 : Calculs intensifs CPU
+  Serial.println("Test CPU intensif...");
+  volatile float result = 0;
+  for (int i = 0; i < 100000; i++) {
+    result += sqrt(i) * sin(i) * cos(i);
+  }
+  unsigned long cpuTime = millis() - startTime;
+
+  // Test 2 : Allocations mémoire
+  Serial.println("Test allocations mémoire...");
+  startTime = millis();
+  const int numAllocs = 100;
+  void* ptrs[numAllocs];
+  int successCount = 0;
+
+  for (int i = 0; i < numAllocs; i++) {
+    ptrs[i] = malloc(1024); // 1KB par allocation
+    if (ptrs[i] != NULL) {
+      memset(ptrs[i], 0xAA, 1024); // Remplir la mémoire
+      successCount++;
+    }
+  }
+
+  // Libérer la mémoire
+  for (int i = 0; i < numAllocs; i++) {
+    if (ptrs[i] != NULL) {
+      free(ptrs[i]);
+    }
+  }
+
+  unsigned long memTime = millis() - startTime;
+
+  // Test 3 : Fragmentation
+  collectDetailedMemory();
+
+  String json = "{";
+  json += "\"success\":true,";
+  json += "\"result\":\"Test terminé\",";
+  json += "\"cpu_time\":" + String(cpuTime) + ",";
+  json += "\"mem_time\":" + String(memTime) + ",";
+  json += "\"allocs_success\":" + String(successCount) + ",";
+  json += "\"allocs_total\":" + String(numAllocs) + ",";
+  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent) + ",";
+  json += "\"sram_free\":" + String(detailedMemory.sramFree) + ",";
+  json += "\"message\":\"CPU: " + String(cpuTime) + "ms | Mem: " + String(memTime) + "ms | Allocs: " + String(successCount) + "/" + String(numAllocs) + " | Frag: " + String(detailedMemory.fragmentationPercent, 1) + "%\"";
+  json += "}";
+
+  server.send(200, "application/json", json);
+
+  Serial.println("[STRESS TEST] Terminé !");
+  Serial.println("- Temps CPU: " + String(cpuTime) + " ms");
+  Serial.println("- Temps Mémoire: " + String(memTime) + " ms");
+  Serial.println("- Allocations réussies: " + String(successCount) + "/" + String(numAllocs));
+  Serial.println("- Fragmentation: " + String(detailedMemory.fragmentationPercent, 1) + "%");
 }
 
 void handleBenchmark() {
@@ -2236,15 +2292,24 @@ void handlePrintVersion() {
 void handleSetLanguage() {
   if (server.hasArg("lang")) {
     String lang = server.arg("lang");
+
     if (lang == "fr") {
-      setLanguage(LANG_FR);
+      currentLanguage = FRENCH;
+      Serial.println("Langue changée: Français");
     } else if (lang == "en") {
-      setLanguage(LANG_EN);
+      currentLanguage = ENGLISH;
+      Serial.println("Langue changée: English");
     }
-    server.send(200, "application/json",
-                "{\"success\":true,\"lang\":\"" + lang + "\"}");
+
+    String json = "{";
+    json += "\"success\":true,";
+    json += "\"language\":\"" + lang + "\",";
+    json += "\"message\":\"Langue changée en " + lang + "\"";
+    json += "}";
+
+    server.send(200, "application/json", json);
   } else {
-    server.send(400, "application/json", "{\"success\":false}");
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Paramètre manquant\"}");
   }
 }
 
