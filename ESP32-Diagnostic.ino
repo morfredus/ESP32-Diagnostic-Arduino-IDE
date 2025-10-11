@@ -1846,10 +1846,6 @@ void handleAPIScreensInfo() {
   server.send(200, "application/json", json);
 }
 
-void handleJavaScript() {
-  server.send(200, "application/javascript", generateJavaScript());
-}
-
 void handleAPIVersion() {
   String json = "{";
   json += "\"version\":\"" + String(DIAGNOSTIC_VERSION) + "\",";
