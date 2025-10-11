@@ -1313,6 +1313,59 @@ void collectDiagnosticInfo() {
 
 // ========== HANDLERS API ==========
 
+void handleGetTranslations() {
+  String json = "{";
+
+  if (currentLanguage == LANG_FR) {
+    json += "\"overview\":\"Vue d'ensemble\",";
+    json += "\"leds\":\"LEDs\",";
+    json += "\"screens\":\"Écrans\",";
+    json += "\"tests\":\"Tests\",";
+    json += "\"gpio\":\"GPIO\",";
+    json += "\"wifi\":\"WiFi\",";
+    json += "\"benchmark\":\"Performance\",";
+    json += "\"export\":\"Export\",";
+    json += "\"processor\":\"🔧 Informations Processeur\",";
+    json += "\"memory\":\"💾 Mémoire Détaillée\",";
+    json += "\"wifi_title\":\"📡 Connexion WiFi\",";
+    json += "\"builtin_led\":\"💡 LED Intégrée\",";
+    json += "\"neopixel\":\"🌈 NeoPixel / WS2812B\",";
+    json += "\"status\":\"Statut\",";
+    json += "\"test\":\"🧪 Test complet\",";
+    json += "\"blink\":\"⚡ Clignoter\",";
+    json += "\"fade\":\"🌊 Fade\",";
+    json += "\"on\":\"💡 Allumer\",";
+    json += "\"off\":\"⭕ Éteindre\",";
+    json += "\"rainbow\":\"🌈 Arc-en-ciel\",";
+    json += "\"apply_color\":\"🎨 Appliquer couleur\"";
+  } else {
+    json += "\"overview\":\"Overview\",";
+    json += "\"leds\":\"LEDs\",";
+    json += "\"screens\":\"Screens\",";
+    json += "\"tests\":\"Tests\",";
+    json += "\"gpio\":\"GPIO\",";
+    json += "\"wifi\":\"WiFi\",";
+    json += "\"benchmark\":\"Benchmark\",";
+    json += "\"export\":\"Export\",";
+    json += "\"processor\":\"🔧 Processor Information\",";
+    json += "\"memory\":\"💾 Detailed Memory\",";
+    json += "\"wifi_title\":\"📡 WiFi Connection\",";
+    json += "\"builtin_led\":\"💡 Built-in LED\",";
+    json += "\"neopixel\":\"🌈 NeoPixel / WS2812B\",";
+    json += "\"status\":\"Status\",";
+    json += "\"test\":\"🧪 Full test\",";
+    json += "\"blink\":\"⚡ Blink\",";
+    json += "\"fade\":\"🌊 Fade\",";
+    json += "\"on\":\"💡 Turn on\",";
+    json += "\"off\":\"⭕ Turn off\",";
+    json += "\"rainbow\":\"🌈 Rainbow\",";
+    json += "\"apply_color\":\"🎨 Apply color\"";
+  }
+
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
 void handleTestGPIO() {
   testAllGPIOs();
   String json = "{\"results\":[";
@@ -1370,51 +1423,84 @@ void handleBuiltinLEDTest() {
 }
 
 void handleBuiltinLEDControl() {
-  if (!server.hasArg("action")) {
-    server.send(400, "application/json", "{\"success\":false}");
+  if (!builtinLedAvailable) {
+    server.send(200, "application/json", "{\"success\":false,\"message\":\"LED intégrée non disponible\"}");
     return;
   }
   
-  String action = server.arg("action");
-  if (BUILTIN_LED_PIN == -1) {
-    server.send(400, "application/json",
-                "{\"success\":false,\"message\":\"LED non configuree\"}");
-    return;
-  }
-  
-  pinMode(BUILTIN_LED_PIN, OUTPUT);
-  String message = "";
-  
-  if (action == "blink") {
-    for(int i = 0; i < 5; i++) {
+  if (server.hasArg("action")) {
+    String action = server.arg("action");
+    String message = "";
+    bool success = true;
+
+    if (action == "on") {
       digitalWrite(BUILTIN_LED_PIN, HIGH);
-      delay(200);
+      message = "LED allumée";
+      Serial.println("[LED] Allumée");
+    }
+    else if (action == "off") {
       digitalWrite(BUILTIN_LED_PIN, LOW);
-      delay(200);
+      message = "LED éteinte";
+      Serial.println("[LED] Éteinte");
     }
-    message = "Clignotement OK";
-  } else if (action == "fade") {
-    for(int i = 0; i <= 255; i += 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
+    else if (action == "blink") {
+      message = "Clignotement 10x (2 Hz)";
+      Serial.println("[LED] Clignotement démarré...");
+      for (int i = 0; i < 10; i++) {
+        digitalWrite(BUILTIN_LED_PIN, HIGH);
+        delay(250);
+        digitalWrite(BUILTIN_LED_PIN, LOW);
+        delay(250);
+      }
+      Serial.println("[LED] Clignotement terminé");
     }
-    for(int i = 255; i >= 0; i -= 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
+    else if (action == "fade") {
+      message = "Fade 3 cycles";
+      Serial.println("[LED] Fade démarré...");
+
+      // Vérifier si le GPIO supporte PWM
+      if (ledcAttach(BUILTIN_LED_PIN, 5000, 8)) {
+        // 3 cycles de fade in/out
+        for (int cycle = 0; cycle < 3; cycle++) {
+          // Fade in (0 -> 255)
+          for (int brightness = 0; brightness <= 255; brightness += 5) {
+            ledcWrite(BUILTIN_LED_PIN, brightness);
+            delay(10);
+          }
+          // Fade out (255 -> 0)
+          for (int brightness = 255; brightness >= 0; brightness -= 5) {
+            ledcWrite(BUILTIN_LED_PIN, brightness);
+            delay(10);
+          }
+        }
+
+        // Remettre en mode digital normal
+        ledcDetach(BUILTIN_LED_PIN);
+        pinMode(BUILTIN_LED_PIN, OUTPUT);
+        digitalWrite(BUILTIN_LED_PIN, LOW);
+
+        Serial.println("[LED] Fade terminé");
+      } else {
+        message = "Erreur: Fade non supporté sur GPIO " + String(BUILTIN_LED_PIN);
+        success = false;
+        Serial.println("[LED] Erreur: PWM non supporté sur ce GPIO");
+      }
     }
-    digitalWrite(BUILTIN_LED_PIN, LOW);
-    message = "Fade OK";
-  } else if (action == "off") {
-    digitalWrite(BUILTIN_LED_PIN, LOW);
-    builtinLedTested = false;
-    message = "LED eteinte";
+    else {
+      message = "Action inconnue: " + action;
+      success = false;
+      Serial.println("[LED] Action inconnue: " + action);
+    }
+
+    String json = "{";
+    json += "\"success\":" + String(success ? "true" : "false") + ",";
+    json += "\"message\":\"" + message + "\"";
+    json += "}";
+
+    server.send(200, "application/json", json);
   } else {
-    server.send(400, "application/json", "{\"success\":false}");
-    return;
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Paramètre 'action' manquant\"}");
   }
-  
-  server.send(200, "application/json",
-              "{\"success\":true,\"message\":\"" + message + "\"}");
 }
 
 void handleNeoPixelConfig() {
@@ -1445,58 +1531,128 @@ void handleNeoPixelTest() {
 }
 
 void handleNeoPixelPattern() {
-  if (!server.hasArg("pattern")) {
-    server.send(400, "application/json", "{\"success\":false}");
+  if (!neopixelAvailable || strip == nullptr) {
+    server.send(200, "application/json", "{\"success\":false,\"message\":\"NeoPixel non disponible\"}");
     return;
   }
   
-  String pattern = server.arg("pattern");
-  if (!strip) {
-    server.send(400, "application/json",
-                "{\"success\":false,\"message\":\"NeoPixel non init\"}");
-    return;
-  }
-  
-  String message = "";
-  if (pattern == "rainbow") {
-    neopixelRainbow();
-    message = "Arc-en-ciel OK";
-  } else if (pattern == "blink") {
-    neopixelBlink(strip->Color(255, 0, 0), 5);
-    message = "Blink OK";
-  } else if (pattern == "fade") {
-    neopixelFade(strip->Color(0, 0, 255));
-    message = "Fade OK";
-  } else if (pattern == "off") {
-    strip->clear();
-    strip->show();
-    neopixelTested = false;
-    message = "Off";
+  if (server.hasArg("pattern")) {
+    String pattern = server.arg("pattern");
+    String message = "";
+
+    Serial.println("[NeoPixel] Pattern demandé: " + pattern);
+
+    // Répondre IMMÉDIATEMENT au navigateur
+    String json = "{";
+    json += "\"success\":true,";
+    json += "\"message\":\"Pattern '" + pattern + "' démarré...\"";
+    json += "}";
+    server.send(200, "application/json", json);
+
+    // PUIS exécuter le pattern
+    if (pattern == "rainbow") {
+      Serial.println("[NeoPixel] Arc-en-ciel démarré...");
+      for (int j = 0; j < 256; j++) {
+        for (int i = 0; i < LED_COUNT; i++) {
+          int pixelHue = (i * 65536L / LED_COUNT) + (j * 256);
+          strip->setPixelColor(i, strip->gamma32(strip->ColorHSV(pixelHue, 255, 255)));
+        }
+        strip->show();
+        delay(10);
+      }
+      Serial.println("[NeoPixel] Arc-en-ciel terminé");
+    }
+    else if (pattern == "blink") {
+      Serial.println("[NeoPixel] Clignotement démarré...");
+      for (int i = 0; i < 10; i++) {
+        strip->fill(strip->Color(255, 0, 0));
+        strip->show();
+        delay(200);
+        strip->clear();
+        strip->show();
+        delay(200);
+      }
+      Serial.println("[NeoPixel] Clignotement terminé");
+    }
+    else if (pattern == "fade") {
+      Serial.println("[NeoPixel] Fade démarré...");
+      for (int cycle = 0; cycle < 3; cycle++) {
+        for (int brightness = 0; brightness <= 255; brightness += 5) {
+          strip->fill(strip->Color(brightness, brightness, brightness));
+          strip->show();
+          delay(10);
+        }
+        for (int brightness = 255; brightness >= 0; brightness -= 5) {
+          strip->fill(strip->Color(brightness, brightness, brightness));
+          strip->show();
+          delay(10);
+        }
+      }
+      Serial.println("[NeoPixel] Fade terminé");
+    }
+    else if (pattern == "chase") {
+      Serial.println("[NeoPixel] Chase démarré...");
+      for (int round = 0; round < 20; round++) {
+        for (int i = 0; i < LED_COUNT; i++) {
+          strip->clear();
+          strip->setPixelColor(i, strip->Color(0, 0, 255));
+          if (i > 0) strip->setPixelColor(i - 1, strip->Color(0, 0, 128));
+          if (i > 1) strip->setPixelColor(i - 2, strip->Color(0, 0, 64));
+          strip->show();
+          delay(50);
+        }
+      }
+      strip->clear();
+      strip->show();
+      Serial.println("[NeoPixel] Chase terminé");
+    }
+    else if (pattern == "off") {
+      Serial.println("[NeoPixel] Extinction...");
+      strip->clear();
+      strip->show();
+      Serial.println("[NeoPixel] Éteint");
+    }
+    else {
+      Serial.println("[NeoPixel] Pattern inconnu: " + pattern);
+    }
   } else {
-    server.send(400, "application/json", "{\"success\":false}");
-    return;
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Paramètre 'pattern' manquant\"}");
   }
-  
-  server.send(200, "application/json",
-              "{\"success\":true,\"message\":\"" + message + "\"}");
 }
 
 void handleNeoPixelColor() {
-  if (!server.hasArg("r") || !server.hasArg("g") || !server.hasArg("b") || !strip) {
-    server.send(400, "application/json", "{\"success\":false}");
+  if (!neopixelAvailable || strip == nullptr) {
+    server.send(200, "application/json", "{\"success\":false,\"message\":\"NeoPixel non disponible\"}");
     return;
   }
   
-  int r = server.arg("r").toInt();
-  int g = server.arg("g").toInt();
-  int b = server.arg("b").toInt();
-  
-  strip->fill(strip->Color(r, g, b));
-  strip->show();
-  neopixelTested = false;
-  
-  server.send(200, "application/json",
-              "{\"success\":true,\"message\":\"RGB(" + String(r) + "," + String(g) + "," + String(b) + ")\"}");
+  if (server.hasArg("r") && server.hasArg("g") && server.hasArg("b")) {
+    int r = server.arg("r").toInt();
+    int g = server.arg("g").toInt();
+    int b = server.arg("b").toInt();
+
+    // Valider les valeurs
+    r = constrain(r, 0, 255);
+    g = constrain(g, 0, 255);
+    b = constrain(b, 0, 255);
+
+    Serial.printf("[NeoPixel] Couleur personnalisée: RGB(%d, %d, %d)\n", r, g, b);
+
+    // Appliquer la couleur à tous les LEDs
+    strip->fill(strip->Color(r, g, b));
+    strip->show();
+
+    String json = "{";
+    json += "\"success\":true,";
+    json += "\"message\":\"Couleur RGB(" + String(r) + "," + String(g) + "," + String(b) + ") appliquée\",";
+    json += "\"color\":{\"r\":" + String(r) + ",\"g\":" + String(g) + ",\"b\":" + String(b) + "}";
+    json += "}";
+
+    server.send(200, "application/json", json);
+    Serial.println("[NeoPixel] Couleur appliquée avec succès");
+  } else {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Paramètres r, g, b manquants\"}");
+  }
 }
 
 void handleTFTTest() {
@@ -2294,10 +2450,10 @@ void handleSetLanguage() {
     String lang = server.arg("lang");
 
     if (lang == "fr") {
-      currentLanguage = FRENCH;
+      currentLanguage = LANG_FR;
       Serial.println("Langue changée: Français");
     } else if (lang == "en") {
-      currentLanguage = ENGLISH;
+      currentLanguage = LANG_EN;
       Serial.println("Langue changée: English");
     }
 
@@ -2310,6 +2466,35 @@ void handleSetLanguage() {
     server.send(200, "application/json", json);
   } else {
     server.send(400, "application/json", "{\"success\":false,\"message\":\"Paramètre manquant\"}");
+  }
+}
+
+void handleTFTText() {
+  if (!tftAvailable) {
+    server.send(200, "application/json", "{\"success\":false,\"message\":\"TFT non disponible\"}");
+    return;
+  }
+
+  if (server.hasArg("text")) {
+    String text = server.arg("text");
+
+    #ifdef USE_TFT
+    tft.fillScreen(TFT_BLACK);
+    tft.setCursor(10, 10);
+    tft.setTextColor(TFT_WHITE);
+    tft.setTextSize(2);
+    tft.println(text);
+    #endif
+
+    String json = "{";
+    json += "\"success\":true,";
+    json += "\"message\":\"Texte affiché: " + text + "\"";
+    json += "}";
+
+    server.send(200, "application/json", json);
+    Serial.println("[TFT] Texte affiché: " + text);
+  } else {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Paramètre 'text' manquant\"}");
   }
 }
 
@@ -2443,7 +2628,7 @@ void setup() {
   server.on("/api/oled-test", HTTP_GET, handleOLEDTest);
   server.on("/api/oled-message", HTTP_GET, handleOLEDMessage);
   server.on("/api/oled-config", HTTP_GET, handleOLEDConfig);
-
+  server.on("/api/tft-text", HTTP_GET, handleTFTText);
   // ========== API - Tests avancés ==========
   server.on("/api/adc-test", HTTP_GET, handleADCTest);
   server.on("/api/touch-test", HTTP_GET, handleTouchTest);

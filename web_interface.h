@@ -319,39 +319,57 @@ String generateJavaScript() {
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">GPIO</div><div class=\"info-value\">GPIO '+d.builtin.pin+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"builtin-led-status\">'+d.builtin.status+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testBuiltinLED()\">🧪 Tester</button> ';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testBuiltinLED()\">🧪 Test complet</button> ';";
   js += "h+='<button class=\"btn btn-success\" onclick=\"ledBlink()\">⚡ Clignoter</button> ';";
   js += "h+='<button class=\"btn btn-info\" onclick=\"ledFade()\">🌊 Fade</button> ';";
+  js += "h+='<button class=\"btn btn-warning\" onclick=\"ledOn()\">💡 Allumer</button> ';";
   js += "h+='<button class=\"btn btn-danger\" onclick=\"ledOff()\">⭕ Éteindre</button>';";
   js += "h+='</div></div></div>';";
 
-  js += "h+='<div class=\"section\"><h2>🌈 NeoPixel</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"section\"><h2>🌈 NeoPixel / WS2812B</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">GPIO</div><div class=\"info-value\">GPIO '+d.neopixel.pin+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Nombre de LEDs</div><div class=\"info-value\">'+d.neopixel.count+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"neopixel-status\">'+d.neopixel.status+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testNeoPixel()\">🧪 Test complet</button> ';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testNeoPixel()\">🧪 Test complet</button><br><br>';";
+
+  // Patterns
+  js += "h+='<strong>Animations :</strong><br>';";
   js += "h+='<button class=\"btn btn-primary\" onclick=\"neoPattern(\\'rainbow\\')\">🌈 Arc-en-ciel</button> ';";
-  js += "h+='<button class=\"btn btn-danger\" onclick=\"neoPattern(\\'off\\')\">⭕ Éteindre</button>';";
+  js += "h+='<button class=\"btn btn-success\" onclick=\"neoPattern(\\'blink\\')\">⚡ Clignoter</button> ';";
+  js += "h+='<button class=\"btn btn-info\" onclick=\"neoPattern(\\'fade\\')\">🌊 Fade</button> ';";
+  js += "h+='<button class=\"btn btn-warning\" onclick=\"neoPattern(\\'chase\\')\">🏃 Chase</button><br><br>';";
+
+  // Sélecteur de couleur
+  js += "h+='<strong>Couleur personnalisée :</strong><br>';";
+  js += "h+='<input type=\"color\" id=\"neoColor\" value=\"#ff0000\" style=\"height:50px;width:120px;border:none;border-radius:5px;cursor:pointer\"> ';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"neoCustomColor()\">🎨 Appliquer couleur</button><br><br>';";
+
+  js += "h+='<button class=\"btn btn-danger\" onclick=\"neoPattern(\\'off\\')\">⭕ Tout éteindre</button>';";
   js += "h+='</div></div></div>';";
   js += "return h;";
   js += "}";
 
-  // Build Screens
-  js += "function buildScreens(d){";
+js += "function buildScreens(d){";
   js += "let h='<div class=\"section\"><h2>📺 Écran TFT SPI</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"tft-status\">'+d.tft.status+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Résolution</div><div class=\"info-value\">'+d.tft.width+'x'+d.tft.height+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testTFT()\">🧪 Test (15s)</button> ';";
-  js += "h+='<button class=\"btn btn-success\" onclick=\"tftPattern(\\'colors\\')\">🎨 Couleurs</button>';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testTFT()\">🧪 Test complet (15s)</button> ';";
+  js += "h+='<button class=\"btn btn-success\" onclick=\"tftPattern(\\'colors\\')\">🎨 Couleurs</button> ';";
+  js += "h+='<button class=\"btn btn-info\" onclick=\"tftPattern(\\'checkerboard\\')\">⬛ Damier</button> ';";
+  js += "h+='<button class=\"btn btn-danger\" onclick=\"tftPattern(\\'clear\\')\">🗑️ Effacer</button>';";
+  js += "h+='<br><br><input type=\"text\" id=\"tftText\" placeholder=\"Texte à afficher\" style=\"width:300px;padding:10px\">';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"tftDisplayText()\">📤 Afficher texte</button>';";
   js += "h+='</div></div></div>';";
 
-  js += "h+='<div class=\"section\"><h2>🖥️ Écran OLED 0.96\" I2C</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"section\"><h2>🖥️ Écran OLED 0.96\\\" I2C</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"oled-status\">'+d.oled.status+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Pins I2C</div><div class=\"info-value\">SDA:'+d.oled.pins.sda+' SCL:'+d.oled.pins.scl+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testOLED()\">🧪 Test (25s)</button>';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testOLED()\">🧪 Test complet (25s)</button>';";
+  js += "h+='<br><br><input type=\"text\" id=\"oledText\" placeholder=\"Message à afficher\" style=\"width:300px;padding:10px\">';";
+  js += "h+='<button class=\"btn btn-success\" onclick=\"oledDisplayText()\">📤 Afficher message</button>';";
   js += "h+='</div></div></div>';";
   js += "return h;";
   js += "}";
@@ -438,7 +456,23 @@ String generateJavaScript() {
   js += "const r=await fetch('/api/builtin-led-control?action=off');const d=await r.json();";
   js += "document.getElementById('builtin-led-status').textContent=d.message;";
   js += "}";
+  js += "async function ledOn(){";
+  js += "const r=await fetch('/api/builtin-led-control?action=on');";
+  js += "const d=await r.json();";
+  js += "document.getElementById('builtin-led-status').textContent=d.message;";
+  js += "}";
 
+  // NeoPixel couleur personnalisée
+  js += "async function neoCustomColor(){";
+  js += "const color=document.getElementById('neoColor').value;";
+  js += "const r=parseInt(color.substr(1,2),16);";
+  js += "const g=parseInt(color.substr(3,2),16);";
+  js += "const b=parseInt(color.substr(5,2),16);";
+  js += "document.getElementById('neopixel-status').textContent='Application couleur RGB('+r+','+g+','+b+')...';";
+  js += "const resp=await fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b);";
+  js += "const d=await resp.json();";
+  js += "document.getElementById('neopixel-status').textContent=d.message;";
+  js += "}";
   // FONCTIONS API - NeoPixel
   js += "async function testNeoPixel(){";
   js += "document.getElementById('neopixel-status').textContent='Test en cours...';";
@@ -464,6 +498,25 @@ String generateJavaScript() {
   js += "document.getElementById('oled-status').textContent='Test en cours (25s)...';";
   js += "const r=await fetch('/api/oled-test');const d=await r.json();";
   js += "document.getElementById('oled-status').textContent=d.result;";
+  js += "}";
+
+  // FONCTIONS API - Affichage texte TFT/OLED
+  js += "async function tftDisplayText(){";
+  js += "const text=document.getElementById('tftText').value;";
+  js += "if(!text){alert('Entrez un texte!');return;}";
+  js += "document.getElementById('tft-status').textContent='Affichage en cours...';";
+  js += "const r=await fetch('/api/tft-text?text='+encodeURIComponent(text));";
+  js += "const d=await r.json();";
+  js += "document.getElementById('tft-status').textContent=d.message;";
+  js += "}";
+
+  js += "async function oledDisplayText(){";
+  js += "const text=document.getElementById('oledText').value;";
+  js += "if(!text){alert('Entrez un message!');return;}";
+  js += "document.getElementById('oled-status').textContent='Affichage en cours...';";
+  js += "const r=await fetch('/api/oled-message?message='+encodeURIComponent(text));";
+  js += "const d=await r.json();";
+  js += "document.getElementById('oled-status').textContent=d.message;";
   js += "}";
 
   // FONCTIONS API - Tests
@@ -556,13 +609,21 @@ String generateJavaScript() {
   // Changement de langue
   js += "function changeLang(lang){";
   js += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
-  js += "if(d.success){currentLang=lang;";
+  js += "if(d.success){";
+  js += "currentLang=lang;";
   js += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
   js += "document.querySelectorAll('.lang-btn').forEach(b=>{if(b.textContent.toLowerCase()===lang)b.classList.add('active');});";
-  js += "alert('Langue changée en: '+lang.toUpperCase());";
-  js += "location.reload();";
-  js += "}else{alert('Erreur changement de langue');}";
-  js += "});";
+  js += "return fetch('/api/get-translations');";
+  js += "}).then(r=>r.json()).then(translations=>{";
+  js += "updateInterfaceTexts(translations);";
+  js += "alert('Langue changée : '+lang.toUpperCase());";
+  js += "}).catch(e=>alert('Erreur changement langue: '+e));";
+  js += "}";
+
+  js += "function updateInterfaceTexts(t){";
+  js += "const tabs=['overview','leds','screens','tests','gpio','wifi','benchmark','export'];";
+  js += "const btns=document.querySelectorAll('.nav-btn');";
+  js += "btns.forEach((btn,i)=>{if(t[tabs[i]])btn.textContent=t[tabs[i]];});";
   js += "}";
 
   return js;
