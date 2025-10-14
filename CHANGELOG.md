@@ -5,6 +5,23 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2-dev] - 2025-10-09
+
+### Fixed
+- Live language switching now bypasses browser caches, immediately fetching the requested translation set without a full page reload.
+
+### Changed
+- Added targeted translation fetching on the API (`/api/get-translations?lang=`) and updated the interface to sync the `<html lang>` attribute.
+- Incremented diagnostic version to `3.0.2-dev`.
+
+## [3.0.1-dev] - 2025-10-09
+
+### Fixed
+- Live language switching now updates all interface texts without requiring a page reload.
+
+### Changed
+- Incremented diagnostic version to `3.0.1-dev`.
+
 ## [3.0-dev] - 2025-10-09
 
 ### 🚀 Major Changes - Dynamic Web Interface
