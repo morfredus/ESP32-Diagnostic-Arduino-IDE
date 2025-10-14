@@ -1,18 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION 3.0-dev
+ * DIAGNOSTIC COMPLET ESP32 - VERSION 3.0.3-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.1.3
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v3.0-dev:
- * - Interface web 100% dynamique
- * - Mise à jour temps réel (5s)
- * - Architecture API REST
- * - Séparation HTML/CSS/JavaScript
- * - Chargement asynchrone des onglets
- * - Indicateur de connexion en direct
- * - Animations et transitions fluides
+ * Nouveautés v3.0.3-dev:
+ * - Correctif du premier lancement des tests LED
+ * - Fenêtres de résultats centrées et non bloquantes
+ * - Avertissement sur l'interprétation des tests GPIO
  */
 
 #include <WiFi.h>
@@ -41,7 +37,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0-dev"
+#define DIAGNOSTIC_VERSION "3.0.3-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -1386,59 +1382,6 @@ void collectDiagnosticInfo() {
 
 // ========== HANDLERS API ==========
 
-void handleGetTranslations() {
-  String json = "{";
-
-  if (currentLanguage == LANG_FR) {
-    json += "\"overview\":\"Vue d'ensemble\",";
-    json += "\"leds\":\"LEDs\",";
-    json += "\"screens\":\"Écrans\",";
-    json += "\"tests\":\"Tests\",";
-    json += "\"gpio\":\"GPIO\",";
-    json += "\"wifi\":\"WiFi\",";
-    json += "\"benchmark\":\"Performance\",";
-    json += "\"export\":\"Export\",";
-    json += "\"processor\":\"🔧 Informations Processeur\",";
-    json += "\"memory\":\"💾 Mémoire Détaillée\",";
-    json += "\"wifi_title\":\"📡 Connexion WiFi\",";
-    json += "\"builtin_led\":\"💡 LED Intégrée\",";
-    json += "\"neopixel\":\"🌈 NeoPixel / WS2812B\",";
-    json += "\"status\":\"Statut\",";
-    json += "\"test\":\"🧪 Test complet\",";
-    json += "\"blink\":\"⚡ Clignoter\",";
-    json += "\"fade\":\"🌊 Fade\",";
-    json += "\"on\":\"💡 Allumer\",";
-    json += "\"off\":\"⭕ Éteindre\",";
-    json += "\"rainbow\":\"🌈 Arc-en-ciel\",";
-    json += "\"apply_color\":\"🎨 Appliquer couleur\"";
-  } else {
-    json += "\"overview\":\"Overview\",";
-    json += "\"leds\":\"LEDs\",";
-    json += "\"screens\":\"Screens\",";
-    json += "\"tests\":\"Tests\",";
-    json += "\"gpio\":\"GPIO\",";
-    json += "\"wifi\":\"WiFi\",";
-    json += "\"benchmark\":\"Benchmark\",";
-    json += "\"export\":\"Export\",";
-    json += "\"processor\":\"🔧 Processor Information\",";
-    json += "\"memory\":\"💾 Detailed Memory\",";
-    json += "\"wifi_title\":\"📡 WiFi Connection\",";
-    json += "\"builtin_led\":\"💡 Built-in LED\",";
-    json += "\"neopixel\":\"🌈 NeoPixel / WS2812B\",";
-    json += "\"status\":\"Status\",";
-    json += "\"test\":\"🧪 Full test\",";
-    json += "\"blink\":\"⚡ Blink\",";
-    json += "\"fade\":\"🌊 Fade\",";
-    json += "\"on\":\"💡 Turn on\",";
-    json += "\"off\":\"⭕ Turn off\",";
-    json += "\"rainbow\":\"🌈 Rainbow\",";
-    json += "\"apply_color\":\"🎨 Apply color\"";
-  }
-
-  json += "}";
-
-  server.send(200, "application/json", json);
-}
 void handleTestGPIO() {
   testAllGPIOs();
   String json = "{\"results\":[";
@@ -2615,19 +2558,17 @@ void handleTFTText() {
 }
 
 void handleGetTranslations() {
-  String json = "{";
-  json += "\"title\":\"" + String(T().title) + "\",";
-  json += "\"nav_overview\":\"" + String(T().nav_overview) + "\",";
-  json += "\"nav_leds\":\"" + String(T().nav_leds) + "\",";
-  json += "\"nav_screens\":\"" + String(T().nav_screens) + "\",";
-  json += "\"nav_tests\":\"" + String(T().nav_tests) + "\",";
-  json += "\"nav_gpio\":\"" + String(T().nav_gpio) + "\",";
-  json += "\"nav_wifi\":\"" + String(T().nav_wifi) + "\",";
-  json += "\"nav_benchmark\":\"" + String(T().nav_benchmark) + "\",";
-  json += "\"nav_export\":\"" + String(T().nav_export) + "\"";
-  json += "}";
-  
-  server.send(200, "application/json", json);
+  Language lang = currentLanguage;
+  if (server.hasArg("lang")) {
+    const String requested = server.arg("lang");
+    if (requested == "fr") {
+      lang = LANG_FR;
+    } else if (requested == "en") {
+      lang = LANG_EN;
+    }
+  }
+
+  server.send(200, "application/json", translationsToJson(T(lang)));
 }
 
 // ========== SETUP COMPLET ==========
