@@ -136,12 +136,12 @@ String generateHTML() {
   html += "}";
   html += "</style>";
   html += "</head><body>";
-  html += "<div class='update-indicator' id='updateIndicator'>Mise à jour...</div>";
+  html += "<div class='update-indicator' id='updateIndicator' data-i18n='update_indicator' data-i18n-fallback='Mise à jour...'>Mise à jour...</div>";
   html += "<div class='container'>";
   html += "<div class='header'>";
   html += "<div class='lang-switcher'>";
-  html += "<button class='lang-btn active' onclick='changeLang(\"fr\")'>FR</button>";
-  html += "<button class='lang-btn' onclick='changeLang(\"en\")'>EN</button>";
+  html += "<button class='lang-btn active' data-lang='fr' onclick='changeLang(\"fr\")'>FR</button>";
+  html += "<button class='lang-btn' data-lang='en' onclick='changeLang(\"en\")'>EN</button>";
   html += "</div>";
   html += "<h1 id='main-title'>";
   html += "<span class='status-indicator status-online' id='statusIndicator'></span>";
@@ -160,14 +160,14 @@ String generateHTML() {
   html += diagnosticData.ipAddress;
   html += "</strong></div>";
   html += "<div class='nav'>";
-  html += "<button class='nav-btn active' onclick='showTab(\"overview\",event)'>Vue d'ensemble</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"leds\",event)'>LEDs</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"screens\",event)'>Écrans</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"tests\",event)'>Tests</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"gpio\",event)'>GPIO</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"wifi\",event)'>WiFi</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"benchmark\",event)'>Performance</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"export\",event)'>Export</button>";
+  html += "<button class='nav-btn active' data-i18n='nav_overview' data-i18n-fallback='Vue d&#39;ensemble' onclick='showTab(\"overview\",event)'>Vue d'ensemble</button>";
+  html += "<button class='nav-btn' data-i18n='nav_leds' data-i18n-fallback='LEDs' onclick='showTab(\"leds\",event)'>LEDs</button>";
+  html += "<button class='nav-btn' data-i18n='nav_screens' data-i18n-fallback='Écrans' onclick='showTab(\"screens\",event)'>Écrans</button>";
+  html += "<button class='nav-btn' data-i18n='nav_tests' data-i18n-fallback='Tests' onclick='showTab(\"tests\",event)'>Tests</button>";
+  html += "<button class='nav-btn' data-i18n='nav_gpio' data-i18n-fallback='GPIO' onclick='showTab(\"gpio\",event)'>GPIO</button>";
+  html += "<button class='nav-btn' data-i18n='nav_wifi' data-i18n-fallback='WiFi' onclick='showTab(\"wifi\",event)'>WiFi</button>";
+  html += "<button class='nav-btn' data-i18n='nav_benchmark' data-i18n-fallback='Performance' onclick='showTab(\"benchmark\",event)'>Performance</button>";
+  html += "<button class='nav-btn' data-i18n='nav_export' data-i18n-fallback='Export' onclick='showTab(\"export\",event)'>Export</button>";
   html += "</div>";
   html += "</div>";
   html += "<div class='content'>";
@@ -187,16 +187,34 @@ String generateJavaScript() {
   js += " - Initialisation');";
   js += "const UPDATE_INTERVAL=5000;";
   js += "let currentLang='fr';";
+  js += "let translations={};";
+  js += "let activeTab='overview';";
   js += "let updateTimer=null;";
   js += "let isConnected=true;";
+  js += "const fallbackTranslations={fr:{loading:'Chargement...',error_title:'❌ Erreur',update_indicator:'Mise à jour...',language_changed:'Langue changée',language_error:'Erreur changement langue',click_to_scan:'Cliquez pour scanner',displaying:'Affichage en cours...',command_sent:'Commande envoyée',communication_error:'Erreur de communication'},en:{loading:'Loading...',error_title:'❌ Error',update_indicator:'Updating...',language_changed:'Language changed',language_error:'Language change error',click_to_scan:'Click to scan',displaying:'Displaying...',command_sent:'Command sent',communication_error:'Communication error'}};";
+  js += "function tr(key,fallback){const langFallback=fallbackTranslations[currentLang]||{};return (translations[key]||langFallback[key]||fallback||key);}";
 
   // Initialisation - CORRIGÉE
-  js += "document.addEventListener('DOMContentLoaded',function(){";
+  js += "document.addEventListener('DOMContentLoaded',async function(){";
   js += "console.log('Interface chargée');";
+  js += "await initTranslations();";
+  js += "updateInterfaceTexts();";
   js += "loadAllData();";
   js += "startAutoUpdate();";
-  js += "loadTab('overview');";
+  js += "await loadTab('overview');";
   js += "});";
+
+  // Gestion des traductions
+  js += "async function fetchTranslations(lang=currentLang){";
+  js += "const targetLang=lang||currentLang;";
+  js += "try{";
+  js += "const response=await fetch('/api/get-translations?lang='+encodeURIComponent(targetLang)+'&_='+Date.now(),{cache:'no-store'});";
+  js += "if(!response.ok)throw new Error('HTTP '+response.status);";
+  js += "return await response.json();";
+  js += "}catch(error){console.error('Erreur chargement traductions',error);return fallbackTranslations[targetLang]||{};}";
+  js += "}";
+  js += "async function initTranslations(){translations=await fetchTranslations(currentLang);}";
+  js += "function applyLanguageButtonState(){document.querySelectorAll('.lang-btn').forEach(btn=>{btn.classList.toggle('active',btn.dataset.lang===currentLang);});}";
 
   // Auto-update
   js += "function startAutoUpdate(){";
@@ -240,16 +258,18 @@ String generateJavaScript() {
   js += "document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));";
   js += "if(evt&&evt.target)evt.target.classList.add('active');";
   js += "const tab=document.getElementById(tabName);";
-  js += "if(tab){tab.classList.add('active');}else{loadTab(tabName);}";
+  js += "if(tab){tab.classList.add('active');if(tab.dataset.lang!==currentLang){loadTab(tabName,true);}}else{loadTab(tabName);}";
   js += "}";
 
   // Load tab
-  js += "async function loadTab(tabName){";
+  js += "async function loadTab(tabName,force=false){";
+  js += "activeTab=tabName;";
   js += "const c=document.getElementById('tabContainer');";
   js += "let tab=document.getElementById(tabName);";
   js += "if(!tab){tab=document.createElement('div');tab.id=tabName;tab.className='tab-content';c.appendChild(tab);}";
-  js += "tab.innerHTML='<div class=\"section\"><div class=\"loading\"></div><p style=\"text-align:center\">Chargement...</p></div>';";
+  js += "tab.innerHTML='<div class=\"section\"><div class=\"loading\"></div><p style=\"text-align:center\">'+tr('loading','Chargement...')+'</p></div>';";
   js += "tab.classList.add('active');";
+  js += "tab.dataset.lang=currentLang;";
   js += "try{";
   js += "if(tabName==='overview'){const r=await fetch('/api/overview');const d=await r.json();tab.innerHTML=buildOverview(d);}";
   js += "else if(tabName==='leds'){const r=await fetch('/api/leds-info');const d=await r.json();tab.innerHTML=buildLeds(d);}";
@@ -259,193 +279,181 @@ String generateJavaScript() {
   js += "else if(tabName==='wifi'){tab.innerHTML=buildWifi();}";
   js += "else if(tabName==='benchmark'){tab.innerHTML=buildBenchmark();}";
   js += "else if(tabName==='export'){tab.innerHTML=buildExport();}";
-  js += "}catch(e){tab.innerHTML='<div class=\"section\"><h2>❌ Erreur</h2><p>'+e+'</p></div>';}";
+  js += "}catch(e){tab.innerHTML='<div class=\"section\"><h2>'+tr('error_title','❌ Erreur')+'</h2><p>'+tr('error_generic','Une erreur est survenue')+'<br>'+e+'</p></div>';}";
   js += "}";
 
   // Build Overview - COMPLET
   js += "function buildOverview(d){";
-  js += "let h='<div class=\"section\"><h2>🔧 Informations Processeur</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Modèle complet</div><div class=\"info-value\">'+d.chip.model+' Rev'+d.chip.revision+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">CPU</div><div class=\"info-value\">'+d.chip.cores+' cœurs @ '+d.chip.freq+' MHz</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">MAC WiFi</div><div class=\"info-value\">'+d.chip.mac+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Uptime</div><div class=\"info-value\" id=\"uptime\">'+formatUptime(d.chip.uptime)+'</div></div>';";
-  js += "if(d.chip.temperature!==-999)h+='<div class=\"info-item\"><div class=\"info-label\">Température CPU</div><div class=\"info-value\" id=\"temperature\">'+d.chip.temperature.toFixed(1)+' °C</div></div>';";
+  js += "let h='<div class=\"section\"><h2>🔧 '+tr('chip_info','Informations Chip Détaillées')+'</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('full_model','Modèle complet')+'</div><div class=\"info-value\">'+d.chip.model+' Rev'+d.chip.revision+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('cpu_cores','CPU Cores')+'</div><div class=\"info-value\">'+d.chip.cores+' '+tr('cores','coeurs')+' @ '+d.chip.freq+' MHz</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('mac_wifi','MAC WiFi')+'</div><div class=\"info-value\">'+d.chip.mac+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('uptime','Uptime')+'</div><div class=\"info-value\" id=\"uptime\">'+formatUptime(d.chip.uptime)+'</div></div>';";
+  js += "if(d.chip.temperature!==-999)h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('cpu_temp','Température CPU')+'</div><div class=\"info-value\" id=\"temperature\">'+d.chip.temperature.toFixed(1)+' °C</div></div>';";
   js += "h+='</div></div>';";
-
-  js += "h+='<div class=\"section\"><h2>💾 Mémoire Détaillée</h2>';";
-  js += "h+='<h3>Flash (Carte)</h3><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Taille réelle</div><div class=\"info-value\">'+(d.memory.flash.real/1048576).toFixed(2)+' MB</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Type Flash</div><div class=\"info-value\">'+d.memory.flash.type+'</div></div>';";
+  js += "h+='<div class=\"section\"><h2>💾 '+tr('memory_details','Mémoire Détaillée')+'</h2>';";
+  js += "h+='<h3>'+tr('flash_memory','Flash Memory')+'</h3><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('real_size','Taille réelle (carte)')+'</div><div class=\"info-value\">'+(d.memory.flash.real/1048576).toFixed(2)+' MB</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('flash_type','Type Flash')+'</div><div class=\"info-value\">'+d.memory.flash.type+'</div></div>';";
   js += "h+='</div>';";
-
-  js += "h+='<h3>SRAM (Interne)</h3><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Total</div><div class=\"info-value\" id=\"sram-total\">'+(d.memory.sram.total/1024).toFixed(2)+' KB</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Libre</div><div class=\"info-value\" id=\"sram-free\">'+(d.memory.sram.free/1024).toFixed(2)+' KB</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Utilisée</div><div class=\"info-value\" id=\"sram-used\">'+(d.memory.sram.used/1024).toFixed(2)+' KB</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Fragmentation</div><div class=\"info-value\" id=\"fragmentation\">'+d.memory.fragmentation.toFixed(1)+'%</div></div>';";
+  js += "h+='<h3>'+tr('internal_sram','SRAM Interne')+'</h3><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('total_size','Total')+'</div><div class=\"info-value\" id=\"sram-total\">'+(d.memory.sram.total/1024).toFixed(2)+' KB</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('free','Libre')+'</div><div class=\"info-value\" id=\"sram-free\">'+(d.memory.sram.free/1024).toFixed(2)+' KB</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('used','Utilisée')+'</div><div class=\"info-value\" id=\"sram-used\">'+(d.memory.sram.used/1024).toFixed(2)+' KB</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('memory_fragmentation','Fragmentation Mémoire')+'</div><div class=\"info-value\" id=\"fragmentation\">'+d.memory.fragmentation.toFixed(1)+'%</div></div>';";
   js += "h+='</div>';";
   js += "const sramPct=((d.memory.sram.used/d.memory.sram.total)*100).toFixed(1);";
   js += "h+='<div class=\"progress-bar\"><div class=\"progress-fill\" id=\"sram-progress\" style=\"width:'+sramPct+'%\">'+sramPct+'%</div></div>';";
-
   js += "if(d.memory.psram.total>0){";
-  js += "h+='<h3>PSRAM (Externe)</h3><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Total</div><div class=\"info-value\" id=\"psram-total\">'+(d.memory.psram.total/1048576).toFixed(2)+' MB</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Libre</div><div class=\"info-value\" id=\"psram-free\">'+(d.memory.psram.free/1048576).toFixed(2)+' MB</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Utilisée</div><div class=\"info-value\" id=\"psram-used\">'+(d.memory.psram.used/1048576).toFixed(2)+' MB</div></div>';";
+  js += "h+='<h3>'+tr('psram_external','PSRAM (Mémoire Externe)')+'</h3><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('total_size','Total')+'</div><div class=\"info-value\" id=\"psram-total\">'+(d.memory.psram.total/1048576).toFixed(2)+' MB</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('free','Libre')+'</div><div class=\"info-value\" id=\"psram-free\">'+(d.memory.psram.free/1048576).toFixed(2)+' MB</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('used','Utilisée')+'</div><div class=\"info-value\" id=\"psram-used\">'+(d.memory.psram.used/1048576).toFixed(2)+' MB</div></div>';";
   js += "h+='</div>';";
   js += "const psramPct=((d.memory.psram.used/d.memory.psram.total)*100).toFixed(1);";
   js += "h+='<div class=\"progress-bar\"><div class=\"progress-fill\" id=\"psram-progress\" style=\"width:'+psramPct+'%\">'+psramPct+'%</div></div>';";
   js += "}";
   js += "h+='</div>';";
-
-  js += "h+='<div class=\"section\"><h2>📡 Connexion WiFi</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">SSID</div><div class=\"info-value\">'+d.wifi.ssid+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">RSSI</div><div class=\"info-value\">'+d.wifi.rssi+' dBm</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Qualité Signal</div><div class=\"info-value\">'+d.wifi.quality+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Adresse IP</div><div class=\"info-value\">'+d.wifi.ip+'</div></div>';";
+  js += "h+='<div class=\"section\"><h2>📡 '+tr('wifi_connection','Connexion WiFi Détaillée')+'</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('connected_ssid','SSID Connecté')+'</div><div class=\"info-value\">'+d.wifi.ssid+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('signal_power','Puissance Signal (RSSI)')+'</div><div class=\"info-value\">'+d.wifi.rssi+' dBm</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('signal_quality','Qualité Signal')+'</div><div class=\"info-value\">'+d.wifi.quality+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('ip_address','Adresse IP')+'</div><div class=\"info-value\">'+d.wifi.ip+'</div></div>';";
   js += "h+='</div></div>';";
-
-  js += "h+='<div class=\"section\"><h2>🔌 GPIO et Interfaces</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Total GPIO</div><div class=\"info-value\">'+d.gpio.total+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Périphériques I2C</div><div class=\"info-value\">'+d.gpio.i2c_count+'</div></div>';";
-  js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1\"><div class=\"info-label\">Adresses I2C</div><div class=\"info-value\">'+d.gpio.i2c_devices+'</div></div>';";
+  js += "h+='<div class=\"section\"><h2>🔌 '+tr('gpio_interfaces','GPIO et Interfaces')+'</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('total_gpio','Total GPIO')+'</div><div class=\"info-value\">'+d.gpio.total+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('i2c_peripherals','Périphériques I2C')+'</div><div class=\"info-value\">'+d.gpio.i2c_count+'</div></div>';";
+  js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1\"><div class=\"info-label\">'+tr('detected_addresses','Adresses Détectées')+'</div><div class=\"info-value\">'+d.gpio.i2c_devices+'</div></div>';";
   js += "h+='</div></div>';";
   js += "return h;";
   js += "}";
 
   // Build LEDs - COMPLET
   js += "function buildLeds(d){";
-  js += "let h='<div class=\"section\"><h2>💡 LED Intégrée</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">GPIO</div><div class=\"info-value\">GPIO '+d.builtin.pin+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"builtin-led-status\">'+d.builtin.status+'</div></div>';";
+  js += "let h='<div class=\"section\"><h2>💡 '+tr('builtin_led','LED Intégrée')+'</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('gpio','GPIO')+'</div><div class=\"info-value\">GPIO '+d.builtin.pin+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('status','Statut')+'</div><div class=\"info-value\" id=\"builtin-led-status\">'+d.builtin.status+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testBuiltinLED()\">🧪 Test complet</button> ';";
-  js += "h+='<button class=\"btn btn-success\" onclick=\"ledBlink()\">⚡ Clignoter</button> ';";
-  js += "h+='<button class=\"btn btn-info\" onclick=\"ledFade()\">🌊 Fade</button> ';";
-  js += "h+='<button class=\"btn btn-warning\" onclick=\"ledOn()\">💡 Allumer</button> ';";
-  js += "h+='<button class=\"btn btn-danger\" onclick=\"ledOff()\">⭕ Éteindre</button>';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testBuiltinLED()\">🧪 '+tr('full_test','Test complet')+'</button> ';";
+  js += "h+='<button class=\"btn btn-success\" onclick=\"ledBlink()\">⚡ '+tr('blink','Blink')+'</button> ';";
+  js += "h+='<button class=\"btn btn-info\" onclick=\"ledFade()\">🌊 '+tr('fade','Fade')+'</button> ';";
+  js += "h+='<button class=\"btn btn-warning\" onclick=\"ledOn()\">💡 '+tr('enabled','Activée')+'</button> ';";
+  js += "h+='<button class=\"btn btn-danger\" onclick=\"ledOff()\">⭕ '+tr('off','Off')+'</button>';";
   js += "h+='</div></div></div>';";
-
-  js += "h+='<div class=\"section\"><h2>🌈 NeoPixel / WS2812B</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">GPIO</div><div class=\"info-value\">GPIO '+d.neopixel.pin+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Nombre de LEDs</div><div class=\"info-value\">'+d.neopixel.count+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"neopixel-status\">'+d.neopixel.status+'</div></div>';";
+  js += "h+='<div class=\"section\"><h2>🌈 '+tr('neopixel','NeoPixel / WS2812B')+'</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('gpio','GPIO')+'</div><div class=\"info-value\">GPIO '+d.neopixel.pin+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('device_count','Nombre de périphériques')+'</div><div class=\"info-value\">'+d.neopixel.count+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('status','Statut')+'</div><div class=\"info-value\" id=\"neopixel-status\">'+d.neopixel.status+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testNeoPixel()\">🧪 Test complet</button><br><br>';";
-
-  // Patterns
-  js += "h+='<strong>Animations :</strong><br>';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"neoPattern(\\'rainbow\\')\">🌈 Arc-en-ciel</button> ';";
-  js += "h+='<button class=\"btn btn-success\" onclick=\"neoPattern(\\'blink\\')\">⚡ Clignoter</button> ';";
-  js += "h+='<button class=\"btn btn-info\" onclick=\"neoPattern(\\'fade\\')\">🌊 Fade</button> ';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testNeoPixel()\">🧪 '+tr('full_test','Test complet')+'</button><br><br>';";
+  js += "h+='<strong>'+tr('animations','Animations :')+'</strong><br>';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"neoPattern(\\'rainbow\\')\">🌈 '+tr('rainbow','Arc-en-ciel')+'</button> ';";
+  js += "h+='<button class=\"btn btn-success\" onclick=\"neoPattern(\\'blink\\')\">⚡ '+tr('blink','Blink')+'</button> ';";
+  js += "h+='<button class=\"btn btn-info\" onclick=\"neoPattern(\\'fade\\')\">🌊 '+tr('fade','Fade')+'</button> ';";
   js += "h+='<button class=\"btn btn-warning\" onclick=\"neoPattern(\\'chase\\')\">🏃 Chase</button><br><br>';";
-
-  // Sélecteur de couleur
-  js += "h+='<strong>Couleur personnalisée :</strong><br>';";
+  js += "h+='<strong>'+tr('custom_color','Couleur personnalisée :')+'</strong><br>';";
   js += "h+='<input type=\"color\" id=\"neoColor\" value=\"#ff0000\" style=\"height:50px;width:120px;border:none;border-radius:5px;cursor:pointer\"> ';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"neoCustomColor()\">🎨 Appliquer couleur</button><br><br>';";
-
-  js += "h+='<button class=\"btn btn-danger\" onclick=\"neoPattern(\\'off\\')\">⭕ Tout éteindre</button>';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"neoCustomColor()\">🎨 '+tr('apply_color','Appliquer couleur')+'</button><br><br>';";
+  js += "h+='<button class=\"btn btn-danger\" onclick=\"neoPattern(\\'off\\')\">⭕ '+tr('turn_off_all','Tout éteindre')+'</button>';";
   js += "h+='</div></div></div>';";
   js += "return h;";
   js += "}";
 
 js += "function buildScreens(d){";
-  js += "let h='<div class=\"section\"><h2>📺 Écran TFT SPI</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"tft-status\">'+d.tft.status+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Résolution</div><div class=\"info-value\">'+d.tft.width+'x'+d.tft.height+'</div></div>';";
+  js += "let h='<div class=\"section\"><h2>📺 '+tr('tft_screen','Écran TFT 320x240')+'</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('status','Statut')+'</div><div class=\"info-value\" id=\"tft-status\">'+d.tft.status+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('resolution','Résolution')+'</div><div class=\"info-value\">'+d.tft.width+'x'+d.tft.height+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testTFT()\">🧪 Test complet (15s)</button> ';";
-  js += "h+='<button class=\"btn btn-success\" onclick=\"tftPattern(\\'colors\\')\">🎨 Couleurs</button> ';";
-  js += "h+='<button class=\"btn btn-info\" onclick=\"tftPattern(\\'checkerboard\\')\">⬛ Damier</button> ';";
-  js += "h+='<button class=\"btn btn-danger\" onclick=\"tftPattern(\\'clear\\')\">🗑️ Effacer</button>';";
-  js += "h+='<br><br><input type=\"text\" id=\"tftText\" placeholder=\"Texte à afficher\" style=\"width:300px;padding:10px\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"tftDisplayText()\">📤 Afficher texte</button>';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testTFT()\">🧪 '+tr('full_test','Test complet')+' (15s)</button> ';";
+  js += "h+='<button class=\"btn btn-success\" onclick=\"tftPattern(\\'colors\\')\">🎨 '+tr('colors','Couleurs')+'</button> ';";
+  js += "h+='<button class=\"btn btn-info\" onclick=\"tftPattern(\\'checkerboard\\')\">⬛ '+tr('checkerboard','Damier')+'</button> ';";
+  js += "h+='<button class=\"btn btn-danger\" onclick=\"tftPattern(\\'clear\\')\">🗑️ '+tr('clear','Effacer')+'</button>';";
+  js += "h+='<br><br><input type=\"text\" id=\"tftText\" placeholder=\"'+tr('custom_message','Message personnalisé')+'\" style=\"width:300px;padding:10px\">';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"tftDisplayText()\">📤 '+tr('display_text','Afficher texte')+'</button>';";
   js += "h+='</div></div></div>';";
-
-  js += "h+='<div class=\"section\"><h2>🖥️ Écran OLED 0.96\\\" I2C</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"oled-status\">'+d.oled.status+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Pins I2C</div><div class=\"info-value\">SDA:'+d.oled.pins.sda+' SCL:'+d.oled.pins.scl+'</div></div>';";
+  js += "h+='<div class=\"section\"><h2>🖥️ '+tr('oled_screen','Écran OLED 0.96\" I2C')+'</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('status','Statut')+'</div><div class=\"info-value\" id=\"oled-status\">'+d.oled.status+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('i2c_pins','Pins I2C')+'</div><div class=\"info-value\">SDA:'+d.oled.pins.sda+' SCL:'+d.oled.pins.scl+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testOLED()\">🧪 Test complet (25s)</button> ';";
-  js += "h+='<button class=\"btn btn-success\" onclick=\"oledPattern(\\'info\\')\">ℹ️ Infos</button> ';";
-  js += "h+='<button class=\"btn btn-info\" onclick=\"oledPattern(\\'shapes\\')\">🔷 Formes</button> ';";
-  js += "h+='<button class=\"btn btn-warning\" onclick=\"oledPattern(\\'grid\\')\"># Grille</button> ';";
-  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledPattern(\\'scroll\\')\">➡️ Défilement</button> ';";
-  js += "h+='<button class=\"btn btn-danger\" onclick=\"oledPattern(\\'clear\\')\">🗑️ Effacer</button>';";
-  js += "h+='<br><br><input type=\"text\" id=\"oledText\" placeholder=\"Message à afficher\" style=\"width:300px;padding:10px\">';";
-  js += "h+='<button class=\"btn btn-success\" onclick=\"oledDisplayText()\">📤 Afficher message</button>';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testOLED()\">🧪 '+tr('full_test','Test complet')+' (25s)</button> ';";
+  js += "h+='<button class=\"btn btn-success\" onclick=\"oledPattern(\\'info\\')\">ℹ️ '+tr('info_label','Infos')+'</button> ';";
+  js += "h+='<button class=\"btn btn-info\" onclick=\"oledPattern(\\'shapes\\')\">🔷 '+tr('shapes_label','Formes')+'</button> ';";
+  js += "h+='<button class=\"btn btn-warning\" onclick=\"oledPattern(\\'grid\\')\"># '+tr('grid_label','Grille')+'</button> ';";
+  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledPattern(\\'scroll\\')\">➡️ '+tr('scroll_label','Défilement')+'</button> ';";
+  js += "h+='<button class=\"btn btn-danger\" onclick=\"oledPattern(\\'clear\\')\">🗑️ '+tr('clear','Effacer')+'</button>';";
+  js += "h+='<br><br><input type=\"text\" id=\"oledText\" placeholder=\"'+tr('custom_message','Message personnalisé')+'\" style=\"width:300px;padding:10px\">';";
+  js += "h+='<button class=\"btn btn-success\" onclick=\"oledDisplayText()\">📤 '+tr('display_message','Afficher message')+'</button>';";
   js += "h+='</div></div></div>';";
   js += "return h;";
   js += "}";
 
   // Build Tests
   js += "function buildTests(){";
-  js += "let h='<div class=\"section\"><h2>📊 Test ADC</h2>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"testADC()\">🧪 Lancer test ADC</button>';";
-  js += "h+='<div id=\"adc-status\" class=\"status-live\">Cliquez pour tester</div></div>';";
+  js += "let h='<div class=\"section\"><h2>📊 '+tr('adc_test','Test ADC')+'</h2>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"testADC()\">🧪 '+tr('full_test','Test complet')+'</button>';";
+  js += "h+='<div id=\"adc-status\" class=\"status-live\">'+tr('click_to_test','Cliquez pour tester')+'</div></div>';";
   js += "h+='<div id=\"adc-results\" class=\"info-grid\"></div></div>';";
-  js += "h+='<div class=\"section\"><h2>🔥 Stress Test</h2>';";
+  js += "h+='<div class=\"section\"><h2>🔥 '+tr('memory_stress','Stress Test Mémoire')+'</h2>';";
   js += "h+='<div style=\"text-align:center;margin:20px 0\">';";
-  js += "h+='<p style=\"color:#dc3545;font-weight:bold\">⚠️ Peut ralentir l\\'ESP32 temporairement</p>';";
-  js += "h+='<button class=\"btn btn-danger\" onclick=\"runStressTest()\">🚀 Démarrer Stress Test</button>';";
-  js += "h+='<div id=\"stress-status\" class=\"status-live\">Non testé</div></div>';";
+  js += "h+='<p style=\"color:#dc3545;font-weight:bold\">⚠️ '+tr('stress_warning','Peut ralentir l\\'ESP32 temporairement')+'</p>';";
+  js += "h+='<button class=\"btn btn-danger\" onclick=\"runStressTest()\">🚀 '+tr('start_stress','Démarrer Stress Test')+'</button>';";
+  js += "h+='<div id=\"stress-status\" class=\"status-live\">'+tr('not_tested','Non testé')+'</div></div>';";
   js += "h+='<div id=\"stress-results\" class=\"info-grid\"></div></div>';";
   js += "return h;";
   js += "}";
 
   // Build GPIO
   js += "function buildGpio(){";
-  js += "let h='<div class=\"section\"><h2>🔌 Test GPIO</h2>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"testAllGPIO()\">🧪 Tester tous les GPIO</button>';";
-  js += "h+='<div id=\"gpio-status\" class=\"status-live\">Cliquez pour tester</div></div>';";
+  js += "let h='<div class=\"section\"><h2>🔌 '+tr('gpio_test','Test GPIO')+'</h2>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"testAllGPIO()\">🧪 '+tr('test_all_gpio','Tester Tous les GPIO')+'</button>';";
+  js += "h+='<div id=\"gpio-status\" class=\"status-live\">'+tr('click_to_test','Cliquez pour tester')+'</div></div>';";
   js += "h+='<div id=\"gpio-results\" class=\"gpio-grid\"></div></div>';";
   js += "return h;";
   js += "}";
 
   // Build WiFi
   js += "function buildWifi(){";
-  js += "let h='<div class=\"section\"><h2>📡 Scanner WiFi</h2>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"scanWiFi()\">🔍 Scanner les réseaux</button>';";
-  js += "h+='<div id=\"wifi-status\" class=\"status-live\">Cliquez pour scanner</div></div>';";
+  js += "let h='<div class=\"section\"><h2>📡 '+tr('wifi_scanner','Scanner WiFi')+'</h2>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"scanWiFi()\">🔍 '+tr('scan_networks','Scanner Réseaux WiFi')+'</button>';";
+  js += "h+='<div id=\"wifi-status\" class=\"status-live\">'+tr('click_to_scan','Cliquez pour scanner')+'</div></div>';";
   js += "h+='<div id=\"wifi-results\" class=\"wifi-list\"></div></div>';";
   js += "return h;";
   js += "}";
 
   // Build Benchmark
   js += "function buildBenchmark(){";
-  js += "let h='<div class=\"section\"><h2>⚡ Benchmarks</h2>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"runBenchmarks()\">🚀 Lancer les benchmarks</button></div>';";
+  js += "let h='<div class=\"section\"><h2>⚡ '+tr('performance_bench','Benchmarks de Performance')+'</h2>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"runBenchmarks()\">🚀 '+tr('run_benchmarks','Lancer Benchmarks')+'</button></div>';";
   js += "h+='<div id=\"benchmark-results\" class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">CPU</div><div class=\"info-value\" id=\"cpu-bench\">Non testé</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Mémoire</div><div class=\"info-value\" id=\"mem-bench\">Non testé</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('cpu_benchmark','CPU Benchmark')+'</div><div class=\"info-value\" id=\"cpu-bench\">'+tr('not_tested','Non testé')+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('memory_benchmark','Mémoire Benchmark')+'</div><div class=\"info-value\" id=\"mem-bench\">'+tr('not_tested','Non testé')+'</div></div>';";
   js += "h+='</div></div>';";
   js += "return h;";
   js += "}";
 
   // Build Export
   js += "function buildExport(){";
-  js += "let h='<div class=\"section\"><h2>💾 Exporter les données</h2>';";
+  js += "let h='<div class=\"section\"><h2>💾 '+tr('data_export','Export des Données')+'</h2>';";
   js += "h+='<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-top:20px\">';";
-  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#667eea\">📄 TXT</h3>';";
-  js += "h+='<p style=\"font-size:0.9em;color:#666;margin:15px 0\">Rapport lisible</p>';";
-  js += "h+='<a href=\"/export/txt\" class=\"btn btn-primary\">📥 Télécharger TXT</a></div>';";
-  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#3a7bd5\">📋 JSON</h3>';";
-  js += "h+='<p style=\"font-size:0.9em;color:#666;margin:15px 0\">Format structuré</p>';";
-  js += "h+='<a href=\"/export/json\" class=\"btn btn-info\">📥 Télécharger JSON</a></div>';";
-  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#56ab2f\">📊 CSV</h3>';";
-  js += "h+='<p style=\"font-size:0.9em;color:#666;margin:15px 0\">Pour Excel</p>';";
-  js += "h+='<a href=\"/export/csv\" class=\"btn btn-success\">📥 Télécharger CSV</a></div>';";
-  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#667eea\">🖨️ Print</h3>';";
-  js += "h+='<p style=\"font-size:0.9em;color:#666;margin:15px 0\">Version PDF</p>';";
-  js += "h+='<a href=\"/print\" target=\"_blank\" class=\"btn btn-primary\">🖨️ Ouvrir</a></div>';";
+  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#667eea\">📄 '+tr('txt_file','Fichier TXT')+'</h3>';";
+  js += "h+='<p style=\"font-size:0.9em;color:#666;margin:15px 0\">'+tr('readable_report','Rapport texte lisible')+'</p>';";
+  js += "h+='<a href=\"/export/txt\" class=\"btn btn-primary\">📥 '+tr('download_txt','Télécharger TXT')+'</a></div>';";
+  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#3a7bd5\">📋 '+tr('json_file','Fichier JSON')+'</h3>';";
+  js += "h+='<p style=\"font-size:0.9em;color:#666;margin:15px 0\">'+tr('structured_format','Format structuré')+'</p>';";
+  js += "h+='<a href=\"/export/json\" class=\"btn btn-info\">📥 '+tr('download_json','Télécharger JSON')+'</a></div>';";
+  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#56ab2f\">📊 '+tr('csv_file','Fichier CSV')+'</h3>';";
+  js += "h+='<p style=\"font-size:0.9em;color:#666;margin:15px 0\">'+tr('for_excel','Pour Excel')+'</p>';";
+  js += "h+='<a href=\"/export/csv\" class=\"btn btn-success\">📥 '+tr('download_csv','Télécharger CSV')+'</a></div>';";
+  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#667eea\">🖨️ '+tr('printable_version','Version Imprimable')+'</h3>';";
+  js += "h+='<p style=\"font-size:0.9em;color:#666;margin:15px 0\">'+tr('pdf_format','Format PDF')+'</p>';";
+  js += "h+='<a href=\"/print\" target=\"_blank\" class=\"btn btn-primary\">🖨️ '+tr('open','Ouvrir')+'</a></div>';";
   js += "h+='</div></div>';";
   js += "return h;";
   js += "}";
 
   // FONCTIONS API - LED
   js += "async function testBuiltinLED(){";
-  js += "document.getElementById('builtin-led-status').textContent='Test en cours...';";
+  js += "document.getElementById('builtin-led-status').textContent=tr('testing','Test en cours...');";
   js += "const r=await fetch('/api/builtin-led-test');const d=await r.json();";
   js += "document.getElementById('builtin-led-status').textContent=d.result;alert(d.result);";
   js += "}";
@@ -473,14 +481,14 @@ js += "function buildScreens(d){";
   js += "const r=parseInt(color.substr(1,2),16);";
   js += "const g=parseInt(color.substr(3,2),16);";
   js += "const b=parseInt(color.substr(5,2),16);";
-  js += "document.getElementById('neopixel-status').textContent='Application couleur RGB('+r+','+g+','+b+')...';";
+  js += "document.getElementById('neopixel-status').textContent=tr('apply_color','Appliquer couleur')+' RGB('+r+','+g+','+b+')...';";
   js += "const resp=await fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b);";
   js += "const d=await resp.json();";
   js += "document.getElementById('neopixel-status').textContent=d.message;";
   js += "}";
   // FONCTIONS API - NeoPixel
   js += "async function testNeoPixel(){";
-  js += "document.getElementById('neopixel-status').textContent='Test en cours...';";
+  js += "document.getElementById('neopixel-status').textContent=tr('testing','Test en cours...');";
   js += "const r=await fetch('/api/neopixel-test');const d=await r.json();";
   js += "document.getElementById('neopixel-status').textContent=d.result;";
   js += "}";
@@ -491,7 +499,7 @@ js += "function buildScreens(d){";
 
   // FONCTIONS API - TFT/OLED
   js += "async function testTFT(){";
-  js += "document.getElementById('tft-status').textContent='Test en cours (15s)...';";
+  js += "document.getElementById('tft-status').textContent=tr('testing','Test en cours...')+' (15s)...';";
   js += "const r=await fetch('/api/tft-test');const d=await r.json();";
   js += "document.getElementById('tft-status').textContent=d.result;";
   js += "}";
@@ -500,19 +508,19 @@ js += "function buildScreens(d){";
   js += "document.getElementById('tft-status').textContent=d.message;";
   js += "}";
   js += "async function testOLED(){";
-  js += "document.getElementById('oled-status').textContent='Test en cours (25s)...';";
+  js += "document.getElementById('oled-status').textContent=tr('testing','Test en cours...')+' (25s)...';";
   js += "const r=await fetch('/api/oled-test');const d=await r.json();";
   js += "document.getElementById('oled-status').textContent=d.result;";
   js += "}";
 
   js += "async function oledPattern(p){";
-  js += "document.getElementById('oled-status').textContent='Affichage en cours...';";
+  js += "document.getElementById('oled-status').textContent=tr('displaying','Affichage en cours...');";
   js += "const r=await fetch('/api/oled-pattern?pattern='+p);";
-  js += "let msg='Commande envoyée';";
+  js += "let msg=tr('command_sent','Commande envoyée');";
   js += "try{";
   js += "const d=await r.json();";
   js += "msg=d.message||d.result||msg;";
-  js += "}catch(e){msg='Erreur de communication';}";
+  js += "}catch(e){msg=tr('communication_error','Erreur de communication');}";
   js += "document.getElementById('oled-status').textContent=msg;";
   js += "}";
 
@@ -520,7 +528,7 @@ js += "function buildScreens(d){";
   js += "async function tftDisplayText(){";
   js += "const text=document.getElementById('tftText').value;";
   js += "if(!text){alert('Entrez un texte!');return;}";
-  js += "document.getElementById('tft-status').textContent='Affichage en cours...';";
+  js += "document.getElementById('tft-status').textContent=tr('displaying','Affichage en cours...');";
   js += "const r=await fetch('/api/tft-text?text='+encodeURIComponent(text));";
   js += "const d=await r.json();";
   js += "document.getElementById('tft-status').textContent=d.message;";
@@ -529,7 +537,7 @@ js += "function buildScreens(d){";
   js += "async function oledDisplayText(){";
   js += "const text=document.getElementById('oledText').value;";
   js += "if(!text){alert('Entrez un message!');return;}";
-  js += "document.getElementById('oled-status').textContent='Affichage en cours...';";
+  js += "document.getElementById('oled-status').textContent=tr('displaying','Affichage en cours...');";
   js += "const r=await fetch('/api/oled-message?message='+encodeURIComponent(text));";
   js += "const d=await r.json();";
   js += "document.getElementById('oled-status').textContent=d.message;";
@@ -537,7 +545,7 @@ js += "function buildScreens(d){";
 
   // FONCTIONS API - Tests
   js += "async function testADC(){";
-  js += "document.getElementById('adc-status').textContent='Test en cours...';";
+  js += "document.getElementById('adc-status').textContent=tr('testing','Test en cours...');";
   js += "const r=await fetch('/api/adc-test');const d=await r.json();";
   js += "let h='';d.readings.forEach(rd=>{h+='<div class=\"info-item\"><div class=\"info-label\">GPIO '+rd.pin+'</div><div class=\"info-value\">'+rd.raw+' ('+rd.voltage.toFixed(2)+'V)</div></div>';});";
   js += "document.getElementById('adc-results').innerHTML=h;";
@@ -545,7 +553,7 @@ js += "function buildScreens(d){";
   js += "}";
 
   js += "async function testAllGPIO(){";
-  js += "document.getElementById('gpio-status').textContent='Test en cours...';";
+  js += "document.getElementById('gpio-status').textContent=tr('testing','Test en cours...');";
   js += "const r=await fetch('/api/test-gpio');const d=await r.json();";
   js += "let h='';d.results.forEach(g=>{h+='<div class=\"gpio-item '+(g.working?'gpio-ok':'gpio-fail')+'\">GPIO '+g.pin+'<br>'+(g.working?'✅ OK':'❌ FAIL')+'</div>';});";
   js += "document.getElementById('gpio-results').innerHTML=h;";
@@ -553,7 +561,7 @@ js += "function buildScreens(d){";
   js += "}";
 
   js += "async function scanWiFi(){";
-  js += "document.getElementById('wifi-status').textContent='Scan en cours...';";
+  js += "document.getElementById('wifi-status').textContent=tr('scanning','Scan en cours...');";
   js += "const r=await fetch('/api/wifi-scan');const d=await r.json();";
   js += "let h='';d.networks.forEach(n=>{";
   js += "const icon=n.rssi>=-60?'🟢':n.rssi>=-70?'🟡':'🔴';";
@@ -566,15 +574,15 @@ js += "function buildScreens(d){";
   js += "}";
 
   js += "async function runBenchmarks(){";
-  js += "document.getElementById('cpu-bench').textContent='Test en cours...';";
-  js += "document.getElementById('mem-bench').textContent='Test en cours...';";
+  js += "document.getElementById('cpu-bench').textContent=tr('testing','Test en cours...');";
+  js += "document.getElementById('mem-bench').textContent=tr('testing','Test en cours...');";
   js += "const r=await fetch('/api/benchmark');const d=await r.json();";
   js += "document.getElementById('cpu-bench').textContent=d.cpu+' µs';";
   js += "document.getElementById('mem-bench').textContent=d.memory+' µs';";
   js += "}";
 
   js += "async function runStressTest(){";
-  js += "document.getElementById('stress-status').textContent='⚠️ Test en cours... Patientez';";
+  js += "document.getElementById('stress-status').textContent='⚠️ '+tr('testing','Test en cours...');";
   js += "document.getElementById('stress-results').innerHTML='<div class=\"loading\"></div>';";
   js += "try{";
   js += "const r=await fetch('/api/stress-test');";
@@ -623,23 +631,27 @@ js += "function buildScreens(d){";
   js += "}";
 
   // Changement de langue
-  js += "function changeLang(lang){";
-  js += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
-  js += "if(d.success){";
-  js += "currentLang=lang;";
-  js += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
-  js += "document.querySelectorAll('.lang-btn').forEach(b=>{if(b.textContent.toLowerCase()===lang)b.classList.add('active');});";
-  js += "return fetch('/api/get-translations');";
-  js += "}).then(r=>r.json()).then(translations=>{";
-  js += "updateInterfaceTexts(translations);";
-  js += "alert('Langue changée : '+lang.toUpperCase());";
-  js += "}).catch(e=>alert('Erreur changement langue: '+e));";
+  js += "async function changeLang(lang){";
+  js += "if(lang===currentLang)return;";
+  js += "const targetLang=lang;";
+  js += "try{";
+  js += "const response=await fetch('/api/set-language?lang='+encodeURIComponent(targetLang));";
+  js += "const result=await response.json();";
+  js += "if(!result.success)throw new Error(result.message||'');";
+  js += "currentLang=targetLang;";
+  js += "applyLanguageButtonState();";
+  js += "translations=await fetchTranslations(targetLang);";
+  js += "updateInterfaceTexts();";
+  js += "await loadTab(activeTab,true);";
+  js += "alert(tr('language_changed','Langue changée')+': '+targetLang.toUpperCase());";
+  js += "}catch(error){console.error('Erreur changement langue',error);alert(tr('language_error','Erreur changement langue')+': '+error);}";
   js += "}";
 
-  js += "function updateInterfaceTexts(t){";
-  js += "const tabs=['overview','leds','screens','tests','gpio','wifi','benchmark','export'];";
-  js += "const btns=document.querySelectorAll('.nav-btn');";
-  js += "btns.forEach((btn,i)=>{if(t[tabs[i]])btn.textContent=t[tabs[i]];});";
+  js += "function updateInterfaceTexts(){";
+  js += "applyLanguageButtonState();";
+  js += "document.documentElement.setAttribute('lang',currentLang);";
+  js += "document.querySelectorAll('[data-i18n]').forEach(el=>{const key=el.dataset.i18n;const fallback=el.dataset.i18nFallback||el.textContent;el.textContent=tr(key,fallback);});";
+  js += "const indicator=document.getElementById('updateIndicator');if(indicator)indicator.textContent=tr('update_indicator','Mise à jour...');";
   js += "}";
 
   return js;
