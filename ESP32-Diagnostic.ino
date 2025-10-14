@@ -52,8 +52,8 @@ const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
 
 // Pins I2C pour OLED (modifiables via web)
-int I2C_SDA = 8;
-int I2C_SCL = 9;
+int I2C_SDA = 21;
+int I2C_SCL = 20;
 
 // Pins TFT (FIXES - non modifiables)
 #define TFT_MOSI  45
@@ -1056,6 +1056,77 @@ void resetOLEDTest() {
   }
 }
 
+void oledPatternInfo() {
+  if (!oledAvailable) return;
+
+  oled.clearDisplay();
+  oled.setTextSize(1);
+  oled.setTextColor(SSD1306_WHITE);
+  oled.setCursor(0, 0);
+  oled.println("ESP32 Diagnostic");
+  oled.println(String("Version: ") + DIAGNOSTIC_VERSION);
+  oled.println("");
+
+  if (WiFi.status() == WL_CONNECTED) {
+    oled.println(String("SSID: ") + WiFi.SSID());
+    oled.println(String("IP: ") + WiFi.localIP().toString());
+  } else {
+    oled.println("WiFi: non connecte");
+  }
+
+  oled.println(String("I2C: 0x") + String(SCREEN_ADDRESS, HEX));
+  oled.printf("SDA:%d SCL:%d", I2C_SDA, I2C_SCL);
+  oled.display();
+}
+
+void oledPatternShapes() {
+  if (!oledAvailable) return;
+
+  oled.clearDisplay();
+  oled.drawRoundRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 6, SSD1306_WHITE);
+  oled.fillCircle(20, 20, 10, SSD1306_WHITE);
+  oled.drawCircle(20, 45, 10, SSD1306_WHITE);
+  oled.fillRect(40, 12, 30, 20, SSD1306_WHITE);
+  oled.drawRect(42, 34, 26, 18, SSD1306_WHITE);
+  oled.drawTriangle(100, 15, 80, 45, 120, 45, SSD1306_WHITE);
+  oled.fillTriangle(96, 20, 84, 40, 108, 40, SSD1306_WHITE);
+  oled.display();
+}
+
+void oledPatternGrid() {
+  if (!oledAvailable) return;
+
+  oled.clearDisplay();
+  for (int y = 0; y < SCREEN_HEIGHT; y += 8) {
+    oled.drawLine(0, y, SCREEN_WIDTH - 1, y, SSD1306_WHITE);
+  }
+  for (int x = 0; x < SCREEN_WIDTH; x += 8) {
+    oled.drawLine(x, 0, x, SCREEN_HEIGHT - 1, SSD1306_WHITE);
+  }
+  oled.display();
+}
+
+void oledPatternScroll() {
+  if (!oledAvailable) return;
+
+  String text = "  Diagnostic ESP32 - Test OLED 0.96\"  ";
+  for (int offset = 0; offset < SCREEN_WIDTH + text.length() * 6; offset += 4) {
+    oled.clearDisplay();
+    oled.setTextSize(1);
+    oled.setTextColor(SSD1306_WHITE);
+    oled.setCursor(SCREEN_WIDTH - offset, 26);
+    oled.print(text);
+    oled.display();
+    delay(40);
+  }
+
+  oled.clearDisplay();
+  oled.setTextSize(1);
+  oled.setCursor(10, 24);
+  oled.println("Defilement termine");
+  oled.display();
+}
+
 void oledShowMessage(String message) {
   if (!oledAvailable) return;
   oled.clearDisplay();
@@ -1699,7 +1770,7 @@ void handleOLEDConfig() {
   if (server.hasArg("sda") && server.hasArg("scl")) {
     int newSDA = server.arg("sda").toInt();
     int newSCL = server.arg("scl").toInt();
-    
+
     if (newSDA >= 0 && newSDA <= 48 && newSCL >= 0 && newSCL <= 48) {
       I2C_SDA = newSDA;
       I2C_SCL = newSCL;
@@ -1713,6 +1784,49 @@ void handleOLEDConfig() {
   }
   server.send(400, "application/json",
               "{\"success\":false,\"message\":\"Pins invalides\"}");
+}
+
+void handleOLEDPattern() {
+  if (!server.hasArg("pattern")) {
+    server.send(400, "application/json",
+                "{\"success\":false,\"message\":\"Motif manquant\"}");
+    return;
+  }
+
+  String pattern = server.arg("pattern");
+
+  if (!oledAvailable) {
+    server.send(200, "application/json",
+                "{\"success\":false,\"message\":\"OLED indisponible\"}");
+    return;
+  }
+
+  String message = "";
+
+  if (pattern == "info") {
+    oledPatternInfo();
+    message = "Informations affichees";
+  } else if (pattern == "shapes") {
+    oledPatternShapes();
+    message = "Formes affichees";
+  } else if (pattern == "grid") {
+    oledPatternGrid();
+    message = "Grille affichee";
+  } else if (pattern == "scroll") {
+    oledPatternScroll();
+    message = "Defilement lance";
+  } else if (pattern == "clear") {
+    oled.clearDisplay();
+    oled.display();
+    message = "Ecran efface";
+  } else {
+    server.send(400, "application/json",
+                "{\"success\":false,\"message\":\"Motif inconnu\"}");
+    return;
+  }
+
+  String json = "{\"success\":true,\"message\":\"" + message + "\"}";
+  server.send(200, "application/json", json);
 }
 
 void handleOLEDTest() {
@@ -2628,6 +2742,7 @@ void setup() {
   server.on("/api/tft-test", HTTP_GET, handleTFTTest);
   server.on("/api/tft-pattern", HTTP_GET, handleTFTPattern);
   server.on("/api/oled-test", HTTP_GET, handleOLEDTest);
+  server.on("/api/oled-pattern", HTTP_GET, handleOLEDPattern);
   server.on("/api/oled-message", HTTP_GET, handleOLEDMessage);
   server.on("/api/oled-config", HTTP_GET, handleOLEDConfig);
   server.on("/api/tft-text", HTTP_GET, handleTFTText);
