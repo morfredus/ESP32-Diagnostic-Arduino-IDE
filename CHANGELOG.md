@@ -5,6 +5,19 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.3-dev] - 2025-10-10
+
+### Fixed
+- LED diagnostics now run correctly on the first visit of the LEDs tab by preventing stale responses from being cached.
+
+### Added
+- Centered, non-blocking modal windows now report results for LED, NeoPixel, TFT and OLED tests.
+- Toast notifications acknowledge language switches without interrupting navigation.
+- Inline reminder clarifies that GPIO test failures may simply indicate pins already in use rather than a faulty board.
+
+### Changed
+- Documentation updated in both languages with version 3.0.3-dev details and UI behaviour notes.
+
 ## [3.0.2-dev] - 2025-10-09
 
 ### Fixed
