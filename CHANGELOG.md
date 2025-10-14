@@ -5,6 +5,17 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0-dev] - 2025-10-10
+
+### Added
+- Dedicated **Sensors** tab in the web interface with configurable PIR, HC-SR04 distance, DHT11/22 and LDR inputs.
+- REST API endpoints (`/api/sensors-info`, `/api/sensor-config`, `/api/sensor-test`) to query, configure and test sensors remotely.
+- Runtime configuration for OLED I2C pins directly from the screens tab.
+- Sensor diagnostics integrated into overview cards, printable reports, and TXT/JSON/CSV exports.
+
+### Changed
+- Incremented diagnostic version string to `3.1.0-dev`.
+
 ## [3.0.2-dev] - 2025-10-09
 
 ### Fixed

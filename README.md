@@ -3,9 +3,9 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic Tool v3.0-dev
+# ESP32 Complete Diagnostic Tool v3.1.0-dev
 
-[![Version](https://img.shields.io/badge/version-3.0--dev-blue.svg)](https://github.com/yourusername/esp32-diagnostic)
+[![Version](https://img.shields.io/badge/version-3.1.0--dev-blue.svg)](https://github.com/yourusername/esp32-diagnostic)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-ESP32-orange.svg)](https://www.espressif.com/)
 [![Arduino](https://img.shields.io/badge/Arduino-3.1.3-teal.svg)](https://github.com/espressif/arduino-esp32)
@@ -84,6 +84,14 @@ A comprehensive web-based diagnostic tool for ESP32 microcontrollers with real-t
   - Animations (moving square, scrolling text)
   - Progress bar
   - Custom message display
+  - Runtime SDA/SCL pin configuration from the web interface
+
+### 🛠️ Sensor Diagnostics (v3.1.0-dev)
+- **PIR motion sensor** (default GPIO 6) with instant motion status and configurable pin
+- **HC-SR04 distance sensor** with editable TRIG/ECHO pins and live distance measurements
+- **DHT11 / DHT22** temperature & humidity probe with on-the-fly type switching and pin selection
+- **LDR analog sensor** (default GPIO 5) with raw/voltage readouts
+- Unified Sensors tab plus JSON/TXT/CSV/print exports updated with sensor results
 
 ### 🧪 Advanced Testing
 - I2C peripheral scanner
@@ -123,6 +131,10 @@ A comprehensive web-based diagnostic tool for ESP32 microcontrollers with real-t
 - TFT SPI display (ST7789/ILI9341)
 - OLED 0.96" I2C display (SSD1306)
 - Touch sensors
+- PIR motion sensor
+- HC-SR04/ultrasonic distance sensor
+- DHT11/DHT22 temperature & humidity sensor
+- LDR/photoresistor
 - External peripherals (I2C/SPI)
 
 ## 🚀 Quick Start
@@ -140,6 +152,7 @@ A comprehensive web-based diagnostic tool for ESP32 microcontrollers with real-t
    - TFT_eSPI
    - Adafruit GFX
    - Adafruit SSD1306
+   - Adafruit DHT sensor library
 
 #### PlatformIO
 ```ini
@@ -152,6 +165,7 @@ lib_deps =
     bodmer/TFT_eSPI@^2.5.0
     adafruit/Adafruit GFX Library@^1.11.0
     adafruit/Adafruit SSD1306@^2.5.0
+    adafruit/DHT sensor library@^1.4.4
 ```
 
 ### 2. Configuration

@@ -23,6 +23,7 @@ struct Translations {
   const char* nav_overview;
   const char* nav_leds;
   const char* nav_screens;
+  const char* nav_sensors;
   const char* nav_tests;
   const char* nav_gpio;
   const char* nav_wifi;
@@ -220,6 +221,26 @@ struct Translations {
   const char* command_sent;
   const char* communication_error;
 
+  // Capteurs
+  const char* sensors_section;
+  const char* pir_sensor;
+  const char* distance_sensor;
+  const char* dht_sensor;
+  const char* ldr_sensor;
+  const char* trig_pin_label;
+  const char* echo_pin_label;
+  const char* sensor_type;
+  const char* temperature_label;
+  const char* humidity_label;
+  const char* voltage_label;
+  const char* motion_detected;
+  const char* motion_none;
+  const char* distance_value;
+  const char* light_level;
+  const char* sensor_config;
+  const char* apply_changes;
+  const char* run_sensor_test;
+
   // Statuts et messages
   const char* ok;
   const char* fail;
@@ -265,6 +286,7 @@ const Translations LANG_FR_TEXTS = {
   "Vue d'ensemble",
   "LEDs",
   "Écrans",
+  "Capteurs",
   "Tests Avancés",
   "GPIO",
   "WiFi",
@@ -462,6 +484,26 @@ const Translations LANG_FR_TEXTS = {
   "Commande envoyée",
   "Erreur de communication",
 
+  // Capteurs
+  "Capteurs",
+  "Capteur PIR",
+  "Capteur distance",
+  "Capteur DHT",
+  "Capteur LDR",
+  "Broche TRIG",
+  "Broche ECHO",
+  "Type",
+  "Température",
+  "Humidité",
+  "Tension",
+  "Mouvement détecté",
+  "Pas de mouvement",
+  "Distance",
+  "Luminosité",
+  "Configuration capteur",
+  "Appliquer",
+  "Tester le capteur",
+
   // Statuts
   "OK",
   "FAIL",
@@ -507,6 +549,7 @@ const Translations LANG_EN_TEXTS = {
   "Overview",
   "LEDs",
   "Screens",
+  "Sensors",
   "Advanced Tests",
   "GPIO",
   "WiFi",
@@ -704,6 +747,26 @@ const Translations LANG_EN_TEXTS = {
   "Command sent",
   "Communication error",
 
+  // Sensors
+  "Sensors",
+  "PIR sensor",
+  "Distance sensor",
+  "DHT sensor",
+  "LDR sensor",
+  "TRIG pin",
+  "ECHO pin",
+  "Type",
+  "Temperature",
+  "Humidity",
+  "Voltage",
+  "Motion detected",
+  "No motion",
+  "Distance",
+  "Light level",
+  "Sensor configuration",
+  "Apply",
+  "Run sensor test",
+
   // Status
   "OK",
   "FAIL",
@@ -765,6 +828,7 @@ static const TranslationField TRANSLATION_FIELDS[] = {
   {"nav_overview",&Translations::nav_overview},
   {"nav_leds",&Translations::nav_leds},
   {"nav_screens",&Translations::nav_screens},
+  {"nav_sensors",&Translations::nav_sensors},
   {"nav_tests",&Translations::nav_tests},
   {"nav_gpio",&Translations::nav_gpio},
   {"nav_wifi",&Translations::nav_wifi},
@@ -931,6 +995,24 @@ static const TranslationField TRANSLATION_FIELDS[] = {
   {"displaying",&Translations::displaying},
   {"command_sent",&Translations::command_sent},
   {"communication_error",&Translations::communication_error},
+  {"sensors_section",&Translations::sensors_section},
+  {"pir_sensor",&Translations::pir_sensor},
+  {"distance_sensor",&Translations::distance_sensor},
+  {"dht_sensor",&Translations::dht_sensor},
+  {"ldr_sensor",&Translations::ldr_sensor},
+  {"trig_pin_label",&Translations::trig_pin_label},
+  {"echo_pin_label",&Translations::echo_pin_label},
+  {"sensor_type",&Translations::sensor_type},
+  {"temperature_label",&Translations::temperature_label},
+  {"humidity_label",&Translations::humidity_label},
+  {"voltage_label",&Translations::voltage_label},
+  {"motion_detected",&Translations::motion_detected},
+  {"motion_none",&Translations::motion_none},
+  {"distance_value",&Translations::distance_value},
+  {"light_level",&Translations::light_level},
+  {"sensor_config",&Translations::sensor_config},
+  {"apply_changes",&Translations::apply_changes},
+  {"run_sensor_test",&Translations::run_sensor_test},
   {"ok",&Translations::ok},
   {"fail",&Translations::fail},
   {"excellent",&Translations::excellent},
