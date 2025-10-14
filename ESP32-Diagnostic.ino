@@ -30,6 +30,7 @@
 #include <TFT_eSPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <vector>
 
 // Configuration WiFi
 #include "config.h"
