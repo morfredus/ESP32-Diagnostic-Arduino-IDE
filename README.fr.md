@@ -3,9 +3,9 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# Outil de Diagnostic Complet ESP32 v3.0.3-dev
+# Outil de Diagnostic Complet ESP32 v3.0-dev
 
-[![Version](https://img.shields.io/badge/version-3.0.3--dev-blue.svg)](https://github.com/yourusername/esp32-diagnostic)
+[![Version](https://img.shields.io/badge/version-3.0--dev-blue.svg)](https://github.com/yourusername/esp32-diagnostic)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-ESP32-orange.svg)](https://www.espressif.com/)
 [![Arduino](https://img.shields.io/badge/Arduino-3.1.3-teal.svg)](https://github.com/espressif/arduino-esp32)
@@ -18,7 +18,7 @@ Un outil de diagnostic complet basé sur une interface web pour microcontrôleur
 
 ## 🌟 Fonctionnalités Principales
 
-### 🔄 Surveillance Temps Réel (v3.0.3-dev)
+### 🔄 Surveillance Temps Réel (v3.0-dev)
 - **Interface web dynamique** avec chargement asynchrone
 - **Rafraîchissement automatique toutes les 5 secondes** pour les données en direct
 - **Architecture API REST** pour une communication efficace
@@ -52,27 +52,24 @@ Un outil de diagnostic complet basé sur une interface web pour microcontrôleur
 - Informations de connexion (IP, Masque, Passerelle, DNS)
 - Support mDNS (esp32-diagnostic.local)
 
-### 🔌 Tests GPIO (v3.0.3-dev)
+### 🔌 Tests GPIO
 - Test GPIO individuel (E/S numériques)
 - Cartographie complète des broches pour chaque variante ESP32
 - Indicateurs visuels OK/ÉCHEC
 - Tests ADC (Convertisseur Analogique-Numérique)
 - Tests capteurs tactiles (ESP32/S3)
 - Tests PWM (Modulation de Largeur d'Impulsion)
-- Rappel : un échec de test peut simplement signifier qu'un périphérique utilise déjà la broche, sans remettre en cause l'intégrité de la carte
 
-### 💡 Contrôle LED (v3.0.3-dev)
+### 💡 Contrôle LED
 - **LED Intégrée** :
   - Broche GPIO configurable
   - Motifs clignotement et fondu
   - Contrôle individuel
-  - Prête dès la première ouverture de l'onglet grâce à un rafraîchissement garanti
 - **NeoPixel/WS2812** :
   - GPIO et nombre de LEDs configurables
   - Effet arc-en-ciel
   - Couleurs personnalisées avec sélecteur
   - Animations clignotement et fondu
-  - Retour d'information central et non bloquant après les diagnostics
 
 ### 📺 Support Écrans
 - **Écran TFT SPI** :
@@ -99,7 +96,6 @@ Un outil de diagnostic complet basé sur une interface web pour microcontrôleur
 - **Français** (par défaut)
 - **Anglais**
 - Changement de langue dynamique sans rechargement
-- Notification toast confirmant le changement sans bloquer l'interface
 - Exports traduits
 
 ### 📤 Export de Données
@@ -241,7 +237,7 @@ Ouvrir votre navigateur et accéder à l'URL affichée.
 - Télécharger rapports diagnostic
 - Options multiples formats
 
-### Points de Terminaison API (v3.0.3-dev)
+### Points de Terminaison API (v3.0-dev)
 
 L'outil fournit une API REST complète :
 
@@ -424,7 +420,7 @@ Si ce projet vous a aidé, merci de lui donner une ⭐ !
 
 ---
 
-**Version** : 3.0.3-dev
+**Version** : 3.0-dev
 **Dernière Mise à Jour** : 10 octobre 2025
 **Statut** : Développement Actif
 ```
