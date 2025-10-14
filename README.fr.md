@@ -3,9 +3,9 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# Outil de Diagnostic Complet ESP32 v3.0.3-dev
+# Outil de Diagnostic Complet ESP32 v3.1.0-dev
 
-[![Version](https://img.shields.io/badge/version-3.0.3--dev-blue.svg)](https://github.com/yourusername/esp32-diagnostic)
+[![Version](https://img.shields.io/badge/version-3.1.0--dev-blue.svg)](https://github.com/yourusername/esp32-diagnostic)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-ESP32-orange.svg)](https://www.espressif.com/)
 [![Arduino](https://img.shields.io/badge/Arduino-3.1.3-teal.svg)](https://github.com/espressif/arduino-esp32)
@@ -87,6 +87,14 @@ Un outil de diagnostic complet basé sur une interface web pour microcontrôleur
   - Animations (carré mobile, texte défilant)
   - Barre de progression
   - Affichage message personnalisé
+  - Configuration SDA/SCL en direct depuis l'interface
+
+### 🛠️ Diagnostics Capteurs (v3.1.0-dev)
+- **Capteur PIR** (GPIO 6 par défaut) avec statut de mouvement instantané et broche ajustable
+- **Capteur de distance HC-SR04** avec broches TRIG/ECHO configurables et mesure en temps réel
+- **Capteur DHT11 / DHT22** avec sélection du type et broche modifiable à chaud
+- **Capteur LDR** (GPIO 5 par défaut) avec lecture brute et tension calculée
+- Nouvel onglet Capteurs et intégration complète dans les exports TXT/JSON/CSV et la version imprimable
 
 ### 🧪 Tests Avancés
 - Scanner périphériques I2C
@@ -127,6 +135,10 @@ Un outil de diagnostic complet basé sur une interface web pour microcontrôleur
 - Écran TFT SPI (ST7789/ILI9341)
 - Écran OLED 0.96" I2C (SSD1306)
 - Capteurs tactiles
+- Capteur PIR
+- Capteur de distance (HC-SR04)
+- Capteur de température/humidité DHT11/DHT22
+- Capteur LDR / photorésistance
 - Périphériques externes (I2C/SPI)
 
 ## 🚀 Démarrage Rapide
@@ -144,6 +156,7 @@ Un outil de diagnostic complet basé sur une interface web pour microcontrôleur
    - TFT_eSPI
    - Adafruit GFX
    - Adafruit SSD1306
+   - Adafruit DHT sensor library
 
 #### PlatformIO
 ```ini
@@ -156,6 +169,7 @@ lib_deps =
     bodmer/TFT_eSPI@^2.5.0
     adafruit/Adafruit GFX Library@^1.11.0
     adafruit/Adafruit SSD1306@^2.5.0
+    adafruit/DHT sensor library@^1.4.4
 ```
 
 ### 2. Configuration

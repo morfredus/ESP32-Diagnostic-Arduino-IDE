@@ -5,18 +5,16 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.3-dev] - 2025-10-10
-
-### Fixed
-- LED diagnostics now run correctly on the first visit of the LEDs tab by preventing stale responses from being cached.
+## [3.1.0-dev] - 2025-10-10
 
 ### Added
-- Centered, non-blocking modal windows now report results for LED, NeoPixel, TFT and OLED tests.
-- Toast notifications acknowledge language switches without interrupting navigation.
-- Inline reminder clarifies that GPIO test failures may simply indicate pins already in use rather than a faulty board.
+- Dedicated **Sensors** tab in the web interface with configurable PIR, HC-SR04 distance, DHT11/22 and LDR inputs.
+- REST API endpoints (`/api/sensors-info`, `/api/sensor-config`, `/api/sensor-test`) to query, configure and test sensors remotely.
+- Runtime configuration for OLED I2C pins directly from the screens tab.
+- Sensor diagnostics integrated into overview cards, printable reports, and TXT/JSON/CSV exports.
 
 ### Changed
-- Documentation updated in both languages with version 3.0.3-dev details and UI behaviour notes.
+- Incremented diagnostic version string to `3.1.0-dev`.
 
 ## [3.0.2-dev] - 2025-10-09
 
