@@ -46,8 +46,8 @@
 #define MDNS_HOSTNAME "esp32-diagnostic"
 
 // Pins I2C pour OLED (modifiables via web)
-int I2C_SDA = 8;
-int I2C_SCL = 9;
+int I2C_SCL = 20;
+int I2C_SDA = 21;
 
 // Pins TFT (FIXES - non modifiables)
 #define TFT_MOSI  45
