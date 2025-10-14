@@ -5,6 +5,19 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-05-15
+
+### Added
+- Automatic detection and telemetry for BME280, BMP280 and SHT31 environmental sensors with live API/exports integration.
+- Environmental insights panel on the web dashboard and printable/exported reports.
+
+### Changed
+- Initial language selection now honours the firmware default and avoids stale cached translations.
+- Strengthened build safety by enforcing the presence of `config.h` at compile time.
+
+### Fixed
+- NeoPixel diagnostics gracefully handle boards without onboard strips and report failures reliably.
+
 ## [3.0.2-dev] - 2025-10-09
 
 ### Fixed

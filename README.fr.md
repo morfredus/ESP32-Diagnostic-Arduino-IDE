@@ -3,9 +3,9 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# Outil de Diagnostic Complet ESP32 v3.0-dev
+# Outil de Diagnostic Complet ESP32 v3.1.0
 
-[![Version](https://img.shields.io/badge/version-3.0--dev-blue.svg)](https://github.com/yourusername/esp32-diagnostic)
+[![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](https://github.com/yourusername/esp32-diagnostic)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-ESP32-orange.svg)](https://www.espressif.com/)
 [![Arduino](https://img.shields.io/badge/Arduino-3.1.3-teal.svg)](https://github.com/espressif/arduino-esp32)
@@ -18,12 +18,13 @@ Un outil de diagnostic complet basé sur une interface web pour microcontrôleur
 
 ## 🌟 Fonctionnalités Principales
 
-### 🔄 Surveillance Temps Réel (v3.0-dev)
+### 🔄 Surveillance Temps Réel (v3.1.0)
 - **Interface web dynamique** avec chargement asynchrone
 - **Rafraîchissement automatique toutes les 5 secondes** pour les données en direct
 - **Architecture API REST** pour une communication efficace
 - **Indicateur d'état de connexion** (en ligne/hors ligne)
 - **Animations et transitions fluides**
+- **Télémetrie des capteurs environnementaux** (BME280/BMP280/SHT31) avec détection automatique et mise à jour en direct
 
 ### 🔧 Informations Système
 - Identification complète de la puce (ESP32, S2, S3, C3, C6, H2)
@@ -70,6 +71,7 @@ Un outil de diagnostic complet basé sur une interface web pour microcontrôleur
   - Effet arc-en-ciel
   - Couleurs personnalisées avec sélecteur
   - Animations clignotement et fondu
+  - Procédure d'auto-test sécurisée avec retour explicite lorsque la bande n'est pas détectée
 
 ### 📺 Support Écrans
 - **Écran TFT SPI** :
@@ -91,6 +93,7 @@ Un outil de diagnostic complet basé sur une interface web pour microcontrôleur
 - Liste des partitions Flash
 - Test de stress mémoire
 - Benchmarks CPU et mémoire (MFLOPS, MB/s)
+- Vérification de présence de `config.h` à la compilation pour éviter les configurations incomplètes
 
 ### 🌐 Interface Multilingue
 - **Français** (par défaut)
@@ -420,7 +423,7 @@ Si ce projet vous a aidé, merci de lui donner une ⭐ !
 
 ---
 
-**Version** : 3.0-dev
-**Dernière Mise à Jour** : 10 octobre 2025
+**Version** : 3.1.0
+**Dernière Mise à Jour** : 15 mai 2026
 **Statut** : Développement Actif
 ```

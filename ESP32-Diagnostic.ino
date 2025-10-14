@@ -1,18 +1,16 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION 3.0-dev
+ * DIAGNOSTIC COMPLET ESP32 - VERSION 3.1.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.1.3
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v3.0-dev:
- * - Interface web 100% dynamique
- * - Mise à jour temps réel (5s)
- * - Architecture API REST
- * - Séparation HTML/CSS/JavaScript
- * - Chargement asynchrone des onglets
- * - Indicateur de connexion en direct
- * - Animations et transitions fluides
+ * Nouveautés v3.1.0:
+ * - Télémetrie environnementale BME280/BMP280/SHT31 avec détection auto & rafraîchissement live
+ * - Renforcement du changement de langue et secours bilingues
+ * - Tests NeoPixel fiabilisés avec diagnostics détaillés
+ * - Vérification de la présence de config.h à la compilation
+ * - Documentation et interface web mises à jour (FR/EN)
  */
 
 #include <WiFi.h>
@@ -35,13 +33,21 @@
 #include <math.h>
 
 // Configuration WiFi
+#if defined(__has_include)
+#if __has_include("config.h")
 #include "config.h"
+#else
+#error "config.h introuvable. Copiez exemple-config.h vers config.h et renseignez vos identifiants."
+#endif
+#else
+#include "config.h"
+#endif
 
 // Système de traduction
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.2-dev"
+#define DIAGNOSTIC_VERSION "3.1.0"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -160,6 +166,14 @@ struct DiagnosticInfo {
   bool oledTested;
   bool oledAvailable;
   String oledResult;
+
+  bool envSensorDetected;
+  String envSensorType;
+  float envTemperature;
+  float envHumidity;
+  float envPressure;
+  String envSensorAddress;
+  unsigned long envLastUpdate;
 } diagnosticData;
 
 struct DetailedMemoryInfo {
@@ -185,6 +199,51 @@ struct DetailedMemoryInfo {
 };
 
 DetailedMemoryInfo detailedMemory;
+
+// ========== CAPTEURS ENVIRONNEMENTAUX (BME280/BMP280/SHT31) ==========
+// Gestion interne des capteurs environnementaux
+enum EnvironmentalSensorType {
+  SENSOR_NONE = 0,
+  SENSOR_BME280,
+  SENSOR_BMP280,
+  SENSOR_SHT31
+};
+
+struct EnvironmentalSensorState {
+  EnvironmentalSensorType type;
+  bool detected;
+  float temperature;
+  float humidity;
+  float pressure;
+  uint8_t address;
+  unsigned long lastUpdate;
+};
+
+struct BME280Calibration {
+  uint16_t dig_T1;
+  int16_t dig_T2;
+  int16_t dig_T3;
+  uint16_t dig_P1;
+  int16_t dig_P2;
+  int16_t dig_P3;
+  int16_t dig_P4;
+  int16_t dig_P5;
+  int16_t dig_P6;
+  int16_t dig_P7;
+  int16_t dig_P8;
+  int16_t dig_P9;
+  uint8_t dig_H1;
+  int16_t dig_H2;
+  uint8_t dig_H3;
+  int16_t dig_H4;
+  int16_t dig_H5;
+  int8_t dig_H6;
+  bool humidityCapable;
+};
+
+EnvironmentalSensorState environmentalSensor = {SENSOR_NONE, false, NAN, NAN, NAN, 0x00, 0};
+BME280Calibration bme280Calibration = {};
+bool bme280CalibrationLoaded = false;
 
 struct GPIOTestResult {
   int pin;
@@ -549,6 +608,325 @@ unsigned long benchmarkMemory() {
   return duration;
 }
 
+String sensorTypeToString(EnvironmentalSensorType type) {
+  switch (type) {
+    case SENSOR_BME280: return "BME280";
+    case SENSOR_BMP280: return "BMP280";
+    case SENSOR_SHT31: return "SHT31";
+    default: return "None";
+  }
+}
+
+String formatI2CAddress(uint8_t address) {
+  char buffer[5];
+  sprintf(buffer, "0x%02X", address);
+  return String(buffer);
+}
+
+String jsonFloatOrNull(float value, uint8_t decimals) {
+  if (isnan(value)) {
+    return String("null");
+  }
+  return String(value, decimals);
+}
+
+String formatFloatOrNA(float value, uint8_t decimals, const char* fallback = "N/A") {
+  if (isnan(value)) {
+    return String(fallback);
+  }
+  return String(value, decimals);
+}
+
+bool i2cDevicePresent(uint8_t address) {
+  Wire.beginTransmission(address);
+  return Wire.endTransmission() == 0;
+}
+
+bool writeRegister(uint8_t address, uint8_t reg, uint8_t value) {
+  Wire.beginTransmission(address);
+  Wire.write(reg);
+  Wire.write(value);
+  return Wire.endTransmission() == 0;
+}
+
+// Fonctions utilitaires pour la communication I2C brute
+bool readBytes(uint8_t address, uint8_t reg, uint8_t* buffer, uint8_t length) {
+  Wire.beginTransmission(address);
+  Wire.write(reg);
+  if (Wire.endTransmission(false) != 0) {
+    return false;
+  }
+  uint8_t received = Wire.requestFrom(address, length);
+  if (received != length) {
+    return false;
+  }
+  for (uint8_t i = 0; i < length; i++) {
+    buffer[i] = Wire.read();
+  }
+  return true;
+}
+
+void resetEnvironmentalSensorState() {
+  environmentalSensor.type = SENSOR_NONE;
+  environmentalSensor.detected = false;
+  environmentalSensor.temperature = NAN;
+  environmentalSensor.humidity = NAN;
+  environmentalSensor.pressure = NAN;
+  environmentalSensor.address = 0x00;
+  environmentalSensor.lastUpdate = 0;
+  bme280CalibrationLoaded = false;
+}
+
+bool loadBME280Calibration(uint8_t address, bool humidityCapable) {
+  uint8_t buffer[26];
+  if (!readBytes(address, 0x88, buffer, 24)) {
+    return false;
+  }
+
+  bme280Calibration.dig_T1 = (buffer[1] << 8) | buffer[0];
+  bme280Calibration.dig_T2 = (buffer[3] << 8) | buffer[2];
+  bme280Calibration.dig_T3 = (buffer[5] << 8) | buffer[4];
+  bme280Calibration.dig_P1 = (buffer[7] << 8) | buffer[6];
+  bme280Calibration.dig_P2 = (buffer[9] << 8) | buffer[8];
+  bme280Calibration.dig_P3 = (buffer[11] << 8) | buffer[10];
+  bme280Calibration.dig_P4 = (buffer[13] << 8) | buffer[12];
+  bme280Calibration.dig_P5 = (buffer[15] << 8) | buffer[14];
+  bme280Calibration.dig_P6 = (buffer[17] << 8) | buffer[16];
+  bme280Calibration.dig_P7 = (buffer[19] << 8) | buffer[18];
+  bme280Calibration.dig_P8 = (buffer[21] << 8) | buffer[20];
+  bme280Calibration.dig_P9 = (buffer[23] << 8) | buffer[22];
+
+  if (humidityCapable) {
+    uint8_t h1;
+    if (!readBytes(address, 0xA1, &h1, 1)) {
+      return false;
+    }
+
+    uint8_t bufferH[7];
+    if (!readBytes(address, 0xE1, bufferH, 7)) {
+      return false;
+    }
+
+    bme280Calibration.dig_H1 = h1;
+    bme280Calibration.dig_H2 = (bufferH[1] << 8) | bufferH[0];
+    bme280Calibration.dig_H3 = bufferH[2];
+    bme280Calibration.dig_H4 = (bufferH[3] << 4) | (bufferH[4] & 0x0F);
+    bme280Calibration.dig_H5 = (bufferH[5] << 4) | (bufferH[4] >> 4);
+    bme280Calibration.dig_H6 = (int8_t)bufferH[6];
+  }
+
+  bme280Calibration.humidityCapable = humidityCapable;
+  bme280CalibrationLoaded = true;
+  return true;
+}
+
+bool readBME280Data(uint8_t address, EnvironmentalSensorType type) {
+  if (!bme280CalibrationLoaded) {
+    return false;
+  }
+
+  uint8_t data[8];
+  if (!readBytes(address, 0xF7, data, 8)) {
+    return false;
+  }
+
+  int32_t adc_P = ((int32_t)data[0] << 12) | ((int32_t)data[1] << 4) | (data[2] >> 4);
+  int32_t adc_T = ((int32_t)data[3] << 12) | ((int32_t)data[4] << 4) | (data[5] >> 4);
+  int32_t adc_H = ((int32_t)data[6] << 8) | data[7];
+
+  if (adc_T == 0x800000 || adc_P == 0x800000) {
+    return false;
+  }
+
+  int32_t var1 = ((((adc_T >> 3) - ((int32_t)bme280Calibration.dig_T1 << 1))) *
+                 ((int32_t)bme280Calibration.dig_T2)) >> 11;
+  int32_t var2 = (((((adc_T >> 4) - (int32_t)bme280Calibration.dig_T1) *
+                    ((adc_T >> 4) - (int32_t)bme280Calibration.dig_T1)) >> 12) *
+                  (int32_t)bme280Calibration.dig_T3) >> 14;
+  int32_t tFine = var1 + var2;
+  float temperature = ((tFine * 5 + 128) >> 8) / 100.0f;
+
+  int64_t var1p = ((int64_t)tFine) - 128000;
+  int64_t var2p = var1p * var1p * (int64_t)bme280Calibration.dig_P6;
+  var2p += ((var1p * (int64_t)bme280Calibration.dig_P5) << 17);
+  var2p += (((int64_t)bme280Calibration.dig_P4) << 35);
+  var1p = ((var1p * var1p * (int64_t)bme280Calibration.dig_P3) >> 8) +
+          ((var1p * (int64_t)bme280Calibration.dig_P2) << 12);
+  var1p = (((((int64_t)1) << 47) + var1p) * (int64_t)bme280Calibration.dig_P1) >> 33;
+  if (var1p == 0) {
+    return false;
+  }
+  int64_t pressure64 = 1048576 - adc_P;
+  pressure64 = (((pressure64 << 31) - var2p) * 3125) / var1p;
+  var1p = (((int64_t)bme280Calibration.dig_P9) * (pressure64 >> 13) * (pressure64 >> 13)) >> 25;
+  var2p = (((int64_t)bme280Calibration.dig_P8) * pressure64) >> 19;
+  pressure64 = ((pressure64 + var1p + var2p) >> 8) + (((int64_t)bme280Calibration.dig_P7) << 4);
+  float pressure = (pressure64 / 256.0f) / 100.0f; // hPa
+
+  float humidity = NAN;
+  if (type == SENSOR_BME280 && bme280Calibration.humidityCapable) {
+    int32_t v_x1_u32r = tFine - 76800;
+    v_x1_u32r = (((((adc_H << 14) - ((int32_t)bme280Calibration.dig_H4 << 20) -
+                    ((int32_t)bme280Calibration.dig_H5 * v_x1_u32r)) + 16384) >> 15) *
+                 (((((((v_x1_u32r * (int32_t)bme280Calibration.dig_H6) >> 10) *
+                      (((v_x1_u32r * (int32_t)bme280Calibration.dig_H3) >> 11) + 32768)) >> 10) + 2097152) *
+                    (int32_t)bme280Calibration.dig_H2 + 8192) >> 14));
+    v_x1_u32r = v_x1_u32r - (((((v_x1_u32r >> 15) * (v_x1_u32r >> 15)) >> 7) *
+                               (int32_t)bme280Calibration.dig_H1) >> 4);
+    v_x1_u32r = (v_x1_u32r < 0 ? 0 : v_x1_u32r);
+    v_x1_u32r = (v_x1_u32r > 419430400 ? 419430400 : v_x1_u32r);
+    humidity = (v_x1_u32r >> 12) / 1024.0f;
+  }
+
+  environmentalSensor.type = type;
+  environmentalSensor.detected = true;
+  environmentalSensor.address = address;
+  environmentalSensor.temperature = temperature;
+  environmentalSensor.humidity = humidity;
+  environmentalSensor.pressure = pressure;
+  environmentalSensor.lastUpdate = millis();
+
+  return true;
+}
+
+uint8_t computeSHT31CRC(const uint8_t* data, uint8_t length) {
+  uint8_t crc = 0xFF;
+  for (uint8_t i = 0; i < length; i++) {
+    crc ^= data[i];
+    for (uint8_t bit = 0; bit < 8; bit++) {
+      if (crc & 0x80) {
+        crc = (crc << 1) ^ 0x31;
+      } else {
+        crc <<= 1;
+      }
+    }
+  }
+  return crc;
+}
+
+bool readSHT31Data(uint8_t address) {
+  Wire.beginTransmission(address);
+  Wire.write(0x24);
+  Wire.write(0x00);
+  if (Wire.endTransmission() != 0) {
+    return false;
+  }
+
+  delay(20);
+
+  uint8_t expected = 6;
+  if (Wire.requestFrom(address, expected) != expected) {
+    return false;
+  }
+
+  uint8_t data[6];
+  for (uint8_t i = 0; i < expected; i++) {
+    data[i] = Wire.read();
+  }
+
+  if (computeSHT31CRC(data, 2) != data[2] || computeSHT31CRC(&data[3], 2) != data[5]) {
+    return false;
+  }
+
+  uint16_t rawT = ((uint16_t)data[0] << 8) | data[1];
+  uint16_t rawH = ((uint16_t)data[3] << 8) | data[4];
+
+  float temperature = -45.0f + 175.0f * ((float)rawT / 65535.0f);
+  float humidity = 100.0f * ((float)rawH / 65535.0f);
+
+  environmentalSensor.type = SENSOR_SHT31;
+  environmentalSensor.detected = true;
+  environmentalSensor.address = address;
+  environmentalSensor.temperature = temperature;
+  environmentalSensor.humidity = humidity;
+  environmentalSensor.pressure = NAN;
+  environmentalSensor.lastUpdate = millis();
+
+  return true;
+}
+
+// Détection automatique des capteurs supportés
+void detectEnvironmentalSensor() {
+  Wire.begin(I2C_SDA, I2C_SCL);
+  resetEnvironmentalSensorState();
+
+  const uint8_t bmeAddresses[] = {0x76, 0x77};
+  for (uint8_t i = 0; i < sizeof(bmeAddresses) / sizeof(bmeAddresses[0]); i++) {
+    uint8_t address = bmeAddresses[i];
+    if (!i2cDevicePresent(address)) {
+      continue;
+    }
+
+    uint8_t chipId = 0;
+    if (!readBytes(address, 0xD0, &chipId, 1)) {
+      continue;
+    }
+
+    bool isBME = (chipId == 0x60);
+    bool isBMP = (chipId == 0x58);
+    if (!isBME && !isBMP) {
+      continue;
+    }
+
+    if (!loadBME280Calibration(address, isBME)) {
+      continue;
+    }
+
+    // Humidité oversampling (doit être écrit avant ctrl_meas)
+    if (isBME) {
+      writeRegister(address, 0xF2, 0x01); // x1
+    }
+    writeRegister(address, 0xF5, 0xA0); // 1000ms standby, filtre x4
+    writeRegister(address, 0xF4, isBME ? 0x27 : 0x24); // x1 oversampling, mode normal
+
+    if (readBME280Data(address, isBME ? SENSOR_BME280 : SENSOR_BMP280)) {
+      Serial.printf("Capteur environnemental: %s détecté à %s\r\n",
+                    sensorTypeToString(environmentalSensor.type).c_str(),
+                    formatI2CAddress(address).c_str());
+      return;
+    }
+  }
+
+  const uint8_t shtAddresses[] = {0x44, 0x45};
+  for (uint8_t i = 0; i < sizeof(shtAddresses) / sizeof(shtAddresses[0]); i++) {
+    uint8_t address = shtAddresses[i];
+    if (!i2cDevicePresent(address)) {
+      continue;
+    }
+
+    if (readSHT31Data(address)) {
+      Serial.printf("Capteur environnemental: SHT31 détecté à %s\r\n",
+                    formatI2CAddress(address).c_str());
+      return;
+    }
+  }
+
+  Serial.println("Capteur environnemental: aucun capteur détecté");
+}
+
+// Rafraîchissement périodique des mesures capteurs
+void updateEnvironmentalSensor() {
+  if (!environmentalSensor.detected) {
+    return;
+  }
+
+  switch (environmentalSensor.type) {
+    case SENSOR_BME280:
+    case SENSOR_BMP280:
+      if (!readBME280Data(environmentalSensor.address, environmentalSensor.type)) {
+        Serial.println("[Capteur] Lecture BME/BMP280 échouée");
+      }
+      break;
+    case SENSOR_SHT31:
+      if (!readSHT31Data(environmentalSensor.address)) {
+        Serial.println("[Capteur] Lecture SHT31 échouée");
+      }
+      break;
+    default:
+      break;
+  }
+}
+
 // ========== SCAN I2C ==========
 void scanI2C() {
   if (!ENABLE_I2C_SCAN) return;
@@ -575,6 +953,8 @@ void scanI2C() {
     diagnosticData.i2cDevices = "Aucun";
   }
   Serial.printf("I2C: %d peripherique(s)\r\n", diagnosticData.i2cCount);
+
+  detectEnvironmentalSensor();
 }
 
 // ========== SCAN WIFI ==========
@@ -1317,7 +1697,7 @@ void memoryStressTest() {
 void collectDiagnosticInfo() {
   esp_chip_info_t chip_info;
   esp_chip_info(&chip_info);
-  
+
   diagnosticData.chipModel = detectChipModel();
   diagnosticData.chipRevision = String(chip_info.revision);
   diagnosticData.cpuCores = chip_info.cores;
@@ -1376,7 +1756,16 @@ void collectDiagnosticInfo() {
   diagnosticData.oledTested = oledTested;
   diagnosticData.oledAvailable = oledAvailable;
   diagnosticData.oledResult = oledTestResult;
-  
+
+  updateEnvironmentalSensor();
+  diagnosticData.envSensorDetected = environmentalSensor.detected;
+  diagnosticData.envSensorType = sensorTypeToString(environmentalSensor.type);
+  diagnosticData.envTemperature = environmentalSensor.temperature;
+  diagnosticData.envHumidity = environmentalSensor.humidity;
+  diagnosticData.envPressure = environmentalSensor.pressure;
+  diagnosticData.envSensorAddress = environmentalSensor.detected ? formatI2CAddress(environmentalSensor.address) : String("");
+  diagnosticData.envLastUpdate = environmentalSensor.lastUpdate;
+
   heapHistory[historyIndex] = (float)diagnosticData.freeHeap / 1024.0;
   if (diagnosticData.temperature != -999) {
     tempHistory[historyIndex] = diagnosticData.temperature;
@@ -1947,7 +2336,16 @@ void handleAPIStatus() {
   json += "\"free\":" + String(detailedMemory.psramFree) + ",";
   json += "\"used\":" + String(detailedMemory.psramUsed);
   json += "},";
-  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent);
+  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent) + ",";
+  json += "\"sensor\":{";
+  json += "\"detected\":" + String(environmentalSensor.detected ? "true" : "false") + ",";
+  json += "\"type\":\"" + sensorTypeToString(environmentalSensor.type) + "\",";
+  json += "\"temperature\":" + jsonFloatOrNull(environmentalSensor.temperature, 1) + ",";
+  json += "\"humidity\":" + jsonFloatOrNull(environmentalSensor.humidity, 1) + ",";
+  json += "\"pressure\":" + jsonFloatOrNull(environmentalSensor.pressure, 2) + ",";
+  json += "\"address\":\"" + (environmentalSensor.detected ? formatI2CAddress(environmentalSensor.address) : String("")) + "\",";
+  json += "\"last_update\":" + String(environmentalSensor.lastUpdate);
+  json += "}";
   json += "}";
 
   server.send(200, "application/json", json);
@@ -2011,6 +2409,16 @@ void handleAPIOverview() {
   json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
   json += "},";
 
+  json += "\"sensor\":{";
+  json += "\"detected\":" + String(diagnosticData.envSensorDetected ? "true" : "false") + ",";
+  json += "\"type\":\"" + diagnosticData.envSensorType + "\",";
+  json += "\"temperature\":" + jsonFloatOrNull(diagnosticData.envTemperature, 1) + ",";
+  json += "\"humidity\":" + jsonFloatOrNull(diagnosticData.envHumidity, 1) + ",";
+  json += "\"pressure\":" + jsonFloatOrNull(diagnosticData.envPressure, 2) + ",";
+  json += "\"address\":\"" + diagnosticData.envSensorAddress + "\",";
+  json += "\"last_update\":" + String(diagnosticData.envLastUpdate);
+  json += "},";
+
   json += "\"gpio\":{";
   json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
   json += "\"list\":\"" + diagnosticData.gpioList + "\",";
@@ -2071,7 +2479,15 @@ void handleAPIPeripherals() {
   json += "\"count\":" + String(diagnosticData.i2cCount) + ",";
   json += "\"devices\":\"" + diagnosticData.i2cDevices + "\"";
   json += "},";
-  json += "\"spi\":\"" + spiInfo + "\"";
+  json += "\"spi\":\"" + spiInfo + "\",";
+  json += "\"sensor\":{";
+  json += "\"detected\":" + String(diagnosticData.envSensorDetected ? "true" : "false") + ",";
+  json += "\"type\":\"" + diagnosticData.envSensorType + "\",";
+  json += "\"temperature\":" + jsonFloatOrNull(diagnosticData.envTemperature, 1) + ",";
+  json += "\"humidity\":" + jsonFloatOrNull(diagnosticData.envHumidity, 1) + ",";
+  json += "\"pressure\":" + jsonFloatOrNull(diagnosticData.envPressure, 2) + ",";
+  json += "\"address\":\"" + diagnosticData.envSensorAddress + "\"";
+  json += "}";
   json += "}";
 
   server.send(200, "application/json", json);
@@ -2185,7 +2601,28 @@ void handleExportTXT() {
   txt += String(T().device_count) + ": " + String(diagnosticData.i2cCount) + " - " + diagnosticData.i2cDevices + "\r\n";
   txt += "SPI: " + spiInfo + "\r\n";
   txt += "\r\n";
-  
+
+  txt += "=== " + String(T().environmental_sensors) + " ===\r\n";
+  if (diagnosticData.envSensorDetected) {
+    txt += String(T().sensor_type) + ": " + diagnosticData.envSensorType + "\r\n";
+    if (!isnan(diagnosticData.envTemperature)) {
+      txt += String(T().sensor_temperature) + ": " + String(diagnosticData.envTemperature, 1) + " °C\r\n";
+    }
+    if (!isnan(diagnosticData.envHumidity)) {
+      txt += String(T().sensor_humidity) + ": " + String(diagnosticData.envHumidity, 1) + " %\r\n";
+    }
+    if (!isnan(diagnosticData.envPressure)) {
+      txt += String(T().sensor_pressure) + ": " + String(diagnosticData.envPressure, 2) + " hPa\r\n";
+    }
+    txt += String(T().sensor_address) + ": " + (diagnosticData.envSensorAddress.length() > 0 ? diagnosticData.envSensorAddress : String(T().unknown)) + "\r\n";
+    if (diagnosticData.envLastUpdate > 0) {
+      txt += String(T().sensor_last_update) + ": " + String(diagnosticData.envLastUpdate / 1000) + " s\r\n";
+    }
+  } else {
+    txt += String(T().sensor_not_detected) + "\r\n";
+  }
+  txt += "\r\n";
+
   txt += "=== " + String(T().test) + " ===\r\n";
   txt += String(T().builtin_led) + ": " + builtinLedTestResult + "\r\n";
   txt += "NeoPixel: " + neopixelTestResult + "\r\n";
@@ -2274,7 +2711,17 @@ void handleExportJSON() {
   json += "\"i2c_devices\":\"" + diagnosticData.i2cDevices + "\",";
   json += "\"spi\":\"" + spiInfo + "\"";
   json += "},";
-  
+
+  json += "\"sensor\":{";
+  json += "\"detected\":" + String(diagnosticData.envSensorDetected ? "true" : "false") + ",";
+  json += "\"type\":\"" + diagnosticData.envSensorType + "\",";
+  json += "\"temperature\":" + jsonFloatOrNull(diagnosticData.envTemperature, 1) + ",";
+  json += "\"humidity\":" + jsonFloatOrNull(diagnosticData.envHumidity, 1) + ",";
+  json += "\"pressure\":" + jsonFloatOrNull(diagnosticData.envPressure, 2) + ",";
+  json += "\"address\":\"" + diagnosticData.envSensorAddress + "\",";
+  json += "\"last_update\":" + String(diagnosticData.envLastUpdate);
+  json += "},";
+
   json += "\"hardware_tests\":{";
   json += "\"builtin_led\":\"" + builtinLedTestResult + "\",";
   json += "\"neopixel\":\"" + neopixelTestResult + "\",";
@@ -2341,7 +2788,23 @@ void handleExportCSV() {
   
   csv += String(T().i2c_peripherals) + "," + String(T().device_count) + "," + String(diagnosticData.i2cCount) + "\r\n";
   csv += String(T().i2c_peripherals) + "," + String(T().devices) + "," + diagnosticData.i2cDevices + "\r\n";
-  
+
+  csv += String(T().environmental_sensors) + "," + String(T().sensor_type) + "," + diagnosticData.envSensorType + "\r\n";
+  if (diagnosticData.envSensorDetected) {
+    if (!isnan(diagnosticData.envTemperature)) {
+      csv += String(T().environmental_sensors) + "," + String(T().sensor_temperature) + " °C," + String(diagnosticData.envTemperature, 1) + "\r\n";
+    }
+    if (!isnan(diagnosticData.envHumidity)) {
+      csv += String(T().environmental_sensors) + "," + String(T().sensor_humidity) + " %," + String(diagnosticData.envHumidity, 1) + "\r\n";
+    }
+    if (!isnan(diagnosticData.envPressure)) {
+      csv += String(T().environmental_sensors) + "," + String(T().sensor_pressure) + " hPa," + String(diagnosticData.envPressure, 2) + "\r\n";
+    }
+    csv += String(T().environmental_sensors) + "," + String(T().sensor_address) + "," + (diagnosticData.envSensorAddress.length() > 0 ? diagnosticData.envSensorAddress : String(T().unknown)) + "\r\n";
+  } else {
+    csv += String(T().environmental_sensors) + "," + String(T().sensor_not_detected) + ",0\r\n";
+  }
+
   csv += String(T().test) + "," + String(T().builtin_led) + "," + builtinLedTestResult + "\r\n";
   csv += String(T().test) + ",NeoPixel," + neopixelTestResult + "\r\n";
   csv += String(T().test) + ",TFT," + tftTestResult + "\r\n";
@@ -2461,7 +2924,31 @@ void handlePrintVersion() {
   html += "<div class='row'><b>Passerelle:</b><span>" + WiFi.gatewayIP().toString() + "</span></div>";
   html += "<div class='row'><b>DNS:</b><span>" + WiFi.dnsIP().toString() + "</span></div>";
   html += "</div></div>";
-  
+
+  html += "<div class='section'>";
+  html += "<h2>" + String(T().environmental_sensors) + "</h2>";
+  if (diagnosticData.envSensorDetected) {
+    html += "<div class='grid'>";
+    html += "<div class='row'><b>" + String(T().sensor_type) + ":</b><span>" + diagnosticData.envSensorType + "</span></div>";
+    if (!isnan(diagnosticData.envTemperature)) {
+      html += "<div class='row'><b>" + String(T().sensor_temperature) + ":</b><span>" + String(diagnosticData.envTemperature, 1) + " °C</span></div>";
+    }
+    if (!isnan(diagnosticData.envHumidity)) {
+      html += "<div class='row'><b>" + String(T().sensor_humidity) + ":</b><span>" + String(diagnosticData.envHumidity, 1) + " %</span></div>";
+    }
+    if (!isnan(diagnosticData.envPressure)) {
+      html += "<div class='row'><b>" + String(T().sensor_pressure) + ":</b><span>" + String(diagnosticData.envPressure, 2) + " hPa</span></div>";
+    }
+    html += "<div class='row'><b>" + String(T().sensor_address) + ":</b><span>" + (diagnosticData.envSensorAddress.length() > 0 ? diagnosticData.envSensorAddress : String(T().unknown)) + "</span></div>";
+    if (diagnosticData.envLastUpdate > 0) {
+      html += "<div class='row'><b>" + String(T().sensor_last_update) + ":</b><span>" + String(diagnosticData.envLastUpdate / 1000) + " s</span></div>";
+    }
+    html += "</div>";
+  } else {
+    html += "<p>" + String(T().sensor_not_detected) + "</p>";
+  }
+  html += "</div>";
+
   // GPIO et Périphériques
   html += "<div class='section'>";
   html += "<h2>GPIO et Périphériques</h2>";
@@ -2635,6 +3122,8 @@ void setup() {
   
   if (ENABLE_I2C_SCAN) {
     scanI2C();
+  } else {
+    detectEnvironmentalSensor();
   }
   
   scanSPI();

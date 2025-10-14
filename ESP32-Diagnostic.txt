@@ -1,9 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.5
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.5 (ARCHIVÉ)
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.1.3
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * ⚠️ Cette version texte est conservée pour référence historique.
+ *    La version active v3.1.0 (capteurs BME280/BMP280/SHT31, nouvelles
+ *    optimisations, correctifs de langue, vérification config.h, etc.)
+ *    se trouve désormais dans ESP32-Diagnostic.ino.
  *
  * Nouveautés v2.5:
  * - Traducion des exports (Français/Anglais)
