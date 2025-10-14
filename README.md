@@ -3,9 +3,9 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic Tool v3.0-dev
+# ESP32 Complete Diagnostic Tool v3.1.0
 
-[![Version](https://img.shields.io/badge/version-3.0--dev-blue.svg)](https://github.com/yourusername/esp32-diagnostic)
+[![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](https://github.com/yourusername/esp32-diagnostic)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-ESP32-orange.svg)](https://www.espressif.com/)
 [![Arduino](https://img.shields.io/badge/Arduino-3.1.3-teal.svg)](https://github.com/espressif/arduino-esp32)
@@ -18,12 +18,13 @@ A comprehensive web-based diagnostic tool for ESP32 microcontrollers with real-t
 
 ## 🌟 Key Features
 
-### 🔄 Real-Time Monitoring (v3.0-dev)
+### 🔄 Real-Time Monitoring (v3.1.0)
 - **Dynamic web interface** with asynchronous loading
 - **Auto-refresh every 5 seconds** for live data
 - **REST API architecture** for efficient communication
 - **Connection status indicator** (online/offline)
 - **Smooth animations and transitions**
+- **Environmental sensor telemetry** (BME280/BMP280/SHT31) with automatic detection and live refresh
 
 ### 🔧 System Information
 - Complete chip identification (ESP32, S2, S3, C3, C6, H2)
@@ -70,6 +71,7 @@ A comprehensive web-based diagnostic tool for ESP32 microcontrollers with real-t
   - Rainbow effect
   - Custom colors with color picker
   - Blink and fade animations
+  - Safer self-test routine with graceful fallback when no onboard strip is detected
 
 ### 📺 Screen Support
 - **TFT SPI Display**:
@@ -91,6 +93,7 @@ A comprehensive web-based diagnostic tool for ESP32 microcontrollers with real-t
 - Flash partition listing
 - Memory stress testing
 - CPU and memory benchmarks (MFLOPS, MB/s)
+- Automatic presence check for `config.h` during compilation to avoid misconfigured builds
 
 ### 🌐 Multilingual Interface
 - **French** (default)
@@ -420,7 +423,7 @@ If this project helped you, please give it a ⭐!
 
 ---
 
-**Version**: 3.0-dev
-**Last Updated**: 10/09/2025
+**Version**: 3.1.0
+**Last Updated**: 15/05/2026
 **Status**: Active Development
 ```

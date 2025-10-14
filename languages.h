@@ -88,7 +88,17 @@ struct Translations {
   const char* gateway;
   const char* dns;
   const char* wifi_channel;
-  
+
+  // Capteurs environnementaux
+  const char* environmental_sensors;
+  const char* sensor_type;
+  const char* sensor_temperature;
+  const char* sensor_humidity;
+  const char* sensor_pressure;
+  const char* sensor_address;
+  const char* sensor_last_update;
+  const char* sensor_not_detected;
+
   // GPIO et périphériques
   const char* gpio_interfaces;
   const char* total_gpio;
@@ -330,7 +340,17 @@ const Translations LANG_FR_TEXTS = {
   "Passerelle",
   "DNS",
   "Canal WiFi",
-  
+
+  // Capteurs environnementaux
+  "Capteurs environnementaux",
+  "Type",
+  "Température",
+  "Humidité",
+  "Pression",
+  "Adresse",
+  "Dernière mise à jour",
+  "Aucun capteur détecté",
+
   // GPIO
   "GPIO et Interfaces",
   "Total GPIO",
@@ -572,7 +592,17 @@ const Translations LANG_EN_TEXTS = {
   "Gateway",
   "DNS",
   "WiFi Channel",
-  
+
+  // Environmental sensors
+  "Environmental Sensors",
+  "Type",
+  "Temperature",
+  "Humidity",
+  "Pressure",
+  "Address",
+  "Last update",
+  "No sensor detected",
+
   // GPIO
   "GPIO and Interfaces",
   "Total GPIO",
@@ -821,6 +851,14 @@ static const TranslationField TRANSLATION_FIELDS[] = {
   {"gateway",&Translations::gateway},
   {"dns",&Translations::dns},
   {"wifi_channel",&Translations::wifi_channel},
+  {"environmental_sensors",&Translations::environmental_sensors},
+  {"sensor_type",&Translations::sensor_type},
+  {"sensor_temperature",&Translations::sensor_temperature},
+  {"sensor_humidity",&Translations::sensor_humidity},
+  {"sensor_pressure",&Translations::sensor_pressure},
+  {"sensor_address",&Translations::sensor_address},
+  {"sensor_last_update",&Translations::sensor_last_update},
+  {"sensor_not_detected",&Translations::sensor_not_detected},
   {"gpio_interfaces",&Translations::gpio_interfaces},
   {"total_gpio",&Translations::total_gpio},
   {"gpio_list",&Translations::gpio_list},

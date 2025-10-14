@@ -31,7 +31,10 @@ void handleJavaScript() {
 
 // Génère le HTML principal
 String generateHTML() {
-  String html = "<!DOCTYPE html><html lang='fr'><head>";
+  String initialLang = (currentLanguage == LANG_FR) ? "fr" : "en";
+  String html = "<!DOCTYPE html><html lang='";
+  html += initialLang;
+  html += "'><head>";
   html += "<meta charset='UTF-8'>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
   html += "<title>ESP32 Diagnostic v";
@@ -140,8 +143,12 @@ String generateHTML() {
   html += "<div class='container'>";
   html += "<div class='header'>";
   html += "<div class='lang-switcher'>";
-  html += "<button class='lang-btn active' data-lang='fr' onclick='changeLang(\"fr\")'>FR</button>";
-  html += "<button class='lang-btn' data-lang='en' onclick='changeLang(\"en\")'>EN</button>";
+  html += "<button class='lang-btn";
+  if (currentLanguage == LANG_FR) html += " active";
+  html += "' data-lang='fr' onclick='changeLang(\"fr\")'>FR</button>";
+  html += "<button class='lang-btn";
+  if (currentLanguage == LANG_EN) html += " active";
+  html += "' data-lang='en' onclick='changeLang(\"en\")'>EN</button>";
   html += "</div>";
   html += "<h1 id='main-title'>";
   html += "<span class='status-indicator status-online' id='statusIndicator'></span>";
@@ -186,12 +193,12 @@ String generateJavaScript() {
   js += DIAGNOSTIC_VERSION_STR;
   js += " - Initialisation');";
   js += "const UPDATE_INTERVAL=5000;";
-  js += "let currentLang='fr';";
+  js += "let currentLang=document.documentElement.getAttribute('lang')||'fr';";
   js += "let translations={};";
   js += "let activeTab='overview';";
   js += "let updateTimer=null;";
   js += "let isConnected=true;";
-  js += "const fallbackTranslations={fr:{loading:'Chargement...',error_title:'❌ Erreur',update_indicator:'Mise à jour...',language_changed:'Langue changée',language_error:'Erreur changement langue',click_to_scan:'Cliquez pour scanner',displaying:'Affichage en cours...',command_sent:'Commande envoyée',communication_error:'Erreur de communication'},en:{loading:'Loading...',error_title:'❌ Error',update_indicator:'Updating...',language_changed:'Language changed',language_error:'Language change error',click_to_scan:'Click to scan',displaying:'Displaying...',command_sent:'Command sent',communication_error:'Communication error'}};";
+  js += "const fallbackTranslations={fr:{loading:'Chargement...',error_title:'❌ Erreur',update_indicator:'Mise à jour...',language_changed:'Langue changée',language_error:'Erreur changement langue',click_to_scan:'Cliquez pour scanner',displaying:'Affichage en cours...',command_sent:'Commande envoyée',communication_error:'Erreur de communication',environmental_sensors:'Capteurs environnementaux',sensor_type:'Type',sensor_temperature:'Température',sensor_humidity:'Humidité',sensor_pressure:'Pression',sensor_address:'Adresse',sensor_last_update:'Dernière mise à jour',sensor_not_detected:'Non détecté',unknown:'Inconnu'},en:{loading:'Loading...',error_title:'❌ Error',update_indicator:'Updating...',language_changed:'Language changed',language_error:'Language change error',click_to_scan:'Click to scan',displaying:'Displaying...',command_sent:'Command sent',communication_error:'Communication error',environmental_sensors:'Environmental sensors',sensor_type:'Type',sensor_temperature:'Temperature',sensor_humidity:'Humidity',sensor_pressure:'Pressure',sensor_address:'Address',sensor_last_update:'Last update',sensor_not_detected:'Not available',unknown:'Unknown'}};";
   js += "function tr(key,fallback){const langFallback=fallbackTranslations[currentLang]||{};return (translations[key]||langFallback[key]||fallback||key);}";
 
   // Initialisation - CORRIGÉE
@@ -320,6 +327,20 @@ String generateJavaScript() {
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('signal_quality','Qualité Signal')+'</div><div class=\"info-value\">'+d.wifi.quality+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('ip_address','Adresse IP')+'</div><div class=\"info-value\">'+d.wifi.ip+'</div></div>';";
   js += "h+='</div></div>';";
+  js += "h+='<div class=\"section\"><h2>🌦️ '+tr('environmental_sensors','Capteurs environnementaux')+'</h2>';";
+  js += "if(d.sensor&&d.sensor.detected){";
+  js += "h+='<div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('sensor_type','Type')+'</div><div class=\"info-value\" id=\"sensor-type\">'+d.sensor.type+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('sensor_temperature','Température')+'</div><div class=\"info-value\" id=\"sensor-temperature\">'+(d.sensor.temperature!==null?d.sensor.temperature.toFixed(1)+' °C':tr('sensor_not_detected','Non détecté'))+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('sensor_humidity','Humidité')+'</div><div class=\"info-value\" id=\"sensor-humidity\">'+(d.sensor.humidity!==null?d.sensor.humidity.toFixed(1)+' %':tr('sensor_not_detected','Non détecté'))+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('sensor_pressure','Pression')+'</div><div class=\"info-value\" id=\"sensor-pressure\">'+(d.sensor.pressure!==null?d.sensor.pressure.toFixed(2)+' hPa':tr('sensor_not_detected','Non détecté'))+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('sensor_address','Adresse')+'</div><div class=\"info-value\" id=\"sensor-address\">'+(d.sensor.address||tr('unknown','Inconnu'))+'</div></div>';";
+  js += "h+='</div>';";
+  js += "if(d.sensor.last_update){h+='<div class=\"status-live\" id=\"sensor-last-update\">'+tr('sensor_last_update','Dernière mise à jour')+': '+formatUptime(d.sensor.last_update)+'</div>';";
+  js += "}";
+  js += "}else{h+='<p>'+tr('sensor_not_detected','Aucun capteur détecté')+'</p>';";
+  js += "}";
+  js += "h+='</div>';";
   js += "h+='<div class=\"section\"><h2>🔌 '+tr('gpio_interfaces','GPIO et Interfaces')+'</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('total_gpio','Total GPIO')+'</div><div class=\"info-value\">'+d.gpio.total+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+tr('i2c_peripherals','Périphériques I2C')+'</div><div class=\"info-value\">'+d.gpio.i2c_count+'</div></div>';";
@@ -628,6 +649,14 @@ js += "function buildScreens(d){";
   js += "if(pp){const pct=((d.psram.used/d.psram.total)*100).toFixed(1);pp.style.width=pct+'%';pp.textContent=pct+'%';}";
   js += "}";
   js += "const f=document.getElementById('fragmentation');if(f)f.textContent=d.fragmentation.toFixed(1)+'%';";
+  js += "if(d.sensor){";
+  js += "const st=document.getElementById('sensor-type');if(st)st.textContent=d.sensor.detected?d.sensor.type:tr('sensor_not_detected','Aucun capteur détecté');";
+  js += "const stemp=document.getElementById('sensor-temperature');if(stemp)stemp.textContent=(d.sensor.detected&&d.sensor.temperature!==null)?d.sensor.temperature.toFixed(1)+' °C':tr('sensor_not_detected','Non détecté');";
+  js += "const shum=document.getElementById('sensor-humidity');if(shum)shum.textContent=(d.sensor.detected&&d.sensor.humidity!==null)?d.sensor.humidity.toFixed(1)+' %':tr('sensor_not_detected','Non détecté');";
+  js += "const spres=document.getElementById('sensor-pressure');if(spres)spres.textContent=(d.sensor.detected&&d.sensor.pressure!==null)?d.sensor.pressure.toFixed(2)+' hPa':tr('sensor_not_detected','Non détecté');";
+  js += "const sadd=document.getElementById('sensor-address');if(sadd)sadd.textContent=(d.sensor.detected&&d.sensor.address)?d.sensor.address:tr('unknown','Inconnu');";
+  js += "const slast=document.getElementById('sensor-last-update');if(slast){if(d.sensor.detected&&d.sensor.last_update){slast.textContent=tr('sensor_last_update','Dernière mise à jour')+': '+formatUptime(d.sensor.last_update);}else{slast.textContent=tr('sensor_last_update','Dernière mise à jour')+': '+tr('sensor_not_detected','Non détecté');}}";
+  js += "}";
   js += "}";
 
   // Changement de langue
