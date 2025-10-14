@@ -1,0 +1,31 @@
+# Fichier de configuration WiFi (sensible - ne pas versionner)
+config.h
+
+# Fichiers divers
+ESP32-Diagnostic.txt
+
+# Fichiers temporaires Arduino IDE
+*.hex
+*.elf
+*.bin
+*.eep
+*.lss
+*.map
+*.sym
+
+# Dossiers de build
+build/
+.build/
+.github/
+
+# Fichiers système
+.gitattributes
+.gitignore
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
