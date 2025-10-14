@@ -31,6 +31,7 @@
 #include <TFT_eSPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <DHT.h>
 #include <vector>
 #include <math.h>
 
@@ -68,6 +69,22 @@ int I2C_SCL = 9;
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
 #define SCREEN_ADDRESS 0x3C
+
+// Capteurs
+const int DEFAULT_PIR_PIN = 6;
+const int DEFAULT_DISTANCE_TRIG_PIN = 7;
+const int DEFAULT_DISTANCE_ECHO_PIN = 8;
+const int DEFAULT_DHT_PIN = 4;
+const int DEFAULT_LDR_PIN = 5;
+
+int PIR_PIN = DEFAULT_PIR_PIN;
+int DISTANCE_TRIG_PIN = DEFAULT_DISTANCE_TRIG_PIN;
+int DISTANCE_ECHO_PIN = DEFAULT_DISTANCE_ECHO_PIN;
+int DHT_PIN = DEFAULT_DHT_PIN;
+int DHT_TYPE_CURRENT = DHT11;
+int LDR_PIN = DEFAULT_LDR_PIN;
+
+DHT* dhtSensor = nullptr;
 
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
@@ -110,6 +127,28 @@ String pwmTestResult = "Non teste";
 String partitionsInfo = "";
 String spiInfo = "";
 String stressTestResult = "Non teste";
+
+struct SensorStatusEntry {
+  bool tested = false;
+  bool success = false;
+  String message = "Non teste";
+};
+
+struct SensorsDiagnostics {
+  SensorStatusEntry pir;
+  bool pirMotion = false;
+
+  SensorStatusEntry distance;
+  float distanceCm = 0.0f;
+
+  SensorStatusEntry dht;
+  float dhtTemperature = NAN;
+  float dhtHumidity = NAN;
+
+  SensorStatusEntry ldr;
+  int ldrRaw = 0;
+  float ldrVoltage = 0.0f;
+} sensorsDiag;
 
 // ========== STRUCTURES ==========
 struct DiagnosticInfo {
@@ -1066,6 +1105,279 @@ void oledShowMessage(String message) {
   oled.display();
 }
 
+// ========== CAPTEURS ==========
+
+void resetSensorStatus(SensorStatusEntry &status) {
+  status.tested = false;
+  status.success = false;
+  status.message = "Non teste";
+}
+
+String dhtTypeToString(int type) {
+  switch (type) {
+    case DHT11: return "DHT11";
+    case DHT22: return "DHT22";
+    case DHT21: return "DHT21";
+    default: return "UNKNOWN";
+  }
+}
+
+int stringToDhtType(const String &type) {
+  String upper = type;
+  upper.toUpperCase();
+  if (upper == "DHT22") return DHT22;
+  if (upper == "DHT21") return DHT21;
+  return DHT11;
+}
+
+void initDHTSensor() {
+  if (dhtSensor != nullptr) {
+    delete dhtSensor;
+    dhtSensor = nullptr;
+  }
+  dhtSensor = new DHT(DHT_PIN, DHT_TYPE_CURRENT);
+  dhtSensor->begin();
+}
+
+void configurePIRPin(int pin) {
+  PIR_PIN = pin;
+  pinMode(PIR_PIN, INPUT);
+  sensorsDiag.pirMotion = false;
+  resetSensorStatus(sensorsDiag.pir);
+}
+
+bool isValidGPIOPin(int pin) {
+  return pin >= 0 && pin <= 48;
+}
+
+String boolToStr(bool value) {
+  return value ? "true" : "false";
+}
+
+void configureDistancePins(int trigPin, int echoPin) {
+  DISTANCE_TRIG_PIN = trigPin;
+  DISTANCE_ECHO_PIN = echoPin;
+  pinMode(DISTANCE_TRIG_PIN, OUTPUT);
+  digitalWrite(DISTANCE_TRIG_PIN, LOW);
+  pinMode(DISTANCE_ECHO_PIN, INPUT);
+  sensorsDiag.distanceCm = 0.0f;
+  resetSensorStatus(sensorsDiag.distance);
+}
+
+void configureDHTSensor(int pin, int type) {
+  DHT_PIN = pin;
+  DHT_TYPE_CURRENT = type;
+  initDHTSensor();
+  sensorsDiag.dhtHumidity = NAN;
+  sensorsDiag.dhtTemperature = NAN;
+  resetSensorStatus(sensorsDiag.dht);
+}
+
+void configureLDRPin(int pin) {
+  LDR_PIN = pin;
+  pinMode(LDR_PIN, INPUT);
+  sensorsDiag.ldrRaw = 0;
+  sensorsDiag.ldrVoltage = 0.0f;
+  resetSensorStatus(sensorsDiag.ldr);
+}
+
+void initializeSensors() {
+  configurePIRPin(PIR_PIN);
+  configureDistancePins(DISTANCE_TRIG_PIN, DISTANCE_ECHO_PIN);
+  configureDHTSensor(DHT_PIN, DHT_TYPE_CURRENT);
+  configureLDRPin(LDR_PIN);
+}
+
+void testPIRSensor() {
+  sensorsDiag.pir.tested = true;
+  pinMode(PIR_PIN, INPUT);
+  int value = digitalRead(PIR_PIN);
+  sensorsDiag.pirMotion = (value == HIGH);
+  sensorsDiag.pir.success = true;
+  sensorsDiag.pir.message = sensorsDiag.pirMotion ? "Mouvement detecte" : "Pas de mouvement";
+}
+
+void testDistanceSensor() {
+  sensorsDiag.distance.tested = true;
+  pinMode(DISTANCE_TRIG_PIN, OUTPUT);
+  pinMode(DISTANCE_ECHO_PIN, INPUT);
+  digitalWrite(DISTANCE_TRIG_PIN, LOW);
+  delayMicroseconds(5);
+  digitalWrite(DISTANCE_TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(DISTANCE_TRIG_PIN, LOW);
+  long duration = pulseIn(DISTANCE_ECHO_PIN, HIGH, 30000);
+  if (duration <= 0) {
+    sensorsDiag.distance.success = false;
+    sensorsDiag.distance.message = "Aucun echo";
+    sensorsDiag.distanceCm = 0.0f;
+    return;
+  }
+  sensorsDiag.distanceCm = (duration * 0.0343f) / 2.0f;
+  sensorsDiag.distance.success = true;
+  sensorsDiag.distance.message = "Distance: " + String(sensorsDiag.distanceCm, 1) + " cm";
+}
+
+void testDHTSensor() {
+  sensorsDiag.dht.tested = true;
+  if (dhtSensor == nullptr) {
+    initDHTSensor();
+  }
+  float humidity = dhtSensor->readHumidity();
+  float temperature = dhtSensor->readTemperature();
+  if (isnan(humidity) || isnan(temperature)) {
+    sensorsDiag.dht.success = false;
+    sensorsDiag.dht.message = "Lecture invalide";
+    sensorsDiag.dhtHumidity = NAN;
+    sensorsDiag.dhtTemperature = NAN;
+    return;
+  }
+  sensorsDiag.dhtHumidity = humidity;
+  sensorsDiag.dhtTemperature = temperature;
+  sensorsDiag.dht.success = true;
+  sensorsDiag.dht.message = "T:" + String(temperature, 1) + "°C H:" + String(humidity, 1) + "%";
+}
+
+void testLDRSensor() {
+  sensorsDiag.ldr.tested = true;
+  sensorsDiag.ldrRaw = analogRead(LDR_PIN);
+  sensorsDiag.ldrVoltage = (sensorsDiag.ldrRaw / 4095.0f) * 3.3f;
+  sensorsDiag.ldr.success = true;
+  sensorsDiag.ldr.message = "Brut: " + String(sensorsDiag.ldrRaw);
+}
+
+String sensorsToJson() {
+  String json = "{";
+  json += "\"pir\":{";
+  json += "\"pin\":" + String(PIR_PIN) + ",";
+  json += "\"motion\":" + boolToStr(sensorsDiag.pirMotion) + ",";
+  json += "\"tested\":" + boolToStr(sensorsDiag.pir.tested) + ",";
+  json += "\"success\":" + boolToStr(sensorsDiag.pir.success) + ",";
+  json += "\"status\":\"" + sensorsDiag.pir.message + "\"";
+  json += "},";
+  json += "\"distance\":{";
+  json += "\"trig\":" + String(DISTANCE_TRIG_PIN) + ",";
+  json += "\"echo\":" + String(DISTANCE_ECHO_PIN) + ",";
+  json += "\"tested\":" + boolToStr(sensorsDiag.distance.tested) + ",";
+  json += "\"success\":" + boolToStr(sensorsDiag.distance.success) + ",";
+  json += "\"distance_cm\":" + String(sensorsDiag.distanceCm, 1) + ",";
+  json += "\"status\":\"" + sensorsDiag.distance.message + "\"";
+  json += "},";
+  json += "\"dht\":{";
+  json += "\"pin\":" + String(DHT_PIN) + ",";
+  json += "\"type\":\"" + dhtTypeToString(DHT_TYPE_CURRENT) + "\",";
+  json += "\"tested\":" + boolToStr(sensorsDiag.dht.tested) + ",";
+  json += "\"success\":" + boolToStr(sensorsDiag.dht.success) + ",";
+  json += "\"temperature\":" + String(isnan(sensorsDiag.dhtTemperature) ? 0.0f : sensorsDiag.dhtTemperature, 1) + ",";
+  json += "\"humidity\":" + String(isnan(sensorsDiag.dhtHumidity) ? 0.0f : sensorsDiag.dhtHumidity, 1) + ",";
+  json += "\"status\":\"" + sensorsDiag.dht.message + "\"";
+  json += "},";
+  json += "\"ldr\":{";
+  json += "\"pin\":" + String(LDR_PIN) + ",";
+  json += "\"tested\":" + boolToStr(sensorsDiag.ldr.tested) + ",";
+  json += "\"success\":" + boolToStr(sensorsDiag.ldr.success) + ",";
+  json += "\"raw\":" + String(sensorsDiag.ldrRaw) + ",";
+  json += "\"voltage\":" + String(sensorsDiag.ldrVoltage, 3) + ",";
+  json += "\"status\":\"" + sensorsDiag.ldr.message + "\"";
+  json += "}";
+  json += "}";
+  return json;
+}
+
+void handleSensorsInfo() {
+  String response = "{\"success\":true,\"sensors\":" + sensorsToJson() + "}";
+  server.send(200, "application/json", response);
+}
+
+void handleSensorTest() {
+  if (!server.hasArg("sensor")) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Parametre sensor manquant\"}");
+    return;
+  }
+
+  String sensor = server.arg("sensor");
+  if (sensor == "pir") {
+    testPIRSensor();
+  } else if (sensor == "distance") {
+    testDistanceSensor();
+  } else if (sensor == "dht") {
+    testDHTSensor();
+  } else if (sensor == "ldr") {
+    testLDRSensor();
+  } else {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Capteur inconnu\"}");
+    return;
+  }
+
+  String response = "{\"success\":true,\"sensors\":" + sensorsToJson() + "}";
+  server.send(200, "application/json", response);
+}
+
+void handleSensorConfig() {
+  if (!server.hasArg("sensor")) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Parametre sensor manquant\"}");
+    return;
+  }
+
+  String sensor = server.arg("sensor");
+  if (sensor == "pir") {
+    if (!server.hasArg("pin")) {
+      server.send(400, "application/json", "{\"success\":false,\"message\":\"Parametre pin manquant\"}");
+      return;
+    }
+    int pin = server.arg("pin").toInt();
+    if (!isValidGPIOPin(pin)) {
+      server.send(400, "application/json", "{\"success\":false,\"message\":\"GPIO invalide\"}");
+      return;
+    }
+    configurePIRPin(pin);
+  } else if (sensor == "distance") {
+    if (!server.hasArg("trig") || !server.hasArg("echo")) {
+      server.send(400, "application/json", "{\"success\":false,\"message\":\"Parametres trig/echo manquants\"}");
+      return;
+    }
+    int trig = server.arg("trig").toInt();
+    int echo = server.arg("echo").toInt();
+    if (!isValidGPIOPin(trig) || !isValidGPIOPin(echo)) {
+      server.send(400, "application/json", "{\"success\":false,\"message\":\"GPIO invalide\"}");
+      return;
+    }
+    configureDistancePins(trig, echo);
+  } else if (sensor == "dht") {
+    if (!server.hasArg("pin")) {
+      server.send(400, "application/json", "{\"success\":false,\"message\":\"Parametre pin manquant\"}");
+      return;
+    }
+    int pin = server.arg("pin").toInt();
+    if (!isValidGPIOPin(pin)) {
+      server.send(400, "application/json", "{\"success\":false,\"message\":\"GPIO invalide\"}");
+      return;
+    }
+    int type = DHT_TYPE_CURRENT;
+    if (server.hasArg("type")) {
+      type = stringToDhtType(server.arg("type"));
+    }
+    configureDHTSensor(pin, type);
+  } else if (sensor == "ldr") {
+    if (!server.hasArg("pin")) {
+      server.send(400, "application/json", "{\"success\":false,\"message\":\"Parametre pin manquant\"}");
+      return;
+    }
+    int pin = server.arg("pin").toInt();
+    if (!isValidGPIOPin(pin)) {
+      server.send(400, "application/json", "{\"success\":false,\"message\":\"GPIO invalide\"}");
+      return;
+    }
+    configureLDRPin(pin);
+  } else {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Capteur inconnu\"}");
+    return;
+  }
+
+  String response = "{\"success\":true,\"sensors\":" + sensorsToJson() + "}";
+  server.send(200, "application/json", response);
+}
+
 // ========== TEST ADC ==========
 void testADC() {
   Serial.println("\r\n=== TEST ADC ===");
@@ -1955,8 +2267,8 @@ void handleAPIOverview() {
   json += "\"list\":\"" + diagnosticData.gpioList + "\",";
   json += "\"i2c_count\":" + String(diagnosticData.i2cCount) + ",";
   json += "\"i2c_devices\":\"" + diagnosticData.i2cDevices + "\"";
-  json += "}";
-
+  json += "},";
+  json += "\"sensors\":" + sensorsToJson();
   json += "}";
 
   server.send(200, "application/json", json);
@@ -2134,7 +2446,14 @@ void handleExportTXT() {
   txt += "Touch: " + touchTestResult + "\r\n";
   txt += "PWM: " + pwmTestResult + "\r\n";
   txt += "\r\n";
-  
+
+  txt += "=== " + String(T().sensors_section) + " ===\r\n";
+  txt += String(T().pir_sensor) + " (GPIO " + String(PIR_PIN) + "): " + sensorsDiag.pir.message + "\r\n";
+  txt += String(T().distance_sensor) + " (TRIG " + String(DISTANCE_TRIG_PIN) + " / ECHO " + String(DISTANCE_ECHO_PIN) + "): " + sensorsDiag.distance.message + "\r\n";
+  txt += String(T().dht_sensor) + " (" + dhtTypeToString(DHT_TYPE_CURRENT) + " GPIO " + String(DHT_PIN) + "): " + sensorsDiag.dht.message + "\r\n";
+  txt += String(T().ldr_sensor) + " (GPIO " + String(LDR_PIN) + "): " + sensorsDiag.ldr.message + " (" + String(sensorsDiag.ldrVoltage, 2) + "V)\r\n";
+  txt += "\r\n";
+
   txt += "=== " + String(T().performance_bench) + " ===\r\n";
   if (diagnosticData.cpuBenchmark > 0) {
     txt += "CPU: " + String(diagnosticData.cpuBenchmark) + " us (" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + " MFLOPS)\r\n";
@@ -2223,7 +2542,9 @@ void handleExportJSON() {
   json += "\"touch\":\"" + touchTestResult + "\",";
   json += "\"pwm\":\"" + pwmTestResult + "\"";
   json += "},";
-  
+
+  json += "\"sensors\":" + sensorsToJson() + ",";
+
   json += "\"performance\":{";
   if (diagnosticData.cpuBenchmark > 0) {
     json += "\"cpu_us\":" + String(diagnosticData.cpuBenchmark) + ",";
@@ -2288,7 +2609,12 @@ void handleExportCSV() {
   csv += String(T().test) + ",ADC," + adcTestResult + "\r\n";
   csv += String(T().test) + ",Touch," + touchTestResult + "\r\n";
   csv += String(T().test) + ",PWM," + pwmTestResult + "\r\n";
-  
+
+  csv += String(T().sensors_section) + "," + String(T().pir_sensor) + " (GPIO)," + String(PIR_PIN) + " - " + sensorsDiag.pir.message + "\r\n";
+  csv += String(T().sensors_section) + "," + String(T().distance_sensor) + " (TRIG/ECHO)," + String(DISTANCE_TRIG_PIN) + "/" + String(DISTANCE_ECHO_PIN) + " - " + sensorsDiag.distance.message + "\r\n";
+  csv += String(T().sensors_section) + "," + String(T().dht_sensor) + " (" + dhtTypeToString(DHT_TYPE_CURRENT) + ")," + String(DHT_PIN) + " - " + sensorsDiag.dht.message + "\r\n";
+  csv += String(T().sensors_section) + "," + String(T().ldr_sensor) + " (GPIO)," + String(LDR_PIN) + " - " + sensorsDiag.ldr.message + " (" + String(sensorsDiag.ldrVoltage, 2) + "V)\r\n";
+
   if (diagnosticData.cpuBenchmark > 0) {
     csv += String(T().performance_bench) + ",CPU us," + String(diagnosticData.cpuBenchmark) + "\r\n";
     csv += String(T().performance_bench) + "," + String(T().memory_benchmark) + " us," + String(diagnosticData.memBenchmark) + "\r\n";
@@ -2423,7 +2749,17 @@ void handlePrintVersion() {
   html += "<tr><td>Touch Pads</td><td>" + touchTestResult + "</td></tr>";
   html += "<tr><td>PWM</td><td>" + pwmTestResult + "</td></tr>";
   html += "</table></div>";
-  
+
+  html += "<div class='section'>";
+  html += "<h2>" + String(T().sensors_section) + "</h2>";
+  html += "<table>";
+  html += "<tr><th>" + String(T().parameter) + "</th><th>" + String(T().value) + "</th></tr>";
+  html += "<tr><td>" + String(T().pir_sensor) + " (GPIO " + String(PIR_PIN) + ")</td><td>" + sensorsDiag.pir.message + (sensorsDiag.pir.tested ? (sensorsDiag.pirMotion ? " - " + String(T().motion_detected) : " - " + String(T().motion_none)) : "") + "</td></tr>";
+  html += "<tr><td>" + String(T().distance_sensor) + " (TRIG " + String(DISTANCE_TRIG_PIN) + " / ECHO " + String(DISTANCE_ECHO_PIN) + ")</td><td>" + sensorsDiag.distance.message + "</td></tr>";
+  html += "<tr><td>" + String(T().dht_sensor) + " (" + dhtTypeToString(DHT_TYPE_CURRENT) + " GPIO " + String(DHT_PIN) + ")</td><td>" + sensorsDiag.dht.message + "</td></tr>";
+  html += "<tr><td>" + String(T().ldr_sensor) + " (GPIO " + String(LDR_PIN) + ")</td><td>" + sensorsDiag.ldr.message + " - " + String(sensorsDiag.ldrVoltage, 2) + "V</td></tr>";
+  html += "</table></div>";
+
   // Performance
   if (diagnosticData.cpuBenchmark > 0) {
     html += "<div class='section'>";
@@ -2573,11 +2909,13 @@ void setup() {
   
   detectTFT();
   detectOLED();
-  
+
   if (ENABLE_I2C_SCAN) {
     scanI2C();
   }
-  
+
+  initializeSensors();
+
   scanSPI();
   listPartitions();
   
@@ -2603,6 +2941,7 @@ void setup() {
   server.on("/api/peripherals", HTTP_GET, handleAPIPeripherals);
   server.on("/api/leds-info", HTTP_GET, handleAPILedsInfo);
   server.on("/api/screens-info", HTTP_GET, handleAPIScreensInfo);
+  server.on("/api/sensors-info", HTTP_GET, handleSensorsInfo);
 
   // ========== API - Langues ==========
   server.on("/api/set-language", HTTP_GET, handleSetLanguage);
@@ -2631,6 +2970,8 @@ void setup() {
   server.on("/api/oled-message", HTTP_GET, handleOLEDMessage);
   server.on("/api/oled-config", HTTP_GET, handleOLEDConfig);
   server.on("/api/tft-text", HTTP_GET, handleTFTText);
+  server.on("/api/sensor-test", HTTP_GET, handleSensorTest);
+  server.on("/api/sensor-config", HTTP_GET, handleSensorConfig);
   // ========== API - Tests avancés ==========
   server.on("/api/adc-test", HTTP_GET, handleADCTest);
   server.on("/api/touch-test", HTTP_GET, handleTouchTest);
