@@ -18,7 +18,7 @@ Un outil de diagnostic complet basé sur une interface web pour microcontrôleur
 
 ## 🌟 Fonctionnalités Principales
 
-### 🔄 Surveillance Temps Réel (v3.0-dev)
+### 🔄 Surveillance Temps Réel (v3.0.3-dev)
 - **Interface web dynamique** avec chargement asynchrone
 - **Rafraîchissement automatique toutes les 5 secondes** pour les données en direct
 - **Architecture API REST** pour une communication efficace
@@ -52,24 +52,27 @@ Un outil de diagnostic complet basé sur une interface web pour microcontrôleur
 - Informations de connexion (IP, Masque, Passerelle, DNS)
 - Support mDNS (esp32-diagnostic.local)
 
-### 🔌 Tests GPIO
+### 🔌 Tests GPIO (v3.0.3-dev)
 - Test GPIO individuel (E/S numériques)
 - Cartographie complète des broches pour chaque variante ESP32
 - Indicateurs visuels OK/ÉCHEC
 - Tests ADC (Convertisseur Analogique-Numérique)
 - Tests capteurs tactiles (ESP32/S3)
 - Tests PWM (Modulation de Largeur d'Impulsion)
+- Rappel : un échec de test peut simplement signifier qu'un périphérique utilise déjà la broche, sans remettre en cause l'intégrité de la carte
 
-### 💡 Contrôle LED
+### 💡 Contrôle LED (v3.0.3-dev)
 - **LED Intégrée** :
   - Broche GPIO configurable
   - Motifs clignotement et fondu
   - Contrôle individuel
+  - Prête dès la première ouverture de l'onglet grâce à un rafraîchissement garanti
 - **NeoPixel/WS2812** :
   - GPIO et nombre de LEDs configurables
   - Effet arc-en-ciel
   - Couleurs personnalisées avec sélecteur
   - Animations clignotement et fondu
+  - Retour d'information central et non bloquant après les diagnostics
 
 ### 📺 Support Écrans
 - **Écran TFT SPI** :
@@ -104,6 +107,7 @@ Un outil de diagnostic complet basé sur une interface web pour microcontrôleur
 - **Français** (par défaut)
 - **Anglais**
 - Changement de langue dynamique sans rechargement
+- Notification toast confirmant le changement sans bloquer l'interface
 - Exports traduits
 
 ### 📤 Export de Données
@@ -251,7 +255,7 @@ Ouvrir votre navigateur et accéder à l'URL affichée.
 - Télécharger rapports diagnostic
 - Options multiples formats
 
-### Points de Terminaison API (v3.0-dev)
+### Points de Terminaison API (v3.0.3-dev)
 
 L'outil fournit une API REST complète :
 
@@ -434,7 +438,7 @@ Si ce projet vous a aidé, merci de lui donner une ⭐ !
 
 ---
 
-**Version** : 3.0-dev
+**Version** : 3.0.3-dev
 **Dernière Mise à Jour** : 10 octobre 2025
 **Statut** : Développement Actif
 ```

@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v3.0-dev
+ * WEB_INTERFACE.H - Interface Web Dynamique v3.0.3-dev
  * Interface moderne avec mise à jour temps réel
  */
 
@@ -123,6 +123,21 @@ String generateHTML() {
   html += "background:#667eea;color:#fff;border-radius:5px;font-weight:bold;opacity:0;";
   html += "transition:opacity .3s;z-index:1000}";
   html += ".update-indicator.show{opacity:1}";
+  html += ".modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5);z-index:1100;padding:20px;}";
+  html += ".modal-overlay.show{display:flex;}";
+  html += ".modal-content{background:#fff;border-radius:12px;max-width:520px;width:100%;padding:30px;box-shadow:0 20px 45px rgba(0,0,0,.3);text-align:center;position:relative;}";
+  html += ".modal-title{font-size:1.4em;margin-bottom:10px;color:#667eea;}";
+  html += ".modal-message{color:#333;font-size:1.05em;margin-bottom:20px;line-height:1.5;}";
+  html += ".modal-actions{display:flex;justify-content:center;}";
+  html += ".modal-content.success .modal-title{color:#28a745;}";
+  html += ".modal-content.error .modal-title{color:#dc3545;}";
+  html += ".modal-content.warning .modal-title{color:#f2994a;}";
+  html += ".modal-close{min-width:140px;}";
+  html += ".toast{position:fixed;top:20px;left:50%;transform:translate(-50%,-20px);background:#323232;color:#fff;padding:12px 28px;border-radius:28px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;z-index:1200;box-shadow:0 12px 30px rgba(0,0,0,.25);}";
+  html += ".toast.show{opacity:1;pointer-events:auto;transform:translate(-50%,0);}";
+  html += ".toast.success{background:#28a745;}";
+  html += ".toast.error{background:#dc3545;}";
+  html += ".info-note{margin-top:15px;color:#555;font-size:0.95em;background:#fff;padding:15px;border-radius:10px;border-left:4px solid #f2994a;line-height:1.4;}";
   html += "@media(max-width:768px){";
   html += ".header h1{font-size:1.8em}";
   html += ".info-grid{grid-template-columns:1fr}";
@@ -137,6 +152,13 @@ String generateHTML() {
   html += "</style>";
   html += "</head><body>";
   html += "<div class='update-indicator' id='updateIndicator' data-i18n='update_indicator' data-i18n-fallback='Mise à jour...'>Mise à jour...</div>";
+  html += "<div class='toast' id='globalToast' role='status' aria-live='polite'></div>";
+  html += "<div class='modal-overlay' id='modalOverlay' role='dialog' aria-modal='true' aria-hidden='true'>";
+  html += "<div class='modal-content info' id='modalContent'>";
+  html += "<h2 class='modal-title' id='modalTitle' data-i18n='test_result_title' data-i18n-fallback='Résultat du test'>Résultat du test</h2>";
+  html += "<p class='modal-message' id='modalMessage'></p>";
+  html += "<div class='modal-actions'><button class='btn btn-primary modal-close' id='modalCloseBtn' data-i18n='close' data-i18n-fallback='Fermer'>Fermer</button></div>";
+  html += "</div></div>";
   html += "<div class='container'>";
   html += "<div class='header'>";
   html += "<div class='lang-switcher'>";
@@ -204,6 +226,8 @@ String generateJavaScript() {
   js += "loadAllData();";
   js += "startAutoUpdate();";
   js += "await loadTab('overview');";
+  js += "const closeBtn=document.getElementById('modalCloseBtn');if(closeBtn){closeBtn.addEventListener('click',hideCenteredModal);}";
+  js += "const overlay=document.getElementById('modalOverlay');if(overlay){overlay.addEventListener('click',e=>{if(e.target===overlay)hideCenteredModal();});}";
   js += "});";
 
   // Gestion des traductions
@@ -274,7 +298,7 @@ String generateJavaScript() {
   js += "tab.dataset.lang=currentLang;";
   js += "try{";
   js += "if(tabName==='overview'){const r=await fetch('/api/overview');const d=await r.json();tab.innerHTML=buildOverview(d);}";
-  js += "else if(tabName==='leds'){const r=await fetch('/api/leds-info');const d=await r.json();tab.innerHTML=buildLeds(d);}";
+  js += "else if(tabName==='leds'){const r=await fetch('/api/leds-info?_='+Date.now(),{cache:'no-store'});const d=await r.json();tab.innerHTML=buildLeds(d);refreshLedInfo();}";
   js += "else if(tabName==='screens'){const r=await fetch('/api/screens-info');const d=await r.json();tab.innerHTML=buildScreens(d);}";
   js += "else if(tabName==='sensors'){const r=await fetch('/api/sensors-info');const d=await r.json();sensorsCache=d.sensors||{};tab.innerHTML=buildSensors(sensorsCache);}";
   js += "else if(tabName==='tests'){tab.innerHTML=buildTests();}";
@@ -440,7 +464,8 @@ js += "function buildScreens(d){";
   js += "let h='<div class=\"section\"><h2>🔌 '+tr('gpio_test','Test GPIO')+'</h2>';";
   js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"testAllGPIO()\">🧪 '+tr('test_all_gpio','Tester Tous les GPIO')+'</button>';";
   js += "h+='<div id=\"gpio-status\" class=\"status-live\">'+tr('click_to_test','Cliquez pour tester')+'</div></div>';";
-  js += "h+='<div id=\"gpio-results\" class=\"gpio-grid\"></div></div>';";
+  js += "h+='<div id=\"gpio-results\" class=\"gpio-grid\"></div>';";
+  js += "h+='<p class=\"info-note\">'+tr('gpio_warning_note','Un test GPIO en échec peut simplement indiquer qu\'un périphérique est déjà connecté sur cette broche et ne signifie pas forcément une défaillance de la carte.')+'</p></div>';";
   js += "return h;";
   js += "}";
 
@@ -485,27 +510,53 @@ js += "function buildScreens(d){";
   js += "}";
 
   // FONCTIONS API - LED
+  js += "async function refreshLedInfo(){";
+  js += "try{";
+  js += "const r=await fetch('/api/leds-info?_='+Date.now(),{cache:'no-store'});";
+  js += "const info=await r.json();";
+  js += "if(info.builtin){const builtin=document.getElementById('builtin-led-status');if(builtin)builtin.textContent=info.builtin.status;}";
+  js += "if(info.neopixel){const neo=document.getElementById('neopixel-status');if(neo)neo.textContent=info.neopixel.status;}";
+  js += "}catch(error){console.warn('Refresh LED info failed',error);}";
+  js += "}";
   js += "async function testBuiltinLED(){";
-  js += "document.getElementById('builtin-led-status').textContent=tr('testing','Test en cours...');";
-  js += "const r=await fetch('/api/builtin-led-test');const d=await r.json();";
-  js += "document.getElementById('builtin-led-status').textContent=d.result;alert(d.result);";
+  js += "const status=document.getElementById('builtin-led-status');";
+  js += "if(status)status.textContent=tr('testing','Test en cours...');";
+  js += "try{";
+  js += "const r=await fetch('/api/builtin-led-test?_='+Date.now(),{cache:'no-store'});";
+  js += "const d=await r.json();";
+  js += "const ok=String(d.success)==='true';";
+  js += "if(status)status.textContent=d.result;";
+  js += "showCenteredModal(tr('test_result_title','Résultat du test'),d.result,ok?'success':'error');";
+  js += "await refreshLedInfo();";
+  js += "}catch(error){console.error('Test LED échoué',error);showCenteredModal(tr('error_title','❌ Erreur'),tr('communication_error','Erreur de communication'),'error');}";
   js += "}";
   js += "async function ledBlink(){";
-  js += "const r=await fetch('/api/builtin-led-control?action=blink');const d=await r.json();";
-  js += "document.getElementById('builtin-led-status').textContent=d.message;";
+  js += "const status=document.getElementById('builtin-led-status');";
+  js += "const r=await fetch('/api/builtin-led-control?action=blink&_='+Date.now(),{cache:'no-store'});";
+  js += "const d=await r.json();";
+  js += "if(status)status.textContent=d.message;";
+  js += "await refreshLedInfo();";
   js += "}";
   js += "async function ledFade(){";
-  js += "const r=await fetch('/api/builtin-led-control?action=fade');const d=await r.json();";
-  js += "document.getElementById('builtin-led-status').textContent=d.message;";
+  js += "const status=document.getElementById('builtin-led-status');";
+  js += "const r=await fetch('/api/builtin-led-control?action=fade&_='+Date.now(),{cache:'no-store'});";
+  js += "const d=await r.json();";
+  js += "if(status)status.textContent=d.message;";
+  js += "await refreshLedInfo();";
   js += "}";
   js += "async function ledOff(){";
-  js += "const r=await fetch('/api/builtin-led-control?action=off');const d=await r.json();";
-  js += "document.getElementById('builtin-led-status').textContent=d.message;";
+  js += "const status=document.getElementById('builtin-led-status');";
+  js += "const r=await fetch('/api/builtin-led-control?action=off&_='+Date.now(),{cache:'no-store'});";
+  js += "const d=await r.json();";
+  js += "if(status)status.textContent=d.message;";
+  js += "await refreshLedInfo();";
   js += "}";
   js += "async function ledOn(){";
-  js += "const r=await fetch('/api/builtin-led-control?action=on');";
+  js += "const status=document.getElementById('builtin-led-status');";
+  js += "const r=await fetch('/api/builtin-led-control?action=on&_='+Date.now(),{cache:'no-store'});";
   js += "const d=await r.json();";
-  js += "document.getElementById('builtin-led-status').textContent=d.message;";
+  js += "if(status)status.textContent=d.message;";
+  js += "await refreshLedInfo();";
   js += "}";
 
   // NeoPixel couleur personnalisée
@@ -521,34 +572,58 @@ js += "function buildScreens(d){";
   js += "}";
   // FONCTIONS API - NeoPixel
   js += "async function testNeoPixel(){";
-  js += "document.getElementById('neopixel-status').textContent=tr('testing','Test en cours...');";
-  js += "const r=await fetch('/api/neopixel-test');const d=await r.json();";
-  js += "document.getElementById('neopixel-status').textContent=d.result;";
+  js += "const status=document.getElementById('neopixel-status');";
+  js += "if(status)status.textContent=tr('testing','Test en cours...');";
+  js += "try{";
+  js += "const r=await fetch('/api/neopixel-test?_='+Date.now(),{cache:'no-store'});";
+  js += "const d=await r.json();";
+  js += "const ok=String(d.success)==='true';";
+  js += "if(status)status.textContent=d.result;";
+  js += "showCenteredModal(tr('test_result_title','Résultat du test'),d.result,ok?'success':'error');";
+  js += "await refreshLedInfo();";
+  js += "}catch(error){console.error('Test NeoPixel échoué',error);showCenteredModal(tr('error_title','❌ Erreur'),tr('communication_error','Erreur de communication'),'error');}";
   js += "}";
   js += "async function neoPattern(p){";
-  js += "const r=await fetch('/api/neopixel-pattern?pattern='+p);const d=await r.json();";
-  js += "document.getElementById('neopixel-status').textContent=d.message;";
+  js += "const status=document.getElementById('neopixel-status');";
+  js += "const r=await fetch('/api/neopixel-pattern?pattern='+p+'&_='+Date.now(),{cache:'no-store'});";
+  js += "const d=await r.json();";
+  js += "if(status)status.textContent=d.message;";
+  js += "await refreshLedInfo();";
   js += "}";
 
   // FONCTIONS API - TFT/OLED
   js += "async function testTFT(){";
-  js += "document.getElementById('tft-status').textContent=tr('testing','Test en cours...')+' (15s)...';";
-  js += "const r=await fetch('/api/tft-test');const d=await r.json();";
-  js += "document.getElementById('tft-status').textContent=d.result;";
+  js += "const status=document.getElementById('tft-status');";
+  js += "if(status)status.textContent=tr('testing','Test en cours...')+' (15s)...';";
+  js += "try{";
+  js += "const r=await fetch('/api/tft-test?_='+Date.now(),{cache:'no-store'});";
+  js += "const d=await r.json();";
+  js += "const ok=String(d.success)==='true';";
+  js += "if(status)status.textContent=d.result;";
+  js += "showCenteredModal(tr('test_result_title','Résultat du test'),d.result,ok?'success':'error');";
+  js += "}catch(error){console.error('Test TFT échoué',error);showCenteredModal(tr('error_title','❌ Erreur'),tr('communication_error','Erreur de communication'),'error');}";
   js += "}";
   js += "async function tftPattern(p){";
-  js += "const r=await fetch('/api/tft-pattern?pattern='+p);const d=await r.json();";
-  js += "document.getElementById('tft-status').textContent=d.message;";
+  js += "const status=document.getElementById('tft-status');";
+  js += "const r=await fetch('/api/tft-pattern?pattern='+p+'&_='+Date.now(),{cache:'no-store'});";
+  js += "const d=await r.json();";
+  js += "if(status)status.textContent=d.message;";
   js += "}";
   js += "async function testOLED(){";
-  js += "document.getElementById('oled-status').textContent=tr('testing','Test en cours...')+' (25s)...';";
-  js += "const r=await fetch('/api/oled-test');const d=await r.json();";
-  js += "document.getElementById('oled-status').textContent=d.result;";
+  js += "const status=document.getElementById('oled-status');";
+  js += "if(status)status.textContent=tr('testing','Test en cours...')+' (25s)...';";
+  js += "try{";
+  js += "const r=await fetch('/api/oled-test?_='+Date.now(),{cache:'no-store'});";
+  js += "const d=await r.json();";
+  js += "const ok=String(d.success)==='true';";
+  js += "if(status)status.textContent=d.result;";
+  js += "showCenteredModal(tr('test_result_title','Résultat du test'),d.result,ok?'success':'error');";
+  js += "}catch(error){console.error('Test OLED échoué',error);showCenteredModal(tr('error_title','❌ Erreur'),tr('communication_error','Erreur de communication'),'error');}";
   js += "}";
 
   js += "async function oledPattern(p){";
   js += "document.getElementById('oled-status').textContent=tr('displaying','Affichage en cours...');";
-  js += "const r=await fetch('/api/oled-pattern?pattern='+p);";
+  js += "const r=await fetch('/api/oled-pattern?pattern='+p+'&_='+Date.now(),{cache:'no-store'});";
   js += "let msg=tr('command_sent','Commande envoyée');";
   js += "try{";
   js += "const d=await r.json();";
@@ -560,7 +635,7 @@ js += "function buildScreens(d){";
   // FONCTIONS API - Affichage texte TFT/OLED
   js += "async function tftDisplayText(){";
   js += "const text=document.getElementById('tftText').value;";
-  js += "if(!text){alert('Entrez un texte!');return;}";
+  js += "if(!text){showCenteredModal(tr('error_title','❌ Erreur'),tr('enter_text','Entrez un texte !'),'error');return;}";
   js += "document.getElementById('tft-status').textContent=tr('displaying','Affichage en cours...');";
   js += "const r=await fetch('/api/tft-text?text='+encodeURIComponent(text));";
   js += "const d=await r.json();";
@@ -569,7 +644,7 @@ js += "function buildScreens(d){";
 
   js += "async function oledDisplayText(){";
   js += "const text=document.getElementById('oledText').value;";
-  js += "if(!text){alert('Entrez un message!');return;}";
+  js += "if(!text){showCenteredModal(tr('error_title','❌ Erreur'),tr('enter_message','Entrez un message !'),'error');return;}";
   js += "document.getElementById('oled-status').textContent=tr('displaying','Affichage en cours...');";
   js += "const r=await fetch('/api/oled-message?message='+encodeURIComponent(text));";
   js += "const d=await r.json();";
@@ -598,11 +673,18 @@ js += "function buildScreens(d){";
   js += "}";
 
   js += "async function testAllGPIO(){";
-  js += "document.getElementById('gpio-status').textContent=tr('testing','Test en cours...');";
-  js += "const r=await fetch('/api/test-gpio');const d=await r.json();";
-  js += "let h='';d.results.forEach(g=>{h+='<div class=\"gpio-item '+(g.working?'gpio-ok':'gpio-fail')+'\">GPIO '+g.pin+'<br>'+(g.working?'✅ OK':'❌ FAIL')+'</div>';});";
+  js += "const status=document.getElementById('gpio-status');";
+  js += "if(status)status.textContent=tr('testing','Test en cours...');";
+  js += "try{";
+  js += "const r=await fetch('/api/test-gpio?_='+Date.now(),{cache:'no-store'});";
+  js += "const d=await r.json();";
+  js += "let h='';let okCount=0;let failCount=0;";
+  js += "d.results.forEach(g=>{const working=!!g.working;if(working)okCount++;else failCount++;h+='<div class=\"gpio-item '+(working?'gpio-ok':'gpio-fail')+'\">GPIO '+g.pin+'<br>'+(working?'✅ OK':'❌ FAIL')+'</div>';});";
   js += "document.getElementById('gpio-results').innerHTML=h;";
-  js += "document.getElementById('gpio-status').textContent='Terminé - '+d.results.length+' GPIO testés';";
+  js += "const summary=tr('gpio_test_summary','Test GPIO terminé : {ok} OK / {fail} en échec').replace('{ok}',okCount).replace('{fail}',failCount);";
+  js += "if(status)status.textContent=summary;";
+  js += "showCenteredModal(tr('test_result_title','Résultat du test'),summary,failCount===0?'success':'warning');";
+  js += "}catch(error){console.error('Test GPIO échoué',error);if(status)status.textContent=tr('communication_error','Erreur de communication');showCenteredModal(tr('error_title','❌ Erreur'),tr('communication_error','Erreur de communication'),'error');}";
   js += "}";
 
   js += "async function scanWiFi(){";
@@ -653,6 +735,11 @@ js += "function buildScreens(d){";
 
   js += "function showUpdateIndicator(){document.getElementById('updateIndicator').classList.add('show');}";
   js += "function hideUpdateIndicator(){setTimeout(()=>document.getElementById('updateIndicator').classList.remove('show'),500);}";
+  js += "function hideCenteredModal(){const overlay=document.getElementById('modalOverlay');if(overlay){overlay.classList.remove('show');overlay.setAttribute('aria-hidden','true');}}";
+  js += "function showCenteredModal(title,message,type='info'){const overlay=document.getElementById('modalOverlay');const content=document.getElementById('modalContent');const titleEl=document.getElementById('modalTitle');const msgEl=document.getElementById('modalMessage');if(!overlay||!content||!titleEl||!msgEl)return;content.classList.remove('success','error','info');content.classList.add(type);titleEl.textContent=title;msgEl.textContent=message;overlay.classList.add('show');overlay.setAttribute('aria-hidden','false');const closeBtn=document.getElementById('modalCloseBtn');if(closeBtn){setTimeout(()=>closeBtn.focus(),50);}}";
+  js += "document.addEventListener('keydown',e=>{if(e.key==='Escape')hideCenteredModal();});";
+  js += "let toastTimer=null;";
+  js += "function showToast(message,type='success'){const toast=document.getElementById('globalToast');if(!toast)return;if(toastTimer)clearTimeout(toastTimer);toast.textContent=message;toast.classList.remove('success','error','warning');if(type)toast.classList.add(type);toast.classList.add('show');toastTimer=setTimeout(()=>toast.classList.remove('show'),2600);}";
   js += "function updateStatusIndicator(c){";
   js += "const i=document.getElementById('statusIndicator');";
   js += "if(c){i.classList.remove('status-offline');i.classList.add('status-online');}";
@@ -688,8 +775,8 @@ js += "function buildScreens(d){";
   js += "translations=await fetchTranslations(targetLang);";
   js += "updateInterfaceTexts();";
   js += "await loadTab(activeTab,true);";
-  js += "alert(tr('language_changed','Langue changée')+': '+targetLang.toUpperCase());";
-  js += "}catch(error){console.error('Erreur changement langue',error);alert(tr('language_error','Erreur changement langue')+': '+error);}";
+  js += "showToast(tr('language_changed','Langue changée')+': '+targetLang.toUpperCase(),'success');";
+  js += "}catch(error){console.error('Erreur changement langue',error);showToast(tr('language_error','Erreur changement langue')+': '+error,'error');}";
   js += "}";
 
   js += "function updateInterfaceTexts(){";

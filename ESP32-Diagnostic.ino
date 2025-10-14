@@ -1,18 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION 3.0-dev
+ * DIAGNOSTIC COMPLET ESP32 - VERSION 3.0.3-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.1.3
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v3.0-dev:
- * - Interface web 100% dynamique
- * - Mise à jour temps réel (5s)
- * - Architecture API REST
- * - Séparation HTML/CSS/JavaScript
- * - Chargement asynchrone des onglets
- * - Indicateur de connexion en direct
- * - Animations et transitions fluides
+ * Nouveautés v3.0.3-dev:
+ * - Correctif du premier lancement des tests LED
+ * - Fenêtres de résultats centrées et non bloquantes
+ * - Avertissement sur l'interprétation des tests GPIO
  */
 
 #include <WiFi.h>

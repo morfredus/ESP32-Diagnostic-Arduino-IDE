@@ -18,7 +18,7 @@ A comprehensive web-based diagnostic tool for ESP32 microcontrollers with real-t
 
 ## 🌟 Key Features
 
-### 🔄 Real-Time Monitoring (v3.0-dev)
+### 🔄 Real-Time Monitoring (v3.0.3-dev)
 - **Dynamic web interface** with asynchronous loading
 - **Auto-refresh every 5 seconds** for live data
 - **REST API architecture** for efficient communication
@@ -52,24 +52,27 @@ A comprehensive web-based diagnostic tool for ESP32 microcontrollers with real-t
 - Connection information (IP, Subnet, Gateway, DNS)
 - mDNS support (esp32-diagnostic.local)
 
-### 🔌 GPIO Testing
+### 🔌 GPIO Testing (v3.0.3-dev)
 - Individual GPIO testing (Digital I/O)
 - Complete pin mapping for each ESP32 variant
 - Visual OK/FAIL indicators
 - ADC testing (Analog to Digital Converter)
 - Touch sensor testing (ESP32/S3)
 - PWM testing (Pulse Width Modulation)
+- Reminder that a failed GPIO test may simply indicate the pin is already in use rather than a defective board
 
-### 💡 LED Control
+### 💡 LED Control (v3.0.3-dev)
 - **Built-in LED**:
   - Configurable GPIO pin
   - Blink and fade patterns
   - Individual control
+  - Immediate readiness on first tab load thanks to cache-proof refreshing
 - **NeoPixel/WS2812**:
   - Configurable GPIO and LED count
   - Rainbow effect
   - Custom colors with color picker
   - Blink and fade animations
+  - Centered, non-blocking modal feedback after diagnostics
 
 ### 📺 Screen Support
 - **TFT SPI Display**:
@@ -104,6 +107,7 @@ A comprehensive web-based diagnostic tool for ESP32 microcontrollers with real-t
 - **French** (default)
 - **English**
 - Dynamic language switching without reload
+- Toast notification confirms the selected language without blocking the interface
 - Translated exports
 
 ### 📤 Data Export
@@ -251,7 +255,7 @@ Open your browser and navigate to the displayed URL.
 - Download diagnostic reports
 - Multiple format options
 
-### API Endpoints (v3.0-dev)
+### API Endpoints (v3.0.3-dev)
 
 The tool provides a complete REST API:
 
@@ -434,7 +438,7 @@ If this project helped you, please give it a ⭐!
 
 ---
 
-**Version**: 3.0-dev
+**Version**: 3.0.3-dev
 **Last Updated**: 10/09/2025
 **Status**: Active Development
 ```

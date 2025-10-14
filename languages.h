@@ -18,6 +18,7 @@ struct Translations {
   const char* version;
   const char* access;
   const char* or_text;
+  const char* close;
   
   // Navigation
   const char* nav_overview;
@@ -129,6 +130,8 @@ struct Translations {
   const char* changes_pins;
   const char* custom_message;
   const char* show_message;
+  const char* enter_text;
+  const char* enter_message;
   const char* no_detected;
   const char* check_wiring;
   
@@ -142,11 +145,14 @@ struct Translations {
   const char* click_button;
   const char* memory_stress;
   const char* start_stress;
-  
+  const char* test_result_title;
+
   // GPIO
   const char* gpio_test;
   const char* test_all_gpio;
   const char* click_to_test;
+  const char* gpio_warning_note;
+  const char* gpio_test_summary;
   
   // WiFi Scanner
   const char* wifi_scanner;
@@ -281,6 +287,7 @@ const Translations LANG_FR_TEXTS = {
   "v",
   "Accès",
   "ou",
+  "Fermer",
   
   // Navigation
   "Vue d'ensemble",
@@ -392,6 +399,8 @@ const Translations LANG_FR_TEXTS = {
   "Modifie les pins I2C et relance la détection",
   "Message personnalisé",
   "Afficher Message",
+  "Entrez un texte !",
+  "Entrez un message !",
   "Aucun écran OLED détecté. Vérifiez le câblage et les pins I2C ci-dessus.",
   "Vérifiez le câblage et les pins I2C",
   
@@ -405,11 +414,14 @@ const Translations LANG_FR_TEXTS = {
   "Cliquez sur le bouton",
   "Stress Test Mémoire",
   "Lancer Stress Test",
-  
+  "Résultat du test",
+
   // GPIO
   "Test GPIO",
   "Tester Tous les GPIO",
   "Cliquez pour tester",
+  "Un test GPIO en échec peut simplement indiquer qu'un périphérique est déjà connecté sur cette broche et ne signifie pas forcément une défaillance de la carte.",
+  "Test GPIO terminé : {ok} OK / {fail} en échec",
   
   // WiFi
   "Scanner WiFi",
@@ -544,6 +556,7 @@ const Translations LANG_EN_TEXTS = {
   "v",
   "Access",
   "or",
+  "Close",
   
   // Navigation
   "Overview",
@@ -655,6 +668,8 @@ const Translations LANG_EN_TEXTS = {
   "Changes I2C pins and restarts detection",
   "Custom message",
   "Display Message",
+  "Please enter text!",
+  "Please enter a message!",
   "No OLED screen detected. Check wiring and I2C pins above.",
   "Check wiring and I2C pins",
   
@@ -668,11 +683,14 @@ const Translations LANG_EN_TEXTS = {
   "Click the button",
   "Memory Stress Test",
   "Start Stress Test",
-  
+  "Test result",
+
   // GPIO
   "GPIO Test",
   "Test All GPIO",
   "Click to test",
+  "A failed GPIO test can simply mean another peripheral already uses that pin and does not necessarily indicate a faulty board.",
+  "GPIO test completed: {ok} OK / {fail} failed",
   
   // WiFi
   "WiFi Scanner",
@@ -825,6 +843,7 @@ static const TranslationField TRANSLATION_FIELDS[] = {
   {"version",&Translations::version},
   {"access",&Translations::access},
   {"or_text",&Translations::or_text},
+  {"close",&Translations::close},
   {"nav_overview",&Translations::nav_overview},
   {"nav_leds",&Translations::nav_leds},
   {"nav_screens",&Translations::nav_screens},
@@ -918,6 +937,8 @@ static const TranslationField TRANSLATION_FIELDS[] = {
   {"changes_pins",&Translations::changes_pins},
   {"custom_message",&Translations::custom_message},
   {"show_message",&Translations::show_message},
+  {"enter_text",&Translations::enter_text},
+  {"enter_message",&Translations::enter_message},
   {"no_detected",&Translations::no_detected},
   {"check_wiring",&Translations::check_wiring},
   {"adc_test",&Translations::adc_test},
@@ -929,9 +950,12 @@ static const TranslationField TRANSLATION_FIELDS[] = {
   {"click_button",&Translations::click_button},
   {"memory_stress",&Translations::memory_stress},
   {"start_stress",&Translations::start_stress},
+  {"test_result_title",&Translations::test_result_title},
   {"gpio_test",&Translations::gpio_test},
   {"test_all_gpio",&Translations::test_all_gpio},
   {"click_to_test",&Translations::click_to_test},
+  {"gpio_warning_note",&Translations::gpio_warning_note},
+  {"gpio_test_summary",&Translations::gpio_test_summary},
   {"wifi_scanner",&Translations::wifi_scanner},
   {"scan_networks",&Translations::scan_networks},
   {"performance_bench",&Translations::performance_bench},
