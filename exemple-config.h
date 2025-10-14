@@ -11,7 +11,4 @@ const char* WIFI_PASS_1 = "MotDePasse1";
 // const char* WIFI_SSID_2 = "SSID2";
 // const char* WIFI_PASS_2 = "MotDePasse2";
 
-// const char* WIFI_SSID_3 = "SSID3";
-// const char* WIFI_PASS_3 = "MotDePasse3";
-
 #endif
