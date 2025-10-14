@@ -367,7 +367,12 @@ js += "function buildScreens(d){";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"oled-status\">'+d.oled.status+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Pins I2C</div><div class=\"info-value\">SDA:'+d.oled.pins.sda+' SCL:'+d.oled.pins.scl+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testOLED()\">🧪 Test complet (25s)</button>';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testOLED()\">🧪 Test complet (25s)</button> ';";
+  js += "h+='<button class=\"btn btn-success\" onclick=\"oledPattern(\\'info\\')\">ℹ️ Infos</button> ';";
+  js += "h+='<button class=\"btn btn-info\" onclick=\"oledPattern(\\'shapes\\')\">🔷 Formes</button> ';";
+  js += "h+='<button class=\"btn btn-warning\" onclick=\"oledPattern(\\'grid\\')\"># Grille</button> ';";
+  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledPattern(\\'scroll\\')\">➡️ Défilement</button> ';";
+  js += "h+='<button class=\"btn btn-danger\" onclick=\"oledPattern(\\'clear\\')\">🗑️ Effacer</button>';";
   js += "h+='<br><br><input type=\"text\" id=\"oledText\" placeholder=\"Message à afficher\" style=\"width:300px;padding:10px\">';";
   js += "h+='<button class=\"btn btn-success\" onclick=\"oledDisplayText()\">📤 Afficher message</button>';";
   js += "h+='</div></div></div>';";
@@ -498,6 +503,17 @@ js += "function buildScreens(d){";
   js += "document.getElementById('oled-status').textContent='Test en cours (25s)...';";
   js += "const r=await fetch('/api/oled-test');const d=await r.json();";
   js += "document.getElementById('oled-status').textContent=d.result;";
+  js += "}";
+
+  js += "async function oledPattern(p){";
+  js += "document.getElementById('oled-status').textContent='Affichage en cours...';";
+  js += "const r=await fetch('/api/oled-pattern?pattern='+p);";
+  js += "let msg='Commande envoyée';";
+  js += "try{";
+  js += "const d=await r.json();";
+  js += "msg=d.message||d.result||msg;";
+  js += "}catch(e){msg='Erreur de communication';}";
+  js += "document.getElementById('oled-status').textContent=msg;";
   js += "}";
 
   // FONCTIONS API - Affichage texte TFT/OLED
