@@ -18,6 +18,7 @@ struct Translations {
   const char* version;
   const char* access;
   const char* or_text;
+  const char* close;
   
   // Navigation
   const char* nav_overview;
@@ -128,6 +129,8 @@ struct Translations {
   const char* changes_pins;
   const char* custom_message;
   const char* show_message;
+  const char* enter_text;
+  const char* enter_message;
   const char* no_detected;
   const char* check_wiring;
   
@@ -141,11 +144,14 @@ struct Translations {
   const char* click_button;
   const char* memory_stress;
   const char* start_stress;
-  
+  const char* test_result_title;
+
   // GPIO
   const char* gpio_test;
   const char* test_all_gpio;
   const char* click_to_test;
+  const char* gpio_warning_note;
+  const char* gpio_test_summary;
   
   // WiFi Scanner
   const char* wifi_scanner;
@@ -174,7 +180,7 @@ struct Translations {
   const char* printable_version;
   const char* pdf_format;
   const char* open;
-  
+
     // Nouveaux champs pour les exports
   const char* export_report;
   const char* export_generated;
@@ -195,7 +201,31 @@ struct Translations {
   const char* list;
   const char* days;
   const char* hours;
-  
+
+  // Aide interface dynamique
+  const char* loading;
+  const char* error_title;
+  const char* error_generic;
+  const char* update_indicator;
+  const char* animations;
+  const char* custom_color;
+  const char* apply_color;
+  const char* turn_off_all;
+  const char* resolution;
+  const char* info_label;
+  const char* shapes_label;
+  const char* grid_label;
+  const char* scroll_label;
+  const char* display_text;
+  const char* display_message;
+  const char* stress_warning;
+  const char* click_to_scan;
+  const char* language_changed;
+  const char* language_error;
+  const char* displaying;
+  const char* command_sent;
+  const char* communication_error;
+
   // Statuts et messages
   const char* ok;
   const char* fail;
@@ -236,6 +266,7 @@ const Translations LANG_FR_TEXTS = {
   "v",
   "Accès",
   "ou",
+  "Fermer",
   
   // Navigation
   "Vue d'ensemble",
@@ -346,6 +377,8 @@ const Translations LANG_FR_TEXTS = {
   "Modifie les pins I2C et relance la détection",
   "Message personnalisé",
   "Afficher Message",
+  "Entrez un texte !",
+  "Entrez un message !",
   "Aucun écran OLED détecté. Vérifiez le câblage et les pins I2C ci-dessus.",
   "Vérifiez le câblage et les pins I2C",
   
@@ -359,11 +392,14 @@ const Translations LANG_FR_TEXTS = {
   "Cliquez sur le bouton",
   "Stress Test Mémoire",
   "Lancer Stress Test",
-  
+  "Résultat du test",
+
   // GPIO
   "Test GPIO",
   "Tester Tous les GPIO",
   "Cliquez pour tester",
+  "Un test GPIO en échec peut simplement indiquer qu'un périphérique est déjà connecté sur cette broche et ne signifie pas forcément une défaillance de la carte.",
+  "Test GPIO terminé : {ok} OK / {fail} en échec",
   
   // WiFi
   "Scanner WiFi",
@@ -412,8 +448,32 @@ const Translations LANG_FR_TEXTS = {
   "Signal",
   "Liste",
   "jours",
-  "heures"
-  
+  "heures",
+
+  // Interface dynamique
+  "Chargement...",
+  "❌ Erreur",
+  "Une erreur est survenue",
+  "Mise à jour...",
+  "Animations :",
+  "Couleur personnalisée :",
+  "Appliquer couleur",
+  "Tout éteindre",
+  "Résolution",
+  "Infos",
+  "Formes",
+  "Grille",
+  "Défilement",
+  "Afficher texte",
+  "Afficher message",
+  "⚠️ Peut ralentir l'ESP32 temporairement",
+  "Cliquez pour scanner",
+  "Langue changée",
+  "Erreur changement langue",
+  "Affichage en cours...",
+  "Commande envoyée",
+  "Erreur de communication",
+
   // Statuts
   "OK",
   "FAIL",
@@ -454,6 +514,7 @@ const Translations LANG_EN_TEXTS = {
   "v",
   "Access",
   "or",
+  "Close",
   
   // Navigation
   "Overview",
@@ -564,6 +625,8 @@ const Translations LANG_EN_TEXTS = {
   "Changes I2C pins and restarts detection",
   "Custom message",
   "Display Message",
+  "Please enter text!",
+  "Please enter a message!",
   "No OLED screen detected. Check wiring and I2C pins above.",
   "Check wiring and I2C pins",
   
@@ -577,11 +640,14 @@ const Translations LANG_EN_TEXTS = {
   "Click the button",
   "Memory Stress Test",
   "Start Stress Test",
-  
+  "Test result",
+
   // GPIO
   "GPIO Test",
   "Test All GPIO",
   "Click to test",
+  "A failed GPIO test can simply mean another peripheral already uses that pin and does not necessarily indicate a faulty board.",
+  "GPIO test completed: {ok} OK / {fail} failed",
   
   // WiFi
   "WiFi Scanner",
@@ -630,8 +696,32 @@ const Translations LANG_EN_TEXTS = {
   "Signal",
   "List",
   "days",
-  "hours"
-    
+  "hours",
+
+  // Dynamic interface
+  "Loading...",
+  "❌ Error",
+  "An error occurred",
+  "Updating...",
+  "Animations:",
+  "Custom color:",
+  "Apply color",
+  "Turn everything off",
+  "Resolution",
+  "Info",
+  "Shapes",
+  "Grid",
+  "Scrolling",
+  "Display text",
+  "Display message",
+  "⚠️ May temporarily slow the ESP32",
+  "Click to scan",
+  "Language changed",
+  "Language change error",
+  "Displaying...",
+  "Command sent",
+  "Communication error",
+
   // Status
   "OK",
   "FAIL",
@@ -666,13 +756,269 @@ const Translations LANG_EN_TEXTS = {
 };
 
 // Fonction pour obtenir le texte traduit
-const Translations& T() {
+inline const Translations& T() {
   return (currentLanguage == LANG_FR) ? LANG_FR_TEXTS : LANG_EN_TEXTS;
 }
 
+// Variante permettant de récupérer les traductions pour une langue précise
+inline const Translations& T(Language lang) {
+  return (lang == LANG_FR) ? LANG_FR_TEXTS : LANG_EN_TEXTS;
+}
+
 // Fonction pour changer la langue
-void setLanguage(Language lang) {
+inline void setLanguage(Language lang) {
   currentLanguage = lang;
+}
+
+struct TranslationField {
+  const char* key;
+  const char* const Translations::*member;
+};
+
+static const TranslationField TRANSLATION_FIELDS[] = {
+  {"title",&Translations::title},
+  {"version",&Translations::version},
+  {"access",&Translations::access},
+  {"or_text",&Translations::or_text},
+  {"close",&Translations::close},
+  {"nav_overview",&Translations::nav_overview},
+  {"nav_leds",&Translations::nav_leds},
+  {"nav_screens",&Translations::nav_screens},
+  {"nav_tests",&Translations::nav_tests},
+  {"nav_gpio",&Translations::nav_gpio},
+  {"nav_wifi",&Translations::nav_wifi},
+  {"nav_benchmark",&Translations::nav_benchmark},
+  {"nav_export",&Translations::nav_export},
+  {"chip_info",&Translations::chip_info},
+  {"full_model",&Translations::full_model},
+  {"cpu_cores",&Translations::cpu_cores},
+  {"mac_wifi",&Translations::mac_wifi},
+  {"last_reset",&Translations::last_reset},
+  {"chip_features",&Translations::chip_features},
+  {"sdk_version",&Translations::sdk_version},
+  {"idf_version",&Translations::idf_version},
+  {"uptime",&Translations::uptime},
+  {"cpu_temp",&Translations::cpu_temp},
+  {"memory_details",&Translations::memory_details},
+  {"flash_memory",&Translations::flash_memory},
+  {"real_size",&Translations::real_size},
+  {"configured_ide",&Translations::configured_ide},
+  {"configuration",&Translations::configuration},
+  {"correct",&Translations::correct},
+  {"to_fix",&Translations::to_fix},
+  {"flash_type",&Translations::flash_type},
+  {"flash_speed",&Translations::flash_speed},
+  {"action_required",&Translations::action_required},
+  {"psram_external",&Translations::psram_external},
+  {"hardware_status",&Translations::hardware_status},
+  {"detected_active",&Translations::detected_active},
+  {"ide_config",&Translations::ide_config},
+  {"enabled",&Translations::enabled},
+  {"total_size",&Translations::total_size},
+  {"free",&Translations::free},
+  {"used",&Translations::used},
+  {"largest_block",&Translations::largest_block},
+  {"integrity_test",&Translations::integrity_test},
+  {"not_detected",&Translations::not_detected},
+  {"disabled",&Translations::disabled},
+  {"psram_usage",&Translations::psram_usage},
+  {"internal_sram",&Translations::internal_sram},
+  {"min_free",&Translations::min_free},
+  {"max_alloc",&Translations::max_alloc},
+  {"global_analysis",&Translations::global_analysis},
+  {"memory_fragmentation",&Translations::memory_fragmentation},
+  {"memory_status",&Translations::memory_status},
+  {"total_ram",&Translations::total_ram},
+  {"free_ram_total",&Translations::free_ram_total},
+  {"refresh_memory",&Translations::refresh_memory},
+  {"wifi_connection",&Translations::wifi_connection},
+  {"connected_ssid",&Translations::connected_ssid},
+  {"signal_power",&Translations::signal_power},
+  {"signal_quality",&Translations::signal_quality},
+  {"ip_address",&Translations::ip_address},
+  {"subnet_mask",&Translations::subnet_mask},
+  {"gateway",&Translations::gateway},
+  {"dns",&Translations::dns},
+  {"wifi_channel",&Translations::wifi_channel},
+  {"gpio_interfaces",&Translations::gpio_interfaces},
+  {"total_gpio",&Translations::total_gpio},
+  {"gpio_list",&Translations::gpio_list},
+  {"i2c_peripherals",&Translations::i2c_peripherals},
+  {"device_count",&Translations::device_count},
+  {"detected_addresses",&Translations::detected_addresses},
+  {"rescan_i2c",&Translations::rescan_i2c},
+  {"builtin_led",&Translations::builtin_led},
+  {"gpio",&Translations::gpio},
+  {"status",&Translations::status},
+  {"config",&Translations::config},
+  {"test",&Translations::test},
+  {"blink",&Translations::blink},
+  {"fade",&Translations::fade},
+  {"off",&Translations::off},
+  {"neopixel",&Translations::neopixel},
+  {"rainbow",&Translations::rainbow},
+  {"color",&Translations::color},
+  {"tft_screen",&Translations::tft_screen},
+  {"spi_pins",&Translations::spi_pins},
+  {"full_test",&Translations::full_test},
+  {"colors",&Translations::colors},
+  {"checkerboard",&Translations::checkerboard},
+  {"clear",&Translations::clear},
+  {"oled_screen",&Translations::oled_screen},
+  {"i2c_pins",&Translations::i2c_pins},
+  {"i2c_address",&Translations::i2c_address},
+  {"no_device",&Translations::no_device},
+  {"pin_config",&Translations::pin_config},
+  {"apply_redetect",&Translations::apply_redetect},
+  {"changes_pins",&Translations::changes_pins},
+  {"custom_message",&Translations::custom_message},
+  {"show_message",&Translations::show_message},
+  {"enter_text",&Translations::enter_text},
+  {"enter_message",&Translations::enter_message},
+  {"no_detected",&Translations::no_detected},
+  {"check_wiring",&Translations::check_wiring},
+  {"adc_test",&Translations::adc_test},
+  {"touch_test",&Translations::touch_test},
+  {"pwm_test",&Translations::pwm_test},
+  {"spi_bus",&Translations::spi_bus},
+  {"flash_partitions",&Translations::flash_partitions},
+  {"list_partitions",&Translations::list_partitions},
+  {"click_button",&Translations::click_button},
+  {"memory_stress",&Translations::memory_stress},
+  {"start_stress",&Translations::start_stress},
+  {"test_result_title",&Translations::test_result_title},
+  {"gpio_test",&Translations::gpio_test},
+  {"test_all_gpio",&Translations::test_all_gpio},
+  {"click_to_test",&Translations::click_to_test},
+  {"gpio_warning_note",&Translations::gpio_warning_note},
+  {"gpio_test_summary",&Translations::gpio_test_summary},
+  {"wifi_scanner",&Translations::wifi_scanner},
+  {"scan_networks",&Translations::scan_networks},
+  {"performance_bench",&Translations::performance_bench},
+  {"run_benchmarks",&Translations::run_benchmarks},
+  {"cpu_benchmark",&Translations::cpu_benchmark},
+  {"memory_benchmark",&Translations::memory_benchmark},
+  {"cpu_performance",&Translations::cpu_performance},
+  {"memory_speed",&Translations::memory_speed},
+  {"not_tested",&Translations::not_tested},
+  {"data_export",&Translations::data_export},
+  {"txt_file",&Translations::txt_file},
+  {"readable_report",&Translations::readable_report},
+  {"download_txt",&Translations::download_txt},
+  {"json_file",&Translations::json_file},
+  {"structured_format",&Translations::structured_format},
+  {"download_json",&Translations::download_json},
+  {"csv_file",&Translations::csv_file},
+  {"for_excel",&Translations::for_excel},
+  {"download_csv",&Translations::download_csv},
+  {"printable_version",&Translations::printable_version},
+  {"pdf_format",&Translations::pdf_format},
+  {"open",&Translations::open},
+  {"export_report",&Translations::export_report},
+  {"export_generated",&Translations::export_generated},
+  {"export_after_boot",&Translations::export_after_boot},
+  {"category",&Translations::category},
+  {"parameter",&Translations::parameter},
+  {"value",&Translations::value},
+  {"model",&Translations::model},
+  {"revision",&Translations::revision},
+  {"frequency",&Translations::frequency},
+  {"real",&Translations::real},
+  {"board",&Translations::board},
+  {"psram_mb",&Translations::psram_mb},
+  {"detected",&Translations::detected},
+  {"sram_kb",&Translations::sram_kb},
+  {"connected",&Translations::connected},
+  {"signal",&Translations::signal},
+  {"list",&Translations::list},
+  {"days",&Translations::days},
+  {"hours",&Translations::hours},
+  {"loading",&Translations::loading},
+  {"error_title",&Translations::error_title},
+  {"error_generic",&Translations::error_generic},
+  {"update_indicator",&Translations::update_indicator},
+  {"animations",&Translations::animations},
+  {"custom_color",&Translations::custom_color},
+  {"apply_color",&Translations::apply_color},
+  {"turn_off_all",&Translations::turn_off_all},
+  {"resolution",&Translations::resolution},
+  {"info_label",&Translations::info_label},
+  {"shapes_label",&Translations::shapes_label},
+  {"grid_label",&Translations::grid_label},
+  {"scroll_label",&Translations::scroll_label},
+  {"display_text",&Translations::display_text},
+  {"display_message",&Translations::display_message},
+  {"stress_warning",&Translations::stress_warning},
+  {"click_to_scan",&Translations::click_to_scan},
+  {"language_changed",&Translations::language_changed},
+  {"language_error",&Translations::language_error},
+  {"displaying",&Translations::displaying},
+  {"command_sent",&Translations::command_sent},
+  {"communication_error",&Translations::communication_error},
+  {"ok",&Translations::ok},
+  {"fail",&Translations::fail},
+  {"excellent",&Translations::excellent},
+  {"very_good",&Translations::very_good},
+  {"good",&Translations::good},
+  {"warning",&Translations::warning},
+  {"critical",&Translations::critical},
+  {"weak",&Translations::weak},
+  {"very_weak",&Translations::very_weak},
+  {"none",&Translations::none},
+  {"unknown",&Translations::unknown},
+  {"testing",&Translations::testing},
+  {"completed",&Translations::completed},
+  {"scan",&Translations::scan},
+  {"scanning",&Translations::scanning},
+  {"cores",&Translations::cores},
+  {"pins",&Translations::pins},
+  {"devices",&Translations::devices},
+  {"networks",&Translations::networks},
+  {"tested",&Translations::tested},
+  {"channels",&Translations::channels},
+  {"poweron",&Translations::poweron},
+  {"software_reset",&Translations::software_reset},
+  {"deepsleep_exit",&Translations::deepsleep_exit},
+  {"brownout",&Translations::brownout},
+  {"other",&Translations::other},
+};
+
+inline String jsonEscape(const char* input) {
+  if (!input) {
+    return String("");
+  }
+  String out;
+  while (*input) {
+    char c = *input++;
+    switch (c) {
+      case '\\': out += "\\\\"; break;
+      case '"': out += "\\\""; break;
+      case '\n': out += "\\n"; break;
+      case '\r': out += "\\r"; break;
+      case '\t': out += "\\t"; break;
+      default: out += c; break;
+    }
+  }
+  return out;
+}
+
+inline String translationsToJson(const Translations& tr) {
+  String json = "{";
+  const size_t count = sizeof(TRANSLATION_FIELDS) / sizeof(TRANSLATION_FIELDS[0]);
+  for (size_t i = 0; i < count; ++i) {
+    if (i > 0) {
+      json += ',';
+    }
+    json += '"';
+    json += TRANSLATION_FIELDS[i].key;
+    json += '"';
+    json += ':';
+    json += '"';
+    json += jsonEscape(tr.*(TRANSLATION_FIELDS[i].member));
+    json += '"';
+  }
+  json += '}';
+  return json;
 }
 
 #endif
