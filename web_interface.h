@@ -1,6 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v3.0-dev
- * Interface moderne avec mise à jour temps réel
+ * WEB_INTERFACE.H - Interface Web Dynamique v2.5
  */
 
 #ifndef WEB_INTERFACE_H
