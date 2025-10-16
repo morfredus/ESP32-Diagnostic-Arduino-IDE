@@ -1,0 +1,43 @@
+# Fichier de configuration WiFi (sensible - ne pas versionner)
+config.h
+
+# Fichiers divers
+ESP32-Diagnostic.txt
+
+# Fichiers et répertoires générés par Arduino IDE ou la compilation
+
+# Fichiers compilés (binaires) pour le téléchargement
+*.hex
+*.elf
+*.bin
+*.lst
+*.map
+*.eep
+*.sym
+
+# Dossier de construction (souvent caché par l'IDE)
+# Le dossier de construction varie selon l'IDE ou l'outil, voici les plus courants :
+build/
+.build/
+.arduino/
+arduino/
+hardware/
+tmp/
+temp/
+
+# Fichiers de configuration de l'IDE/Plateforme (spécifiques à l'utilisateur)
+.vscode/ # Pour les utilisateurs de VS Code
+.classpath
+.project
+.settings
+*.user
+*.suo
+
+# Fichiers de cache macOS
+.DS_Store
+
+# Fichiers de cache Windows
+Thumbs.db
+
+# Fichiers spécifiques aux outils de compilation (ex: PlatformIO)
+.pio/
