@@ -212,6 +212,7 @@ struct Translations {
   const char* completed;
   const char* scan;
   const char* scanning;
+  const char* feature_disabled;
   
   // Unités
   const char* cores;
@@ -430,6 +431,7 @@ const Translations LANG_FR_TEXTS = {
   "Terminé",
   "Scan...",
   "Scan...",
+  "Fonction désactivée dans ce firmware",
   
   // Unités
   "coeurs",
@@ -648,6 +650,7 @@ const Translations LANG_EN_TEXTS = {
   "Completed",
   "Scanning...",
   "Scanning...",
+  "Feature disabled in this firmware",
   
   // Units
   "cores",
