@@ -1,9 +1,18 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v3.0.0
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.1
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v4.0.1:
+ * - Corrige les appels API TFT pour refléter l'état désactivé sans erreur 400
+ *
+ * Nouveautés v4.0.0:
+ * - Support matériel TFT retiré (API web conservée)
+ * - Scanner WiFi enrichi (toutes les méthodes d'authentification)
+ * - Calcul MFLOPS du benchmark CPU corrigé
+ * - Statuts mémoire/I2C désormais entièrement traduits
  *
  * Nouveautés v3.0.0:
  * - Compatibilité validée avec ESP32 Arduino Core 3.3.2
@@ -31,9 +40,9 @@
 #include <soc/soc_caps.h>
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
-#include <TFT_eSPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <cmath>
 #include <vector>
 
 // Configuration WiFi
@@ -43,7 +52,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.0"
+#define DIAGNOSTIC_VERSION "4.0.1"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -56,14 +65,6 @@ const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
 int I2C_SCL = 20;
 int I2C_SDA = 21;
 
-// Pins TFT (FIXES - non modifiables)
-#define TFT_MOSI  45
-#define TFT_SCLK   3
-#define TFT_CS    14
-#define TFT_DC    47
-#define TFT_RST   21
-#define TFT_MISO  46
-
 // OLED 0.96" I2C
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -73,7 +74,6 @@ int I2C_SDA = 21;
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
 WiFiMulti wifiMulti;
-TFT_eSPI tft = TFT_eSPI();
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // NeoPixel
@@ -95,7 +95,7 @@ String builtinLedTestResult = "En attente d'initialisation";
 // TFT
 bool tftTested = false;
 bool tftAvailable = false;
-String tftTestResult = "En attente d'initialisation";
+String tftTestResult = String(T().feature_disabled);
 int tftWidth = 0;
 int tftHeight = 0;
 
@@ -227,6 +227,9 @@ float heapHistory[HISTORY_SIZE];
 float tempHistory[HISTORY_SIZE];
 int historyIndex = 0;
 
+constexpr unsigned long CPU_BENCH_ITERATIONS = 100000;
+constexpr unsigned long CPU_BENCH_FLOPS_PER_ITERATION = 2;
+
 // ========== DÉTECTION MODÈLE ==========
 String detectChipModel() {
   #ifdef CONFIG_IDF_TARGET_ESP32
@@ -244,6 +247,23 @@ String detectChipModel() {
   #else
     return "ESP32";
   #endif
+}
+
+double calculateCpuMflops(unsigned long durationMicros) {
+  if (durationMicros == 0) {
+    return 0.0;
+  }
+
+  const double seconds = durationMicros / 1000000.0;
+  const double operations = static_cast<double>(CPU_BENCH_ITERATIONS) *
+                            static_cast<double>(CPU_BENCH_FLOPS_PER_ITERATION);
+  return (operations / seconds) / 1000000.0;
+}
+
+void refreshLocalizedStatusMessages() {
+  if (!tftAvailable) {
+    tftTestResult = String(T().feature_disabled);
+  }
 }
 
 // ========== FONCTIONS UTILITAIRES ==========
@@ -455,7 +475,7 @@ void collectDetailedMemory() {
   } else if (detailedMemory.fragmentationPercent < 40) {
     detailedMemory.memoryStatus = T().good;
   } else if (detailedMemory.fragmentationPercent < 60) {
-    detailedMemory.memoryStatus = "Moyen"; // Pas traduit (statut technique)
+    detailedMemory.memoryStatus = T().warning;
   } else {
     detailedMemory.memoryStatus = T().critical;
   }
@@ -520,12 +540,12 @@ unsigned long benchmarkCPU() {
   unsigned long start = micros();
   
   volatile float result = 0;
-  for(int i = 0; i < 100000; i++) {
+  for (unsigned long i = 0; i < CPU_BENCH_ITERATIONS; i++) {
     result += sqrt(i) * sin(i);
   }
-  
+
   unsigned long duration = micros() - start;
-  Serial.printf("CPU: %lu us (%.2f MFLOPS)\r\n", duration, 100000.0 / duration);
+  Serial.printf("CPU: %lu us (%.2f MFLOPS)\r\n", duration, calculateCpuMflops(duration));
   return duration;
 }
 
@@ -570,37 +590,53 @@ void scanI2C() {
   }
   
   if (diagnosticData.i2cCount == 0) {
-    diagnosticData.i2cDevices = "Aucun";
+    diagnosticData.i2cDevices = String(T().none);
   }
   Serial.printf("I2C: %d peripherique(s)\r\n", diagnosticData.i2cCount);
 }
 
 // ========== SCAN WIFI ==========
+String wifiAuthModeToString(wifi_auth_mode_t auth) {
+  switch (auth) {
+    case WIFI_AUTH_OPEN: return "Open";
+    case WIFI_AUTH_WEP: return "WEP";
+    case WIFI_AUTH_WPA_PSK: return "WPA-PSK";
+    case WIFI_AUTH_WPA2_PSK: return "WPA2-PSK";
+    case WIFI_AUTH_WPA_WPA2_PSK: return "WPA/WPA2-PSK";
+    case WIFI_AUTH_WPA2_ENTERPRISE: return "WPA2-Enterprise";
+    case WIFI_AUTH_WPA3_PSK: return "WPA3-PSK";
+    case WIFI_AUTH_WPA2_WPA3_PSK: return "WPA2/WPA3-PSK";
+    case WIFI_AUTH_WAPI_PSK: return "WAPI-PSK";
+    case WIFI_AUTH_OWE: return "OWE";
+    default: return String(T().unknown);
+  }
+}
+
 void scanWiFiNetworks() {
   Serial.println("\r\n=== SCAN WIFI ===");
   wifiNetworks.clear();
-  
+
   int n = WiFi.scanNetworks();
+  if (n < 0) {
+    Serial.printf("WiFi: scan error (%d)\r\n", n);
+    return;
+  }
+
   for (int i = 0; i < n; i++) {
     WiFiNetwork net;
     net.ssid = WiFi.SSID(i);
     net.rssi = WiFi.RSSI(i);
     net.channel = WiFi.channel(i);
-    
+
     uint8_t* bssid = WiFi.BSSID(i);
     char bssidStr[18];
     sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",
             bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
     net.bssid = String(bssidStr);
-    
+
     wifi_auth_mode_t auth = WiFi.encryptionType(i);
-    switch (auth) {
-      case WIFI_AUTH_OPEN: net.encryption = "Ouvert"; break;
-      case WIFI_AUTH_WPA2_PSK: net.encryption = "WPA2-PSK"; break;
-      case WIFI_AUTH_WPA3_PSK: net.encryption = "WPA3-PSK"; break;
-      default: net.encryption = "WPA/WPA2"; break;
-    }
-    
+    net.encryption = wifiAuthModeToString(auth);
+
     wifiNetworks.push_back(net);
   }
   Serial.printf("WiFi: %d reseaux trouves\r\n", n);
@@ -818,99 +854,40 @@ void neopixelFade(uint32_t color) {
 }
 
 // ========== TFT ==========
+void setTFTDisabledStatus() {
+  tftTested = false;
+  tftAvailable = false;
+  tftWidth = 0;
+  tftHeight = 0;
+  tftTestResult = String(T().feature_disabled);
+}
+
 void detectTFT() {
   Serial.println("\r\n=== DETECTION TFT ===");
-  pinMode(TFT_CS, OUTPUT);
-  pinMode(TFT_DC, OUTPUT);
-  pinMode(TFT_RST, OUTPUT);
-  
-  digitalWrite(TFT_RST, LOW);
-  delay(20);
-  digitalWrite(TFT_RST, HIGH);
-  delay(150);
-  
-  // TFT SPI ne peut pas être détecté automatiquement
-  tftAvailable = false; // Par défaut NON détecté
-  tftTestResult = "Non teste - Config SPI prete";
-  Serial.printf("TFT: Pins configures CS=%d DC=%d RST=%d (test requis)\r\n", TFT_CS, TFT_DC, TFT_RST);
+  Serial.println("TFT: support desactive dans ce firmware");
+  setTFTDisabledStatus();
 }
 
 void testTFT() {
-  if (tftTested) return;
-  
   Serial.println("\r\n=== TEST TFT ===");
-  tft.init();
-  tft.setRotation(1);
-  
-  tft.fillScreen(TFT_RED);
-  delay(500);
-  tft.fillScreen(TFT_GREEN);
-  delay(500);
-  tft.fillScreen(TFT_BLUE);
-  delay(500);
-  tft.fillScreen(TFT_WHITE);
-  delay(500);
-  
-  tft.fillScreen(TFT_BLACK);
-  int sq = 20;
-  for(int y = 0; y < 240; y += sq) {
-    for(int x = 0; x < 320; x += sq) {
-      if ((x/sq + y/sq) % 2 == 0) {
-        tft.fillRect(x, y, sq, sq, TFT_WHITE);
-      }
-    }
-  }
-  delay(1000);
-  
-  tft.fillScreen(TFT_NAVY);
-  tft.setTextColor(TFT_WHITE);
-  tft.setTextSize(2);
-  tft.setCursor(50, 100);
-  tft.println("TEST TFT OK");
-  delay(2000);
-  
-  tft.fillScreen(TFT_BLACK);
-  
-  tftWidth = tft.width();
-  tftHeight = tft.height();
-  tftAvailable = true;
-  tftTestResult = "Test OK - " + String(tftWidth) + "x" + String(tftHeight);
-  tftTested = true;
-  Serial.println("TFT: OK");
+  Serial.println("TFT: support desactive - test ignore");
+  setTFTDisabledStatus();
 }
 
 void resetTFTTest() {
-  tftTested = false;
-  tftAvailable = false;
-  tft.fillScreen(TFT_BLACK);
+  setTFTDisabledStatus();
 }
 
 void tftTestColors() {
-  if (!tftAvailable) return;
-  tft.fillScreen(TFT_RED);
-  delay(300);
-  tft.fillScreen(TFT_GREEN);
-  delay(300);
-  tft.fillScreen(TFT_BLUE);
-  delay(300);
-  tft.fillScreen(TFT_BLACK);
+  Serial.println("TFT: motif couleurs demande - support desactive");
 }
 
 void tftTestCheckerboard() {
-  if (!tftAvailable) return;
-  tft.fillScreen(TFT_BLACK);
-  int sq = 20;
-  for(int y = 0; y < 240; y += sq) {
-    for(int x = 0; x < 320; x += sq) {
-      if ((x/sq + y/sq) % 2 == 0) {
-        tft.fillRect(x, y, sq, sq, TFT_WHITE);
-      }
-    }
-  }
+  Serial.println("TFT: motif damier demande - support desactive");
 }
 
 void tftClear() {
-  tft.fillScreen(TFT_BLACK);
+  Serial.println("TFT: effacement demande - support desactive");
 }
 
 // ========== OLED 0.96" ==========
@@ -1254,6 +1231,7 @@ void memoryStressTest() {
 
 // ========== COLLECTE DONNÉES ==========
 void collectDiagnosticInfo() {
+  refreshLocalizedStatusMessages();
   esp_chip_info_t chip_info;
   esp_chip_info(&chip_info);
   
@@ -1497,8 +1475,9 @@ void handleNeoPixelColor() {
 void handleTFTTest() {
   resetTFTTest();
   testTFT();
-  server.send(200, "application/json", "{\"success\":" + String(tftAvailable ? "true" : "false") + 
-              ",\"result\":\"" + tftTestResult + "\",\"width\":" + String(tftWidth) + ",\"height\":" + String(tftHeight) + "}");
+  server.send(200, "application/json",
+              "{\"success\":false,\"result\":\"" + tftTestResult +
+              "\",\"width\":0,\"height\":0}");
 }
 
 void handleTFTPattern() {
@@ -1506,26 +1485,26 @@ void handleTFTPattern() {
     server.send(400, "application/json", "{\"success\":false}");
     return;
   }
-  
+
   String pattern = server.arg("pattern");
-  String message = "";
-  
+  String message = String(T().feature_disabled);
+
+  resetTFTTest();
+
   if (pattern == "colors") {
     tftTestColors();
-    message = "Couleurs OK";
   } else if (pattern == "checkerboard") {
     tftTestCheckerboard();
-    message = "Damier OK";
   } else if (pattern == "clear") {
     tftClear();
-    tftTested = false;
-    message = "Ecran efface";
   } else {
     server.send(400, "application/json", "{\"success\":false}");
     return;
   }
-  
-  server.send(200, "application/json", "{\"success\":true,\"message\":\"" + message + "\"}");
+
+  refreshLocalizedStatusMessages();
+  server.send(200, "application/json",
+              "{\"success\":false,\"message\":\"" + message + "\",\"pattern\":\"" + pattern + "\"}");
 }
 
 void handleOLEDConfig() {
@@ -1609,12 +1588,12 @@ void handleStressTest() {
 void handleBenchmark() {
   unsigned long cpuTime = benchmarkCPU();
   unsigned long memTime = benchmarkMemory();
-  
+
   diagnosticData.cpuBenchmark = cpuTime;
   diagnosticData.memBenchmark = memTime;
-  
-  server.send(200, "application/json", "{\"cpu\":" + String(cpuTime) + ",\"memory\":" + String(memTime) + 
-              ",\"cpuPerf\":" + String(100000.0 / cpuTime, 2) + ",\"memSpeed\":" + String((10000 * sizeof(int) * 2) / (float)memTime, 2) + "}");
+
+  server.send(200, "application/json", "{\"cpu\":" + String(cpuTime) + ",\"memory\":" + String(memTime) +
+              ",\"cpuPerf\":" + String(calculateCpuMflops(cpuTime), 2) + ",\"memSpeed\":" + String((10000 * sizeof(int) * 2) / (float)memTime, 2) + "}");
 }
 
 void handleMemoryDetails() {
@@ -1697,7 +1676,7 @@ void handleExportTXT() {
   
   txt += "=== " + String(T().performance_bench) + " ===\r\n";
   if (diagnosticData.cpuBenchmark > 0) {
-    txt += "CPU: " + String(diagnosticData.cpuBenchmark) + " us (" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + " MFLOPS)\r\n";
+  txt += "CPU: " + String(diagnosticData.cpuBenchmark) + " us (" + String(calculateCpuMflops(diagnosticData.cpuBenchmark), 2) + " MFLOPS)\r\n";
     txt += String(T().memory_benchmark) + ": " + String(diagnosticData.memBenchmark) + " us\r\n";
   } else {
     txt += String(T().not_tested) + "\r\n";
@@ -1787,7 +1766,7 @@ void handleExportJSON() {
   json += "\"performance\":{";
   if (diagnosticData.cpuBenchmark > 0) {
     json += "\"cpu_us\":" + String(diagnosticData.cpuBenchmark) + ",";
-    json += "\"cpu_mflops\":" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + ",";
+    json += "\"cpu_mflops\":" + String(calculateCpuMflops(diagnosticData.cpuBenchmark), 2) + ",";
     json += "\"memory_us\":" + String(diagnosticData.memBenchmark);
   } else {
     json += "\"benchmarks\":\"not_run\"";
@@ -1989,7 +1968,7 @@ void handlePrintVersion() {
     html += "<div class='section'>";
     html += "<h2>Performance</h2>";
     html += "<div class='grid'>";
-    html += "<div class='row'><b>CPU:</b><span>" + String(diagnosticData.cpuBenchmark) + " µs (" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + " MFLOPS)</span></div>";
+    html += "<div class='row'><b>CPU:</b><span>" + String(diagnosticData.cpuBenchmark) + " µs (" + String(calculateCpuMflops(diagnosticData.cpuBenchmark), 2) + " MFLOPS)</span></div>";
     html += "<div class='row'><b>Mémoire:</b><span>" + String(diagnosticData.memBenchmark) + " µs</span></div>";
     html += "<div class='row'><b>Stress Test:</b><span>" + stressTestResult + "</span></div>";
     html += "</div></div>";
@@ -2014,6 +1993,7 @@ void handleSetLanguage() {
     } else if (lang == "en") {
       setLanguage(LANG_EN);
     }
+    refreshLocalizedStatusMessages();
     server.send(200, "application/json", "{\"success\":true,\"lang\":\"" + lang + "\"}");
   } else {
     server.send(400, "application/json", "{\"success\":false}");
@@ -2040,6 +2020,7 @@ void handleGetTranslations() {
   json += "\"builtin_led\":\"" + String(T().builtin_led) + "\",";
   json += "\"tft_screen\":\"" + String(T().tft_screen) + "\",";
   json += "\"oled_screen\":\"" + String(T().oled_screen) + "\",";
+  json += "\"feature_disabled\":\"" + String(T().feature_disabled) + "\",";
   json += "\"adc_test\":\"" + String(T().adc_test) + "\",";
   json += "\"touch_test\":\"" + String(T().touch_test) + "\",";
   json += "\"pwm_test\":\"" + String(T().pwm_test) + "\",";
@@ -2260,7 +2241,7 @@ void handleRoot() {
   chunk = "<div id='screens' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().tft_screen) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='tft-status'>" + tftTestResult + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().spi_pins) + "</div><div class='info-value'>CS:" + String(TFT_CS) + " DC:" + String(TFT_DC) + " RST:" + String(TFT_RST) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().spi_pins) + "</div><div class='info-value'>" + String(T().feature_disabled) + "</div></div>";
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "<button class='btn btn-primary' onclick='testTFT()'>" + String(T().full_test) + "</button>";
   chunk += "<button class='btn btn-success' onclick='tftPattern(\"colors\")'>" + String(T().colors) + "</button>";
@@ -2380,6 +2361,7 @@ void handleRoot() {
   // CHUNK 11: JavaScript complet
   chunk = "<script>";
   chunk += "let currentLang='" + String(currentLanguage == LANG_FR ? "fr" : "en") + "';";
+  chunk += "let tftDisabledMessage='" + String(T().feature_disabled) + "';";
   
   // Changement de langue
   chunk += "function changeLang(lang){";
@@ -2393,6 +2375,7 @@ void handleRoot() {
   chunk += "function updateTranslations(){";
   chunk += "fetch('/api/get-translations').then(r=>r.json()).then(tr=>{";
   chunk += "document.getElementById('main-title').textContent=tr.title+' v" + String(DIAGNOSTIC_VERSION) + "';";
+  chunk += "tftDisabledMessage=tr.feature_disabled||tftDisabledMessage;";
   chunk += "document.querySelectorAll('[data-i18n]').forEach(el=>{";
   chunk += "const key=el.getAttribute('data-i18n');";
   chunk += "if(tr[key])el.textContent=tr[key]})});}";
@@ -2423,9 +2406,10 @@ void handleRoot() {
   chunk += "fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b).then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.message)}";
   
   // TFT
-  chunk += "function testTFT(){document.getElementById('tft-status').innerHTML='Test en cours (15s)...';";
+  chunk += "function testTFT(){document.getElementById('tft-status').innerHTML=tftDisabledMessage;";
   chunk += "fetch('/api/tft-test').then(r=>r.json()).then(d=>document.getElementById('tft-status').innerHTML=d.result)}";
-  chunk += "function tftPattern(p){fetch('/api/tft-pattern?pattern='+p).then(r=>r.json()).then(d=>document.getElementById('tft-status').innerHTML=d.message)}";
+  chunk += "function tftPattern(p){document.getElementById('tft-status').innerHTML=tftDisabledMessage;";
+  chunk += "fetch('/api/tft-pattern?pattern='+p).then(r=>r.json()).then(d=>document.getElementById('tft-status').innerHTML=d.message)}";
   
   // OLED
   chunk += "function testOLED(){document.getElementById('oled-status').innerHTML='Test en cours (25s)...';";
@@ -2497,7 +2481,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 3.0.0 - FR/EN");
+  Serial.println("     Version 4.0.1 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
