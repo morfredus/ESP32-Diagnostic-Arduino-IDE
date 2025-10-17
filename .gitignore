@@ -3,6 +3,7 @@ config.h
 
 # Fichiers divers
 ESP32-Diagnostic.txt
+resume_modifs.md
 
 # Fichiers et répertoires générés par Arduino IDE ou la compilation
 
