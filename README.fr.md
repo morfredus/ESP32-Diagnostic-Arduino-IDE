@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# Diagnostic ESP32 Complet v4.0.1
+# Diagnostic ESP32 Complet v4.0.2
 
 🇫🇷 Version française | [🇬🇧 English Version](README.md)
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, accessible via interface web. Teste automatiquement tous les composants matériels, analyse la mémoire, scanne les périphériques et génère des rapports détaillés.
 
-**Nouveautés v4.0.1** : Les endpoints API TFT renvoient désormais un message localisé indiquant la désactivation matérielle pour chaque motif demandé tout en conservant les onglets web.
+**Nouveautés v4.0.2** : Correction de l'export JSON des traductions afin que la compilation sous Arduino Core 3.3.2 se fasse sans erreur tout en conservant le changement de langue instantané.
 
 ## ✨ Fonctionnalités
 
@@ -29,7 +29,7 @@ Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, acce
 ### Tests Matériels
 - **LED intégrée** - Configuration et test avec patterns (blink, fade)
 - **NeoPixel/WS2812B** - Support multi-LED avec effets RGB
-- **Écran TFT (interface web uniquement)** - Endpoints conservés, pilotage désactivé dans le firmware v4.0.1
+- **Écran TFT (interface web uniquement)** - Endpoints conservés, pilotage désactivé dans le firmware v4.0.2
 - **Écran OLED 0.96" I2C** - 10 tests d'affichage incluant animations
 - **GPIO** - Test automatique de tous les GPIO disponibles
 - **ADC** - Lecture de tous les canaux analogiques
@@ -352,7 +352,7 @@ Si certains textes restent en français :
 
 **Ne jamais partager `config.h` avec vos identifiants WiFi.**
 
-## 📁 Structure du Projet v4.0.1
+## 📁 Structure du Projet v4.0.2
 
 ```
 ESP32-Diagnostic/
@@ -366,6 +366,10 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v4.0.2 (2025) - CORRECTION CATALOGUE DE TRADUCTIONS
+- 🧰 **Correction de l'export du catalogue de traductions** pour éviter l'erreur `String::endsWith` avec Arduino Core 3.3.2
+- 🌐 **Maintien du changement de langue instantané** grâce à la distribution complète des traductions au navigateur
 
 ### v4.0.1 (2025) - ALIGNEMENT API TFT
 - 🛠️ **Les endpoints TFT renvoient désormais un message traduit "fonction désactivée"** pour chaque motif demandé
@@ -413,14 +417,14 @@ Code libre d'utilisation, modification et distribution.
 
 Développé pour la communauté ESP32.
 
-**v4.0.1 - Alignement API TFT + rafraîchissement localisation**
+**v4.0.2 - Correctif catalogue de traductions + localisation**
 **v3.0.0 - Support officiel du core 3.3.2**
 **v2.4 - Système multilingue**
 **v2.3 - Base exhaustive**
 
 ---
 
-**Version actuelle** : 4.0.1 Multilingue
+**Version actuelle** : 4.0.2 Multilingue
 **Dernière mise à jour** : Octobre 2025
 **Langues disponibles** : Français (défaut), Anglais
 **Support** : ESP32 Arduino Core 3.3.2+

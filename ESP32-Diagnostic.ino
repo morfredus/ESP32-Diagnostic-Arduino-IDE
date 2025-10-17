@@ -1,9 +1,12 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.1
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.2
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v4.0.2:
+ * - Corrige la génération du catalogue de traductions pour compatibilité Arduino Core 3.3.2
  *
  * Nouveautés v4.0.1:
  * - Corrige les appels API TFT pour refléter l'état désactivé sans erreur 400
@@ -52,7 +55,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.1"
+#define DIAGNOSTIC_VERSION "4.0.2"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2218,7 +2221,7 @@ void handleGetTranslations() {
   appendJsonField(json, "deepsleep_exit", String(T().deepsleep_exit));
   appendJsonField(json, "other", String(T().other));
 
-  if (json.endsWith(',')) {
+  if (json.endsWith(",")) {
     json.remove(json.length() - 1);
   }
   json += "}";
@@ -2689,7 +2692,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.1 - FR/EN");
+  Serial.println("     Version 4.0.2 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
