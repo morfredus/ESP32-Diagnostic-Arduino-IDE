@@ -1,9 +1,13 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.5
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v3.0.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
- * Optimisé pour ESP32 Arduino Core 3.1.3
+ * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v3.0.0:
+ * - Compatibilité validée avec ESP32 Arduino Core 3.3.2
+ * - Mise à jour complète de la documentation FR/EN
  *
  * Nouveautés v2.5:
  * - Traducion des exports (Français/Anglais)
@@ -20,11 +24,11 @@
 #include <ESPmDNS.h>
 #include <esp_chip_info.h>
 #include <esp_mac.h>
+#include <esp_system.h>
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
-#include <soc/soc.h>
-#include <soc/rtc.h>
+#include <soc/soc_caps.h>
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 #include <TFT_eSPI.h>
@@ -39,11 +43,14 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.5"
+#define DIAGNOSTIC_VERSION "3.0.0"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
 #define MDNS_HOSTNAME "esp32-diagnostic"
+
+const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
+const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
 
 // Pins I2C pour OLED (modifiables via web)
 int I2C_SCL = 20;
@@ -2490,8 +2497,8 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 2.4 - FR/EN");
-  Serial.println("     Optimise Arduino Core 3.1.3");
+  Serial.println("     Version 3.0.0 - FR/EN");
+  Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
   printPSRAMDiagnostic();
