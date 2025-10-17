@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v4.0.1
+# ESP32 Complete Diagnostic v4.0.2
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v4.0.1**: TFT API endpoints now acknowledge the disabled hardware state per pattern request while keeping the web UI tabs intact.
+**What's new in v4.0.2**: Fixed the translation catalog export so the firmware builds cleanly on Arduino Core 3.3.2 while keeping instant language switching available.
 
 ## ✨ Features
 
@@ -29,7 +29,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 ### Hardware Tests
 - **Built-in LED** - Configuration and testing with patterns (blink, fade)
 - **NeoPixel/WS2812B** - Multi-LED support with RGB effects
-- **TFT Screen (web interface only)** - REST endpoints preserved, on-device driving disabled in firmware v4.0.1
+- **TFT Screen (web interface only)** - REST endpoints preserved, on-device driving disabled in firmware v4.0.2
 - **OLED 0.96" I2C Screen** - 10 display tests including animations
 - **GPIO** - Automatic testing of all available GPIO
 - **ADC** - Reading all analog channels
@@ -350,7 +350,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v4.0.1
+## 📁 Project Structure v4.0.2
 
 ```
 ESP32-Diagnostic/
@@ -364,6 +364,10 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v4.0.2 (2025) - TRANSLATION CATALOG FIX
+- 🧰 **Fixed translation catalog export** to avoid Arduino `String::endsWith` compilation errors on Core 3.3.2
+- 🌐 **Dynamic language switching preserved** with complete translation data delivered to the browser
 
 ### v4.0.1 (2025) - TFT API ALIGNMENT
 - 🛠️ **TFT pattern endpoints now acknowledge the disabled hardware state** with translated responses
@@ -411,14 +415,14 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
-**v4.0.1 - TFT API alignment + localization refresh**
+**v4.0.2 - Translation catalog fix + localization refresh**
 **v3.0.0 - Official Core 3.3.2 support**
 **v2.4 - Multilingual system**
 **v2.3 - Comprehensive base**
 
 ---
 
-**Current version**: 4.0.1 (multilingual)
+**Current version**: 4.0.2 (multilingual)
 **Last update**: October 2025
 **Available languages**: French (default), English
 **Support**: ESP32 Arduino Core 3.3.2+
