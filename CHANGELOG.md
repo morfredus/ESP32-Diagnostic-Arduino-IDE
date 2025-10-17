@@ -5,6 +5,40 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.2] - 2025-10-13
+
+### Fixed
+- Resolved the translation catalog export to avoid Arduino `String::endsWith` compilation failures while keeping the dynamic web UI translations intact.
+
+---
+
+## [4.0.1] - 2025-10-12
+
+### Fixed
+- TFT pattern API now returns localized "feature disabled" responses per requested pattern instead of triggering validation errors.
+- TFT status strings refresh after language changes so the disabled message always matches the active locale.
+
+### Changed
+- Added the requested pattern identifier to the TFT API response payload for easier client-side handling.
+
+---
+
+## [4.0.0] - 2025-10-11
+
+### Removed
+- Dropped the TFT_eSPI dependency and all on-device TFT drawing routines while keeping the web UI tabs and API endpoints available.
+
+### Changed
+- CPU benchmark now reports MFLOPS using elapsed time in seconds and the effective floating-point operation count.
+- Wi-Fi scanner now distinguishes all ESP-IDF authentication modes and surfaces scan failures instead of returning negative network counts.
+- Memory fragmentation status now reuses translated warning strings instead of a hard-coded French label.
+- I2C scan results fall back to the localized "none" string when no peripherals are found.
+
+### Fixed
+- TFT status messaging is now localized and aligned with the disabled hardware support state.
+
+---
+
 ## [3.0.0] - 2025-10-10
 
 ### Added
