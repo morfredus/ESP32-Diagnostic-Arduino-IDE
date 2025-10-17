@@ -5,74 +5,18 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.2-dev] - 2025-10-09
+## [3.0.0] - 2025-10-10
 
-### Fixed
-- Live language switching now bypasses browser caches, immediately fetching the requested translation set without a full page reload.
-
-### Changed
-- Added targeted translation fetching on the API (`/api/get-translations?lang=`) and updated the interface to sync the `<html lang>` attribute.
-- Incremented diagnostic version to `3.0.2-dev`.
-
-## [3.0.1-dev] - 2025-10-09
-
-### Fixed
-- Live language switching now updates all interface texts without requiring a page reload.
+### Added
+- Exported version and mDNS host strings for re-use by the standalone web interface helper (`web_interface.h`).
 
 ### Changed
-- Incremented diagnostic version to `3.0.1-dev`.
+- Verified compatibility and updated documentation for ESP32 Arduino Core **3.3.2**.
+- Refreshed English and French READMEs to reflect the official 3.0.0 release.
+- Updated project metadata to use the semantic version identifier `3.0.0` across the firmware and web assets.
 
-## [3.0-dev] - 2025-10-09
-
-### 🚀 Major Changes - Dynamic Web Interface
-
-#### Added
-- **Complete REST API architecture** for efficient client-server communication
-- **Dynamic web interface** with asynchronous data loading
-- **Auto-refresh system** every 5 seconds for real-time monitoring
-- **Separated HTML/CSS/JavaScript** in `web_interface.h` for better maintainability
-- **Connection status indicator** with visual online/offline feedback (pulsing green/red dot)
-- **Smooth animations and transitions** throughout the interface (fadeIn, hover effects)
-- **Tab-based content loading** with lazy loading for optimal performance
-- **Update indicator** badge showing when data is being refreshed
-- New API endpoints for real-time data:
-  - `/api/status` - Real-time system status (uptime, temperature, memory)
-  - `/api/system-info` - Chip model and IP address
-  - `/api/overview` - Complete system overview with all data
-  - `/api/memory` - Detailed memory analysis (Flash, PSRAM, SRAM)
-  - `/api/wifi-info` - WiFi connection details and signal quality
-  - `/api/peripherals` - I2C and SPI peripheral information
-  - `/api/leds-info` - Built-in LED and NeoPixel status
-  - `/api/screens-info` - TFT and OLED screen information
-- **JavaScript application** (`/js/app.js`) served as separate file
-- **Memory usage graphs** in real-time (progress bars with percentage)
-- **Responsive design improvements** for mobile devices
-- **Error handling** for disconnection scenarios
-- **Automatic reconnection** detection and status update
-
-#### Changed
-- **Complete interface rewrite** from static HTML to dynamic single-page application
-- **Improved performance** - Initial page load reduced by 60%
-- **Reduced memory footprint** - Chunked HTML generation eliminated
-- **Better user experience** - No full page reloads, instant tab switching
-- **Optimized data transfer** - Only necessary data sent via API calls
-- **Modernized UI design** with card-based layouts and shadows
-- **Enhanced visual feedback** for all user interactions
-- **Streamlined navigation** with active tab highlighting
-- All existing handlers converted to return JSON instead of full HTML
-
-#### Technical Improvements
-- Separated concerns: presentation layer (HTML/CSS/JS) from data layer (API)
-- Implemented proper HTTP status codes and error responses
-- Added CORS-ready API structure for potential external integrations
-- Improved code organization with dedicated API handler functions
-- Better memory management with on-demand content generation
-- Eliminated server-side HTML concatenation overhead
-
-#### Breaking Changes
-- Old URL structure changed - all data now accessed via `/api/*` endpoints
-- JavaScript now required for web interface (was optional before)
-- Minimum browser requirement: ES6 support (Chrome 51+, Firefox 54+, Safari 10+)
+### Notes
+- Consolidated the improvements from the 3.0 development cycle (dynamic multilingual web interface, REST endpoints, live updates) into the first stable v3 release.
 
 ---
 
@@ -306,7 +250,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
-| 3.0-dev | 2025-10-09 | Dynamic interface, REST API, real-time updates |
+| 3.0.0 | 2025-10-10 | Official release, Core 3.3.2 support, multilingual docs |
 | 2.5 | 2025-10-08 | Translated exports |
 | 2.4 | 2025-10-07 | Multilingual interface (FR/EN) |
 | 2.3 | 2025-10-06 | OLED display support |

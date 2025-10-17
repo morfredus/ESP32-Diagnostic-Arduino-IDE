@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.5
+# ESP32 Complete Diagnostic v3.0.0
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.5**: Interface available in **French** and **English** (reload page to set)**.
+**What's new in v3.0.0**: Official release with verified support for **ESP32 Arduino Core 3.3.2** and refreshed bilingual documentation.
 
 ## ✨ Features
 
@@ -76,7 +76,7 @@ Tested and optimized for:
 
 ### Software
 - **Arduino IDE** 2.x or higher
-- **ESP32 Arduino Core** 3.1.3 or higher
+- **ESP32 Arduino Core** 3.3.2 or higher
 
 ### Required Arduino Libraries
 
@@ -351,7 +351,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.5
+## 📁 Project Structure v3.0.0
 
 ```
 ESP32-Diagnostic/
@@ -366,8 +366,10 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v2.5 (2025) - MULTILINGUAL
-- ✨ **Exporting files in multilingual** (FR/EN)
+### v3.0.0 (2025) - OFFICIAL RELEASE
+- ✅ **Arduino Core 3.3.2 compatibility validation**
+- 📘 **Updated bilingual documentation** (FR/EN)
+- ✨ Multilingual exports retained (TXT/JSON/CSV/Print)
 
 ### v2.4 (2025) - MULTILINGUAL
 - ✨ **Complete multilingual system** (FR/EN)
@@ -400,16 +402,16 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
-**v2.5 - Translation of export files**
+**v3.0.0 - Official Core 3.3.2 support**
 **v2.4 - Multilingual system**
 **v2.3 - Comprehensive base**
 
 ---
 
-**Current version**: 2.5 Multilingual  
-**Last update**: October 2025  
-**Available languages**: French (default), English  
-**Support**: ESP32 Arduino Core 3.1.3+
+**Current version**: 3.0.0 Multilingual
+**Last update**: October 2025
+**Available languages**: French (default), English
+**Support**: ESP32 Arduino Core 3.3.2+
 
 🌐 **Access**: http://ESP32-Diagnostic.local  
 🇫🇷🇬🇧 **Language switching**: FR/EN buttons in interface
