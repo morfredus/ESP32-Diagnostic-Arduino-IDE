@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v3.0.0
+# ESP32 Complete Diagnostic v4.0.2
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v3.0.0**: Official release with verified support for **ESP32 Arduino Core 3.3.2** and refreshed bilingual documentation.
+**What's new in v4.0.2**: Fixed the translation catalog export so the firmware builds cleanly on Arduino Core 3.3.2 while keeping instant language switching available.
 
 ## ✨ Features
 
@@ -29,7 +29,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 ### Hardware Tests
 - **Built-in LED** - Configuration and testing with patterns (blink, fade)
 - **NeoPixel/WS2812B** - Multi-LED support with RGB effects
-- **TFT 320x240 Screen** - Color, shape, text testing
+- **TFT Screen (web interface only)** - REST endpoints preserved, on-device driving disabled in firmware v4.0.2
 - **OLED 0.96" I2C Screen** - 10 display tests including animations
 - **GPIO** - Automatic testing of all available GPIO
 - **ADC** - Reading all analog channels
@@ -72,7 +72,7 @@ Tested and optimized for:
 ### Hardware
 - ESP32 board (any model)
 - USB cable
-- Optional: NeoPixel LED, TFT screen, OLED screen
+- Optional: NeoPixel LED, OLED screen
 
 ### Software
 - **Arduino IDE** 2.x or higher
@@ -86,7 +86,6 @@ Tested and optimized for:
 2. Adafruit GFX Library
 3. Adafruit SSD1306
 4. Adafruit NeoPixel
-5. TFT_eSPI
 ```
 
 **Included with ESP32 Core:**
@@ -351,7 +350,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v3.0.0
+## 📁 Project Structure v4.0.2
 
 ```
 ESP32-Diagnostic/
@@ -365,6 +364,20 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v4.0.2 (2025) - TRANSLATION CATALOG FIX
+- 🧰 **Fixed translation catalog export** to avoid Arduino `String::endsWith` compilation errors on Core 3.3.2
+- 🌐 **Dynamic language switching preserved** with complete translation data delivered to the browser
+
+### v4.0.1 (2025) - TFT API ALIGNMENT
+- 🛠️ **TFT pattern endpoints now acknowledge the disabled hardware state** with translated responses
+- 🔄 **TFT status strings refresh automatically** when changing the interface language
+
+### v4.0.0 (2025) - TFT-FREE RELEASE
+- 🧹 **Removed built-in TFT_eSPI dependency** while keeping the TFT tab/API accessible
+- 📡 **Wi-Fi scanner** now reports every ESP-IDF security mode and handles scan failures gracefully
+- 🧮 **CPU benchmark MFLOPS** converted to use real elapsed time and operation count
+- 🌍 **Memory/I2C messages** now rely on localized strings instead of hard-coded French fallbacks
 
 ### v3.0.0 (2025) - OFFICIAL RELEASE
 - ✅ **Arduino Core 3.3.2 compatibility validation**
@@ -402,13 +415,14 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
+**v4.0.2 - Translation catalog fix + localization refresh**
 **v3.0.0 - Official Core 3.3.2 support**
 **v2.4 - Multilingual system**
 **v2.3 - Comprehensive base**
 
 ---
 
-**Current version**: 3.0.0 Multilingual
+**Current version**: 4.0.2 (multilingual)
 **Last update**: October 2025
 **Available languages**: French (default), English
 **Support**: ESP32 Arduino Core 3.3.2+
