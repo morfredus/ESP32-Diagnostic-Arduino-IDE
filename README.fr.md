@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# Diagnostic ESP32 Complet v4.0.10
+# Diagnostic ESP32 Complet v4.0.11
 
 🇫🇷 Version française | [🇬🇧 English Version](README.md)
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, accessible via interface web. Teste automatiquement tous les composants matériels, analyse la mémoire, scanne les périphériques et génère des rapports détaillés.
 
-**Nouveautés v4.0.10** : L'onglet **Sans fil** propose un encadré Bluetooth détaillant la compatibilité matérielle, la présence de la pile dans le firmware et l'activation IDE pour savoir immédiatement pourquoi un scan BLE est possible ou bloqué.
+**Nouveautés v4.0.11** : La disponibilité Bluetooth est visible partout (carte Sans fil toujours affichée, résumé série et exports TXT/JSON/CSV/print) et le bouton de scan BLE se désactive automatiquement si la pile native manque.
 
 ## ✨ Fonctionnalités
 
@@ -347,7 +347,7 @@ Si certains textes restent en français :
 
 **Ne jamais partager `config.h` avec vos identifiants WiFi.**
 
-## 📁 Structure du Projet v4.0.10
+## 📁 Structure du Projet v4.0.11
 
 ```
 ESP32-Diagnostic/
@@ -362,10 +362,10 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v4.0.10 (2025) - FICHE D'ÉTAT BLUETOOTH
-- 📶 **L'onglet Sans fil affiche une fiche Bluetooth dédiée**, précisant la compatibilité de la puce, la présence de la pile firmware et l'activation IDE avant chaque scan.
-- 🌍 **Traductions FR/EN enrichies** pour couvrir les nouveaux statuts BLE et les recommandations associées.
-- 🛠️ **Documentation et identifiants firmware mis à jour en v4.0.10**, pour garder l'ensemble du projet aligné sur les diagnostics les plus récents.
+### v4.0.11 (2025) - STATUT BLUETOOTH PARTOUT
+- 📶 **La carte Sans fil reste visible même sans pile BLE**, avec un message clair expliquant pourquoi le Bluetooth est indisponible.
+- 🧾 **Résumé Sans fil ajouté au moniteur série et aux exports TXT/JSON/CSV/impression**, reflétant les capacités Wi-Fi/BLE comme dans l'interface.
+- 🛠️ **Firmware, documentation et interface passent en v4.0.11**, en désactivant automatiquement le bouton de scan BLE si la pile native n'est pas présente.
 
 ### v4.0.9 (2025) - STATUT PSRAM & RÉSUMÉ SANS FIL
 - 🧠 **La vue d'ensemble et les exports détaillent désormais le support/mode PSRAM**, avec un rappel d'activation IDE identique au diagnostic série.
@@ -431,7 +431,7 @@ Code libre d'utilisation, modification et distribution.
 
 Développé pour la communauté ESP32.
 
-**v4.0.10 - Fiche d'état Bluetooth**
+**v4.0.11 - Statut Bluetooth partout**
 **v4.0.9 - Statut PSRAM et résumé Sans fil**
 **v4.0.2 - Correctif catalogue de traductions + localisation**
 **v3.0.0 - Support officiel du core 3.3.2**
@@ -440,7 +440,7 @@ Développé pour la communauté ESP32.
 
 ---
 
-**Version actuelle** : 4.0.10 Multilingue
+**Version actuelle** : 4.0.11 Multilingue
 **Dernière mise à jour** : Octobre 2025
 **Langues disponibles** : Français (défaut), Anglais
 **Support** : ESP32 Arduino Core 3.3.2+

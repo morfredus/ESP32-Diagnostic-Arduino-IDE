@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v4.0.10
+# ESP32 Complete Diagnostic v4.0.11
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v4.0.10**: The **Wireless** tab now ships with a dedicated Bluetooth readiness card that breaks down hardware support, firmware stack availability, and IDE activation hints so you immediately know why BLE scans will (or will not) work.
+**What's new in v4.0.11**: Bluetooth readiness is now surfaced everywhere—always-visible wireless status card, serial summaries, and TXT/JSON/CSV/print exports—while the BLE scan button automatically disables when the firmware lacks native support.
 
 ## ✨ Features
 
@@ -345,7 +345,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v4.0.10
+## 📁 Project Structure v4.0.11
 
 ```
 ESP32-Diagnostic/
@@ -360,10 +360,10 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v4.0.10 (2025) - BLUETOOTH READINESS CARD
-- 📶 **Wireless tab now surfaces a dedicated Bluetooth summary**, clarifying chip capability, firmware stack availability, and IDE enablement before running any scans.
-- 🌍 **Translations refreshed** so the new BLE readiness details and recommendations appear in both English and French interfaces.
-- 🛠️ **Documentation and firmware identifiers bumped to v4.0.10**, keeping the project metadata aligned with the latest diagnostics.
+### v4.0.11 (2025) - BLUETOOTH STATUS EVERYWHERE
+- 📶 **Wireless tab keeps the Bluetooth readiness card visible**, even when the firmware lacks native BLE, and spells out the reason why.
+- 🧾 **Serial monitor plus TXT/JSON/CSV/print exports gain wireless summaries**, mirroring the UI with Wi-Fi/BLE capability details.
+- 🛠️ **Firmware, docs, and UI bumped to v4.0.11**, disabling the BLE scan button automatically when the stack is absent.
 
 ### v4.0.9 (2025) - PSRAM STATUS & WIRELESS SUMMARY
 - 🧠 **Overview & exports now surface PSRAM support/mode**, including IDE enablement hints that mirror the serial diagnostic output.
@@ -429,7 +429,7 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
-**v4.0.10 - Bluetooth readiness summary card**
+**v4.0.11 - Bluetooth readiness everywhere**
 **v4.0.9 - PSRAM insights with wireless readiness summary**
 **v4.0.2 - Translation catalog fix + localization refresh**
 **v3.0.0 - Official Core 3.3.2 support**
@@ -438,7 +438,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 4.0.10 (multilingual)
+**Current version**: 4.0.11 (multilingual)
 **Last update**: October 2025
 **Available languages**: French (default), English
 **Support**: ESP32 Arduino Core 3.3.2+

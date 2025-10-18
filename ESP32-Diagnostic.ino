@@ -1,14 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.10
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.11
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v4.0.10:
- * - Ajoute un encadré Bluetooth détaillant compatibilité puce, pile firmware et activation BLE dans l'onglet Sans fil
- * - Met à jour les traductions FR/EN avec les nouveaux statuts BLE et les recommandations correspondantes
- * - Actualise la documentation et la version projet pour refléter les diagnostics Sans fil enrichis
+ * Nouveautés v4.0.11:
+ * - Assure l'affichage permanent de la fiche Bluetooth avec messages explicites même sans pile BLE active
+ * - Ajoute un récapitulatif Sans fil (WiFi + BLE) dans le moniteur série, les exports TXT/JSON/CSV et la version imprimable
+ * - Désactive proprement le scan BLE côté interface et bouton quand le firmware ou l'IDE ne propose pas la pile native
  *
  * Nouveautés v4.0.6:
  * - Rend tous les tests OLED (complet, message, motifs) accessibles même avant détection automatique
@@ -91,7 +91,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.10"
+#define DIAGNOSTIC_VERSION "4.0.11"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -657,6 +657,31 @@ void printPSRAMDiagnostic() {
   if (detailedMemory.psramRecommendation.length() > 0) {
     Serial.print("  → ");
     Serial.println(detailedMemory.psramRecommendation);
+  }
+  Serial.println("=====================================\r\n");
+}
+
+void printWirelessDiagnostic() {
+  Serial.println("\r\n=== STATUT SANS FIL ===");
+
+  bool wifiConnected = WiFi.status() == WL_CONNECTED;
+  if (wifiConnected) {
+    Serial.printf("WiFi: CONNECTE (%s) RSSI %d dBm\r\n",
+                  diagnosticData.wifiSSID.c_str(),
+                  diagnosticData.wifiRSSI);
+  } else {
+    Serial.println("WiFi: Non connecte");
+  }
+
+  Serial.printf("BLE - Compatibilite puce: %s\r\n",
+                diagnosticData.bleChipCapable ? "OUI" : "NON");
+  Serial.printf("BLE - Pile firmware: %s\r\n",
+                diagnosticData.bleStackAvailable ? "OUI" : "NON");
+  Serial.printf("BLE - Fonctions actives: %s\r\n",
+                diagnosticData.hasBLE ? "OUI" : "NON");
+  Serial.printf("BLE - Statut: %s\r\n", diagnosticData.bleStatusMessage.c_str());
+  if (diagnosticData.bleHint.length() > 0) {
+    Serial.printf("Conseil: %s\r\n", diagnosticData.bleHint.c_str());
   }
   Serial.println("=====================================\r\n");
 }
@@ -2054,7 +2079,17 @@ void handleExportTXT() {
   txt += String(T().gateway) + ": " + WiFi.gatewayIP().toString() + "\r\n";
   txt += "DNS: " + WiFi.dnsIP().toString() + "\r\n";
   txt += "\r\n";
-  
+
+  txt += "=== BLUETOOTH ===\r\n";
+  txt += String(T().ble_chip_support) + ": " + String(diagnosticData.bleChipCapable ? T().status_yes : T().status_no) + "\r\n";
+  txt += String(T().ble_stack_support) + ": " + String(diagnosticData.bleStackAvailable ? T().status_yes : T().status_missing) + "\r\n";
+  txt += String(T().ble_runtime_status) + ": " + String(diagnosticData.hasBLE ? T().status_yes : T().status_missing) + "\r\n";
+  txt += String(T().status) + ": " + diagnosticData.bleStatusMessage + "\r\n";
+  if (diagnosticData.bleHint.length() > 0) {
+    txt += String(T().recommendation) + ": " + diagnosticData.bleHint + "\r\n";
+  }
+  txt += "\r\n";
+
   txt += "=== GPIO ===\r\n";
   txt += String(T().total_gpio) + ": " + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "\r\n";
   txt += String(T().gpio_list) + ": " + diagnosticData.gpioList + "\r\n";
@@ -2132,16 +2167,28 @@ void handleExportJSON() {
   json += "\"status\":\"" + detailedMemory.memoryStatus + "\"";
   json += "},";
   
-  json += "\"wifi\":{";
-  json += "\"ssid\":\"" + diagnosticData.wifiSSID + "\",";
+  bool wifiConnected = WiFi.status() == WL_CONNECTED;
+  json += "\"wifi\":{"";
+  json += "\"connected\":" + String(wifiConnected ? "true" : "false") + ",";
+  json += "\"ssid\":\"" + diagnosticData.wifiSSID + "\","";
   json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
-  json += "\"quality\":\"" + getWiFiSignalQuality() + "\",";
-  json += "\"ip\":\"" + diagnosticData.ipAddress + "\",";
-  json += "\"subnet\":\"" + WiFi.subnetMask().toString() + "\",";
-  json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",";
+  json += "\"quality\":\"" + getWiFiSignalQuality() + "\","";
+  json += "\"ip\":\"" + diagnosticData.ipAddress + "\","";
+  json += "\"subnet\":\"" + WiFi.subnetMask().toString() + "\","";
+  json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\","";
   json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
   json += "},";
-  
+
+  json += "\"bluetooth\":{"";
+  json += "\"chip_capable\":" + String(diagnosticData.bleChipCapable ? "true" : "false") + ",";
+  json += "\"stack_available\":" + String(diagnosticData.bleStackAvailable ? "true" : "false") + ",";
+  json += "\"enabled\":" + String(diagnosticData.hasBLE ? "true" : "false") + ",";
+  json += "\"status\":\"" + jsonEscape(diagnosticData.bleStatusMessage) + "\"";
+  if (diagnosticData.bleHint.length() > 0) {
+    json += ",\"hint\":\"" + jsonEscape(diagnosticData.bleHint) + "\"";
+  }
+  json += "},";
+
   json += "\"gpio\":{";
   json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
   json += "\"list\":\"" + diagnosticData.gpioList + "\"";
@@ -2213,7 +2260,15 @@ void handleExportCSV() {
   csv += "WiFi,RSSI dBm," + String(diagnosticData.wifiRSSI) + "\r\n";
   csv += "WiFi,IP," + diagnosticData.ipAddress + "\r\n";
   csv += "WiFi," + String(T().gateway) + "," + WiFi.gatewayIP().toString() + "\r\n";
-  
+
+  csv += String(T().ble_label) + "," + String(T().ble_chip_support) + "," + String(diagnosticData.bleChipCapable ? T().status_yes : T().status_no) + "\r\n";
+  csv += String(T().ble_label) + "," + String(T().ble_stack_support) + "," + String(diagnosticData.bleStackAvailable ? T().status_yes : T().status_missing) + "\r\n";
+  csv += String(T().ble_label) + "," + String(T().ble_runtime_status) + "," + String(diagnosticData.hasBLE ? T().status_yes : T().status_missing) + "\r\n";
+  csv += String(T().ble_label) + "," + String(T().status) + "," + diagnosticData.bleStatusMessage + "\r\n";
+  if (diagnosticData.bleHint.length() > 0) {
+    csv += String(T().ble_label) + "," + String(T().recommendation) + "," + diagnosticData.bleHint + "\r\n";
+  }
+
   csv += "GPIO," + String(T().total_gpio) + "," + String(diagnosticData.totalGPIO) + "\r\n";
   
   csv += String(T().i2c_peripherals) + "," + String(T().device_count) + "," + String(diagnosticData.i2cCount) + "\r\n";
@@ -2337,7 +2392,19 @@ void handlePrintVersion() {
   html += "<div class='row'><b>Passerelle:</b><span>" + WiFi.gatewayIP().toString() + "</span></div>";
   html += "<div class='row'><b>DNS:</b><span>" + WiFi.dnsIP().toString() + "</span></div>";
   html += "</div></div>";
-  
+
+  html += "<div class='section'>";
+  html += "<h2>Bluetooth Low Energy</h2>";
+  html += "<div class='grid'>";
+  html += "<div class='row'><b>Compatibilité puce:</b><span>" + String(diagnosticData.bleChipCapable ? "Oui" : "Non") + "</span></div>";
+  html += "<div class='row'><b>Pile firmware:</b><span>" + String(diagnosticData.bleStackAvailable ? "Oui" : "Manquant") + "</span></div>";
+  html += "<div class='row'><b>Fonctions actives:</b><span>" + String(diagnosticData.hasBLE ? "Oui" : "Manquant") + "</span></div>";
+  html += "<div class='row'><b>Statut:</b><span>" + diagnosticData.bleStatusMessage + "</span></div>";
+  if (diagnosticData.bleHint.length() > 0) {
+    html += "<div class='row'><b>Conseil:</b><span>" + diagnosticData.bleHint + "</span></div>";
+  }
+  html += "</div></div>";
+
   // GPIO et Périphériques
   html += "<div class='section'>";
   html += "<h2>GPIO et Périphériques</h2>";
@@ -3164,7 +3231,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.10 - FR/EN");
+  Serial.println("     Version 4.0.11 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
@@ -3223,7 +3290,8 @@ void setup() {
   
   collectDiagnosticInfo();
   collectDetailedMemory();
-  
+  printWirelessDiagnostic();
+
   // ========== ROUTES SERVEUR ==========
   server.on("/", handleRoot);
   
