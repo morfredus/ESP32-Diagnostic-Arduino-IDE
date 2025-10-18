@@ -89,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Corrected the OLED pattern dispatcher so each button (intro, font sizes, shapes, etc.) now triggers the intended rendering routine instead of the previous item in the sequence.
 - Normalised the pattern identifier returned by `/api/oled-pattern` to reflect the executed test, preventing mismatches between firmware feedback and the on-screen result.
+- Prevented the new wireless diagnostics build from failing when the ESP32 SDK lacks BLE headers by gating the scanner behind compile-time capability checks and runtime fallbacks.
 
 ### Changed
 - Encoded OLED pattern requests in both web clients to avoid stray labels such as “Veuillez saisir un message” appearing on buttons after localisation updates.
