@@ -448,7 +448,7 @@ const Translations LANG_FR_TEXTS = {
   "Signal",
   "Liste",
   "jours",
-  "heures"
+  "heures",
   
   // Statuts
   "OK",
@@ -701,7 +701,7 @@ const Translations LANG_EN_TEXTS = {
   "Signal",
   "List",
   "days",
-  "hours"
+  "hours",
     
   // Status
   "OK",
