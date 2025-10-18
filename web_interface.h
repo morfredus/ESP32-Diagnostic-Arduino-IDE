@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v3.0.0
+ * WEB_INTERFACE.H - Interface Web Dynamique v4.0.7
  */
 
 #ifndef WEB_INTERFACE_H
@@ -104,6 +104,11 @@ String generateHTML() {
   html += "@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}";
   html += ".status-live{padding:15px;background:#f0f0f0;border-radius:10px;text-align:center;";
   html += "font-weight:bold;margin:15px 0;border-left:4px solid #667eea}";
+  html += ".inline-feedback{margin-top:10px;font-size:0.9em;opacity:0;transition:opacity .3s;color:#0c5460;}";
+  html += ".inline-feedback.show{opacity:1;}";
+  html += ".inline-feedback.success{color:#155724;}";
+  html += ".inline-feedback.error{color:#721c24;}";
+  html += ".inline-feedback.info{color:#0c5460;}";
   html += ".gpio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));";
   html += "gap:10px;margin-top:15px}";
   html += ".gpio-item{padding:15px;background:#fff;border:2px solid #ddd;border-radius:8px;";
@@ -188,6 +193,8 @@ String generateJavaScript() {
   js += "let currentLang='fr';";
   js += "let updateTimer=null;";
   js += "let isConnected=true;";
+  js += "const inlineNoticeTimers={};";
+  js += "let translations={};";
 
   // Initialisation - CORRIGÉE
   js += "document.addEventListener('DOMContentLoaded',function(){";
@@ -314,61 +321,81 @@ String generateJavaScript() {
 
   // Build LEDs - COMPLET
   js += "function buildLeds(d){";
+  js += "const builtinPin=d.builtin.pin>=0?'GPIO '+d.builtin.pin:(translations.led_not_configured||'Non configurée');";
   js += "let h='<div class=\"section\"><h2>💡 LED Intégrée</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">GPIO</div><div class=\"info-value\">GPIO '+d.builtin.pin+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">GPIO</div><div class=\"info-value\">'+builtinPin+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"builtin-led-status\">'+d.builtin.status+'</div></div>';";
+  js += "if(d.neopixel&&d.neopixel.pin===d.builtin.pin&&d.builtin.pin>=0){h+='<div class=\"info-item\" style=\"grid-column:1/-1\"><div class=\"info-label\">'+(translations.warning||'Attention')+'</div><div class=\"info-value\">'+(translations.led_conflict||'Conflit NeoPixel (GPIO partagé)')+'</div></div>'; }";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testBuiltinLED()\">🧪 Test complet</button> ';";
-  js += "h+='<button class=\"btn btn-success\" onclick=\"ledBlink()\">⚡ Clignoter</button> ';";
-  js += "h+='<button class=\"btn btn-info\" onclick=\"ledFade()\">🌊 Fade</button> ';";
-  js += "h+='<button class=\"btn btn-warning\" onclick=\"ledOn()\">💡 Allumer</button> ';";
-  js += "h+='<button class=\"btn btn-danger\" onclick=\"ledOff()\">⭕ Éteindre</button>';";
+  js += "h+='<div style=\"margin-bottom:10px\">GPIO <input type=\"number\" id=\"builtinLedPin\" value=\"'+(d.builtin.pin>=0?d.builtin.pin:0)+'\" min=\"0\" max=\"48\" style=\"width:80px\"> <button class=\"btn btn-info\" onclick=\"configBuiltinLED()\">⚙️ '+(translations.config||'Config')+'</button></div>';";
+  js += "h+='<div><button class=\"btn btn-primary\" onclick=\"testBuiltinLED()\">🧪 '+(translations.test||'Test complet')+'</button> ';";
+  js += "h+='<button class=\"btn btn-success\" onclick=\"ledBlink()\">⚡ '+(translations.blink||'Clignoter')+'</button> ';";
+  js += "h+='<button class=\"btn btn-info\" onclick=\"ledFade()\">🌊 '+(translations.fade||'Fade')+'</button> ';";
+  js += "h+='<button class=\"btn btn-warning\" onclick=\"ledOn()\">💡 '+(translations.led_on_state||'Allumer')+'</button> ';";
+  js += "h+='<button class=\"btn btn-danger\" onclick=\"ledOff()\">⭕ '+(translations.off||'Éteindre')+'</button></div>';";
+  js += "h+='<div class=\"inline-feedback\" id=\"builtin-led-feedback\"></div>';";
   js += "h+='</div></div></div>';";
 
+  js += "const neoPin=d.neopixel.pin>=0?'GPIO '+d.neopixel.pin:(translations.led_not_configured||'Non configurée');";
   js += "h+='<div class=\"section\"><h2>🌈 NeoPixel / WS2812B</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">GPIO</div><div class=\"info-value\">GPIO '+d.neopixel.pin+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">GPIO</div><div class=\"info-value\">'+neoPin+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Nombre de LEDs</div><div class=\"info-value\">'+d.neopixel.count+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"neopixel-status\">'+d.neopixel.status+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testNeoPixel()\">🧪 Test complet</button><br><br>';";
-
-  // Patterns
-  js += "h+='<strong>Animations :</strong><br>';";
+  js += "h+='<div style=\"margin-bottom:10px\">GPIO <input type=\"number\" id=\"neoGPIO\" value=\"'+(d.neopixel.pin>=0?d.neopixel.pin:0)+'\" min=\"0\" max=\"48\" style=\"width:80px\"> ';";
+  js += "h+='<input type=\"number\" id=\"neoCount\" value=\"'+d.neopixel.count+'\" min=\"1\" max=\"100\" style=\"width:80px\"> ';";
+  js += "h+='<button class=\"btn btn-info\" onclick=\"configNeoPixel()\">⚙️ '+(translations.config||'Config')+'</button></div>';";
+  js += "h+='<div><button class=\"btn btn-primary\" onclick=\"testNeoPixel()\">🧪 '+(translations.test||'Test complet')+'</button></div>';";
+  js += "h+='<div class=\"inline-feedback\" id=\"neopixel-feedback\"></div>';";
+  js += "h+='<div style=\"margin-top:15px\"><strong>Animations :</strong><br>';";
   js += "h+='<button class=\"btn btn-primary\" onclick=\"neoPattern(\\'rainbow\\')\">🌈 Arc-en-ciel</button> ';";
   js += "h+='<button class=\"btn btn-success\" onclick=\"neoPattern(\\'blink\\')\">⚡ Clignoter</button> ';";
   js += "h+='<button class=\"btn btn-info\" onclick=\"neoPattern(\\'fade\\')\">🌊 Fade</button> ';";
   js += "h+='<button class=\"btn btn-warning\" onclick=\"neoPattern(\\'chase\\')\">🏃 Chase</button><br><br>';";
-
-  // Sélecteur de couleur
   js += "h+='<strong>Couleur personnalisée :</strong><br>';";
   js += "h+='<input type=\"color\" id=\"neoColor\" value=\"#ff0000\" style=\"height:50px;width:120px;border:none;border-radius:5px;cursor:pointer\"> ';";
   js += "h+='<button class=\"btn btn-primary\" onclick=\"neoCustomColor()\">🎨 Appliquer couleur</button><br><br>';";
-
   js += "h+='<button class=\"btn btn-danger\" onclick=\"neoPattern(\\'off\\')\">⭕ Tout éteindre</button>';";
   js += "h+='</div></div></div>';";
   js += "return h;";
   js += "}";
 
-js += "function buildScreens(d){";
-  js += "let h='<div class=\"section\"><h2>📺 Écran TFT SPI</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"tft-status\">'+d.tft.status+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Résolution</div><div class=\"info-value\">'+d.tft.width+'x'+d.tft.height+'</div></div>';";
+  js += "function buildScreens(d){";
+  js += "const oled=(d&&d.oled)?d.oled:{};";
+  js += "const pins=oled.pins||{};";
+  js += "const status=oled.status||(translations.no_detected||'Aucun écran détecté');";
+  js += "let h='<div class=\\\"section\\\"><h2>'+ (translations.oled_screen||'Écran OLED 0.96\\\\\" I2C')+'</h2><div class=\\\"info-grid\\\">';";
+  js += "h+='<div class=\\\"info-item\\\"><div class=\\\"info-label\\\">'+(translations.status||'Statut')+'</div><div class=\\\"info-value\\\" id=\\\"oled-status\\\">'+status+'</div></div>';";
+  js += "h+='<div class=\\\"info-item\\\"><div class=\\\"info-label\\\">'+(translations.i2c_pins||'Pins I2C')+'</div><div class=\\\"info-value\\\">SDA:'+(typeof pins.sda!==\"undefined\"?pins.sda:'?')+' SCL:'+(typeof pins.scl!==\"undefined\"?pins.scl:'?')+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testTFT()\">🧪 Test complet (15s)</button> ';";
-  js += "h+='<button class=\"btn btn-success\" onclick=\"tftPattern(\\'colors\\')\">🎨 Couleurs</button> ';";
-  js += "h+='<button class=\"btn btn-info\" onclick=\"tftPattern(\\'checkerboard\\')\">⬛ Damier</button> ';";
-  js += "h+='<button class=\"btn btn-danger\" onclick=\"tftPattern(\\'clear\\')\">🗑️ Effacer</button>';";
-  js += "h+='<br><br><input type=\"text\" id=\"tftText\" placeholder=\"Texte à afficher\" style=\"width:300px;padding:10px\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"tftDisplayText()\">📤 Afficher texte</button>';";
-  js += "h+='</div></div></div>';";
-
-  js += "h+='<div class=\"section\"><h2>🖥️ Écran OLED 0.96\\\" I2C</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"oled-status\">'+d.oled.status+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Pins I2C</div><div class=\"info-value\">SDA:'+d.oled.pins.sda+' SCL:'+d.oled.pins.scl+'</div></div>';";
-  js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testOLED()\">🧪 Test complet (25s)</button>';";
-  js += "h+='<br><br><input type=\"text\" id=\"oledText\" placeholder=\"Message à afficher\" style=\"width:300px;padding:10px\">';";
-  js += "h+='<button class=\"btn btn-success\" onclick=\"oledDisplayText()\">📤 Afficher message</button>';";
+  js += "h+='<div style=\"margin-bottom:10px\">SDA <input type=\"number\" id=\"oledSDA\" value=\"'+(typeof pins.sda!==\"undefined\"?pins.sda:21)+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
+  js += "h+='SCL <input type=\"number\" id=\"oledSCL\" value=\"'+(typeof pins.scl!==\"undefined\"?pins.scl:22)+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
+  js += "h+='<button class=\\\"btn btn-info\\\" onclick=\\\"configOLED()\\\">⚙️ '+(translations.apply_redetect||'Configurer')+'</button></div>';";
+  js += "h+='<div class=\\\"inline-feedback\\\" id=\\\"oled-feedback\\\"></div>';";
+  js += "h+='</div>';";
+  js += "if(oled&&oled.available===false){";
+  js += "h+='<div class=\\\"info-item\\\" style=\\\"grid-column:1/-1\\\"><div class=\\\"info-value\\\" style=\\\"background:#fff3cd;color:#856404;padding:12px;border-radius:10px;\\\">'+(translations.no_detected||'Aucun écran OLED détecté. Vérifiez le câblage et relancez la détection.')+'</div></div>';";
+  js += "}";
+  js += "h+='<div class=\\\"info-item\\\" style=\\\"grid-column:1/-1;text-align:center\\\">';";
+  js += "h+='<div><button class=\\\"btn btn-primary\\\" onclick=\\\"testOLED()\\\">🧪 '+(translations.full_test||'Test complet')+' (25s)</button></div>';";
+  js += "h+='<div style=\"margin-top:10px\"><input type=\"text\" id=\"oledText\" placeholder=\"'+(translations.custom_message||'Message à afficher')+'\" style=\"width:300px;padding:10px\"> ';";
+  js += "h+='<button class=\"btn btn-success\" onclick=\"oledDisplayText()\">📤 '+(translations.show_message||'Afficher message')+'</button></div>';";
+  js += "h+='<div style=\"margin-top:15px\">';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"oledPattern(\\'intro\\')\">🏁 '+(translations.oled_intro||'Accueil')+'</button> ';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"oledPattern(\\'large\\')\">🔠 '+(translations.oled_large_text||'Texte géant')+'</button> ';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"oledPattern(\\'fonts\\')\">🔤 '+(translations.oled_fonts||'Tailles')+'</button> ';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"oledPattern(\\'shapes\\')\">⬛ '+(translations.oled_shapes||'Formes')+'</button>';";
+  js += "h+='</div>';";
+  js += "h+='<div style=\"margin-top:8px\">';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"oledPattern(\\'lines\\')\">〰️ '+(translations.oled_lines||'Lignes')+'</button> ';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"oledPattern(\\'diagonals\\')\">⤴️ '+(translations.oled_diagonals||'Diagonales')+'</button> ';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"oledPattern(\\'square\\')\">🔲 '+(translations.oled_animation||'Carré')+'</button> ';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"oledPattern(\\'progress\\')\">📊 '+(translations.oled_progress||'Progression')+'</button>';";
+  js += "h+='</div>';";
+  js += "h+='<div style=\"margin-top:8px\">';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"oledPattern(\\'scroll\\')\">📜 '+(translations.oled_scroll||'Défilement')+'</button> ';";
+  js += "h+='<button class=\"btn btn-danger\" onclick=\"oledPattern(\\'final\\')\">🏁 '+(translations.oled_final||'Final')+'</button>';";
+  js += "h+='</div>';";
   js += "h+='</div></div></div>';";
   js += "return h;";
   js += "}";
@@ -390,10 +417,11 @@ js += "function buildScreens(d){";
 
   // Build GPIO
   js += "function buildGpio(){";
-  js += "let h='<div class=\"section\"><h2>🔌 Test GPIO</h2>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"testAllGPIO()\">🧪 Tester tous les GPIO</button>';";
-  js += "h+='<div id=\"gpio-status\" class=\"status-live\">Cliquez pour tester</div></div>';";
-  js += "h+='<div id=\"gpio-results\" class=\"gpio-grid\"></div></div>';";
+  js += "let h='<div class=\\\"section\\\"><h2>🔌 '+(translations.gpio_test||'Test GPIO')+'</h2>';";
+  js += "h+='<div style=\\\"text-align:center;margin:20px 0\\\"><button class=\\\"btn btn-primary\\\" onclick=\\\"testAllGPIO()\\\">🧪 '+(translations.test_all_gpio||'Tester tous les GPIO')+'</button>';";
+  js += "h+='<div id=\\\"gpio-status\\\" class=\\\"status-live\\\">'+(translations.click_to_test||'Cliquez pour tester')+'</div></div>';";
+  js += "h+='<p id=\\\"gpio-warning\\\" style=\\\"margin:10px 0;padding:12px;border-radius:10px;background:#fff3cd;color:#856404;border-left:4px solid #f2c94c\\\">'+(translations.gpio_fail_hint||'Un GPIO \"FAIL\" peut être réservé. Vérifiez sa fonction avant de conclure qu\'il est défectueux.')+'</p>';";
+  js += "h+='<div id=\\\"gpio-results\\\" class=\\\"gpio-grid\\\"></div></div>';";
   js += "return h;";
   js += "}";
 
@@ -438,10 +466,19 @@ js += "function buildScreens(d){";
   js += "}";
 
   // FONCTIONS API - LED
+  js += "async function configBuiltinLED(){";
+  js += "const input=document.getElementById('builtinLedPin');";
+  js += "if(!input)return;";
+  js += "try{";
+  js += "const r=await fetch('/api/builtin-led-config?gpio='+input.value);";
+  js += "const d=await r.json();";
+  js += "if(d.message){document.getElementById('builtin-led-status').textContent=d.message;showInlineNotice('builtin-led-feedback',d.message,d.success?'success':'error');}}";
+  js += "catch(e){showInlineNotice('builtin-led-feedback','Erreur configuration','error');}";
+  js += "}";
   js += "async function testBuiltinLED(){";
   js += "document.getElementById('builtin-led-status').textContent='Test en cours...';";
   js += "const r=await fetch('/api/builtin-led-test');const d=await r.json();";
-  js += "document.getElementById('builtin-led-status').textContent=d.result;alert(d.result);";
+  js += "document.getElementById('builtin-led-status').textContent=d.result;showInlineNotice('builtin-led-feedback',d.result,d.success?'success':'error');";
   js += "}";
   js += "async function ledBlink(){";
   js += "const r=await fetch('/api/builtin-led-control?action=blink');const d=await r.json();";
@@ -461,6 +498,18 @@ js += "function buildScreens(d){";
   js += "document.getElementById('builtin-led-status').textContent=d.message;";
   js += "}";
 
+  // NeoPixel configuration
+  js += "async function configNeoPixel(){";
+  js += "const gpio=document.getElementById('neoGPIO');";
+  js += "const count=document.getElementById('neoCount');";
+  js += "if(!gpio||!count)return;";
+  js += "try{";
+  js += "const r=await fetch('/api/neopixel-config?gpio='+gpio.value+'&count='+count.value);";
+  js += "const d=await r.json();";
+  js += "if(d.message){document.getElementById('neopixel-status').textContent=d.message;showInlineNotice('neopixel-feedback',d.message,d.success?'success':'error');}}";
+  js += "catch(e){showInlineNotice('neopixel-feedback','Erreur configuration NeoPixel','error');}";
+  js += "}";
+
   // NeoPixel couleur personnalisée
   js += "async function neoCustomColor(){";
   js += "const color=document.getElementById('neoColor').value;";
@@ -470,52 +519,52 @@ js += "function buildScreens(d){";
   js += "document.getElementById('neopixel-status').textContent='Application couleur RGB('+r+','+g+','+b+')...';";
   js += "const resp=await fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b);";
   js += "const d=await resp.json();";
-  js += "document.getElementById('neopixel-status').textContent=d.message;";
+  js += "document.getElementById('neopixel-status').textContent=d.message;showInlineNotice('neopixel-feedback',d.message,d.success?'success':'info');";
   js += "}";
   // FONCTIONS API - NeoPixel
   js += "async function testNeoPixel(){";
   js += "document.getElementById('neopixel-status').textContent='Test en cours...';";
   js += "const r=await fetch('/api/neopixel-test');const d=await r.json();";
-  js += "document.getElementById('neopixel-status').textContent=d.result;";
+  js += "document.getElementById('neopixel-status').textContent=d.result;showInlineNotice('neopixel-feedback',d.result,d.success?'success':'info');";
   js += "}";
   js += "async function neoPattern(p){";
   js += "const r=await fetch('/api/neopixel-pattern?pattern='+p);const d=await r.json();";
-  js += "document.getElementById('neopixel-status').textContent=d.message;";
+  js += "document.getElementById('neopixel-status').textContent=d.message;showInlineNotice('neopixel-feedback',d.message,d.success?'success':'error');";
   js += "}";
 
-  // FONCTIONS API - TFT/OLED
-  js += "async function testTFT(){";
-  js += "document.getElementById('tft-status').textContent='Test en cours (15s)...';";
-  js += "const r=await fetch('/api/tft-test');const d=await r.json();";
-  js += "document.getElementById('tft-status').textContent=d.result;";
-  js += "}";
-  js += "async function tftPattern(p){";
-  js += "const r=await fetch('/api/tft-pattern?pattern='+p);const d=await r.json();";
-  js += "document.getElementById('tft-status').textContent=d.message;";
+  // FONCTIONS API - OLED
+  js += "async function configOLED(){";
+  js += "const sda=document.getElementById('oledSDA');";
+  js += "const scl=document.getElementById('oledSCL');";
+  js += "if(!sda||!scl)return;";
+  js += "try{";
+  js += "const r=await fetch('/api/oled-config?sda='+sda.value+'&scl='+scl.value);";
+  js += "const d=await r.json();";
+  js += "if(d.message){document.getElementById('oled-status').textContent=d.message;showInlineNotice('oled-feedback',d.message,d.success?'success':'error');}}";
+  js += "catch(e){showInlineNotice('oled-feedback','Erreur configuration OLED','error');}";
   js += "}";
   js += "async function testOLED(){";
   js += "document.getElementById('oled-status').textContent='Test en cours (25s)...';";
   js += "const r=await fetch('/api/oled-test');const d=await r.json();";
-  js += "document.getElementById('oled-status').textContent=d.result;";
+  js += "document.getElementById('oled-status').textContent=d.result;showInlineNotice('oled-feedback',d.result,d.success?'success':'error');";
   js += "}";
-
-  // FONCTIONS API - Affichage texte TFT/OLED
-  js += "async function tftDisplayText(){";
-  js += "const text=document.getElementById('tftText').value;";
-  js += "if(!text){alert('Entrez un texte!');return;}";
-  js += "document.getElementById('tft-status').textContent='Affichage en cours...';";
-  js += "const r=await fetch('/api/tft-text?text='+encodeURIComponent(text));";
+  js += "async function oledPattern(p){";
+  js += "const status=document.getElementById('oled-status');";
+  js += "if(status)status.textContent='Lancement motif...';";
+  js += "const r=await fetch('/api/oled-pattern?pattern='+encodeURIComponent(p));";
   js += "const d=await r.json();";
-  js += "document.getElementById('tft-status').textContent=d.message;";
+  js += "if(status)status.textContent=d.message||status.textContent;";
+  js += "if(d.message)showInlineNotice('oled-feedback',d.message,d.success?'success':'error');";
   js += "}";
 
   js += "async function oledDisplayText(){";
-  js += "const text=document.getElementById('oledText').value;";
-  js += "if(!text){alert('Entrez un message!');return;}";
+  js += "const text=document.getElementById('oledText');";
+  js += "if(!text)return;";
+  js += "if(!text.value){showInlineNotice('oled-feedback',translations.message_required||'Entrez un message !','error');return;}";
   js += "document.getElementById('oled-status').textContent='Affichage en cours...';";
-  js += "const r=await fetch('/api/oled-message?message='+encodeURIComponent(text));";
+  js += "const r=await fetch('/api/oled-message?message='+encodeURIComponent(text.value));";
   js += "const d=await r.json();";
-  js += "document.getElementById('oled-status').textContent=d.message;";
+  js += "document.getElementById('oled-status').textContent=d.message;showInlineNotice('oled-feedback',d.message,d.success?'success':'error');";
   js += "}";
 
   // FONCTIONS API - Tests
@@ -581,8 +630,9 @@ js += "function buildScreens(d){";
   js += "return d+'j '+(h%24)+'h '+(m%60)+'m';";
   js += "}";
 
-  js += "function showUpdateIndicator(){document.getElementById('updateIndicator').classList.add('show');}";
-  js += "function hideUpdateIndicator(){setTimeout(()=>document.getElementById('updateIndicator').classList.remove('show'),500);}";
+  js += "function showUpdateIndicator(msg){const el=document.getElementById('updateIndicator');if(!el)return;if(!el.dataset.defaultText)el.dataset.defaultText=el.textContent;if(msg)el.textContent=msg;el.classList.add('show');}";
+  js += "function hideUpdateIndicator(delay=500){const el=document.getElementById('updateIndicator');if(!el)return;setTimeout(()=>{el.classList.remove('show');if(el.dataset.defaultText)el.textContent=el.dataset.defaultText;},delay);}";
+  js += "function showInlineNotice(id,message,type){const el=document.getElementById(id);if(!el||!message)return;const tone=type||'info';el.classList.remove('success','error','info');el.classList.add('inline-feedback',tone);el.classList.add('show');clearTimeout(inlineNoticeTimers[id]);inlineNoticeTimers[id]=setTimeout(()=>{el.classList.remove('show');},4000);}";
   js += "function updateStatusIndicator(c){";
   js += "const i=document.getElementById('statusIndicator');";
   js += "if(c){i.classList.remove('status-offline');i.classList.add('status-online');}";
@@ -608,21 +658,25 @@ js += "function buildScreens(d){";
   // Changement de langue
   js += "function changeLang(lang){";
   js += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
-  js += "if(d.success){";
+  js += "if(!d.success)throw new Error('lang-update');";
   js += "currentLang=lang;";
   js += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
   js += "document.querySelectorAll('.lang-btn').forEach(b=>{if(b.textContent.toLowerCase()===lang)b.classList.add('active');});";
   js += "return fetch('/api/get-translations');";
-  js += "}).then(r=>r.json()).then(translations=>{";
+  js += "}).then(r=>r.json()).then(tr=>{";
+  js += "translations=tr||{};";
   js += "updateInterfaceTexts(translations);";
-  js += "alert('Langue changée : '+lang.toUpperCase());";
-  js += "}).catch(e=>alert('Erreur changement langue: '+e));";
+  js += "const msg=(translations.language_changed||'Langue changée')+' : '+lang.toUpperCase();";
+  js += "showUpdateIndicator(msg);hideUpdateIndicator(2000);";
+  js += "}).catch(()=>{showUpdateIndicator('Erreur changement langue');hideUpdateIndicator(2500);});";
   js += "}";
 
   js += "function updateInterfaceTexts(t){";
   js += "const tabs=['overview','leds','screens','tests','gpio','wifi','benchmark','export'];";
   js += "const btns=document.querySelectorAll('.nav-btn');";
   js += "btns.forEach((btn,i)=>{if(t[tabs[i]])btn.textContent=t[tabs[i]];});";
+  js += "const gpioWarn=document.getElementById('gpio-warning');if(gpioWarn&&t.gpio_fail_hint)gpioWarn.textContent=t.gpio_fail_hint;";
+  js += "const oledInput=document.getElementById('oledText');if(oledInput&&t.custom_message)oledInput.placeholder=t.custom_message;";
   js += "}";
 
   return js;
