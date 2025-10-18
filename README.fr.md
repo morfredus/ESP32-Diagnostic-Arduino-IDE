@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# Diagnostic ESP32 Complet v3.0.0
+# Diagnostic ESP32 Complet v4.0.6
 
 🇫🇷 Version française | [🇬🇧 English Version](README.md)
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, accessible via interface web. Teste automatiquement tous les composants matériels, analyse la mémoire, scanne les périphériques et génère des rapports détaillés.
 
-**Nouveautés v3.0.0** : Version officielle validée avec le **core ESP32 Arduino 3.3.2** et documentation bilingue actualisée.
+**Nouveautés v4.0.6** : L'onglet OLED affiche en permanence le test complet, l'envoi de message et chaque motif même avant détection automatique, et l'onglet GPIO ajoute un rappel localisé indiquant qu'un « FAIL » peut correspondre à un GPIO réservé.
 
 ## ✨ Fonctionnalités
 
@@ -27,10 +27,9 @@ Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, acce
 - **Traductions complètes** : Tous les textes, labels, messages et statuts
 
 ### Tests Matériels
-- **LED intégrée** - Configuration et test avec patterns (blink, fade)
+- **LED intégrée** - GPIO configurable avec détection automatique de conflit quand la NeoPixel partage la broche
 - **NeoPixel/WS2812B** - Support multi-LED avec effets RGB
-- **Écran TFT 320x240** - Test couleurs, formes, texte
-- **Écran OLED 0.96" I2C** - 10 tests d'affichage incluant animations
+- **Écran OLED 0.96" I2C** - Suite complète (test global, message, motifs) accessible individuellement même avant auto-détection
 - **GPIO** - Test automatique de tous les GPIO disponibles
 - **ADC** - Lecture de tous les canaux analogiques
 - **Touch Pads** - Test capteurs tactiles capacitifs
@@ -72,7 +71,7 @@ Testé et optimisé pour :
 ### Matériel
 - Carte ESP32 (n'importe quel modèle)
 - Câble USB
-- Optionnel : LED NeoPixel, écran TFT, écran OLED
+- Optionnel : LED NeoPixel, écran OLED
 
 ### Logiciel
 - **Arduino IDE** 2.x ou supérieur
@@ -86,7 +85,6 @@ Testé et optimisé pour :
 2. Adafruit GFX Library
 3. Adafruit SSD1306
 4. Adafruit NeoPixel
-5. TFT_eSPI
 ```
 
 **Incluses avec ESP32 Core :**
@@ -228,11 +226,6 @@ curl http://ESP32-Diagnostic.local/api/get-translations
 | ESP32-S3 | 8   | 9   |
 | ESP32-C3 | 5   | 6   |
 
-**TFT SPI (fixes) :**
-```
-MOSI: 45, SCLK: 3, CS: 14, DC: 47, RST: 21, MISO: 46
-```
-
 **LED Intégrée (auto-détectée) :**
 - ESP32-S3 : GPIO 2
 - ESP32-C3 : GPIO 8
@@ -252,7 +245,7 @@ MOSI: 45, SCLK: 3, CS: 14, DC: 47, RST: 21, MISO: 46
 
 1. **Vue d'ensemble** - Informations complètes système
 2. **LEDs** - Tests LED intégrée et NeoPixel
-3. **Écrans** - Tests TFT et OLED
+3. **Écrans** - Tests OLED
 4. **Tests Avancés** - ADC, Touch, PWM, SPI, Partitions, Stress Test
 5. **GPIO** - Test automatique tous GPIO
 6. **WiFi** - Scanner réseaux WiFi
@@ -353,7 +346,7 @@ Si certains textes restent en français :
 
 **Ne jamais partager `config.h` avec vos identifiants WiFi.**
 
-## 📁 Structure du Projet v3.0.0
+## 📁 Structure du Projet v4.0.6
 
 ```
 ESP32-Diagnostic/
@@ -367,6 +360,34 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v4.0.6 (2025) - TESTS OLED PERMANENTS & AVERTISSEMENT GPIO
+- 🖥️ **Les contrôles OLED restent disponibles même sans détection initiale** : test complet, message personnalisé et chaque motif peuvent être lancés à tout moment.
+- 💬 **Les retours OLED s'actualisent après changement de langue** sans rechargement, avec toutes les étiquettes et statuts recalculés.
+- ⚠️ **L'onglet GPIO affiche un rappel localisé** indiquant qu'un « FAIL » signale souvent une broche réservée (flash, UART, capteurs) plutôt qu'une défaillance matérielle.
+
+### v4.0.4 (2025) - GARDE CONFLIT LED + API LOCALISÉE
+- 💡 **Le test de LED intégrée s'interrompt si la NeoPixel partage le GPIO** et signale le conflit sans clignoter la bande
+- 🌐 **Toutes les réponses API LED/OLED sont traduites** (motif manquant, broches invalides, message personnalisé, etc.)
+- 🖥️ **L'ancienne interface web bénéficie des mêmes raccourcis OLED** que la page dynamique
+
+### v4.0.3 (2025) - PROTECTION LED + RACCOURCIS OLED
+- 💡 **Le test de LED intégrée détecte les conflits NeoPixel** et bascule en "mode simple" lorsque la broche est partagée
+- 🖥️ **Actions rapides OLED** pour lancer chaque démo sans relancer le test complet de 25 secondes
+
+### v4.0.2 (2025) - CORRECTION CATALOGUE DE TRADUCTIONS
+- 🧰 **Correction de l'export du catalogue de traductions** pour éviter l'erreur `String::endsWith` avec Arduino Core 3.3.2
+- 🌐 **Maintien du changement de langue instantané** grâce à la distribution complète des traductions au navigateur
+
+### v4.0.1 (2025) - ALIGNEMENT API TFT
+- 🛠️ **Les endpoints TFT renvoient désormais un message traduit "fonction désactivée"** pour chaque motif demandé
+- 🔄 **Actualisation automatique des statuts TFT** lors d'un changement de langue
+
+### v4.0.0 (2025) - VERSION SANS TFT
+- 🧹 **Suppression de la dépendance TFT_eSPI** tout en conservant l'onglet/API TFT
+- 📡 **Scanner Wi-Fi** : toutes les méthodes d'authentification IDF et gestion des erreurs de scan
+- 🧮 **Benchmark CPU** : MFLOPS calculés à partir du temps réel et du nombre d'opérations
+- 🌍 **Messages mémoire/I2C** : réutilisation complète des traductions existantes
 
 ### v3.0.0 (2025) - VERSION OFFICIELLE
 - ✅ **Compatibilité validée avec le core Arduino 3.3.2**
@@ -404,13 +425,15 @@ Code libre d'utilisation, modification et distribution.
 
 Développé pour la communauté ESP32.
 
+**v4.0.6 - Tests OLED permanents & avertissement GPIO**
+**v4.0.2 - Correctif catalogue de traductions + localisation**
 **v3.0.0 - Support officiel du core 3.3.2**
 **v2.4 - Système multilingue**
 **v2.3 - Base exhaustive**
 
 ---
 
-**Version actuelle** : 3.0.0 Multilingue
+**Version actuelle** : 4.0.6 Multilingue
 **Dernière mise à jour** : Octobre 2025
 **Langues disponibles** : Français (défaut), Anglais
 **Support** : ESP32 Arduino Core 3.3.2+
