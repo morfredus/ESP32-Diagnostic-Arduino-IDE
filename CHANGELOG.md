@@ -5,6 +5,17 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.12] - 2025-10-23
+
+### Fixed
+- Corrected the `/api/wireless-status` JSON assembly so the Bluetooth readiness card stays visible even when Wi-Fi identifiers include quotes or special characters.
+- Escaped Wi-Fi/BLE fields in the JSON export to prevent malformed payloads during downloads.
+
+### Changed
+- Updated firmware identifiers, documentation, and UI banners to version 4.0.12.
+
+---
+
 ## [4.0.11] - 2025-10-22
 
 ### Added
@@ -394,6 +405,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 4.0.12 | 2025-10-23 | Wireless-status JSON fix keeps Bluetooth card visible and exports valid |
 | 4.0.11 | 2025-10-22 | Wireless recap in serial & exports plus auto-disabled BLE scan button |
 | 4.0.10 | 2025-10-21 | Bluetooth readiness card with detailed hardware/firmware status |
 | 4.0.9 | 2025-10-20 | PSRAM diagnostics mirrored in UI plus Wi-Fi/BLE readiness summary |

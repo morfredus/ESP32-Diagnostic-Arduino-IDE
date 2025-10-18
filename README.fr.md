@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# Diagnostic ESP32 Complet v4.0.11
+# Diagnostic ESP32 Complet v4.0.12
 
 🇫🇷 Version française | [🇬🇧 English Version](README.md)
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, accessible via interface web. Teste automatiquement tous les composants matériels, analyse la mémoire, scanne les périphériques et génère des rapports détaillés.
 
-**Nouveautés v4.0.11** : La disponibilité Bluetooth est visible partout (carte Sans fil toujours affichée, résumé série et exports TXT/JSON/CSV/print) et le bouton de scan BLE se désactive automatiquement si la pile native manque.
+**Nouveautés v4.0.12** : Correction du JSON du statut Sans fil pour garder la carte Bluetooth et les exports visibles même avec des caractères spéciaux dans le Wi-Fi, accompagnée de la mise à jour version de la documentation/interface.
 
 ## ✨ Fonctionnalités
 
@@ -347,7 +347,7 @@ Si certains textes restent en français :
 
 **Ne jamais partager `config.h` avec vos identifiants WiFi.**
 
-## 📁 Structure du Projet v4.0.11
+## 📁 Structure du Projet v4.0.12
 
 ```
 ESP32-Diagnostic/
@@ -361,6 +361,11 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v4.0.12 (2025) - CORRECTIF JSON SANS FIL
+- 🛠️ **Correction du JSON du statut Sans fil** pour que la fiche Bluetooth reste affichée même si les métadonnées Wi-Fi contiennent des caractères spéciaux.
+- 📤 **Exports TXT/JSON sécurisés** grâce à l'échappement systématique des champs Wi-Fi/BLE.
+- 🧾 **Firmware, documentation et interface passent en v4.0.12** pour refléter ce correctif.
 
 ### v4.0.11 (2025) - STATUT BLUETOOTH PARTOUT
 - 📶 **La carte Sans fil reste visible même sans pile BLE**, avec un message clair expliquant pourquoi le Bluetooth est indisponible.
@@ -431,6 +436,7 @@ Code libre d'utilisation, modification et distribution.
 
 Développé pour la communauté ESP32.
 
+**v4.0.12 - Correctif JSON Sans fil + fiabilité Bluetooth**
 **v4.0.11 - Statut Bluetooth partout**
 **v4.0.9 - Statut PSRAM et résumé Sans fil**
 **v4.0.2 - Correctif catalogue de traductions + localisation**
@@ -440,7 +446,7 @@ Développé pour la communauté ESP32.
 
 ---
 
-**Version actuelle** : 4.0.11 Multilingue
+**Version actuelle** : 4.0.12 Multilingue
 **Dernière mise à jour** : Octobre 2025
 **Langues disponibles** : Français (défaut), Anglais
 **Support** : ESP32 Arduino Core 3.3.2+

@@ -1,9 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.11
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.12
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v4.0.12:
+ * - Corrige la génération JSON du statut Sans fil pour que la carte Bluetooth reste visible même hors connexion
+ * - Fiabilise les exports JSON WiFi/BLE lorsque les textes contiennent des caractères spéciaux
+ * - Met à jour les références documentaires et l'interface vers la version 4.0.12
  *
  * Nouveautés v4.0.11:
  * - Assure l'affichage permanent de la fiche Bluetooth avec messages explicites même sans pile BLE active
@@ -91,7 +96,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.11"
+#define DIAGNOSTIC_VERSION "4.0.12"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2168,18 +2173,18 @@ void handleExportJSON() {
   json += "},";
   
   bool wifiConnected = WiFi.status() == WL_CONNECTED;
-  json += "\"wifi\":{"";
+  json += "\"wifi\":{";
   json += "\"connected\":" + String(wifiConnected ? "true" : "false") + ",";
-  json += "\"ssid\":\"" + diagnosticData.wifiSSID + "\","";
+  json += "\"ssid\":\"" + jsonEscape(diagnosticData.wifiSSID) + "\",";
   json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
-  json += "\"quality\":\"" + getWiFiSignalQuality() + "\","";
-  json += "\"ip\":\"" + diagnosticData.ipAddress + "\","";
-  json += "\"subnet\":\"" + WiFi.subnetMask().toString() + "\","";
-  json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\","";
+  json += "\"quality\":\"" + jsonEscape(getWiFiSignalQuality()) + "\",";
+  json += "\"ip\":\"" + diagnosticData.ipAddress + "\",";
+  json += "\"subnet\":\"" + WiFi.subnetMask().toString() + "\",";
+  json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",";
   json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
   json += "},";
 
-  json += "\"bluetooth\":{"";
+  json += "\"bluetooth\":{";
   json += "\"chip_capable\":" + String(diagnosticData.bleChipCapable ? "true" : "false") + ",";
   json += "\"stack_available\":" + String(diagnosticData.bleStackAvailable ? "true" : "false") + ",";
   json += "\"enabled\":" + String(diagnosticData.hasBLE ? "true" : "false") + ",";
@@ -3231,7 +3236,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.11 - FR/EN");
+  Serial.println("     Version 4.0.12 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
