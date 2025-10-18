@@ -1,14 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.8
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.9
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v4.0.8:
- * - Fusionne l'onglet Wi-Fi et BLE en diagnostics « Sans fil » avec cartes RSSI complètes
- * - Ajoute l'endpoint `/api/ble-scan` consommé par les interfaces dynamique et classique
- * - Neutralise le BLE à la compilation lorsque `esp_gap_ble_api.h` est absent afin d'éviter les erreurs
+ * Nouveautés v4.0.9:
+ * - Ajoute des statuts PSRAM détaillés (mode détecté, disponibilité, recommandations IDE) dans les exports et l'UI
+ * - Diffuse l'état PSRAM via les API JSON afin que l'interface dynamique reflète le diagnostic série
+ * - Affiche un résumé Wi-Fi/BLE sur l'onglet Sans fil pour indiquer la disponibilité du BLE et la connexion Wi-Fi
  *
  * Nouveautés v4.0.6:
  * - Rend tous les tests OLED (complet, message, motifs) accessibles même avant détection automatique
@@ -91,7 +91,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.8"
+#define DIAGNOSTIC_VERSION "4.0.9"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -167,6 +167,10 @@ struct DiagnosticInfo {
   bool hasWiFi;
   bool hasBT;
   bool hasBLE;
+  bool bleChipCapable;
+  bool bleStackAvailable;
+  String bleStatusMessage;
+  String bleHint;
   String wifiSSID;
   int wifiRSSI;
   String ipAddress;
@@ -204,7 +208,12 @@ struct DetailedMemoryInfo {
   uint32_t psramLargestBlock;
   bool psramAvailable;
   bool psramConfigured;
-  
+  bool psramSupported;
+  String psramMode;
+  String psramModeLabel;
+  String psramStatusMessage;
+  String psramRecommendation;
+
   uint32_t sramTotal;
   uint32_t sramFree;
   uint32_t sramUsed;
@@ -500,50 +509,77 @@ bool testPSRAMQuick() {
 }
 
 void collectDetailedMemory() {
+  refreshLocalizedStatusMessages();
   uint32_t flashSizeReal;
   esp_flash_get_size(NULL, &flashSizeReal);
-  
+
   detailedMemory.flashSizeChip = flashSizeReal;
   detailedMemory.flashSizeReal = ESP.getFlashChipSize();
-  
+
   detailedMemory.psramTotal = ESP.getPsramSize();
   detailedMemory.psramAvailable = (detailedMemory.psramTotal > 0);
-  
-  detailedMemory.psramConfigured = false;
-  
-  #if defined(CONFIG_SPIRAM)
-    detailedMemory.psramConfigured = true;
-  #endif
-  #if defined(CONFIG_SPIRAM_SUPPORT)
-    detailedMemory.psramConfigured = true;
-  #endif
-  #if defined(BOARD_HAS_PSRAM)
-    detailedMemory.psramConfigured = true;
-  #endif
+  detailedMemory.psramConfigured = detailedMemory.psramAvailable;
+
+  bool psramFlagDetected = false;
+  String psramModeShort = "";
+
   #if defined(CONFIG_SPIRAM_MODE_OCT)
-    detailedMemory.psramConfigured = true;
+    psramFlagDetected = true;
+    psramModeShort = "OPI";
   #endif
   #if defined(CONFIG_SPIRAM_MODE_QUAD)
-    detailedMemory.psramConfigured = true;
+    psramFlagDetected = true;
+    if (psramModeShort.length() == 0) psramModeShort = "QSPI";
   #endif
-  
-  if (detailedMemory.psramTotal == 0) {
-    detailedMemory.psramConfigured = false;
+  #if defined(CONFIG_SPIRAM)
+    psramFlagDetected = true;
+  #endif
+  #if defined(CONFIG_SPIRAM_SUPPORT)
+    psramFlagDetected = true;
+  #endif
+  #if defined(BOARD_HAS_PSRAM)
+    psramFlagDetected = true;
+  #endif
+
+  detailedMemory.psramSupported = psramFlagDetected;
+  detailedMemory.psramMode = psramModeShort;
+
+  String psramModeLabel;
+  if (psramModeShort == "OPI") {
+    psramModeLabel = String(T().psram_mode_opi);
+  } else if (psramModeShort == "QSPI") {
+    psramModeLabel = String(T().psram_mode_qspi);
+  } else if (psramFlagDetected) {
+    psramModeLabel = String(T().psram_mode_unknown);
+  } else {
+    psramModeLabel = String(T().none);
   }
-  
+  detailedMemory.psramModeLabel = psramModeLabel;
+
   if (detailedMemory.psramAvailable) {
     detailedMemory.psramFree = ESP.getFreePsram();
     detailedMemory.psramUsed = detailedMemory.psramTotal - detailedMemory.psramFree;
-    
+
     multi_heap_info_t info;
     heap_caps_get_info(&info, MALLOC_CAP_SPIRAM);
     detailedMemory.psramLargestBlock = info.largest_free_block;
+    detailedMemory.psramStatusMessage = String(T().psram_status_active);
+    detailedMemory.psramStatusMessage.replace("%MODE%", psramModeLabel);
+    detailedMemory.psramRecommendation = "";
   } else {
     detailedMemory.psramFree = 0;
     detailedMemory.psramUsed = 0;
     detailedMemory.psramLargestBlock = 0;
+    if (psramFlagDetected) {
+      detailedMemory.psramStatusMessage = String(T().psram_status_disabled);
+      detailedMemory.psramStatusMessage.replace("%MODE%", psramModeLabel);
+      detailedMemory.psramRecommendation = String(T().psram_enable_hint);
+    } else {
+      detailedMemory.psramStatusMessage = String(T().psram_status_not_supported);
+      detailedMemory.psramRecommendation = "";
+    }
   }
-  
+
   multi_heap_info_t infoInternal;
   heap_caps_get_info(&infoInternal, MALLOC_CAP_INTERNAL);
   detailedMemory.sramTotal = infoInternal.total_free_bytes + infoInternal.total_allocated_bytes;
@@ -574,8 +610,9 @@ void collectDetailedMemory() {
 }
 
 void printPSRAMDiagnostic() {
+  collectDetailedMemory();
   Serial.println("\r\n=== DIAGNOSTIC PSRAM DETAILLE ===");
-  Serial.printf("ESP.getPsramSize(): %u octets (%.2f MB)\r\n", 
+  Serial.printf("ESP.getPsramSize(): %u octets (%.2f MB)\r\n",
                 ESP.getPsramSize(), ESP.getPsramSize() / 1048576.0);
   
   Serial.println("\r\nFlags de compilation detectes (indication du type supporte par la carte):");
@@ -615,13 +652,11 @@ void printPSRAMDiagnostic() {
   Serial.printf("  psramAvailable = %s\r\n", detailedMemory.psramAvailable ? "TRUE" : "FALSE");
   
   Serial.println("\r\nConclusion:");
-  if (ESP.getPsramSize() > 0) {
-    Serial.printf("  → PSRAM fonctionnelle! Type: %s\r\n", psramType.c_str());
-  } else if (anyFlag) {
-    Serial.printf("  → Carte compatible PSRAM %s mais DESACTIVEE dans IDE\r\n", psramType.c_str());
-    Serial.println("  → Pour activer: Tools → PSRAM → OPI PSRAM (ou QSPI)");
-  } else {
-    Serial.println("  → Carte sans support PSRAM");
+  Serial.print("  → ");
+  Serial.println(detailedMemory.psramStatusMessage);
+  if (detailedMemory.psramRecommendation.length() > 0) {
+    Serial.print("  → ");
+    Serial.println(detailedMemory.psramRecommendation);
   }
   Serial.println("=====================================\r\n");
 }
@@ -1516,12 +1551,30 @@ void collectDiagnosticInfo() {
   
   diagnosticData.hasWiFi = (chip_info.features & CHIP_FEATURE_WIFI_BGN);
   diagnosticData.hasBT = (chip_info.features & CHIP_FEATURE_BT);
-  diagnosticData.hasBLE = (chip_info.features & CHIP_FEATURE_BLE) && HAS_NATIVE_BLE;
-  
+  bool bleFeatureBit = (chip_info.features & CHIP_FEATURE_BLE);
+  diagnosticData.bleChipCapable = bleFeatureBit;
+  diagnosticData.bleStackAvailable = HAS_NATIVE_BLE;
+  diagnosticData.hasBLE = bleFeatureBit && HAS_NATIVE_BLE;
+
+  if (diagnosticData.hasBLE) {
+    diagnosticData.bleStatusMessage = String(T().ble_status_active);
+    diagnosticData.bleHint = "";
+  } else if (bleFeatureBit && !HAS_NATIVE_BLE) {
+    diagnosticData.bleStatusMessage = String(T().ble_status_stack_missing);
+    diagnosticData.bleHint = String(T().ble_enable_hint);
+  } else {
+    diagnosticData.bleStatusMessage = String(T().ble_status_not_supported);
+    diagnosticData.bleHint = "";
+  }
+
   if (WiFi.status() == WL_CONNECTED) {
     diagnosticData.wifiSSID = WiFi.SSID();
     diagnosticData.wifiRSSI = WiFi.RSSI();
     diagnosticData.ipAddress = WiFi.localIP().toString();
+  } else {
+    diagnosticData.wifiSSID = "";
+    diagnosticData.wifiRSSI = -120;
+    diagnosticData.ipAddress = "";
   }
   
   diagnosticData.gpioList = getGPIOList();
@@ -1553,6 +1606,64 @@ void collectDiagnosticInfo() {
 }
 
 // ========== HANDLERS API ==========
+void handleOverview() {
+  collectDiagnosticInfo();
+  collectDetailedMemory();
+
+  String json = "{";
+  json += "\"chip\":{\"model\":\"" + jsonEscape(diagnosticData.chipModel) + "\",";
+  json += "\"revision\":\"" + jsonEscape(diagnosticData.chipRevision) + "\",";
+  json += "\"cores\":" + String(diagnosticData.cpuCores) + ",";
+  json += "\"freq\":" + String(diagnosticData.cpuFreqMHz) + ",";
+  json += "\"mac\":\"" + diagnosticData.macAddress + "\",";
+  json += "\"uptime\":" + String(diagnosticData.uptime) + ",";
+  json += "\"temperature\":" + String(diagnosticData.temperature, 1) + "},";
+
+  json += "\"memory\":{";
+  json += "\"flash\":{\"real\":" + String(detailedMemory.flashSizeReal) + ",\"chip\":" + String(detailedMemory.flashSizeChip) + ",\"type\":\"" + jsonEscape(getFlashType()) + "\"},";
+  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",";
+  json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) + ",\"free\":" + String(detailedMemory.sramFree) + ",\"used\":" + String(detailedMemory.sramUsed) + "},";
+  json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") + ",";
+  json += "\"supported\":" + String(detailedMemory.psramSupported ? "true" : "false") + ",";
+  json += "\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") + ",";
+  json += "\"total\":" + String(detailedMemory.psramTotal) + ",\"free\":" + String(detailedMemory.psramFree) + ",";
+  json += "\"used\":" + String(detailedMemory.psramUsed) + ",\"mode\":\"" + jsonEscape(detailedMemory.psramMode) + "\",";
+  json += "\"mode_label\":\"" + jsonEscape(detailedMemory.psramModeLabel) + "\",\"status\":\"" + jsonEscape(detailedMemory.psramStatusMessage) + "\"";
+  if (detailedMemory.psramRecommendation.length() > 0) {
+    json += ",\"hint\":\"" + jsonEscape(detailedMemory.psramRecommendation) + "\"";
+  }
+  json += "}},";
+
+  json += "\"wifi\":{\"ssid\":\"" + jsonEscape(diagnosticData.wifiSSID) + "\",\"rssi\":" + String(diagnosticData.wifiRSSI) + ",\"quality\":\"" + jsonEscape(getWiFiSignalQuality()) + "\",\"ip\":\"" + jsonEscape(diagnosticData.ipAddress) + "\"},";
+
+  json += "\"gpio\":{\"total\":" + String(diagnosticData.totalGPIO) + ",\"i2c_count\":" + String(diagnosticData.i2cCount) + ",\"i2c_devices\":\"" + jsonEscape(diagnosticData.i2cDevices) + "\"}";
+
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleWirelessStatus() {
+  collectDiagnosticInfo();
+
+  String json = "{";
+  bool wifiConnected = WiFi.status() == WL_CONNECTED;
+  json += "\"wifi\":{\"connected\":" + String(wifiConnected ? "true" : "false") + ",";
+  json += "\"ssid\":\"" + jsonEscape(diagnosticData.wifiSSID) + "\",\"rssi\":" + String(diagnosticData.wifiRSSI) + ",\"quality\":\"" + jsonEscape(getWiFiSignalQuality()) + "\"}";
+
+  json += ",\"ble\":{\"chipCapable\":" + String(diagnosticData.bleChipCapable ? "true" : "false") + ",";
+  json += "\"stackAvailable\":" + String(diagnosticData.bleStackAvailable ? "true" : "false") + ",";
+  json += "\"enabled\":" + String(diagnosticData.hasBLE ? "true" : "false") + ",\"status\":\"" + jsonEscape(diagnosticData.bleStatusMessage) + "\"";
+  if (diagnosticData.bleHint.length() > 0) {
+    json += ",\"hint\":\"" + jsonEscape(diagnosticData.bleHint) + "\"";
+  }
+  json += "}";
+
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
 void handleTestGPIO() {
   testAllGPIOs();
   String json = "{\"results\":[";
@@ -1882,12 +1993,20 @@ void handleMemoryDetails() {
   collectDetailedMemory();
   
   String json = "{\"flash\":{\"real\":" + String(detailedMemory.flashSizeReal) + ",\"chip\":" + String(detailedMemory.flashSizeChip) + "},";
-  json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") + 
-          ",\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") + 
-          ",\"total\":" + String(detailedMemory.psramTotal) + ",\"free\":" + String(detailedMemory.psramFree) + "},";
+  json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") +
+          ",\"supported\":" + String(detailedMemory.psramSupported ? "true" : "false") +
+          ",\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") +
+          ",\"total\":" + String(detailedMemory.psramTotal) + ",\"free\":" + String(detailedMemory.psramFree) +
+          ",\"used\":" + String(detailedMemory.psramUsed) + ",\"mode\":\"" + jsonEscape(detailedMemory.psramMode) +
+          "\",\"mode_label\":\"" + jsonEscape(detailedMemory.psramModeLabel) +
+          "\",\"status\":\"" + jsonEscape(detailedMemory.psramStatusMessage) + "\"";
+  if (detailedMemory.psramRecommendation.length() > 0) {
+    json += ",\"hint\":\"" + jsonEscape(detailedMemory.psramRecommendation) + "\"";
+  }
+  json += "},";
   json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) + ",\"free\":" + String(detailedMemory.sramFree) + "},";
   json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",\"status\":\"" + detailedMemory.memoryStatus + "\"}";
-  
+
   server.send(200, "application/json", json);
 }
 
@@ -2349,6 +2468,14 @@ void handleGetTranslations() {
   appendJsonField(json, "not_detected", String(T().not_detected));
   appendJsonField(json, "disabled", String(T().disabled));
   appendJsonField(json, "psram_usage", String(T().psram_usage));
+  appendJsonField(json, "psram_mode_label", String(T().psram_mode_label));
+  appendJsonField(json, "psram_status_active", String(T().psram_status_active));
+  appendJsonField(json, "psram_status_disabled", String(T().psram_status_disabled));
+  appendJsonField(json, "psram_status_not_supported", String(T().psram_status_not_supported));
+  appendJsonField(json, "psram_enable_hint", String(T().psram_enable_hint));
+  appendJsonField(json, "psram_mode_opi", String(T().psram_mode_opi));
+  appendJsonField(json, "psram_mode_qspi", String(T().psram_mode_qspi));
+  appendJsonField(json, "psram_mode_unknown", String(T().psram_mode_unknown));
 
   appendJsonField(json, "internal_sram", String(T().internal_sram));
   appendJsonField(json, "min_free", String(T().min_free));
@@ -2372,11 +2499,20 @@ void handleGetTranslations() {
   appendJsonField(json, "wifi_channel", String(T().wifi_channel));
   appendJsonField(json, "wifi_click_to_scan", String(T().wifi_click_to_scan));
   appendJsonField(json, "wifi_no_networks", String(T().wifi_no_networks));
+  appendJsonField(json, "wifi_not_connected", String(T().wifi_not_connected));
   appendJsonField(json, "ble_scanner", String(T().ble_scanner));
   appendJsonField(json, "scan_ble_devices", String(T().scan_ble_devices));
   appendJsonField(json, "ble_click_to_scan", String(T().ble_click_to_scan));
   appendJsonField(json, "ble_no_devices", String(T().ble_no_devices));
   appendJsonField(json, "ble_not_supported", String(T().ble_not_supported));
+  appendJsonField(json, "wireless_status", String(T().wireless_status));
+  appendJsonField(json, "wifi_label", String(T().wifi_label));
+  appendJsonField(json, "ble_label", String(T().ble_label));
+  appendJsonField(json, "recommendation", String(T().recommendation));
+  appendJsonField(json, "ble_status_active", String(T().ble_status_active));
+  appendJsonField(json, "ble_status_stack_missing", String(T().ble_status_stack_missing));
+  appendJsonField(json, "ble_status_not_supported", String(T().ble_status_not_supported));
+  appendJsonField(json, "ble_enable_hint", String(T().ble_enable_hint));
 
   appendJsonField(json, "gpio_interfaces", String(T().gpio_interfaces));
   appendJsonField(json, "total_gpio", String(T().total_gpio));
@@ -2669,13 +2805,15 @@ void handleRoot() {
   
   // Memory - PSRAM
   chunk = "<h3 data-i18n='psram_external'>" + String(T().psram_external) + "</h3><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='hardware_status'>" + String(T().hardware_status) + "</div><div class='info-value'>" + detailedMemory.psramStatusMessage + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='psram_mode_label'>" + String(T().psram_mode_label) + "</div><div class='info-value'>" + detailedMemory.psramModeLabel + "</div></div>";
   if (detailedMemory.psramAvailable) {
-    chunk += "<div class='info-item'><div class='info-label' data-i18n='hardware_status'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-success' data-i18n='detected_active'>" + String(T().detected_active) + "</span></div></div>";
     chunk += "<div class='info-item'><div class='info-label' data-i18n='total_size'>" + String(T().total_size) + "</div><div class='info-value'>" + String(detailedMemory.psramTotal / 1048576.0, 2) + " MB</div></div>";
     chunk += "<div class='info-item'><div class='info-label' data-i18n='free'>" + String(T().free) + "</div><div class='info-value'>" + String(detailedMemory.psramFree / 1048576.0, 2) + " MB</div></div>";
     chunk += "<div class='info-item'><div class='info-label' data-i18n='used'>" + String(T().used) + "</div><div class='info-value'>" + String(detailedMemory.psramUsed / 1048576.0, 2) + " MB</div></div>";
-  } else {
-    chunk += "<div class='info-item'><div class='info-label' data-i18n='hardware_status'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-danger' data-i18n='not_detected'>" + String(T().not_detected) + "</span></div></div>";
+  }
+  if (detailedMemory.psramRecommendation.length() > 0) {
+    chunk += "<div class='info-item' style='grid-column:1/-1'><div class='info-label' data-i18n='recommendation'>" + String(T().recommendation) + "</div><div class='info-value'>" + detailedMemory.psramRecommendation + "</div></div>";
   }
   chunk += "</div>";
   server.sendContent(chunk);
@@ -3026,7 +3164,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.8 - FR/EN");
+  Serial.println("     Version 4.0.9 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
@@ -3092,7 +3230,10 @@ void setup() {
   // **NOUVELLES ROUTES MULTILINGUES**
   server.on("/api/set-language", handleSetLanguage);
   server.on("/api/get-translations", handleGetTranslations);
-  
+
+  server.on("/api/overview", handleOverview);
+  server.on("/api/wireless-status", handleWirelessStatus);
+
   // GPIO & WiFi
   server.on("/api/test-gpio", handleTestGPIO);
   server.on("/api/wifi-scan", handleWiFiScan);

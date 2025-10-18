@@ -66,18 +66,26 @@ struct Translations {
   const char* not_detected;
   const char* disabled;
   const char* psram_usage;
-  
+  const char* psram_mode_label;
+  const char* psram_status_active;
+  const char* psram_status_disabled;
+  const char* psram_status_not_supported;
+  const char* psram_enable_hint;
+  const char* psram_mode_opi;
+  const char* psram_mode_qspi;
+  const char* psram_mode_unknown;
+
   const char* internal_sram;
   const char* min_free;
   const char* max_alloc;
-  
+
   const char* global_analysis;
   const char* memory_fragmentation;
   const char* memory_status;
   const char* total_ram;
   const char* free_ram_total;
   const char* refresh_memory;
-  
+
   // WiFi
   const char* wifi_connection;
   const char* connected_ssid;
@@ -90,6 +98,7 @@ struct Translations {
   const char* wifi_channel;
   const char* wifi_click_to_scan;
   const char* wifi_no_networks;
+  const char* wifi_not_connected;
 
   // Bluetooth
   const char* ble_scanner;
@@ -97,6 +106,14 @@ struct Translations {
   const char* ble_click_to_scan;
   const char* ble_no_devices;
   const char* ble_not_supported;
+  const char* wireless_status;
+  const char* wifi_label;
+  const char* ble_label;
+  const char* recommendation;
+  const char* ble_status_active;
+  const char* ble_status_stack_missing;
+  const char* ble_status_not_supported;
+  const char* ble_enable_hint;
 
   // GPIO et périphériques
   const char* gpio_interfaces;
@@ -328,7 +345,15 @@ const Translations LANG_FR_TEXTS = {
   "Non détectée",
   "Désactivée",
   "Utilisation PSRAM",
-  
+  "Mode supporté",
+  "PSRAM active (%MODE%)",
+  "Carte compatible PSRAM %MODE% mais désactivée dans l'IDE",
+  "PSRAM non supportée par la carte",
+  "Activez-la via Outils → PSRAM → OPI/QSPI",
+  "Mode OPI",
+  "Mode QSPI",
+  "Mode PSRAM inconnu",
+
   "SRAM Interne",
   "Min Libre (Record)",
   "Max Allocation",
@@ -352,6 +377,7 @@ const Translations LANG_FR_TEXTS = {
   "Canal WiFi",
   "Cliquez pour scanner",
   "Aucun réseau détecté",
+  "Non connecté",
 
   // Bluetooth
   "Scanner Bluetooth Low Energy",
@@ -359,6 +385,14 @@ const Translations LANG_FR_TEXTS = {
   "Cliquez pour scanner",
   "Aucun appareil détecté",
   "Bluetooth LE non disponible sur ce modèle",
+  "Statut sans fil",
+  "Wi-Fi",
+  "Bluetooth Low Energy",
+  "Recommandation",
+  "BLE opérationnel",
+  "BLE supporté par la puce mais absent dans ce firmware",
+  "BLE non supporté par cette puce",
+  "Activez ou recompilez le support BLE dans l'IDE Arduino",
 
   // GPIO
   "GPIO et Interfaces",
@@ -590,6 +624,14 @@ const Translations LANG_EN_TEXTS = {
   "Not detected",
   "Disabled",
   "PSRAM Usage",
+  "Supported mode",
+  "PSRAM active (%MODE%)",
+  "Board supports PSRAM %MODE% but it is disabled in the IDE",
+  "Board does not support PSRAM",
+  "Enable it via Tools → PSRAM → OPI/QSPI",
+  "OPI mode",
+  "QSPI mode",
+  "Unknown PSRAM mode",
   
   "Internal SRAM",
   "Min Free (Record)",
@@ -614,6 +656,7 @@ const Translations LANG_EN_TEXTS = {
   "WiFi Channel",
   "Click to scan",
   "No networks found",
+  "Not connected",
 
   // Bluetooth
   "Bluetooth Low Energy Scanner",
@@ -621,6 +664,14 @@ const Translations LANG_EN_TEXTS = {
   "Click to scan",
   "No devices found",
   "Bluetooth LE not available on this board",
+  "Wireless status",
+  "Wi-Fi",
+  "Bluetooth Low Energy",
+  "Recommendation",
+  "BLE ready",
+  "BLE supported by the chip but missing from this firmware",
+  "BLE not supported by this chip",
+  "Enable or rebuild the firmware with BLE support in the Arduino IDE",
 
   // GPIO
   "GPIO and Interfaces",

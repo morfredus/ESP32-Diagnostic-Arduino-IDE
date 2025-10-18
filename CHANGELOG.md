@@ -5,6 +5,17 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.9] - 2025-10-20
+
+### Added
+- Surfaced PSRAM capability, mode detection, and IDE enablement hints in the overview UI and exports so the web experience matches the serial diagnostic summary.
+- Introduced a wireless status card that reports Wi-Fi connectivity and BLE availability (including firmware capability hints) before launching scans.
+
+### Changed
+- Expanded `/api/overview` and `/api/memory-details` to include PSRAM support metadata for downstream tools and the dynamic interface.
+
+---
+
 ## [4.0.8] - 2025-10-19
 
 ### Added
@@ -359,6 +370,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 4.0.9 | 2025-10-20 | PSRAM diagnostics mirrored in UI plus Wi-Fi/BLE readiness summary |
 | 4.0.8 | 2025-10-19 | Wireless tab merges Wi-Fi & BLE; guarded BLE build fallback |
 | 4.0.7 | 2025-10-18 | OLED buttons align with executed patterns; encoded requests avoid mislabeled controls |
 | 4.0.6 | 2025-10-17 | OLED tests available pre-detection, GPIO warning clarifies FAIL meaning |
