@@ -1,10 +1,15 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.2
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.4
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v4.0.4:
+ * - Désactive le test de LED intégrée lorsque le GPIO est partagé avec la NeoPixel
+ * - Localise intégralement les réponses API LED/OLED et harmonise les statuts
+ * - Ajoute les raccourcis OLED à l'interface web historique sans rechargement
+
  * Nouveautés v4.0.2:
  * - Corrige la génération du catalogue de traductions pour compatibilité Arduino Core 3.3.2
  *
@@ -55,7 +60,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.2"
+#define DIAGNOSTIC_VERSION "4.0.4"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -87,13 +92,17 @@ Adafruit_NeoPixel *strip = nullptr;
 bool neopixelTested = false;
 bool neopixelAvailable = false;
 bool neopixelSupported = false;
-String neopixelTestResult = "En attente d'initialisation";
+String neopixelTestResult = "";
+int adcChannelsTested = 0;
+int touchPadsDetected = 0;
+int pwmLastPin = -1;
+int stressMaxAllocs = -1;
 
 // LED intégrée
 int BUILTIN_LED_PIN = -1;
 bool builtinLedTested = false;
 bool builtinLedAvailable = false;
-String builtinLedTestResult = "En attente d'initialisation";
+String builtinLedTestResult = "";
 
 // TFT
 bool tftTested = false;
@@ -105,15 +114,16 @@ int tftHeight = 0;
 // OLED
 bool oledTested = false;
 bool oledAvailable = false;
-String oledTestResult = "En attente d'initialisation";
+String oledTestResult = "";
+bool oledI2cProbeDetected = false;
 
 // Tests additionnels
-String adcTestResult = "Non teste";
-String touchTestResult = "Non teste";
-String pwmTestResult = "Non teste";
+String adcTestResult = "";
+String touchTestResult = "";
+String pwmTestResult = "";
 String partitionsInfo = "";
 String spiInfo = "";
-String stressTestResult = "Non teste";
+String stressTestResult = "";
 
 // ========== STRUCTURES ==========
 struct DiagnosticInfo {
@@ -266,6 +276,58 @@ double calculateCpuMflops(unsigned long durationMicros) {
 void refreshLocalizedStatusMessages() {
   if (!tftAvailable) {
     tftTestResult = String(T().feature_disabled);
+  }
+
+  if (BUILTIN_LED_PIN == -1) {
+    builtinLedTestResult = String(T().led_not_configured);
+  } else if (!builtinLedTested) {
+    builtinLedTestResult = String(T().led_ready) + " - GPIO " + String(BUILTIN_LED_PIN);
+  } else if (!builtinLedAvailable) {
+    builtinLedTestResult = String(T().led_conflict) + " - GPIO " + String(BUILTIN_LED_PIN);
+  } else {
+    builtinLedTestResult = String(T().led_test_ok) + " - GPIO " + String(BUILTIN_LED_PIN);
+  }
+
+  if (LED_PIN >= 0 && !neopixelTested) {
+    neopixelTestResult = String(T().led_ready) + " - GPIO " + String(LED_PIN);
+  } else if (LED_PIN < 0) {
+    neopixelTestResult = String(T().not_detected);
+  }
+
+  if (!oledAvailable) {
+    if (oledI2cProbeDetected) {
+      oledTestResult = String(T().oled_init_failed);
+    } else {
+      oledTestResult = String(T().no_detected) + " (SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + ")";
+    }
+  } else if (!oledTested) {
+    oledTestResult = String(T().detected) + " 0x" + String(SCREEN_ADDRESS, HEX);
+  }
+
+  if (adcChannelsTested > 0) {
+    adcTestResult = String(adcChannelsTested) + " " + String(T().tested) + " - " + String(T().ok);
+  } else {
+    adcTestResult = String(T().not_tested);
+  }
+
+  if (touchPadsDetected < 0) {
+    touchTestResult = String(T().not_supported);
+  } else if (touchPadsDetected > 0) {
+    touchTestResult = String(touchPadsDetected) + " " + String(T().tested) + " - " + String(T().ok);
+  } else {
+    touchTestResult = String(T().not_tested);
+  }
+
+  if (pwmLastPin >= 0) {
+    pwmTestResult = String(T().pwm_test) + " - " + String(T().completed) + " (GPIO " + String(pwmLastPin) + ")";
+  } else {
+    pwmTestResult = String(T().not_tested);
+  }
+
+  if (stressMaxAllocs >= 0) {
+    stressTestResult = String(T().max_allocated) + ": " + String(stressMaxAllocs) + " KB";
+  } else {
+    stressTestResult = String(T().not_tested);
   }
 }
 
@@ -696,53 +758,94 @@ void testAllGPIOs() {
 // ========== LED INTÉGRÉE ==========
 void detectBuiltinLED() {
   String chipModel = detectChipModel();
-  
-  #ifdef LED_BUILTIN
+
+  #if defined(LED_BUILTIN)
     BUILTIN_LED_PIN = LED_BUILTIN;
+  #elif defined(BUILTIN_LED)
+    BUILTIN_LED_PIN = BUILTIN_LED;
   #else
     if (chipModel == "ESP32-S3") BUILTIN_LED_PIN = 2;
     else if (chipModel == "ESP32-C3") BUILTIN_LED_PIN = 8;
     else if (chipModel == "ESP32-S2") BUILTIN_LED_PIN = 15;
     else BUILTIN_LED_PIN = 2;
   #endif
-  
-  builtinLedTestResult = "Pret - GPIO " + String(BUILTIN_LED_PIN);
+
+  builtinLedTested = false;
+  if (BUILTIN_LED_PIN >= 0) {
+    builtinLedAvailable = true;
+    builtinLedTestResult = String(T().led_ready) + " - GPIO " + String(BUILTIN_LED_PIN);
+  } else {
+    builtinLedAvailable = false;
+    builtinLedTestResult = String(T().not_detected);
+  }
   Serial.printf("LED integree: GPIO %d\r\n", BUILTIN_LED_PIN);
 }
 
-void testBuiltinLED() {
+bool builtinLedSharesNeoPixelPin() {
+  return (BUILTIN_LED_PIN >= 0 && strip != nullptr && LED_PIN == BUILTIN_LED_PIN);
+}
+
+void builtinLedFadeSequence() {
   if (BUILTIN_LED_PIN == -1) return;
-  
+
+  ledcAttach(BUILTIN_LED_PIN, 5000, 8);
+  for (int duty = 0; duty <= 255; duty += 5) {
+    ledcWrite(BUILTIN_LED_PIN, duty);
+    delay(10);
+  }
+  for (int duty = 255; duty >= 0; duty -= 5) {
+    ledcWrite(BUILTIN_LED_PIN, duty);
+    delay(10);
+  }
+  ledcWrite(BUILTIN_LED_PIN, 0);
+  ledcDetach(BUILTIN_LED_PIN);
+}
+
+void testBuiltinLED() {
+  if (BUILTIN_LED_PIN == -1) {
+    builtinLedAvailable = false;
+    builtinLedTestResult = String(T().not_detected);
+    Serial.println("LED: GPIO invalide");
+    return;
+  }
+
   Serial.println("\r\n=== TEST LED ===");
   pinMode(BUILTIN_LED_PIN, OUTPUT);
-  
-  for(int i = 0; i < 5; i++) {
+
+  bool sharedWithNeoPixel = builtinLedSharesNeoPixelPin();
+  if (sharedWithNeoPixel) {
+    Serial.println("LED: test ignore (GPIO partage avec NeoPixel)");
+    builtinLedAvailable = false;
+    builtinLedTested = true;
+    builtinLedTestResult = String(T().led_conflict) + " - GPIO " + String(BUILTIN_LED_PIN);
+    return;
+  }
+
+  for (int i = 0; i < 5; i++) {
     digitalWrite(BUILTIN_LED_PIN, HIGH);
     delay(200);
     digitalWrite(BUILTIN_LED_PIN, LOW);
     delay(200);
   }
-  
-  for(int i = 0; i <= 255; i += 5) {
-    analogWrite(BUILTIN_LED_PIN, i);
-    delay(10);
-  }
-  for(int i = 255; i >= 0; i -= 5) {
-    analogWrite(BUILTIN_LED_PIN, i);
-    delay(10);
-  }
-  
+
+  builtinLedFadeSequence();
+
   digitalWrite(BUILTIN_LED_PIN, LOW);
   builtinLedAvailable = true;
-  builtinLedTestResult = "Test OK - GPIO " + String(BUILTIN_LED_PIN);
   builtinLedTested = true;
+  builtinLedTestResult = String(T().led_test_ok) + " - GPIO " + String(BUILTIN_LED_PIN);
   Serial.println("LED: OK");
 }
 
 void resetBuiltinLEDTest() {
   builtinLedTested = false;
-  builtinLedAvailable = false;
-  if (BUILTIN_LED_PIN != -1) digitalWrite(BUILTIN_LED_PIN, LOW);
+  builtinLedAvailable = (BUILTIN_LED_PIN >= 0);
+  if (BUILTIN_LED_PIN != -1) {
+    digitalWrite(BUILTIN_LED_PIN, LOW);
+    builtinLedTestResult = String(T().led_ready) + " - GPIO " + String(BUILTIN_LED_PIN);
+  } else {
+    builtinLedTestResult = String(T().not_detected);
+  }
 }
 
 // ========== NEOPIXEL ==========
@@ -768,7 +871,7 @@ void detectNeoPixelSupport() {
   
   if (strip != nullptr) delete strip;
   strip = new Adafruit_NeoPixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
-  neopixelTestResult = "Pret - GPIO " + String(LED_PIN);
+  neopixelTestResult = String(T().led_ready) + " - GPIO " + String(LED_PIN);
   Serial.printf("NeoPixel: GPIO %d\r\n", LED_PIN);
 }
 
@@ -802,7 +905,7 @@ void testNeoPixel() {
   strip->show();
   
   neopixelAvailable = true;
-  neopixelTestResult = "Test OK - GPIO " + String(LED_PIN);
+  neopixelTestResult = String(T().led_test_ok) + " - GPIO " + String(LED_PIN);
   neopixelTested = true;
   Serial.println("NeoPixel: OK");
 }
@@ -813,6 +916,11 @@ void resetNeoPixelTest() {
   if (strip) {
     strip->clear();
     strip->show();
+  }
+  if (LED_PIN >= 0) {
+    neopixelTestResult = String(T().led_ready) + " - GPIO " + String(LED_PIN);
+  } else {
+    neopixelTestResult = String(T().not_detected);
   }
 }
 
@@ -901,28 +1009,25 @@ void detectOLED() {
   
   Wire.beginTransmission(SCREEN_ADDRESS);
   bool i2cDetected = (Wire.endTransmission() == 0);
+  oledI2cProbeDetected = i2cDetected;
   
   if(i2cDetected && oled.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     oledAvailable = true;
-    oledTestResult = "Detecte a 0x" + String(SCREEN_ADDRESS, HEX);
+    oledTestResult = String(T().detected) + " 0x" + String(SCREEN_ADDRESS, HEX);
     Serial.println("OLED: Detecte!\r\n");
   } else {
     oledAvailable = false;
     if (i2cDetected) {
-      oledTestResult = "Peripherique I2C present mais init echoue";
+      oledTestResult = String(T().oled_init_failed);
     } else {
-      oledTestResult = "Non detecte (SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + ")";
+      oledTestResult = String(T().no_detected) + " (SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + ")";
     }
     Serial.println("OLED: Non detecte\r\n");
   }
 }
 
-void testOLED() {
-  if (!oledAvailable || oledTested) return;
-  
-  Serial.println("\r\n=== TEST OLED ===");
-  
-  // Test 1: Texte de bienvenue
+void oledIntroScreen() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
   oled.setTextSize(1);
   oled.setTextColor(SSD1306_WHITE);
@@ -934,18 +1039,24 @@ void testOLED() {
   oled.printf("SDA:%d SCL:%d", I2C_SDA, I2C_SCL);
   oled.display();
   delay(2000);
-  
-  // Test 2: Texte grand
+}
+
+void oledLargeText() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
   oled.setTextSize(2);
+  oled.setTextColor(SSD1306_WHITE);
   oled.setCursor(20, 20);
   oled.println("ESP32");
   oled.display();
   delay(1500);
-  
-  // Test 3: Plusieurs tailles de texte
+}
+
+void oledFontSizes() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
   oled.setTextSize(1);
+  oled.setTextColor(SSD1306_WHITE);
   oled.setCursor(0, 0);
   oled.println("Taille 1");
   oled.setTextSize(2);
@@ -954,48 +1065,61 @@ void testOLED() {
   oled.println("Retour taille 1");
   oled.display();
   delay(2000);
-  
-  // Test 4: Formes géométriques
+}
+
+void oledShapes() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
-  oled.drawRect(10, 10, 30, 20, SSD1306_WHITE);      // Rectangle
-  oled.fillRect(50, 10, 30, 20, SSD1306_WHITE);      // Rectangle plein
-  oled.drawCircle(25, 50, 10, SSD1306_WHITE);        // Cercle
-  oled.fillCircle(65, 50, 10, SSD1306_WHITE);        // Cercle plein
-  oled.drawTriangle(95, 30, 85, 10, 105, 10, SSD1306_WHITE); // Triangle
+  oled.drawRect(10, 10, 30, 20, SSD1306_WHITE);
+  oled.fillRect(50, 10, 30, 20, SSD1306_WHITE);
+  oled.drawCircle(25, 50, 10, SSD1306_WHITE);
+  oled.fillCircle(65, 50, 10, SSD1306_WHITE);
+  oled.drawTriangle(95, 30, 85, 10, 105, 10, SSD1306_WHITE);
   oled.display();
   delay(2000);
-  
-  // Test 5: Lignes
+}
+
+void oledHorizontalLines() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
-  for(int i = 0; i < SCREEN_HEIGHT; i += 4) {
+  for (int i = 0; i < SCREEN_HEIGHT; i += 4) {
     oled.drawLine(0, i, SCREEN_WIDTH, i, SSD1306_WHITE);
   }
   oled.display();
   delay(1500);
-  
-  // Test 6: Lignes diagonales
+}
+
+void oledDiagonalLines() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
-  for(int i = 0; i < SCREEN_WIDTH; i += 8) {
-    oled.drawLine(0, 0, i, SCREEN_HEIGHT-1, SSD1306_WHITE);
-    oled.drawLine(SCREEN_WIDTH-1, 0, i, SCREEN_HEIGHT-1, SSD1306_WHITE);
+  for (int i = 0; i < SCREEN_WIDTH; i += 8) {
+    oled.drawLine(0, 0, i, SCREEN_HEIGHT - 1, SSD1306_WHITE);
+    oled.drawLine(SCREEN_WIDTH - 1, 0, i, SCREEN_HEIGHT - 1, SSD1306_WHITE);
   }
   oled.display();
   delay(1500);
-  
-  // Test 7: Animation - carré mobile
-  for(int x = 0; x < SCREEN_WIDTH - 20; x += 4) {
+}
+
+void oledMovingSquare() {
+  if (!oledAvailable) return;
+  for (int x = 0; x < SCREEN_WIDTH - 20; x += 4) {
     oled.clearDisplay();
     oled.fillRect(x, 22, 20, 20, SSD1306_WHITE);
     oled.display();
     delay(20);
   }
-  
-  // Test 8: Barre de progression
+  oled.clearDisplay();
+  oled.display();
+}
+
+void oledProgressBar() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
   oled.setTextSize(1);
+  oled.setTextColor(SSD1306_WHITE);
   oled.setCursor(20, 10);
   oled.println("Chargement");
-  for(int i = 0; i <= 100; i += 5) {
+  for (int i = 0; i <= 100; i += 5) {
     oled.drawRect(10, 30, 108, 15, SSD1306_WHITE);
     oled.fillRect(12, 32, i, 11, SSD1306_WHITE);
     oled.setCursor(45, 50);
@@ -1003,37 +1127,106 @@ void testOLED() {
     oled.display();
     delay(100);
     if (i < 100) {
-      oled.fillRect(12, 32, i, 11, SSD1306_BLACK); // Effacer la barre
-      oled.fillRect(45, 50, 40, 10, SSD1306_BLACK); // Effacer le %
+      oled.fillRect(12, 32, i, 11, SSD1306_BLACK);
+      oled.fillRect(45, 50, 40, 10, SSD1306_BLACK);
     }
   }
   delay(1000);
-  
-  // Test 9: Texte défilant
+}
+
+void oledScrollingText() {
+  if (!oledAvailable) return;
   String scrollText = "  DIAGNOSTIC ESP32 COMPLET - OLED 0.96 pouces I2C  ";
-  for(int offset = 0; offset < scrollText.length() * 6; offset += 2) {
+  for (int offset = 0; offset < scrollText.length() * 6; offset += 2) {
     oled.clearDisplay();
     oled.setTextSize(1);
+    oled.setTextColor(SSD1306_WHITE);
     oled.setCursor(-offset, 28);
     oled.print(scrollText);
     oled.display();
     delay(30);
   }
-  
-  // Test 10: Affichage final
+}
+
+void oledFinalFrame() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
   oled.setTextSize(1);
+  oled.setTextColor(SSD1306_WHITE);
   oled.setCursor(30, 20);
-  oled.println("TEST OK!");
+  oled.println(String(T().test) + " " + String(T().completed));
   oled.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
   oled.display();
   delay(2000);
-  
   oled.clearDisplay();
   oled.display();
-  
+}
+
+String getOledPatternLabel(const String& pattern) {
+  if (pattern == "intro") return String(T().oled_intro);
+  if (pattern == "large") return String(T().oled_large_text);
+  if (pattern == "fonts") return String(T().oled_fonts);
+  if (pattern == "shapes") return String(T().oled_shapes);
+  if (pattern == "lines") return String(T().oled_lines);
+  if (pattern == "diagonals") return String(T().oled_diagonals);
+  if (pattern == "square") return String(T().oled_animation);
+  if (pattern == "progress") return String(T().oled_progress);
+  if (pattern == "scroll") return String(T().oled_scroll);
+  if (pattern == "final") return String(T().oled_final);
+  return pattern;
+}
+
+bool runOledPattern(const String& pattern) {
+  if (!oledAvailable) return false;
+
+  if (pattern == "intro") {
+    oledIntroScreen();
+  } else if (pattern == "large") {
+    oledLargeText();
+  } else if (pattern == "fonts") {
+    oledFontSizes();
+  } else if (pattern == "shapes") {
+    oledShapes();
+  } else if (pattern == "lines") {
+    oledHorizontalLines();
+  } else if (pattern == "diagonals") {
+    oledDiagonalLines();
+  } else if (pattern == "square") {
+    oledMovingSquare();
+  } else if (pattern == "progress") {
+    oledProgressBar();
+  } else if (pattern == "scroll") {
+    oledScrollingText();
+  } else if (pattern == "final") {
+    oledFinalFrame();
+  } else {
+    return false;
+  }
+  return true;
+}
+
+void testOLED() {
+  if (!oledAvailable) {
+    oledTestResult = String(T().no_detected);
+    return;
+  }
+
+  Serial.println("\r\n=== TEST OLED ===");
+
+  oledTested = false;
+  oledIntroScreen();
+  oledLargeText();
+  oledFontSizes();
+  oledShapes();
+  oledHorizontalLines();
+  oledDiagonalLines();
+  oledMovingSquare();
+  oledProgressBar();
+  oledScrollingText();
+  oledFinalFrame();
+
   oledTested = true;
-  oledTestResult = "Test OK - 128x64";
+  oledTestResult = String(T().completed) + " - 128x64";
   Serial.println("OLED: Tests complets OK\r\n");
 }
 
@@ -1042,6 +1235,13 @@ void resetOLEDTest() {
   if (oledAvailable) {
     oled.clearDisplay();
     oled.display();
+  }
+  if (oledAvailable) {
+    oledTestResult = String(T().detected) + " 0x" + String(SCREEN_ADDRESS, HEX);
+  } else if (oledI2cProbeDetected) {
+    oledTestResult = String(T().oled_init_failed);
+  } else {
+    oledTestResult = String(T().no_detected) + " (SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + ")";
   }
 }
 
@@ -1084,7 +1284,8 @@ void testADC() {
     Serial.printf("GPIO%d: %d (%.2fV)\r\n", reading.pin, reading.rawValue, reading.voltage);
   }
   
-  adcTestResult = String(numADC) + " ADC testes - OK";
+  adcChannelsTested = numADC;
+  adcTestResult = String(adcChannelsTested) + " " + String(T().tested) + " - " + String(T().ok);
   Serial.printf("ADC: %d canaux testes\r\n", numADC);
 }
 
@@ -1104,7 +1305,8 @@ void testTouchPads() {
   #endif
   
   if (numTouch == 0) {
-    touchTestResult = "Non supporte sur ce modele";
+    touchPadsDetected = -1;
+    touchTestResult = String(T().not_supported);
     Serial.println("Touch: Non supporte");
     return;
   }
@@ -1118,7 +1320,8 @@ void testTouchPads() {
     Serial.printf("Touch%d (GPIO%d): %d\r\n", i, reading.pin, reading.value);
   }
   
-  touchTestResult = String(numTouch) + " Touch Pads detectes";
+  touchPadsDetected = numTouch;
+  touchTestResult = String(touchPadsDetected) + " " + String(T().tested) + " - " + String(T().ok);
   Serial.printf("Touch: %d pads testes\r\n", numTouch);
 }
 
@@ -1147,7 +1350,8 @@ void testPWM() {
   ledcWrite(testPin, 0);
   ledcDetach(testPin);
   
-  pwmTestResult = "Test OK sur GPIO" + String(testPin);
+  pwmLastPin = testPin;
+  pwmTestResult = String(T().pwm_test) + " - " + String(T().completed) + " (GPIO " + String(pwmLastPin) + ")";
   Serial.println("PWM: OK");
 }
 
@@ -1228,7 +1432,8 @@ void memoryStressTest() {
     free(ptr);
   }
   
-  stressTestResult = "Max: " + String(maxAllocs) + " KB alloues";
+  stressMaxAllocs = maxAllocs;
+  stressTestResult = String(T().max_allocated) + ": " + String(stressMaxAllocs) + " KB";
   Serial.println("Stress test: OK");
 }
 
@@ -1340,11 +1545,12 @@ void handleBuiltinLEDConfig() {
     if (newGPIO >= 0 && newGPIO <= 48) {
       BUILTIN_LED_PIN = newGPIO;
       resetBuiltinLEDTest();
-      server.send(200, "application/json", "{\"success\":true,\"message\":\"LED GPIO " + String(BUILTIN_LED_PIN) + "\"}");
+      String msg = String(T().led_configured) + " " + String(BUILTIN_LED_PIN);
+      server.send(200, "application/json", "{\"success\":true,\"message\":\"" + jsonEscape(msg) + "\"}");
       return;
     }
   }
-  server.send(400, "application/json", "{\"success\":false}");
+  server.send(400, "application/json", "{\"success\":false,\"message\":\"" + jsonEscape(String(T().invalid_pins)) + "\"}");
 }
 
 void handleBuiltinLEDTest() {
@@ -1358,45 +1564,52 @@ void handleBuiltinLEDControl() {
     server.send(400, "application/json", "{\"success\":false}");
     return;
   }
-  
+
   String action = server.arg("action");
   if (BUILTIN_LED_PIN == -1) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"LED non configuree\"}");
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + jsonEscape(String(T().led_not_configured)) + "\"}");
     return;
   }
-  
+
   pinMode(BUILTIN_LED_PIN, OUTPUT);
   String message = "";
-  
+  bool sharedWithNeoPixel = builtinLedSharesNeoPixelPin();
+
   if (action == "blink") {
+    if (sharedWithNeoPixel) {
+      server.send(409, "application/json", "{\"success\":false,\"message\":\"" + jsonEscape(String(T().led_test_skipped)) + "\"}");
+      return;
+    }
     for(int i = 0; i < 5; i++) {
       digitalWrite(BUILTIN_LED_PIN, HIGH);
       delay(200);
       digitalWrite(BUILTIN_LED_PIN, LOW);
       delay(200);
     }
-    message = "Clignotement OK";
+    message = String(T().blink) + " - " + String(T().completed);
   } else if (action == "fade") {
-    for(int i = 0; i <= 255; i += 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
+    if (sharedWithNeoPixel) {
+      server.send(409, "application/json", "{\"success\":false,\"message\":\"" + jsonEscape(String(T().led_test_skipped)) + "\"}");
+      return;
     }
-    for(int i = 255; i >= 0; i -= 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
-    }
+    builtinLedFadeSequence();
     digitalWrite(BUILTIN_LED_PIN, LOW);
-    message = "Fade OK";
+    message = String(T().fade) + " - " + String(T().completed);
+  } else if (action == "on") {
+    digitalWrite(BUILTIN_LED_PIN, HIGH);
+    builtinLedTested = true;
+    builtinLedAvailable = true;
+    message = String(T().led_on_state);
   } else if (action == "off") {
     digitalWrite(BUILTIN_LED_PIN, LOW);
     builtinLedTested = false;
-    message = "LED eteinte";
+    message = String(T().led_off_state);
   } else {
     server.send(400, "application/json", "{\"success\":false}");
     return;
   }
-  
-  server.send(200, "application/json", "{\"success\":true,\"message\":\"" + message + "\"}");
+
+  server.send(200, "application/json", "{\"success\":true,\"message\":\"" + jsonEscape(message) + "\"}");
 }
 
 void handleNeoPixelConfig() {
@@ -1425,37 +1638,37 @@ void handleNeoPixelTest() {
 
 void handleNeoPixelPattern() {
   if (!server.hasArg("pattern")) {
-    server.send(400, "application/json", "{\"success\":false}");
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + jsonEscape(String(T().pattern_missing)) + "\"}");
     return;
   }
-  
+
   String pattern = server.arg("pattern");
   if (!strip) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"NeoPixel non init\"}");
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + jsonEscape(String(T().neopixel_not_ready)) + "\"}");
     return;
   }
-  
+
   String message = "";
   if (pattern == "rainbow") {
     neopixelRainbow();
-    message = "Arc-en-ciel OK";
+    message = String(T().rainbow) + " - " + String(T().completed);
   } else if (pattern == "blink") {
     neopixelBlink(strip->Color(255, 0, 0), 5);
-    message = "Blink OK";
+    message = String(T().blink) + " - " + String(T().completed);
   } else if (pattern == "fade") {
     neopixelFade(strip->Color(0, 0, 255));
-    message = "Fade OK";
+    message = String(T().fade) + " - " + String(T().completed);
   } else if (pattern == "off") {
     strip->clear();
     strip->show();
     neopixelTested = false;
-    message = "Off";
+    message = String(T().off);
   } else {
-    server.send(400, "application/json", "{\"success\":false}");
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + jsonEscape(String(T().pattern_unknown)) + "\"}");
     return;
   }
-  
-  server.send(200, "application/json", "{\"success\":true,\"message\":\"" + message + "\"}");
+
+  server.send(200, "application/json", "{\"success\":true,\"message\":\"" + jsonEscape(message) + "\"}");
 }
 
 void handleNeoPixelColor() {
@@ -1514,18 +1727,19 @@ void handleOLEDConfig() {
   if (server.hasArg("sda") && server.hasArg("scl")) {
     int newSDA = server.arg("sda").toInt();
     int newSCL = server.arg("scl").toInt();
-    
+
     if (newSDA >= 0 && newSDA <= 48 && newSCL >= 0 && newSCL <= 48) {
       I2C_SDA = newSDA;
       I2C_SCL = newSCL;
       resetOLEDTest();
       Wire.end();
       detectOLED();
-      server.send(200, "application/json", "{\"success\":true,\"message\":\"I2C reconfigure: SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "\"}");
+      String msg = String(T().oled_reconfigured) + ": SDA " + String(I2C_SDA) + " SCL " + String(I2C_SCL);
+      server.send(200, "application/json", "{\"success\":true,\"message\":\"" + jsonEscape(msg) + "\"}");
       return;
     }
   }
-  server.send(400, "application/json", "{\"success\":false,\"message\":\"Pins invalides\"}");
+  server.send(400, "application/json", "{\"success\":false,\"message\":\"" + jsonEscape(String(T().invalid_pins)) + "\"}");
 }
 
 void handleOLEDTest() {
@@ -1534,15 +1748,46 @@ void handleOLEDTest() {
   server.send(200, "application/json", "{\"success\":" + String(oledAvailable ? "true" : "false") + ",\"result\":\"" + oledTestResult + "\"}");
 }
 
+void handleOLEDPattern() {
+  if (!server.hasArg("pattern")) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + jsonEscape(String(T().pattern_missing)) + "\"}");
+    return;
+  }
+
+  if (!oledAvailable) {
+    String err = oledI2cProbeDetected ? String(T().oled_init_failed) : String(T().no_detected);
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + jsonEscape(err) + "\"}");
+    return;
+  }
+
+  String pattern = server.arg("pattern");
+  if (!runOledPattern(pattern)) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + jsonEscape(String(T().pattern_unknown)) + "\"}");
+    return;
+  }
+
+  String label = getOledPatternLabel(pattern);
+  String message = label + " - " + String(T().completed);
+  oledTestResult = message;
+  oledTested = true;
+  server.send(200, "application/json", "{\"success\":true,\"pattern\":\"" + jsonEscape(pattern) + "\",\"message\":\"" + jsonEscape(message) + "\"}");
+}
+
 void handleOLEDMessage() {
   if (!server.hasArg("message")) {
     server.send(400, "application/json", "{\"success\":false}");
     return;
   }
-  
+
   String message = server.arg("message");
+  if (!oledAvailable) {
+    String err = oledI2cProbeDetected ? String(T().oled_init_failed) : String(T().no_detected);
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + jsonEscape(err) + "\"}");
+    return;
+  }
+
   oledShowMessage(message);
-  server.send(200, "application/json", "{\"success\":true,\"message\":\"Message affiche\"}");
+  server.send(200, "application/json", "{\"success\":true,\"message\":\"" + jsonEscape(String(T().message_displayed)) + "\"}");
 }
 
 void handleADCTest() {
@@ -2115,6 +2360,17 @@ void handleGetTranslations() {
   appendJsonField(json, "neopixel", String(T().neopixel));
   appendJsonField(json, "rainbow", String(T().rainbow));
   appendJsonField(json, "color", String(T().color));
+  appendJsonField(json, "led_conflict", String(T().led_conflict));
+  appendJsonField(json, "pwm_disabled", String(T().pwm_disabled));
+  appendJsonField(json, "simple_mode", String(T().simple_mode));
+  appendJsonField(json, "led_ready", String(T().led_ready));
+  appendJsonField(json, "led_test_ok", String(T().led_test_ok));
+  appendJsonField(json, "led_configured", String(T().led_configured));
+  appendJsonField(json, "led_not_configured", String(T().led_not_configured));
+  appendJsonField(json, "led_on_state", String(T().led_on_state));
+  appendJsonField(json, "led_off_state", String(T().led_off_state));
+  appendJsonField(json, "led_test_skipped", String(T().led_test_skipped));
+  appendJsonField(json, "neopixel_not_ready", String(T().neopixel_not_ready));
 
   appendJsonField(json, "tft_screen", String(T().tft_screen));
   appendJsonField(json, "spi_pins", String(T().spi_pins));
@@ -2134,6 +2390,22 @@ void handleGetTranslations() {
   appendJsonField(json, "show_message", String(T().show_message));
   appendJsonField(json, "no_detected", String(T().no_detected));
   appendJsonField(json, "check_wiring", String(T().check_wiring));
+  appendJsonField(json, "oled_intro", String(T().oled_intro));
+  appendJsonField(json, "oled_large_text", String(T().oled_large_text));
+  appendJsonField(json, "oled_fonts", String(T().oled_fonts));
+  appendJsonField(json, "oled_shapes", String(T().oled_shapes));
+  appendJsonField(json, "oled_lines", String(T().oled_lines));
+  appendJsonField(json, "oled_diagonals", String(T().oled_diagonals));
+  appendJsonField(json, "oled_animation", String(T().oled_animation));
+  appendJsonField(json, "oled_progress", String(T().oled_progress));
+  appendJsonField(json, "oled_scroll", String(T().oled_scroll));
+  appendJsonField(json, "oled_final", String(T().oled_final));
+  appendJsonField(json, "pattern_missing", String(T().pattern_missing));
+  appendJsonField(json, "pattern_unknown", String(T().pattern_unknown));
+  appendJsonField(json, "message_displayed", String(T().message_displayed));
+  appendJsonField(json, "oled_reconfigured", String(T().oled_reconfigured));
+  appendJsonField(json, "invalid_pins", String(T().invalid_pins));
+  appendJsonField(json, "oled_init_failed", String(T().oled_init_failed));
 
   appendJsonField(json, "adc_test", String(T().adc_test));
   appendJsonField(json, "touch_test", String(T().touch_test));
@@ -2215,6 +2487,9 @@ void handleGetTranslations() {
   appendJsonField(json, "completed", String(T().completed));
   appendJsonField(json, "scan", String(T().scan));
   appendJsonField(json, "scanning", String(T().scanning));
+  appendJsonField(json, "feature_disabled", String(T().feature_disabled));
+  appendJsonField(json, "not_supported", String(T().not_supported));
+  appendJsonField(json, "max_allocated", String(T().max_allocated));
   appendJsonField(json, "brownout", String(T().brownout));
   appendJsonField(json, "poweron", String(T().poweron));
   appendJsonField(json, "software_reset", String(T().software_reset));
@@ -2407,6 +2682,9 @@ void handleRoot() {
   chunk += "<div class='section'><h2 data-i18n='builtin_led'>" + String(T().builtin_led) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='gpio'>" + String(T().gpio) + "</div><div class='info-value'>GPIO " + String(BUILTIN_LED_PIN) + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='status'>" + String(T().status) + "</div><div class='info-value' id='builtin-led-status'>" + builtinLedTestResult + "</div></div>";
+  if (LED_PIN == BUILTIN_LED_PIN && BUILTIN_LED_PIN >= 0) {
+    chunk += "<div class='info-item' style='grid-column:1/-1'><div class='info-label' data-i18n='warning'>" + String(T().warning) + "</div><div class='info-value' data-i18n='led_conflict'>" + String(T().led_conflict) + "</div></div>";
+  }
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "<input type='number' id='ledGPIO' value='" + String(BUILTIN_LED_PIN) + "' min='0' max='48' style='width:80px'>";
   chunk += "<button class='btn btn-info' onclick='configBuiltinLED()' data-i18n='config'>" + String(T().config) + "</button>";
@@ -2454,6 +2732,22 @@ void handleRoot() {
     chunk += "<button class='btn btn-primary' onclick='testOLED()' data-i18n='full_test'>" + String(T().full_test) + "</button>";
     chunk += "<input type='text' id='oledMsg' placeholder='" + String(T().custom_message) + "' data-i18n-placeholder='custom_message' style='width:250px;margin:0 5px'>";
     chunk += "<button class='btn btn-success' onclick='oledMessage()' data-i18n='show_message'>" + String(T().show_message) + "</button>";
+    chunk += "<div style='margin-top:15px'>";
+    chunk += "<button class='btn btn-primary' onclick='oledRun(\"intro\")' data-i18n='oled_intro'>" + String(T().oled_intro) + "</button>";
+    chunk += "<button class='btn btn-primary' onclick='oledRun(\"large\")' data-i18n='oled_large_text'>" + String(T().oled_large_text) + "</button>";
+    chunk += "<button class='btn btn-primary' onclick='oledRun(\"fonts\")' data-i18n='oled_fonts'>" + String(T().oled_fonts) + "</button>";
+    chunk += "<button class='btn btn-primary' onclick='oledRun(\"shapes\")' data-i18n='oled_shapes'>" + String(T().oled_shapes) + "</button>";
+    chunk += "</div>";
+    chunk += "<div style='margin-top:5px'>";
+    chunk += "<button class='btn btn-primary' onclick='oledRun(\"lines\")' data-i18n='oled_lines'>" + String(T().oled_lines) + "</button>";
+    chunk += "<button class='btn btn-primary' onclick='oledRun(\"diagonals\")' data-i18n='oled_diagonals'>" + String(T().oled_diagonals) + "</button>";
+    chunk += "<button class='btn btn-primary' onclick='oledRun(\"square\")' data-i18n='oled_animation'>" + String(T().oled_animation) + "</button>";
+    chunk += "<button class='btn btn-primary' onclick='oledRun(\"progress\")' data-i18n='oled_progress'>" + String(T().oled_progress) + "</button>";
+    chunk += "</div>";
+    chunk += "<div style='margin-top:5px'>";
+    chunk += "<button class='btn btn-primary' onclick='oledRun(\"scroll\")' data-i18n='oled_scroll'>" + String(T().oled_scroll) + "</button>";
+    chunk += "<button class='btn btn-danger' onclick='oledRun(\"final\")' data-i18n='oled_final'>" + String(T().oled_final) + "</button>";
+    chunk += "</div>";
   }
   chunk += "</div></div></div></div>";
   server.sendContent(chunk);
@@ -2625,6 +2919,8 @@ void handleRoot() {
   // OLED
   chunk += "function testOLED(){document.getElementById('oled-status').innerHTML=(translations.testing||'Test...')+' (25s)...';";
   chunk += "fetch('/api/oled-test').then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.result)}";
+  chunk += "function oledRun(p){const status=document.getElementById('oled-status');if(status)status.innerHTML=(translations.testing||'Test...');";
+  chunk += "fetch('/api/oled-pattern?pattern='+p).then(r=>r.json()).then(d=>{if(status)status.innerHTML=d.message||status.innerHTML;}).catch(err=>console.error('oledRun',err));}";
   chunk += "function oledMessage(){fetch('/api/oled-message?message='+encodeURIComponent(document.getElementById('oledMsg').value))";
   chunk += ".then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.message)}";
   chunk += "function configOLED(){document.getElementById('oled-status').innerHTML=(translations.scanning||'Scan...');";
@@ -2692,7 +2988,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.2 - FR/EN");
+  Serial.println("     Version 4.0.4 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
@@ -2780,6 +3076,7 @@ void setup() {
   server.on("/api/tft-test", handleTFTTest);
   server.on("/api/tft-pattern", handleTFTPattern);
   server.on("/api/oled-test", handleOLEDTest);
+  server.on("/api/oled-pattern", handleOLEDPattern);
   server.on("/api/oled-message", handleOLEDMessage);
   server.on("/api/oled-config", handleOLEDConfig);
   

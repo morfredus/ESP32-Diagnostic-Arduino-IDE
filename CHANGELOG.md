@@ -5,6 +5,34 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.4] - 2025-10-15
+
+### Added
+- Legacy `web_interface.h` now exposes the same OLED pattern shortcut buttons as the dynamic interface.
+
+### Changed
+- Built-in LED diagnostics stop before driving the pin when a NeoPixel shares the GPIO and return a localized conflict message.
+- All LED/OLED API endpoints respond with translated payloads and consistent error handling for missing patterns or invalid pins.
+
+### Fixed
+- Default LED and OLED status strings are regenerated on language changes, preventing stale French text when browsing in English.
+
+---
+
+## [4.0.3] - 2025-10-14
+
+### Added
+- Dedicated OLED pattern endpoints and UI buttons to launch each display test individually from the web interface.
+
+### Changed
+- Built-in LED diagnostics now rely on LEDC fading when available and fall back to a translated "mode simple" when the NeoPixel shares the GPIO.
+- The LEDs tab surfaces a localized NeoPixel conflict warning and new strings for the OLED quick actions.
+
+### Fixed
+- Prevented the built-in LED test sequence from unintentionally driving the NeoPixel strip on shared pins.
+
+---
+
 ## [4.0.2] - 2025-10-13
 
 ### Fixed
@@ -284,6 +312,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 4.0.4 | 2025-10-15 | LED conflict guard, localized LED/OLED API, legacy OLED buttons |
 | 3.0.0 | 2025-10-10 | Official release, Core 3.3.2 support, multilingual docs |
 | 2.5 | 2025-10-08 | Translated exports |
 | 2.4 | 2025-10-07 | Multilingual interface (FR/EN) |
