@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v4.0.14
+ * WEB_INTERFACE.H - Interface Web Dynamique v4.0.15
  */
 
 #ifndef WEB_INTERFACE_H
@@ -262,215 +262,137 @@ String generateJavaScript() {
   js += "async function updatePeripheralsInfo(){await fetch('/api/peripherals');}";
 
   js += "async function loadWirelessStatus(){try{const r=await fetch('/api/wireless-status');const d=await r.json();updateWirelessSummary(d);}catch(e){console.error('wireless-status',e);}}";
-  js += "function updateWirelessSummary(data)
-{
-";
-  js += "  const wifiData=data&&data.wifi?data.wifi:{};
-";
-  js += "  const wifiStatus=document.getElementById('wifi-summary-status');
-";
-  js += "  if(wifiStatus){
-";
-  js += "    if(wifiData.connected){
-";
-  js += "      const baseLabel=(translations.connected||'Connecté');
-";
-  js += "      const ssidLabel=wifiData.ssid?' · '+wifiData.ssid:'';
-";
-  js += "      wifiStatus.textContent=baseLabel+ssidLabel;
-";
-  js += "    }else{
-";
-  js += "      wifiStatus.textContent=translations.wifi_not_connected||'Non connecté';
-";
-  js += "    }
-";
-  js += "  }
-";
-  js += "  const wifiDetails=document.getElementById('wifi-summary-details');
-";
-  js += "  if(wifiDetails){
-";
-  js += "    wifiDetails.innerHTML='';
-";
-  js += "    if(wifiData.connected){
-";
-  js += "      const rows=[
-";
-  js += "        {label:translations.connected_ssid||'SSID connecté',value:wifiData.ssid||'—'},
-";
-  js += "        {label:translations.signal_power||'Puissance Signal (RSSI)',value:(typeof wifiData.rssi==='number'?wifiData.rssi+' dBm':'—')},
-";
-  js += "        {label:translations.signal_quality||'Qualité Signal',value:wifiData.quality||'—'},
-";
-  js += "        {label:translations.ip_address||'Adresse IP',value:wifiData.ip||'—'},
-";
-  js += "        {label:translations.subnet_mask||'Masque Sous-réseau',value:wifiData.subnet||'—'},
-";
-  js += "        {label:translations.gateway||'Passerelle',value:wifiData.gateway||'—'},
-";
-  js += "        {label:translations.dns||'DNS',value:wifiData.dns||'—'}
-";
-  js += "      ];
-";
-  js += "      rows.filter(item=>item.value&&item.value!=='—').forEach(item=>{
-";
-  js += "        const li=document.createElement('li');
-";
-  js += "        const label=document.createElement('span');
-";
-  js += "        label.className='label';
-";
-  js += "        label.textContent=item.label;
-";
-  js += "        const value=document.createElement('span');
-";
-  js += "        value.className='value';
-";
-  js += "        value.textContent=item.value;
-";
-  js += "        li.appendChild(label);
-";
-  js += "        li.appendChild(value);
-";
-  js += "        wifiDetails.appendChild(li);
-";
-  js += "      });
-";
-  js += "      if(!wifiDetails.children.length){
-";
-  js += "        const li=document.createElement('li');
-";
-  js += "        li.className='wireless-empty';
-";
-  js += "        li.textContent='—';
-";
-  js += "        wifiDetails.appendChild(li);
-";
-  js += "      }
-";
-  js += "    }else{
-";
-  js += "      const li=document.createElement('li');
-";
-  js += "      li.className='wireless-empty';
-";
-  js += "      li.textContent=translations.wifi_not_connected||'Non connecté';
-";
-  js += "      wifiDetails.appendChild(li);
-";
-  js += "    }
-";
-  js += "  }
-";
-  js += "  const bleData=data&&data.ble?data.ble:{};
-";
-  js += "  const bleStatus=document.getElementById('ble-summary-status');
-";
-  js += "  if(bleStatus){
-";
-  js += "    bleStatus.textContent=bleData.status||(translations.ble_not_supported||'Bluetooth LE non disponible');
-";
-  js += "  }
-";
-  js += "  const bleDetails=document.getElementById('ble-summary-details');"
-  js += "  if(bleDetails){"
-  js += "    bleDetails.innerHTML='';"
-  js += "    const yesText=translations.status_yes||'Oui';"
-  js += "    const noText=translations.status_no||'Non';"
-  js += "    const missingText=translations.status_missing||'Manquant';"
-  js += "    const chipLabel=translations.ble_chip_support||'Compatibilité matérielle BLE';"
-  js += "    const stackLabel=translations.ble_stack_support||'Pile BLE incluse dans ce firmware';"
-  js += "    const runtimeLabel=translations.ble_runtime_status||'Fonctions BLE actives';"
-  js += "    const entries=["
-  js += "      {className:bleData.chipCapable?'ok':'ko',icon:bleData.chipCapable?'✅':'❌',label:chipLabel,value:bleData.chipCapable?yesText:noText},"
-  js += "      {className:bleData.stackAvailable?'ok':(bleData.chipCapable?'warn':'ko'),icon:bleData.stackAvailable?'✅':(bleData.chipCapable?'⚠️':'❌'),label:stackLabel,value:bleData.stackAvailable?yesText:(bleData.chipCapable?missingText:noText)},"
-  js += "      {className:bleData.enabled?'ok':(bleData.stackAvailable?'warn':'ko'),icon:bleData.enabled?'✅':(bleData.stackAvailable?'⚠️':'❌'),label:runtimeLabel,value:bleData.enabled?yesText:(bleData.stackAvailable?missingText:noText)}"
-  js += "    ];"
-  js += "    entries.forEach(entry=>{"
-  js += "      const li=document.createElement('li');"
-  js += "      const pill=document.createElement('span');"
-  js += "      pill.className='status-pill '+entry.className;"
-  js += "      pill.textContent=entry.icon;"
-  js += "      const label=document.createElement('span');"
-  js += "      label.className='label';"
-  js += "      label.textContent=entry.label;"
-  js += "      const value=document.createElement('span');"
-  js += "      value.className='value';"
-  js += "      value.textContent=entry.value;"
-  js += "      li.appendChild(pill);"
-  js += "      li.appendChild(label);"
-  js += "      li.appendChild(value);"
-  js += "      bleDetails.appendChild(li);"
-  js += "    });"
-  js += "    const backendItem=document.createElement('li');"
-  js += "    backendItem.className='wireless-backend';"
-  js += "    const backendLabel=document.createElement('span');"
-  js += "    backendLabel.className='label';"
-  js += "    backendLabel.textContent=translations.ble_backend_label||'Pile logicielle BLE';"
-  js += "    const backendValue=document.createElement('span');"
-  js += "    backendValue.className='value';"
-  js += "    backendValue.textContent=bleData.backend||translations.ble_backend_missing||'Pile BLE absente';"
-  js += "    backendItem.appendChild(backendLabel);"
-  js += "    backendItem.appendChild(backendValue);"
-  js += "    bleDetails.appendChild(backendItem);"
-  js += "  }"
-  js += "  const bleHint=document.getElementById('ble-summary-hint');
-";
-  js += "  if(bleHint){
-";
-  js += "    const hint=bleData.hint||'';
-";
-  js += "    if(hint){
-";
-  js += "      bleHint.style.display='block';
-";
-  js += "      bleHint.textContent=hint;
-";
-  js += "    }else{
-";
-  js += "      bleHint.style.display='none';
-";
-  js += "      bleHint.textContent='';
-";
-  js += "    }
-";
-  js += "  }
-";
-  js += "  const bleButton=document.getElementById('ble-scan-button');
-";
-  js += "  const bleMonitor=document.getElementById('ble-status');
-";
-  js += "  const canScan=!!bleData.enabled;
-";
-  js += "  if(bleButton){
-";
-  js += "    bleButton.disabled=!canScan;
-";
-  js += "    bleButton.title=!canScan&&(bleData.hint||bleData.status)?(bleData.hint||bleData.status):'';
-";
-  js += "  }
-";
-  js += "  if(bleMonitor&&bleMonitor.dataset.locked!=='1'&&(bleMonitor.dataset.state!=='results'||!canScan)){
-";
-  js += "    if(canScan){
-";
-  js += "      bleMonitor.textContent=translations.ble_click_to_scan||'Cliquez pour scanner';
-";
-  js += "      bleMonitor.dataset.state='ready';
-";
-  js += "    }else{
-";
-  js += "      bleMonitor.textContent=bleData.status||(translations.ble_not_supported||'Bluetooth LE non disponible');
-";
-  js += "      bleMonitor.dataset.state='unavailable';
-";
-  js += "    }
-";
-  js += "  }
-";
-  js += "}
-";
+  js += R"JS(function updateWirelessSummary(data) {
+    const wifiData = (data && data.wifi) ? data.wifi : {};
+    const wifiStatus = document.getElementById('wifi-summary-status');
+    if (wifiStatus) {
+      if (wifiData.connected) {
+        const baseLabel = (translations.connected || 'Connecté');
+        const ssidLabel = wifiData.ssid ? ' · ' + wifiData.ssid : '';
+        wifiStatus.textContent = baseLabel + ssidLabel;
+      } else {
+        wifiStatus.textContent = translations.wifi_not_connected || 'Non connecté';
+      }
+    }
+
+    const wifiDetails = document.getElementById('wifi-summary-details');
+    if (wifiDetails) {
+      wifiDetails.innerHTML = '';
+      if (wifiData.connected) {
+        const rows = [
+          { label: translations.connected_ssid || 'SSID connecté', value: wifiData.ssid || '—' },
+          { label: translations.signal_power || 'Puissance Signal (RSSI)', value: (typeof wifiData.rssi === 'number' ? wifiData.rssi + ' dBm' : '—') },
+          { label: translations.signal_quality || 'Qualité Signal', value: wifiData.quality || '—' },
+          { label: translations.ip_address || 'Adresse IP', value: wifiData.ip || '—' },
+          { label: translations.subnet_mask || 'Masque Sous-réseau', value: wifiData.subnet || '—' },
+          { label: translations.gateway || 'Passerelle', value: wifiData.gateway || '—' },
+          { label: translations.dns || 'DNS', value: wifiData.dns || '—' }
+        ];
+        rows.filter(item => item.value && item.value !== '—').forEach(item => {
+          const li = document.createElement('li');
+          const label = document.createElement('span');
+          label.className = 'label';
+          label.textContent = item.label;
+          const value = document.createElement('span');
+          value.className = 'value';
+          value.textContent = item.value;
+          li.appendChild(label);
+          li.appendChild(value);
+          wifiDetails.appendChild(li);
+        });
+        if (!wifiDetails.children.length) {
+          const li = document.createElement('li');
+          li.className = 'wireless-empty';
+          li.textContent = '—';
+          wifiDetails.appendChild(li);
+        }
+      } else {
+        const li = document.createElement('li');
+        li.className = 'wireless-empty';
+        li.textContent = translations.wifi_not_connected || 'Non connecté';
+        wifiDetails.appendChild(li);
+      }
+    }
+
+    const bleData = (data && data.ble) ? data.ble : {};
+    const bleStatus = document.getElementById('ble-summary-status');
+    if (bleStatus) {
+      bleStatus.textContent = bleData.status || (translations.ble_not_supported || 'Bluetooth LE non disponible');
+    }
+
+    const bleDetails = document.getElementById('ble-summary-details');
+    if (bleDetails) {
+      bleDetails.innerHTML = '';
+      const yesText = translations.status_yes || 'Oui';
+      const noText = translations.status_no || 'Non';
+      const missingText = translations.status_missing || 'Manquant';
+      const chipLabel = translations.ble_chip_support || 'Compatibilité matérielle BLE';
+      const stackLabel = translations.ble_stack_support || 'Pile BLE incluse dans ce firmware';
+      const runtimeLabel = translations.ble_runtime_status || 'Fonctions BLE actives';
+      const entries = [
+        { className: bleData.chipCapable ? 'ok' : 'ko', icon: bleData.chipCapable ? '✅' : '❌', label: chipLabel, value: bleData.chipCapable ? yesText : noText },
+        { className: bleData.stackAvailable ? 'ok' : (bleData.chipCapable ? 'warn' : 'ko'), icon: bleData.stackAvailable ? '✅' : (bleData.chipCapable ? '⚠️' : '❌'), label: stackLabel, value: bleData.stackAvailable ? yesText : (bleData.chipCapable ? missingText : noText) },
+        { className: bleData.enabled ? 'ok' : (bleData.stackAvailable ? 'warn' : 'ko'), icon: bleData.enabled ? '✅' : (bleData.stackAvailable ? '⚠️' : '❌'), label: runtimeLabel, value: bleData.enabled ? yesText : (bleData.stackAvailable ? missingText : noText) }
+      ];
+      entries.forEach(entry => {
+        const li = document.createElement('li');
+        const pill = document.createElement('span');
+        pill.className = 'status-pill ' + entry.className;
+        pill.textContent = entry.icon;
+        const label = document.createElement('span');
+        label.className = 'label';
+        label.textContent = entry.label;
+        const value = document.createElement('span');
+        value.className = 'value';
+        value.textContent = entry.value;
+        li.appendChild(pill);
+        li.appendChild(label);
+        li.appendChild(value);
+        bleDetails.appendChild(li);
+      });
+      const backendItem = document.createElement('li');
+      backendItem.className = 'wireless-backend';
+      const backendLabel = document.createElement('span');
+      backendLabel.className = 'label';
+      backendLabel.textContent = translations.ble_backend_label || 'Pile logicielle BLE';
+      const backendValue = document.createElement('span');
+      backendValue.className = 'value';
+      backendValue.textContent = bleData.backend || (translations.ble_backend_missing || 'Pile BLE absente');
+      backendItem.appendChild(backendLabel);
+      backendItem.appendChild(backendValue);
+      bleDetails.appendChild(backendItem);
+    }
+
+    const bleHint = document.getElementById('ble-summary-hint');
+    if (bleHint) {
+      const hint = bleData.hint || '';
+      if (hint) {
+        bleHint.style.display = 'block';
+        bleHint.textContent = hint;
+      } else {
+        bleHint.style.display = 'none';
+        bleHint.textContent = '';
+      }
+    }
+
+    const bleButton = document.getElementById('ble-scan-button');
+    const bleMonitor = document.getElementById('ble-status');
+    const canScan = !!bleData.enabled;
+    if (bleButton) {
+      bleButton.disabled = !canScan;
+      bleButton.title = (!canScan && (bleData.hint || bleData.status)) ? (bleData.hint || bleData.status) : '';
+    }
+    if (bleMonitor && bleMonitor.dataset.locked !== '1' && (bleMonitor.dataset.state !== 'results' || !canScan)) {
+      if (canScan) {
+        bleMonitor.textContent = translations.ble_click_to_scan || 'Cliquez pour scanner';
+        bleMonitor.dataset.state = 'ready';
+      } else {
+        bleMonitor.textContent = bleData.status || (translations.ble_not_supported || 'Bluetooth LE non disponible');
+        bleMonitor.dataset.state = 'unavailable';
+      }
+    }
+  }
+)JS";
 
   // Tab navigation - CORRIGÉ
   js += "function showTab(tabName,evt){";

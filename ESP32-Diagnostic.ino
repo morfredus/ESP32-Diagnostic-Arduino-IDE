@@ -1,14 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.14
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.15
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v4.0.14:
- * - Préfère automatiquement BLEDevice.h ou NimBLEDevice.h selon la pile disponible pour activer le scan BLE natif
- * - Expose la bibliothèque BLE utilisée (ou manquante) dans l'API Sans fil, l'interface web, le moniteur série et les exports
- * - Affiche la carte Bluetooth même hors support avec un libellé de pile clair et des conseils localisés
+ * Nouveautés v4.0.15:
+ * - Corrige la génération JavaScript du statut Sans fil pour afficher systématiquement la carte Bluetooth sous le bloc WiFi
+ * - Maintient les messages de pile/capacité BLE visibles dans l'API et l'interface même sans support natif ou désactivé
+ * - Met à jour la documentation, l'interface web et les identifiants firmware vers la version 4.0.15
 
  * Nouveautés v4.0.13:
  * - Ajoute un panneau Bluetooth détaillé dans l'onglet Sans fil avec messages explicites même hors support BLE
@@ -116,7 +116,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.14"
+#define DIAGNOSTIC_VERSION "4.0.15"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -3315,7 +3315,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.14 - FR/EN");
+  Serial.println("     Version 4.0.15 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
