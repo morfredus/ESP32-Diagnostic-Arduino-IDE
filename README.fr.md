@@ -37,7 +37,7 @@ Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, acce
 
 ### Analyse Système
 - **Mémoire détaillée** - Flash, PSRAM (OPI/QSPI), SRAM avec tests d'intégrité
-- **WiFi Scanner** - Scan réseaux avec RSSI, canal, encryption
+- **Scanners sans fil** - Réseaux Wi-Fi (RSSI, canal, sécurité) et périphériques BLE (nom, MAC, RSSI)
 - **Scan I2C** - Détection automatique périphériques (0x01-0x7F)
 - **Scan SPI** - Informations bus SPI disponibles
 - **Partitions Flash** - Liste complète des partitions
@@ -45,7 +45,7 @@ Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, acce
 - **Stress Test** - Test limite allocation mémoire
 
 ### Interface Web
-- **8 onglets** - Navigation intuitive (Vue d'ensemble, LEDs, Écrans, Tests avancés, GPIO, WiFi, Performance, Export)
+- **8 onglets** - Navigation intuitive (Vue d'ensemble, LEDs, Écrans, Tests avancés, GPIO, Sans fil, Performance, Export)
 - **Sélecteur de langue** - Boutons FR/EN en haut à droite
 - **Configuration dynamique** - Pins I2C OLED modifiables via web
 - **Temps réel** - Actualisation données sans rechargement
@@ -248,7 +248,7 @@ curl http://ESP32-Diagnostic.local/api/get-translations
 3. **Écrans** - Tests OLED
 4. **Tests Avancés** - ADC, Touch, PWM, SPI, Partitions, Stress Test
 5. **GPIO** - Test automatique tous GPIO
-6. **WiFi** - Scanner réseaux WiFi
+6. **Sans fil** - Scanners Wi-Fi et périphériques BLE
 7. **Performance** - Benchmarks CPU/Mémoire
 8. **Export** - TXT, JSON, CSV, Version imprimable
 
@@ -306,6 +306,7 @@ GET /api/get-translations        → Obtient traductions JSON
 GET /                            → Interface web
 GET /api/test-gpio               → Test GPIO
 GET /api/wifi-scan               → Scanner WiFi
+GET /api/ble-scan                → Scanner BLE
 GET /api/benchmark               → Benchmarks
 GET /export/txt                  → Export TXT
 GET /export/json                 → Export JSON

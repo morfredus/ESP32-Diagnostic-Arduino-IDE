@@ -65,6 +65,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <BLEDevice.h>
 #include <cmath>
 #include <vector>
 
@@ -221,6 +222,16 @@ struct WiFiNetwork {
 };
 
 std::vector<WiFiNetwork> wifiNetworks;
+
+struct BLEDeviceInfo {
+  String name;
+  String address;
+  int rssi;
+};
+
+std::vector<BLEDeviceInfo> bleDevices;
+bool bleInitialized = false;
+BLEScan* bleScanner = nullptr;
 
 struct ADCReading {
   int pin;
@@ -703,6 +714,48 @@ void scanWiFiNetworks() {
     wifiNetworks.push_back(net);
   }
   Serial.printf("WiFi: %d reseaux trouves\r\n", n);
+}
+
+void ensureBleScanner() {
+  if (bleInitialized) return;
+
+  BLEDevice::init("ESP32 Diagnostic");
+  bleScanner = BLEDevice::getScan();
+  if (bleScanner != nullptr) {
+    bleScanner->setActiveScan(true);
+    bleScanner->setInterval(100);
+    bleScanner->setWindow(80);
+  }
+  bleInitialized = true;
+}
+
+void scanBLEDevices() {
+  Serial.println("\r\n=== SCAN BLE ===");
+  bleDevices.clear();
+
+  if (!diagnosticData.hasBLE) {
+    Serial.println("BLE: not supported on this board");
+    return;
+  }
+
+  ensureBleScanner();
+  if (bleScanner == nullptr) {
+    Serial.println("BLE: scanner unavailable");
+    return;
+  }
+
+  BLEScanResults results = bleScanner->start(5, false);
+  int count = results.getCount();
+  for (int i = 0; i < count; i++) {
+    BLEAdvertisedDevice device = results.getDevice(i);
+    BLEDeviceInfo info;
+    info.name = device.haveName() ? String(device.getName().c_str()) : String(T().unknown);
+    info.address = String(device.getAddress().toString().c_str());
+    info.rssi = device.getRSSI();
+    bleDevices.push_back(info);
+  }
+  bleScanner->clearResults();
+  Serial.printf("BLE: %d devices found\r\n", count);
 }
 
 // ========== TEST GPIO ==========
@@ -1496,6 +1549,24 @@ void handleWiFiScan() {
   server.send(200, "application/json", json);
 }
 
+void handleBLEScan() {
+  if (!diagnosticData.hasBLE) {
+    String json = "{\"supported\":false,\"message\":\"" + jsonEscape(String(T().ble_not_supported)) + "\"}";
+    server.send(200, "application/json", json);
+    return;
+  }
+
+  scanBLEDevices();
+  String json = "{\"supported\":true,\"devices\":[";
+  for (size_t i = 0; i < bleDevices.size(); i++) {
+    if (i > 0) json += ",";
+    json += "{\"name\":\"" + jsonEscape(bleDevices[i].name) + "\",\"address\":\"" + bleDevices[i].address +
+            "\",\"rssi\":" + String(bleDevices[i].rssi) + "}";
+  }
+  json += "],\"count\":" + String(bleDevices.size()) + "}";
+  server.send(200, "application/json", json);
+}
+
 void handleI2CScan() {
   scanI2C();
   server.send(200, "application/json", "{\"count\":" + String(diagnosticData.i2cCount) + ",\"devices\":\"" + diagnosticData.i2cDevices + "\"}");
@@ -2264,6 +2335,13 @@ void handleGetTranslations() {
   appendJsonField(json, "gateway", String(T().gateway));
   appendJsonField(json, "dns", String(T().dns));
   appendJsonField(json, "wifi_channel", String(T().wifi_channel));
+  appendJsonField(json, "wifi_click_to_scan", String(T().wifi_click_to_scan));
+  appendJsonField(json, "wifi_no_networks", String(T().wifi_no_networks));
+  appendJsonField(json, "ble_scanner", String(T().ble_scanner));
+  appendJsonField(json, "scan_ble_devices", String(T().scan_ble_devices));
+  appendJsonField(json, "ble_click_to_scan", String(T().ble_click_to_scan));
+  appendJsonField(json, "ble_no_devices", String(T().ble_no_devices));
+  appendJsonField(json, "ble_not_supported", String(T().ble_not_supported));
 
   appendJsonField(json, "gpio_interfaces", String(T().gpio_interfaces));
   appendJsonField(json, "total_gpio", String(T().total_gpio));
@@ -2983,6 +3061,7 @@ void setup() {
   // GPIO & WiFi
   server.on("/api/test-gpio", handleTestGPIO);
   server.on("/api/wifi-scan", handleWiFiScan);
+  server.on("/api/ble-scan", handleBLEScan);
   server.on("/api/i2c-scan", handleI2CScan);
   
   // LED intégrée

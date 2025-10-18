@@ -88,7 +88,16 @@ struct Translations {
   const char* gateway;
   const char* dns;
   const char* wifi_channel;
-  
+  const char* wifi_click_to_scan;
+  const char* wifi_no_networks;
+
+  // Bluetooth
+  const char* ble_scanner;
+  const char* scan_ble_devices;
+  const char* ble_click_to_scan;
+  const char* ble_no_devices;
+  const char* ble_not_supported;
+
   // GPIO et périphériques
   const char* gpio_interfaces;
   const char* total_gpio;
@@ -278,7 +287,7 @@ const Translations LANG_FR_TEXTS = {
   "Écrans",
   "Tests Avancés",
   "GPIO",
-  "WiFi",
+  "Sans fil",
   "Performance",
   "Export",
   
@@ -341,7 +350,16 @@ const Translations LANG_FR_TEXTS = {
   "Passerelle",
   "DNS",
   "Canal WiFi",
-  
+  "Cliquez pour scanner",
+  "Aucun réseau détecté",
+
+  // Bluetooth
+  "Scanner Bluetooth Low Energy",
+  "Scanner les appareils BLE",
+  "Cliquez pour scanner",
+  "Aucun appareil détecté",
+  "Bluetooth LE non disponible sur ce modèle",
+
   // GPIO
   "GPIO et Interfaces",
   "Total GPIO",
@@ -531,7 +549,7 @@ const Translations LANG_EN_TEXTS = {
   "Screens",
   "Advanced Tests",
   "GPIO",
-  "WiFi",
+  "Wireless",
   "Performance",
   "Export",
   
@@ -594,7 +612,16 @@ const Translations LANG_EN_TEXTS = {
   "Gateway",
   "DNS",
   "WiFi Channel",
-  
+  "Click to scan",
+  "No networks found",
+
+  // Bluetooth
+  "Bluetooth Low Energy Scanner",
+  "Scan BLE devices",
+  "Click to scan",
+  "No devices found",
+  "Bluetooth LE not available on this board",
+
   // GPIO
   "GPIO and Interfaces",
   "Total GPIO",
