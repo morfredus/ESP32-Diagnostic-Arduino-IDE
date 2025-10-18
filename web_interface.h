@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v4.0.7
+ * WEB_INTERFACE.H - Interface Web Dynamique v4.0.8
  */
 
 #ifndef WEB_INTERFACE_H
@@ -120,6 +120,10 @@ String generateHTML() {
   html += ".wifi-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;";
   html += "border-left:4px solid #667eea;transition:all .3s}";
   html += ".wifi-item:hover{transform:translateX(5px);box-shadow:0 5px 15px rgba(0,0,0,.1)}";
+  html += ".ble-list{max-height:500px;overflow-y:auto}";
+  html += ".ble-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;";
+  html += "border-left:4px solid #3a7bd5;transition:all .3s}";
+  html += ".ble-item:hover{transform:translateX(5px);box-shadow:0 5px 15px rgba(0,0,0,.1)}";
   html += "input[type='number'],input[type='color'],input[type='text']{padding:10px;";
   html += "border:2px solid #ddd;border-radius:5px;font-size:1em;transition:border .3s}";
   html += "input:focus{outline:none;border-color:#667eea}";
@@ -169,7 +173,7 @@ String generateHTML() {
   html += "<button class='nav-btn' onclick='showTab(\"screens\",event)'>Écrans</button>";
   html += "<button class='nav-btn' onclick='showTab(\"tests\",event)'>Tests</button>";
   html += "<button class='nav-btn' onclick='showTab(\"gpio\",event)'>GPIO</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"wifi\",event)'>WiFi</button>";
+  html += "<button class='nav-btn' onclick='showTab(\"wifi\",event)'>Sans fil</button>";
   html += "<button class='nav-btn' onclick='showTab(\"benchmark\",event)'>Performance</button>";
   html += "<button class='nav-btn' onclick='showTab(\"export\",event)'>Export</button>";
   html += "</div>";
@@ -425,12 +429,16 @@ String generateJavaScript() {
   js += "return h;";
   js += "}";
 
-  // Build WiFi
+  // Build Wireless
   js += "function buildWifi(){";
-  js += "let h='<div class=\"section\"><h2>📡 Scanner WiFi</h2>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"scanWiFi()\">🔍 Scanner les réseaux</button>';";
-  js += "h+='<div id=\"wifi-status\" class=\"status-live\">Cliquez pour scanner</div></div>';";
+  js += "let h='<div class=\"section\"><h2>📡 '+(translations.wifi_scanner||'Scanner WiFi')+'</h2>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"scanWiFi()\">🔍 '+(translations.scan_networks||'Scanner les réseaux')+'</button>';";
+  js += "h+='<div id=\"wifi-status\" class=\"status-live\">'+(translations.wifi_click_to_scan||'Cliquez pour scanner')+'</div></div>';";
   js += "h+='<div id=\"wifi-results\" class=\"wifi-list\"></div></div>';";
+  js += "h+='<div class=\"section\"><h2>🛰️ '+(translations.ble_scanner||'Scanner Bluetooth Low Energy')+'</h2>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"scanBLE()\">🔍 '+(translations.scan_ble_devices||'Scanner les appareils BLE')+'</button>';";
+  js += "h+='<div id=\"ble-status\" class=\"status-live\">'+(translations.ble_click_to_scan||'Cliquez pour scanner')+'</div></div>';";
+  js += "h+='<div id=\"ble-results\" class=\"ble-list\"></div></div>';";
   js += "return h;";
   js += "}";
 
@@ -585,16 +593,68 @@ String generateJavaScript() {
   js += "}";
 
   js += "async function scanWiFi(){";
-  js += "document.getElementById('wifi-status').textContent='Scan en cours...';";
-  js += "const r=await fetch('/api/wifi-scan');const d=await r.json();";
-  js += "let h='';d.networks.forEach(n=>{";
+  js += "const status=document.getElementById('wifi-status');";
+  js += "const results=document.getElementById('wifi-results');";
+  js += "if(status)status.textContent=translations.scanning||'Scan...';";
+  js += "if(results)results.innerHTML='<div class=\\\"loading\\\"></div>';";
+  js += "try{";
+  js += "const r=await fetch('/api/wifi-scan');";
+  js += "const d=await r.json();";
+  js += "let h='';";
+  js += "const channelLabel=translations.wifi_channel||'Canal WiFi';";
+  js += "if(d.networks&&d.networks.length){";
+  js += "d.networks.forEach(n=>{";
   js += "const icon=n.rssi>=-60?'🟢':n.rssi>=-70?'🟡':'🔴';";
   js += "const color=n.rssi>=-60?'#28a745':n.rssi>=-70?'#ffc107':'#dc3545';";
-  js += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+icon+' '+n.ssid+'</strong><br><small>'+n.bssid+' | Canal '+n.channel+'</small></div>';";
+  js += "const name=n.ssid||translations.unknown||'(hidden)';";
+  js += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+icon+' '+name+'</strong><br><small>'+n.bssid+' | '+channelLabel+' '+n.channel+'</small></div>';";
   js += "h+='<div style=\"font-size:1.3em;font-weight:bold;color:'+color+'\">'+n.rssi+' dBm</div></div></div>';";
   js += "});";
-  js += "document.getElementById('wifi-results').innerHTML=h;";
-  js += "document.getElementById('wifi-status').textContent=d.networks.length+' réseaux détectés';";
+  js += "}else{";
+  js += "h='<div class=\"wifi-item\">'+(translations.wifi_no_networks||'Aucun réseau détecté')+'</div>';";
+  js += "}";
+  js += "if(results)results.innerHTML=h;";
+  js += "if(status)status.textContent=((d.networks&&d.networks.length)||0)+' '+(translations.networks||'réseaux');";
+  js += "}catch(e){";
+  js += "console.error('scanWiFi',e);";
+  js += "if(status)status.textContent='❌ '+e;";
+  js += "if(results)results.innerHTML='';";
+  js += "}";
+  js += "}";
+
+  js += "async function scanBLE(){";
+  js += "const status=document.getElementById('ble-status');";
+  js += "const results=document.getElementById('ble-results');";
+  js += "if(status)status.textContent=translations.scanning||'Scan...';";
+  js += "if(results)results.innerHTML='<div class=\\\"loading\\\"></div>';";
+  js += "try{";
+  js += "const r=await fetch('/api/ble-scan');";
+  js += "const d=await r.json();";
+  js += "if(!d.supported){";
+  js += "if(results)results.innerHTML='';";
+  js += "if(status)status.textContent=d.message||(translations.ble_not_supported||'Bluetooth LE non disponible');";
+  js += "return;";
+  js += "}";
+  js += "if(!d.devices||!d.devices.length){";
+  js += "if(results)results.innerHTML='';";
+  js += "if(status)status.textContent=translations.ble_no_devices||'Aucun appareil détecté';";
+  js += "return;";
+  js += "}";
+  js += "let h='';";
+  js += "d.devices.forEach(dev=>{";
+  js += "const icon=dev.rssi>=-60?'🟢':dev.rssi>=-70?'🟡':'🔴';";
+  js += "const color=dev.rssi>=-60?'#28a745':dev.rssi>=-70?'#ffc107':'#dc3545';";
+  js += "const name=dev.name||translations.unknown||'Inconnu';";
+  js += "h+='<div class=\"ble-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+icon+' '+name+'</strong><br><small>'+dev.address+'</small></div>';";
+  js += "h+='<div style=\"font-size:1.3em;font-weight:bold;color:'+color+'\">'+dev.rssi+' dBm</div></div></div>';";
+  js += "});";
+  js += "if(results)results.innerHTML=h;";
+  js += "if(status)status.textContent=d.count+' '+(translations.devices||'périphérique(s)');";
+  js += "}catch(e){";
+  js += "console.error('scanBLE',e);";
+  js += "if(status)status.textContent='❌ '+e;";
+  js += "if(results)results.innerHTML='';";
+  js += "}";
   js += "}";
 
   js += "async function runBenchmarks(){";
