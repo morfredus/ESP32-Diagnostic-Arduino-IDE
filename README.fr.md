@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# Diagnostic ESP32 Complet v4.0.7
+# Diagnostic ESP32 Complet v4.0.9
 
 🇫🇷 Version française | [🇬🇧 English Version](README.md)
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, accessible via interface web. Teste automatiquement tous les composants matériels, analyse la mémoire, scanne les périphériques et génère des rapports détaillés.
 
-**Nouveautés v4.0.7** : Chaque raccourci OLED déclenche désormais le motif attendu, l'API renvoie l'identifiant exécuté et l'interface encode les requêtes pour éviter des libellés traduits intempestifs sur les boutons.
+**Nouveautés v4.0.9** : La vue d'ensemble reflète désormais le verdict PSRAM du moniteur série (support, mode, rappel IDE) et l'onglet **Sans fil** affiche un résumé Wi-Fi/BLE indiquant si le BLE est disponible avant de lancer un scan.
 
 ## ✨ Fonctionnalités
 
@@ -37,7 +37,7 @@ Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, acce
 
 ### Analyse Système
 - **Mémoire détaillée** - Flash, PSRAM (OPI/QSPI), SRAM avec tests d'intégrité
-- **WiFi Scanner** - Scan réseaux avec RSSI, canal, encryption
+- **Scanners sans fil** - Réseaux Wi-Fi (RSSI, canal, sécurité) et périphériques BLE (nom, MAC, RSSI)
 - **Scan I2C** - Détection automatique périphériques (0x01-0x7F)
 - **Scan SPI** - Informations bus SPI disponibles
 - **Partitions Flash** - Liste complète des partitions
@@ -45,7 +45,7 @@ Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, acce
 - **Stress Test** - Test limite allocation mémoire
 
 ### Interface Web
-- **8 onglets** - Navigation intuitive (Vue d'ensemble, LEDs, Écrans, Tests avancés, GPIO, WiFi, Performance, Export)
+- **8 onglets** - Navigation intuitive (Vue d'ensemble, LEDs, Écrans, Tests avancés, GPIO, Sans fil, Performance, Export)
 - **Sélecteur de langue** - Boutons FR/EN en haut à droite
 - **Configuration dynamique** - Pins I2C OLED modifiables via web
 - **Temps réel** - Actualisation données sans rechargement
@@ -248,7 +248,7 @@ curl http://ESP32-Diagnostic.local/api/get-translations
 3. **Écrans** - Tests OLED
 4. **Tests Avancés** - ADC, Touch, PWM, SPI, Partitions, Stress Test
 5. **GPIO** - Test automatique tous GPIO
-6. **WiFi** - Scanner réseaux WiFi
+6. **Sans fil** - Scanners Wi-Fi et périphériques BLE
 7. **Performance** - Benchmarks CPU/Mémoire
 8. **Export** - TXT, JSON, CSV, Version imprimable
 
@@ -306,6 +306,7 @@ GET /api/get-translations        → Obtient traductions JSON
 GET /                            → Interface web
 GET /api/test-gpio               → Test GPIO
 GET /api/wifi-scan               → Scanner WiFi
+GET /api/ble-scan                → Scanner BLE
 GET /api/benchmark               → Benchmarks
 GET /export/txt                  → Export TXT
 GET /export/json                 → Export JSON
@@ -346,7 +347,7 @@ Si certains textes restent en français :
 
 **Ne jamais partager `config.h` avec vos identifiants WiFi.**
 
-## 📁 Structure du Projet v4.0.7
+## 📁 Structure du Projet v4.0.9
 
 ```
 ESP32-Diagnostic/
@@ -361,10 +362,10 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v4.0.7 (2025) - ALIGNEMENT DES MOTIFS OLED & UI ÉPURÉE
-- 🖥️ **Chaque raccourci OLED lance désormais le bon motif** via un répartiteur unique qui relie les boutons à leur routine dédiée.
-- 📡 **La réponse `/api/oled-pattern` renvoie l'identifiant exécuté**, garantissant une parfaite cohérence entre l'interface web et le retour firmware.
-- 🧼 **Les requêtes de motifs sont encodées côté clients**, évitant l'apparition de libellés traduits intempestifs comme « Veuillez saisir un message » sur les boutons de raccourci.
+### v4.0.9 (2025) - STATUT PSRAM & RÉSUMÉ SANS FIL
+- 🧠 **La vue d'ensemble et les exports détaillent désormais le support/mode PSRAM**, avec un rappel d'activation IDE identique au diagnostic série.
+- 📶 **L'onglet Sans fil démarre par un résumé Wi-Fi/BLE**, indiquant la connexion active et si le BLE est compilé avant tout scan.
+- 🔗 **Les endpoints `/api/overview` et `/api/memory-details` exposent les métadonnées PSRAM**, pour garder outils externes et interface dynamique synchronisés.
 
 ### v4.0.4 (2025) - GARDE CONFLIT LED + API LOCALISÉE
 - 💡 **Le test de LED intégrée s'interrompt si la NeoPixel partage le GPIO** et signale le conflit sans clignoter la bande
@@ -425,7 +426,7 @@ Code libre d'utilisation, modification et distribution.
 
 Développé pour la communauté ESP32.
 
-**v4.0.7 - Alignement motifs OLED & interface épurée**
+**v4.0.9 - Statut PSRAM et résumé Sans fil**
 **v4.0.2 - Correctif catalogue de traductions + localisation**
 **v3.0.0 - Support officiel du core 3.3.2**
 **v2.4 - Système multilingue**
@@ -433,7 +434,7 @@ Développé pour la communauté ESP32.
 
 ---
 
-**Version actuelle** : 4.0.7 Multilingue
+**Version actuelle** : 4.0.9 Multilingue
 **Dernière mise à jour** : Octobre 2025
 **Langues disponibles** : Français (défaut), Anglais
 **Support** : ESP32 Arduino Core 3.3.2+
