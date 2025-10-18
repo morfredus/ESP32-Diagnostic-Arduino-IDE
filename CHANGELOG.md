@@ -5,6 +5,79 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.5] - 2025-10-16
+
+### Changed
+- Replaced blocking alert popups with inline status notices beside LED, NeoPixel and OLED controls, including language switching feedback.
+- Removed the dormant TFT screen handlers from the firmware, API and web UI to focus the screens tab on the I2C OLED workflow.
+
+### Fixed
+- Ensured LED and OLED status texts refresh immediately after language changes so users see the active locale without reloading the page.
+
+---
+
+## [4.0.4] - 2025-10-15
+
+### Added
+- Legacy `web_interface.h` now exposes the same OLED pattern shortcut buttons as the dynamic interface.
+
+### Changed
+- Built-in LED diagnostics stop before driving the pin when a NeoPixel shares the GPIO and return a localized conflict message.
+- All LED/OLED API endpoints respond with translated payloads and consistent error handling for missing patterns or invalid pins.
+
+### Fixed
+- Default LED and OLED status strings are regenerated on language changes, preventing stale French text when browsing in English.
+
+---
+
+## [4.0.3] - 2025-10-14
+
+### Added
+- Dedicated OLED pattern endpoints and UI buttons to launch each display test individually from the web interface.
+
+### Changed
+- Built-in LED diagnostics now rely on LEDC fading when available and fall back to a translated "mode simple" when the NeoPixel shares the GPIO.
+- The LEDs tab surfaces a localized NeoPixel conflict warning and new strings for the OLED quick actions.
+
+### Fixed
+- Prevented the built-in LED test sequence from unintentionally driving the NeoPixel strip on shared pins.
+
+---
+
+## [4.0.2] - 2025-10-13
+
+### Fixed
+- Resolved the translation catalog export to avoid Arduino `String::endsWith` compilation failures while keeping the dynamic web UI translations intact.
+
+---
+
+## [4.0.1] - 2025-10-12
+
+### Fixed
+- TFT pattern API now returns localized "feature disabled" responses per requested pattern instead of triggering validation errors.
+- TFT status strings refresh after language changes so the disabled message always matches the active locale.
+
+### Changed
+- Added the requested pattern identifier to the TFT API response payload for easier client-side handling.
+
+---
+
+## [4.0.0] - 2025-10-11
+
+### Removed
+- Dropped the TFT_eSPI dependency and all on-device TFT drawing routines while keeping the web UI tabs and API endpoints available.
+
+### Changed
+- CPU benchmark now reports MFLOPS using elapsed time in seconds and the effective floating-point operation count.
+- Wi-Fi scanner now distinguishes all ESP-IDF authentication modes and surfaces scan failures instead of returning negative network counts.
+- Memory fragmentation status now reuses translated warning strings instead of a hard-coded French label.
+- I2C scan results fall back to the localized "none" string when no peripherals are found.
+
+### Fixed
+- TFT status messaging is now localized and aligned with the disabled hardware support state.
+
+---
+
 ## [3.0.0] - 2025-10-10
 
 ### Added
@@ -250,6 +323,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 4.0.5 | 2025-10-16 | Inline notices, OLED-only screens tab, dynamic language refresh |
+| 4.0.4 | 2025-10-15 | LED conflict guard, localized LED/OLED API, legacy OLED buttons |
 | 3.0.0 | 2025-10-10 | Official release, Core 3.3.2 support, multilingual docs |
 | 2.5 | 2025-10-08 | Translated exports |
 | 2.4 | 2025-10-07 | Multilingual interface (FR/EN) |
