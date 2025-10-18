@@ -1,10 +1,15 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.12
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.13
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v4.0.13:
+ * - Ajoute un panneau Bluetooth détaillé dans l'onglet Sans fil avec messages explicites même hors support BLE
+ * - Expose l'IP, le masque, la passerelle et le DNS Wi-Fi dans l'API, l'interface web et le moniteur série
+ * - Met à jour la documentation et l'interface pour refléter la version 4.0.13
+
  * Nouveautés v4.0.12:
  * - Corrige la génération JSON du statut Sans fil pour que la carte Bluetooth reste visible même hors connexion
  * - Fiabilise les exports JSON WiFi/BLE lorsque les textes contiennent des caractères spéciaux
@@ -96,7 +101,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.12"
+#define DIAGNOSTIC_VERSION "4.0.13"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -674,6 +679,11 @@ void printWirelessDiagnostic() {
     Serial.printf("WiFi: CONNECTE (%s) RSSI %d dBm\r\n",
                   diagnosticData.wifiSSID.c_str(),
                   diagnosticData.wifiRSSI);
+    Serial.printf("Qualite: %s\r\n", getWiFiSignalQuality().c_str());
+    Serial.printf("IP: %s\r\n", WiFi.localIP().toString().c_str());
+    Serial.printf("Masque: %s\r\n", WiFi.subnetMask().toString().c_str());
+    Serial.printf("Passerelle: %s\r\n", WiFi.gatewayIP().toString().c_str());
+    Serial.printf("DNS: %s\r\n\r\n", WiFi.dnsIP().toString().c_str());
   } else {
     Serial.println("WiFi: Non connecte");
   }
@@ -1679,7 +1689,9 @@ void handleWirelessStatus() {
   String json = "{";
   bool wifiConnected = WiFi.status() == WL_CONNECTED;
   json += "\"wifi\":{\"connected\":" + String(wifiConnected ? "true" : "false") + ",";
-  json += "\"ssid\":\"" + jsonEscape(diagnosticData.wifiSSID) + "\",\"rssi\":" + String(diagnosticData.wifiRSSI) + ",\"quality\":\"" + jsonEscape(getWiFiSignalQuality()) + "\"}";
+  json += "\"ssid\":\"" + jsonEscape(diagnosticData.wifiSSID) + "\",\"rssi\":" + String(diagnosticData.wifiRSSI) + ",\"quality\":\"" + jsonEscape(getWiFiSignalQuality()) + "\",";
+  json += "\"ip\":\"" + jsonEscape(diagnosticData.ipAddress) + "\",\"subnet\":\"" + jsonEscape(WiFi.subnetMask().toString()) + "\",";
+  json += "\"gateway\":\"" + jsonEscape(WiFi.gatewayIP().toString()) + "\",\"dns\":\"" + jsonEscape(WiFi.dnsIP().toString()) + "\"}";
 
   json += ",\"ble\":{\"chipCapable\":" + String(diagnosticData.bleChipCapable ? "true" : "false") + ",";
   json += "\"stackAvailable\":" + String(diagnosticData.bleStackAvailable ? "true" : "false") + ",";
@@ -3236,7 +3248,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.12 - FR/EN");
+  Serial.println("     Version 4.0.13 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   

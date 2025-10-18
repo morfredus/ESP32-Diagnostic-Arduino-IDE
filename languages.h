@@ -107,6 +107,7 @@ struct Translations {
   const char* ble_no_devices;
   const char* ble_not_supported;
   const char* wireless_status;
+  const char* wireless_loading;
   const char* wifi_label;
   const char* ble_label;
   const char* recommendation;
@@ -392,6 +393,7 @@ const Translations LANG_FR_TEXTS = {
   "Aucun appareil détecté",
   "Bluetooth LE non disponible sur ce modèle",
   "Statut sans fil",
+  "Chargement...",
   "Wi-Fi",
   "Bluetooth Low Energy",
   "Recommandation",
@@ -677,6 +679,7 @@ const Translations LANG_EN_TEXTS = {
   "No devices found",
   "Bluetooth LE not available on this board",
   "Wireless status",
+  "Loading...",
   "Wi-Fi",
   "Bluetooth Low Energy",
   "Recommendation",
