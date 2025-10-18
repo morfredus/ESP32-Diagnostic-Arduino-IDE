@@ -212,7 +212,10 @@ struct Translations {
   const char* completed;
   const char* scan;
   const char* scanning;
-  
+  const char* feature_disabled;
+  const char* not_supported;
+  const char* max_allocated;
+
   // Unités
   const char* cores;
   const char* pins;
@@ -227,6 +230,35 @@ struct Translations {
   const char* deepsleep_exit;
   const char* brownout;
   const char* other;
+
+  // Messages complémentaires LED/OLED
+  const char* led_conflict;
+  const char* pwm_disabled;
+  const char* simple_mode;
+  const char* led_ready;
+  const char* led_test_ok;
+  const char* led_configured;
+  const char* led_not_configured;
+  const char* led_on_state;
+  const char* led_off_state;
+  const char* led_test_skipped;
+  const char* neopixel_not_ready;
+  const char* pattern_missing;
+  const char* pattern_unknown;
+  const char* message_displayed;
+  const char* oled_reconfigured;
+  const char* invalid_pins;
+  const char* oled_init_failed;
+  const char* oled_intro;
+  const char* oled_large_text;
+  const char* oled_fonts;
+  const char* oled_shapes;
+  const char* oled_lines;
+  const char* oled_diagonals;
+  const char* oled_animation;
+  const char* oled_progress;
+  const char* oled_scroll;
+  const char* oled_final;
 };
 
 // Traductions françaises
@@ -430,6 +462,9 @@ const Translations LANG_FR_TEXTS = {
   "Terminé",
   "Scan...",
   "Scan...",
+  "Fonction désactivée dans ce firmware",
+  "Non supporté sur ce modèle",
+  "Max",
   
   // Unités
   "coeurs",
@@ -444,7 +479,36 @@ const Translations LANG_FR_TEXTS = {
   "Reset logiciel",
   "Sortie de deep sleep",
   "Brownout",
-  "Autre"
+  "Autre",
+
+  // Messages complémentaires LED/OLED
+  "Conflit NeoPixel (GPIO partagé)",
+  "PWM désactivée",
+  "Mode simple",
+  "Prêt",
+  "Test OK",
+  "LED configurée sur GPIO",
+  "LED non configurée",
+  "LED allumée",
+  "LED éteinte",
+  "Test ignoré (conflit NeoPixel)",
+  "NeoPixel non initialisé",
+  "Motif manquant",
+  "Motif inconnu",
+  "Message affiché",
+  "I2C reconfiguré",
+  "Pins invalides",
+  "Périphérique OLED détecté mais initialisation échouée",
+  "Écran d'accueil",
+  "Texte géant",
+  "Tailles de police",
+  "Formes géométriques",
+  "Rayures horizontales",
+  "Diagonales",
+  "Carré animé",
+  "Barre de progression",
+  "Texte défilant",
+  "Écran final"
 };
 
 // Traductions anglaises
@@ -648,6 +712,9 @@ const Translations LANG_EN_TEXTS = {
   "Completed",
   "Scanning...",
   "Scanning...",
+  "Feature disabled in this firmware",
+  "Not supported on this board",
+  "Max",
   
   // Units
   "cores",
@@ -662,7 +729,36 @@ const Translations LANG_EN_TEXTS = {
   "Software reset",
   "Deep sleep exit",
   "Brownout",
-  "Other"
+  "Other",
+
+  // Additional LED/OLED messages
+  "NeoPixel conflict (shared GPIO)",
+  "PWM disabled",
+  "Basic mode",
+  "Ready",
+  "Test OK",
+  "LED configured on GPIO",
+  "LED not configured",
+  "LED on",
+  "LED off",
+  "Test skipped (NeoPixel conflict)",
+  "NeoPixel not initialised",
+  "Missing pattern",
+  "Unknown pattern",
+  "Message displayed",
+  "I2C reconfigured",
+  "Invalid pins",
+  "OLED device detected but initialisation failed",
+  "Welcome screen",
+  "Large text",
+  "Font sizes",
+  "Geometric shapes",
+  "Horizontal stripes",
+  "Diagonals",
+  "Moving square",
+  "Progress bar",
+  "Scrolling text",
+  "Final screen"
 };
 
 // Fonction pour obtenir le texte traduit
