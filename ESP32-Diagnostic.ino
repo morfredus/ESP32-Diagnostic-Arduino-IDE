@@ -1,9 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.5
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.6
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v4.0.6:
+ * - Rend tous les tests OLED (complet, message, motifs) accessibles même avant détection automatique
+ * - Affiche un avertissement GPIO pour rappeler qu'un FAIL peut signaler un GPIO réservé plutôt qu'une panne
+ * - Modernise l'interface web dynamique avec rappels locaux et messages OLED sans rechargement
  *
  * Nouveautés v4.0.5:
  * - Retire les derniers éléments liés au TFT et simplifie l'onglet écrans
@@ -65,7 +70,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.5"
+#define DIAGNOSTIC_VERSION "4.0.6"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2321,6 +2326,7 @@ void handleGetTranslations() {
   appendJsonField(json, "gpio_test", String(T().gpio_test));
   appendJsonField(json, "test_all_gpio", String(T().test_all_gpio));
   appendJsonField(json, "click_to_test", String(T().click_to_test));
+  appendJsonField(json, "gpio_fail_hint", String(T().gpio_fail_hint));
 
   appendJsonField(json, "wifi_scanner", String(T().wifi_scanner));
   appendJsonField(json, "scan_networks", String(T().scan_networks));
@@ -2627,27 +2633,33 @@ void handleRoot() {
   chunk += "SCL: <input type='number' id='oledSCL' value='" + String(I2C_SCL) + "' min='0' max='48' style='width:70px'> ";
   chunk += "<button class='btn btn-info' onclick='configOLED()' data-i18n='apply_redetect'>" + String(T().apply_redetect) + "</button>";
   chunk += "<div class='inline-feedback' id='oled-feedback'></div>";
-  if (oledAvailable) {
-    chunk += "<button class='btn btn-primary' onclick='testOLED()' data-i18n='full_test'>" + String(T().full_test) + "</button>";
-    chunk += "<input type='text' id='oledMsg' placeholder='" + String(T().custom_message) + "' data-i18n-placeholder='custom_message' style='width:250px;margin:0 5px'>";
-    chunk += "<button class='btn btn-success' onclick='oledMessage()' data-i18n='show_message'>" + String(T().show_message) + "</button>";
-    chunk += "<div style='margin-top:15px'>";
-    chunk += "<button class='btn btn-primary' onclick='oledRun(\"intro\")' data-i18n='oled_intro'>" + String(T().oled_intro) + "</button>";
-    chunk += "<button class='btn btn-primary' onclick='oledRun(\"large\")' data-i18n='oled_large_text'>" + String(T().oled_large_text) + "</button>";
-    chunk += "<button class='btn btn-primary' onclick='oledRun(\"fonts\")' data-i18n='oled_fonts'>" + String(T().oled_fonts) + "</button>";
-    chunk += "<button class='btn btn-primary' onclick='oledRun(\"shapes\")' data-i18n='oled_shapes'>" + String(T().oled_shapes) + "</button>";
-    chunk += "</div>";
-    chunk += "<div style='margin-top:5px'>";
-    chunk += "<button class='btn btn-primary' onclick='oledRun(\"lines\")' data-i18n='oled_lines'>" + String(T().oled_lines) + "</button>";
-    chunk += "<button class='btn btn-primary' onclick='oledRun(\"diagonals\")' data-i18n='oled_diagonals'>" + String(T().oled_diagonals) + "</button>";
-    chunk += "<button class='btn btn-primary' onclick='oledRun(\"square\")' data-i18n='oled_animation'>" + String(T().oled_animation) + "</button>";
-    chunk += "<button class='btn btn-primary' onclick='oledRun(\"progress\")' data-i18n='oled_progress'>" + String(T().oled_progress) + "</button>";
-    chunk += "</div>";
-    chunk += "<div style='margin-top:5px'>";
-    chunk += "<button class='btn btn-primary' onclick='oledRun(\"scroll\")' data-i18n='oled_scroll'>" + String(T().oled_scroll) + "</button>";
-    chunk += "<button class='btn btn-danger' onclick='oledRun(\"final\")' data-i18n='oled_final'>" + String(T().oled_final) + "</button>";
+  chunk += "</div>";
+  if (!oledAvailable) {
+    chunk += "<div class='info-item' style='grid-column:1/-1'>";
+    chunk += "<div class='info-value badge-warning' data-i18n='no_detected'>" + String(T().no_detected) + "</div>";
     chunk += "</div>";
   }
+  chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
+  chunk += "<div><button class='btn btn-primary' onclick='testOLED()' data-i18n='full_test'>" + String(T().full_test) + "</button></div>";
+  chunk += "<div style='margin-top:10px'><input type='text' id='oledMsg' placeholder='" + String(T().custom_message) + "' data-i18n-placeholder='custom_message' style='width:250px;margin:0 5px'>";
+  chunk += "<button class='btn btn-success' onclick='oledMessage()' data-i18n='show_message'>" + String(T().show_message) + "</button></div>";
+  chunk += "<div style='margin-top:15px'>";
+  chunk += "<button class='btn btn-primary' onclick='oledRun(\"intro\")' data-i18n='oled_intro'>" + String(T().oled_intro) + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='oledRun(\"large\")' data-i18n='oled_large_text'>" + String(T().oled_large_text) + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='oledRun(\"fonts\")' data-i18n='oled_fonts'>" + String(T().oled_fonts) + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='oledRun(\"shapes\")' data-i18n='oled_shapes'>" + String(T().oled_shapes) + "</button>";
+  chunk += "</div>";
+  chunk += "<div style='margin-top:5px'>";
+  chunk += "<button class='btn btn-primary' onclick='oledRun(\"lines\")' data-i18n='oled_lines'>" + String(T().oled_lines) + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='oledRun(\"diagonals\")' data-i18n='oled_diagonals'>" + String(T().oled_diagonals) + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='oledRun(\"square\")' data-i18n='oled_animation'>" + String(T().oled_animation) + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='oledRun(\"progress\")' data-i18n='oled_progress'>" + String(T().oled_progress) + "</button>";
+  chunk += "</div>";
+  chunk += "<div style='margin-top:5px'>";
+  chunk += "<button class='btn btn-primary' onclick='oledRun(\"scroll\")' data-i18n='oled_scroll'>" + String(T().oled_scroll) + "</button>";
+  chunk += "<button class='btn btn-danger' onclick='oledRun(\"final\")' data-i18n='oled_final'>" + String(T().oled_final) + "</button>";
+  chunk += "</div>";
+  chunk += "</div>";
   chunk += "</div></div></div></div>";
   server.sendContent(chunk);
   
@@ -2697,7 +2709,9 @@ void handleRoot() {
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testAllGPIO()' data-i18n='test_all_gpio'>" + String(T().test_all_gpio) + "</button>";
   chunk += "<div id='gpio-status' class='status-live' data-i18n='click_to_test'>" + String(T().click_to_test) + "</div>";
-  chunk += "</div><div id='gpio-results' class='gpio-grid'></div></div></div>";
+  chunk += "</div>";
+  chunk += "<p class='status-live' style='margin:10px 0;background:#fff3cd;color:#856404;border-left:4px solid #f2c94c;padding:12px' data-i18n='gpio_fail_hint'>" + String(T().gpio_fail_hint) + "</p>";
+  chunk += "<div id='gpio-results' class='gpio-grid'></div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 8: TAB WiFi
@@ -2886,7 +2900,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.5 - FR/EN");
+  Serial.println("     Version 4.0.6 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   

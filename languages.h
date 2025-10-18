@@ -146,6 +146,7 @@ struct Translations {
   const char* gpio_test;
   const char* test_all_gpio;
   const char* click_to_test;
+  const char* gpio_fail_hint;
   
   // WiFi Scanner
   const char* wifi_scanner;
@@ -398,6 +399,7 @@ const Translations LANG_FR_TEXTS = {
   "Test GPIO",
   "Tester Tous les GPIO",
   "Cliquez pour tester",
+  "Un GPIO \"FAIL\" peut être réservé (UART, Flash, capteur...). Vérifiez son usage avant de conclure qu'il est défectueux.",
   
   // WiFi
   "Scanner WiFi",
@@ -650,6 +652,7 @@ const Translations LANG_EN_TEXTS = {
   "GPIO Test",
   "Test All GPIO",
   "Click to test",
+  "A GPIO marked \"FAIL\" may simply be reserved (UART, flash, sensors...). Double-check its role before assuming it's faulty.",
   
   // WiFi
   "WiFi Scanner",

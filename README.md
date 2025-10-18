@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v4.0.5
+# ESP32 Complete Diagnostic v4.0.6
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v4.0.5**: Inline status banners replace blocking popups, language changes update the interface instantly, and the screens tab focuses exclusively on the OLED workflow after removing legacy TFT stubs.
+**What's new in v4.0.6**: The OLED tab now exposes every test (full cycle, message push, individual patterns) even if the screen isn't auto-detected yet, and the GPIO page adds a localized hint explaining that `FAIL` can indicate a reserved pin instead of a faulty pad.
 
 ## ✨ Features
 
@@ -29,7 +29,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 ### Hardware Tests
 - **Built-in LED** - Configurable GPIO with automatic conflict detection when the NeoPixel shares the pin
 - **NeoPixel/WS2812B** - Multi-LED support with RGB effects
-- **OLED 0.96" I2C Screen** - 10 display tests including animations plus per-pattern quick actions
+- **OLED 0.96" I2C Screen** - Complete test suite (full cycle, message, patterns) available individually even before auto-detection
 - **GPIO** - Automatic testing of all available GPIO
 - **ADC** - Reading all analog channels
 - **Touch Pads** - Capacitive touch sensor testing
@@ -344,7 +344,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v4.0.5
+## 📁 Project Structure v4.0.6
 
 ```
 ESP32-Diagnostic/
@@ -359,10 +359,10 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v4.0.5 (2025) - INLINE NOTICES & OLED-ONLY SCREEN TAB
-- 💬 **Inline status notices replace blocking popups** for LED, NeoPixel and OLED tests/configuration.
-- 🌍 **Language changes update the UI instantly**, including status labels and inline hints.
-- 🖥️ **Screens tab now focuses solely on the OLED diagnostics** after removing the unused TFT stubs.
+### v4.0.6 (2025) - OLED TESTS EVERYWHERE & GPIO WARNINGS
+- 🖥️ **OLED controls remain accessible even without auto-detection** so you can launch the full test, push custom text or run each pattern individually at any time.
+- 💬 **Inline OLED feedback stays in place after language switches**, reloading all button labels and status strings without a page refresh.
+- ⚠️ **GPIO tab now features a localized warning** explaining that a reported `FAIL` often means the pin is reserved (flash, UART, sensors) rather than physically damaged.
 
 ### v4.0.4 (2025) - LED CONFLICT GUARD + LOCALIZED API
 - 💡 **Built-in LED test now aborts when the NeoPixel shares the GPIO** and reports the conflict instead of flashing the strip
@@ -423,7 +423,7 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
-**v4.0.5 - Inline notices & OLED-only screen tab**
+**v4.0.6 - OLED tests everywhere & GPIO hints**
 **v4.0.2 - Translation catalog fix + localization refresh**
 **v3.0.0 - Official Core 3.3.2 support**
 **v2.4 - Multilingual system**
@@ -431,7 +431,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 4.0.5 (multilingual)
+**Current version**: 4.0.6 (multilingual)
 **Last update**: October 2025
 **Available languages**: French (default), English
 **Support**: ESP32 Arduino Core 3.3.2+
