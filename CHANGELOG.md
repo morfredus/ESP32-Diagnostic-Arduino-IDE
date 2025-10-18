@@ -5,6 +5,17 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.5] - 2025-10-16
+
+### Changed
+- Replaced blocking alert popups with inline status notices beside LED, NeoPixel and OLED controls, including language switching feedback.
+- Removed the dormant TFT screen handlers from the firmware, API and web UI to focus the screens tab on the I2C OLED workflow.
+
+### Fixed
+- Ensured LED and OLED status texts refresh immediately after language changes so users see the active locale without reloading the page.
+
+---
+
 ## [4.0.4] - 2025-10-15
 
 ### Added
@@ -312,6 +323,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 4.0.5 | 2025-10-16 | Inline notices, OLED-only screens tab, dynamic language refresh |
 | 4.0.4 | 2025-10-15 | LED conflict guard, localized LED/OLED API, legacy OLED buttons |
 | 3.0.0 | 2025-10-10 | Official release, Core 3.3.2 support, multilingual docs |
 | 2.5 | 2025-10-08 | Translated exports |

@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v4.0.4
+# ESP32 Complete Diagnostic v4.0.5
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v4.0.4**: Built-in LED diagnostics now skip shared NeoPixel GPIOs, every LED/OLED API reply is localized, and the legacy web interface gains quick buttons for each OLED animation.
+**What's new in v4.0.5**: Inline status banners replace blocking popups, language changes update the interface instantly, and the screens tab focuses exclusively on the OLED workflow after removing legacy TFT stubs.
 
 ## ✨ Features
 
@@ -29,7 +29,6 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 ### Hardware Tests
 - **Built-in LED** - Configurable GPIO with automatic conflict detection when the NeoPixel shares the pin
 - **NeoPixel/WS2812B** - Multi-LED support with RGB effects
-- **TFT Screen (web interface only)** - REST endpoints preserved, on-device driving disabled in firmware v4.0.4
 - **OLED 0.96" I2C Screen** - 10 display tests including animations plus per-pattern quick actions
 - **GPIO** - Automatic testing of all available GPIO
 - **ADC** - Reading all analog channels
@@ -225,11 +224,6 @@ curl http://ESP32-Diagnostic.local/api/get-translations
 | ESP32-S3 | 8   | 9   |
 | ESP32-C3 | 5   | 6   |
 
-**TFT SPI (fixed):**
-```
-MOSI: 45, SCLK: 3, CS: 14, DC: 47, RST: 21, MISO: 46
-```
-
 **Built-in LED (auto-detected):**
 - ESP32-S3: GPIO 2
 - ESP32-C3: GPIO 8
@@ -249,7 +243,7 @@ MOSI: 45, SCLK: 3, CS: 14, DC: 47, RST: 21, MISO: 46
 
 1. **Overview** - Complete system information
 2. **LEDs** - Built-in LED and NeoPixel tests
-3. **Screens** - TFT and OLED tests
+3. **Screens** - OLED tests
 4. **Advanced Tests** - ADC, Touch, PWM, SPI, Partitions, Stress Test
 5. **GPIO** - Automatic all GPIO testing
 6. **WiFi** - WiFi network scanner
@@ -350,7 +344,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v4.0.4
+## 📁 Project Structure v4.0.5
 
 ```
 ESP32-Diagnostic/
@@ -364,6 +358,11 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v4.0.5 (2025) - INLINE NOTICES & OLED-ONLY SCREEN TAB
+- 💬 **Inline status notices replace blocking popups** for LED, NeoPixel and OLED tests/configuration.
+- 🌍 **Language changes update the UI instantly**, including status labels and inline hints.
+- 🖥️ **Screens tab now focuses solely on the OLED diagnostics** after removing the unused TFT stubs.
 
 ### v4.0.4 (2025) - LED CONFLICT GUARD + LOCALIZED API
 - 💡 **Built-in LED test now aborts when the NeoPixel shares the GPIO** and reports the conflict instead of flashing the strip
@@ -424,7 +423,7 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
-**v4.0.4 - LED conflict guard + localized OLED shortcuts**
+**v4.0.5 - Inline notices & OLED-only screen tab**
 **v4.0.2 - Translation catalog fix + localization refresh**
 **v3.0.0 - Official Core 3.3.2 support**
 **v2.4 - Multilingual system**
@@ -432,7 +431,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 4.0.4 (multilingual)
+**Current version**: 4.0.5 (multilingual)
 **Last update**: October 2025
 **Available languages**: French (default), English
 **Support**: ESP32 Arduino Core 3.3.2+

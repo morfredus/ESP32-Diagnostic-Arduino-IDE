@@ -259,6 +259,8 @@ struct Translations {
   const char* oled_progress;
   const char* oled_scroll;
   const char* oled_final;
+  const char* message_required;
+  const char* language_changed;
 };
 
 // Traductions françaises
@@ -508,7 +510,9 @@ const Translations LANG_FR_TEXTS = {
   "Carré animé",
   "Barre de progression",
   "Texte défilant",
-  "Écran final"
+  "Écran final",
+  "Veuillez saisir un message",
+  "Langue changée"
 };
 
 // Traductions anglaises
@@ -758,7 +762,9 @@ const Translations LANG_EN_TEXTS = {
   "Moving square",
   "Progress bar",
   "Scrolling text",
-  "Final screen"
+  "Final screen",
+  "Please enter a message",
+  "Language changed"
 };
 
 // Fonction pour obtenir le texte traduit

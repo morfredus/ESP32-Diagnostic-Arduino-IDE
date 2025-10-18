@@ -1,10 +1,15 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.4
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.5
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v4.0.5:
+ * - Retire les derniers éléments liés au TFT et simplifie l'onglet écrans
+ * - Remplace les popups bloquantes par des notifications proches des contrôles
+ * - Rafraîchit la documentation et la version avec les changements UX
+
  * Nouveautés v4.0.4:
  * - Désactive le test de LED intégrée lorsque le GPIO est partagé avec la NeoPixel
  * - Localise intégralement les réponses API LED/OLED et harmonise les statuts
@@ -60,7 +65,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.4"
+#define DIAGNOSTIC_VERSION "4.0.5"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -103,13 +108,6 @@ int BUILTIN_LED_PIN = -1;
 bool builtinLedTested = false;
 bool builtinLedAvailable = false;
 String builtinLedTestResult = "";
-
-// TFT
-bool tftTested = false;
-bool tftAvailable = false;
-String tftTestResult = String(T().feature_disabled);
-int tftWidth = 0;
-int tftHeight = 0;
 
 // OLED
 bool oledTested = false;
@@ -164,12 +162,6 @@ struct DiagnosticInfo {
   
   String i2cDevices;
   int i2cCount;
-  
-  bool tftTested;
-  bool tftAvailable;
-  String tftResult;
-  int tftWidth;
-  int tftHeight;
   
   bool oledTested;
   bool oledAvailable;
@@ -274,10 +266,6 @@ double calculateCpuMflops(unsigned long durationMicros) {
 }
 
 void refreshLocalizedStatusMessages() {
-  if (!tftAvailable) {
-    tftTestResult = String(T().feature_disabled);
-  }
-
   if (BUILTIN_LED_PIN == -1) {
     builtinLedTestResult = String(T().led_not_configured);
   } else if (!builtinLedTested) {
@@ -964,43 +952,6 @@ void neopixelFade(uint32_t color) {
   strip->setBrightness(255);
 }
 
-// ========== TFT ==========
-void setTFTDisabledStatus() {
-  tftTested = false;
-  tftAvailable = false;
-  tftWidth = 0;
-  tftHeight = 0;
-  tftTestResult = String(T().feature_disabled);
-}
-
-void detectTFT() {
-  Serial.println("\r\n=== DETECTION TFT ===");
-  Serial.println("TFT: support desactive dans ce firmware");
-  setTFTDisabledStatus();
-}
-
-void testTFT() {
-  Serial.println("\r\n=== TEST TFT ===");
-  Serial.println("TFT: support desactive - test ignore");
-  setTFTDisabledStatus();
-}
-
-void resetTFTTest() {
-  setTFTDisabledStatus();
-}
-
-void tftTestColors() {
-  Serial.println("TFT: motif couleurs demande - support desactive");
-}
-
-void tftTestCheckerboard() {
-  Serial.println("TFT: motif damier demande - support desactive");
-}
-
-void tftClear() {
-  Serial.println("TFT: effacement demande - support desactive");
-}
-
 // ========== OLED 0.96" ==========
 void detectOLED() {
   Serial.println("\r\n=== DETECTION OLED ===");
@@ -1492,12 +1443,6 @@ void collectDiagnosticInfo() {
   diagnosticData.neopixelAvailable = neopixelAvailable;
   diagnosticData.neopixelResult = neopixelTestResult;
   
-  diagnosticData.tftTested = tftTested;
-  diagnosticData.tftAvailable = tftAvailable;
-  diagnosticData.tftResult = tftTestResult;
-  diagnosticData.tftWidth = tftWidth;
-  diagnosticData.tftHeight = tftHeight;
-  
   diagnosticData.oledTested = oledTested;
   diagnosticData.oledAvailable = oledAvailable;
   diagnosticData.oledResult = oledTestResult;
@@ -1686,41 +1631,6 @@ void handleNeoPixelColor() {
   neopixelTested = false;
   
   server.send(200, "application/json", "{\"success\":true,\"message\":\"RGB(" + String(r) + "," + String(g) + "," + String(b) + ")\"}");
-}
-
-void handleTFTTest() {
-  resetTFTTest();
-  testTFT();
-  server.send(200, "application/json",
-              "{\"success\":false,\"result\":\"" + tftTestResult +
-              "\",\"width\":0,\"height\":0}");
-}
-
-void handleTFTPattern() {
-  if (!server.hasArg("pattern")) {
-    server.send(400, "application/json", "{\"success\":false}");
-    return;
-  }
-
-  String pattern = server.arg("pattern");
-  String message = String(T().feature_disabled);
-
-  resetTFTTest();
-
-  if (pattern == "colors") {
-    tftTestColors();
-  } else if (pattern == "checkerboard") {
-    tftTestCheckerboard();
-  } else if (pattern == "clear") {
-    tftClear();
-  } else {
-    server.send(400, "application/json", "{\"success\":false}");
-    return;
-  }
-
-  refreshLocalizedStatusMessages();
-  server.send(200, "application/json",
-              "{\"success\":false,\"message\":\"" + message + "\",\"pattern\":\"" + pattern + "\"}");
 }
 
 void handleOLEDConfig() {
@@ -1915,7 +1825,6 @@ void handleExportTXT() {
   txt += "=== " + String(T().test) + " ===\r\n";
   txt += String(T().builtin_led) + ": " + builtinLedTestResult + "\r\n";
   txt += "NeoPixel: " + neopixelTestResult + "\r\n";
-  txt += "TFT: " + tftTestResult + "\r\n";
   txt += "OLED: " + oledTestResult + "\r\n";
   txt += "ADC: " + adcTestResult + "\r\n";
   txt += "Touch: " + touchTestResult + "\r\n";
@@ -2004,7 +1913,6 @@ void handleExportJSON() {
   json += "\"hardware_tests\":{";
   json += "\"builtin_led\":\"" + builtinLedTestResult + "\",";
   json += "\"neopixel\":\"" + neopixelTestResult + "\",";
-  json += "\"tft\":\"" + tftTestResult + "\",";
   json += "\"oled\":\"" + oledTestResult + "\",";
   json += "\"adc\":\"" + adcTestResult + "\",";
   json += "\"touch\":\"" + touchTestResult + "\",";
@@ -2070,7 +1978,6 @@ void handleExportCSV() {
   
   csv += String(T().test) + "," + String(T().builtin_led) + "," + builtinLedTestResult + "\r\n";
   csv += String(T().test) + ",NeoPixel," + neopixelTestResult + "\r\n";
-  csv += String(T().test) + ",TFT," + tftTestResult + "\r\n";
   csv += String(T().test) + ",OLED," + oledTestResult + "\r\n";
   csv += String(T().test) + ",ADC," + adcTestResult + "\r\n";
   csv += String(T().test) + ",Touch," + touchTestResult + "\r\n";
@@ -2204,7 +2111,6 @@ void handlePrintVersion() {
   html += "<tr><th>Périphérique</th><th>Résultat</th></tr>";
   html += "<tr><td>LED intégrée</td><td>" + builtinLedTestResult + "</td></tr>";
   html += "<tr><td>NeoPixel</td><td>" + neopixelTestResult + "</td></tr>";
-  html += "<tr><td>Écran TFT</td><td>" + tftTestResult + "</td></tr>";
   html += "<tr><td>Écran OLED</td><td>" + oledTestResult + "</td></tr>";
   html += "<tr><td>ADC</td><td>" + adcTestResult + "</td></tr>";
   html += "<tr><td>Touch Pads</td><td>" + touchTestResult + "</td></tr>";
@@ -2372,13 +2278,6 @@ void handleGetTranslations() {
   appendJsonField(json, "led_test_skipped", String(T().led_test_skipped));
   appendJsonField(json, "neopixel_not_ready", String(T().neopixel_not_ready));
 
-  appendJsonField(json, "tft_screen", String(T().tft_screen));
-  appendJsonField(json, "spi_pins", String(T().spi_pins));
-  appendJsonField(json, "full_test", String(T().full_test));
-  appendJsonField(json, "colors", String(T().colors));
-  appendJsonField(json, "checkerboard", String(T().checkerboard));
-  appendJsonField(json, "clear", String(T().clear));
-
   appendJsonField(json, "oled_screen", String(T().oled_screen));
   appendJsonField(json, "i2c_pins", String(T().i2c_pins));
   appendJsonField(json, "i2c_address", String(T().i2c_address));
@@ -2400,6 +2299,8 @@ void handleGetTranslations() {
   appendJsonField(json, "oled_progress", String(T().oled_progress));
   appendJsonField(json, "oled_scroll", String(T().oled_scroll));
   appendJsonField(json, "oled_final", String(T().oled_final));
+  appendJsonField(json, "message_required", String(T().message_required));
+  appendJsonField(json, "language_changed", String(T().language_changed));
   appendJsonField(json, "pattern_missing", String(T().pattern_missing));
   appendJsonField(json, "pattern_unknown", String(T().pattern_unknown));
   appendJsonField(json, "message_displayed", String(T().message_displayed));
@@ -2561,6 +2462,11 @@ void handleRoot() {
   chunk += ".wifi-list{max-height:400px;overflow-y:auto}";
   chunk += ".wifi-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;border-left:4px solid #667eea}";
   chunk += ".status-live{padding:10px;background:#f0f0f0;border-radius:5px;text-align:center;font-weight:bold;margin:10px 0}";
+  chunk += ".inline-feedback{margin-top:8px;font-size:0.9em;opacity:0;transition:opacity .3s;color:#0c5460;}";
+  chunk += ".inline-feedback.show{opacity:1;}";
+  chunk += ".inline-feedback.success{color:#155724;}";
+  chunk += ".inline-feedback.error{color:#721c24;}";
+  chunk += ".inline-feedback.info{color:#0c5460;}";
   chunk += "input[type='number'],input[type='color'],input[type='text']{padding:10px;border:2px solid #ddd;border-radius:5px;font-size:1em}";
   chunk += "@media print{.nav,.btn,.lang-switcher{display:none}}";
   chunk += "</style></head><body>";
@@ -2692,6 +2598,7 @@ void handleRoot() {
   chunk += "<button class='btn btn-success' onclick='ledBlink()' data-i18n='blink'>" + String(T().blink) + "</button>";
   chunk += "<button class='btn btn-info' onclick='ledFade()' data-i18n='fade'>" + String(T().fade) + "</button>";
   chunk += "<button class='btn btn-danger' onclick='ledOff()' data-i18n='off'>" + String(T().off) + "</button>";
+  chunk += "<div class='inline-feedback' id='builtin-led-feedback'></div>";
   chunk += "</div></div></div>";
 
   chunk += "<div class='section'><h2 data-i18n='neopixel'>" + String(T().neopixel) + "</h2><div class='info-grid'>";
@@ -2706,21 +2613,12 @@ void handleRoot() {
   chunk += "<input type='color' id='neoColor' value='#ff0000' style='height:48px'>";
   chunk += "<button class='btn btn-primary' onclick='neoCustomColor()' data-i18n='color'>" + String(T().color) + "</button>";
   chunk += "<button class='btn btn-danger' onclick='neoPattern(\"off\")' data-i18n='off'>" + String(T().off) + "</button>";
+  chunk += "<div class='inline-feedback' id='neopixel-feedback'></div>";
   chunk += "</div></div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 5: TAB Screens
   chunk = "<div id='screens' class='tab-content'>";
-  chunk += "<div class='section'><h2 data-i18n='tft_screen'>" + String(T().tft_screen) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='status'>" + String(T().status) + "</div><div class='info-value' id='tft-status'>" + tftTestResult + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='spi_pins'>" + String(T().spi_pins) + "</div><div class='info-value' data-i18n='feature_disabled'>" + String(T().feature_disabled) + "</div></div>";
-  chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
-  chunk += "<button class='btn btn-primary' onclick='testTFT()' data-i18n='full_test'>" + String(T().full_test) + "</button>";
-  chunk += "<button class='btn btn-success' onclick='tftPattern(\"colors\")' data-i18n='colors'>" + String(T().colors) + "</button>";
-  chunk += "<button class='btn btn-info' onclick='tftPattern(\"checkerboard\")' data-i18n='checkerboard'>" + String(T().checkerboard) + "</button>";
-  chunk += "<button class='btn btn-danger' onclick='tftPattern(\"clear\")' data-i18n='clear'>" + String(T().clear) + "</button>";
-  chunk += "</div></div></div>";
-  
   chunk += "<div class='section'><h2 data-i18n='oled_screen'>" + String(T().oled_screen) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='status'>" + String(T().status) + "</div><div class='info-value' id='oled-status'>" + oledTestResult + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='i2c_pins'>" + String(T().i2c_pins) + "</div><div class='info-value'>SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "</div></div>";
@@ -2728,6 +2626,7 @@ void handleRoot() {
   chunk += "SDA: <input type='number' id='oledSDA' value='" + String(I2C_SDA) + "' min='0' max='48' style='width:70px'> ";
   chunk += "SCL: <input type='number' id='oledSCL' value='" + String(I2C_SCL) + "' min='0' max='48' style='width:70px'> ";
   chunk += "<button class='btn btn-info' onclick='configOLED()' data-i18n='apply_redetect'>" + String(T().apply_redetect) + "</button>";
+  chunk += "<div class='inline-feedback' id='oled-feedback'></div>";
   if (oledAvailable) {
     chunk += "<button class='btn btn-primary' onclick='testOLED()' data-i18n='full_test'>" + String(T().full_test) + "</button>";
     chunk += "<input type='text' id='oledMsg' placeholder='" + String(T().custom_message) + "' data-i18n-placeholder='custom_message' style='width:250px;margin:0 5px'>";
@@ -2849,8 +2748,10 @@ void handleRoot() {
   // CHUNK 11: JavaScript complet
   chunk = "<script>";
   chunk += "let currentLang='" + String(currentLanguage == LANG_FR ? "fr" : "en") + "';";
-  chunk += "let tftDisabledMessage='" + String(T().feature_disabled) + "';";
   chunk += "let translations={};";
+  chunk += "const inlineNoticeTimers={};";
+  chunk += "function isSuccessFlag(v){return v===true||v==='true';}";
+  chunk += "function showInlineNotice(id,message,type){const el=document.getElementById(id);if(!el||!message)return;const tone=type||'info';el.classList.remove('success','error','info','show');el.classList.add('inline-feedback');el.classList.add(tone);el.textContent=message;void el.offsetWidth;el.classList.add('show');clearTimeout(inlineNoticeTimers[id]);inlineNoticeTimers[id]=setTimeout(()=>{el.classList.remove('show');},4000);}";
 
   // Helpers
   chunk += "function updateLangButtons(lang){";
@@ -2877,7 +2778,6 @@ void handleRoot() {
   chunk += "if(versionSpan)applyText(versionSpan,tr.version);";
   chunk += "document.querySelectorAll('[data-i18n]').forEach(el=>{const key=el.getAttribute('data-i18n');if(key==='title'||key==='version')return;const value=tr[key];if(value)applyText(el,value);});";
   chunk += "document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{const key=el.getAttribute('data-i18n-placeholder');const value=tr[key];if(value)applyPlaceholder(el,value);});";
-  chunk += "tftDisabledMessage=tr.feature_disabled||tftDisabledMessage;";
   chunk += "}).catch(err=>console.error('updateTranslations',err));";
   chunk += "}";
 
@@ -2894,38 +2794,36 @@ void handleRoot() {
   
   // LED intégrée
   chunk += "function configBuiltinLED(){fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value)";
-  chunk += ".then(r=>r.json()).then(d=>{document.getElementById('builtin-led-status').innerHTML=d.message;alert(d.message)})}";
+  chunk += ".then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.message||(ok?(translations.led_configured||'Configuration mise à jour'):(translations.invalid_pins||'Erreur'));";
+  chunk += "document.getElementById('builtin-led-status').innerHTML=msg;showInlineNotice('builtin-led-feedback',msg,ok?'success':'error');})";
+  chunk += ".catch(err=>{console.error('configBuiltinLED',err);showInlineNotice('builtin-led-feedback','Erreur configuration','error');});}";
   chunk += "function testBuiltinLED(){document.getElementById('builtin-led-status').innerHTML=(translations.testing||'Test...');";
-  chunk += "fetch('/api/builtin-led-test').then(r=>r.json()).then(d=>{document.getElementById('builtin-led-status').innerHTML=d.result;alert(d.result)})}";
-  chunk += "function ledBlink(){fetch('/api/builtin-led-control?action=blink').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
-  chunk += "function ledFade(){fetch('/api/builtin-led-control?action=fade').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
-  chunk += "function ledOff(){fetch('/api/builtin-led-control?action=off').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
+  chunk += "fetch('/api/builtin-led-test').then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.result||(ok?(translations.completed||'Terminé'):'Erreur');document.getElementById('builtin-led-status').innerHTML=msg;showInlineNotice('builtin-led-feedback',msg,ok?'success':'error');})";
+  chunk += ".catch(err=>{console.error('testBuiltinLED',err);showInlineNotice('builtin-led-feedback','Erreur test','error');});}";
+  chunk += "function ledBlink(){fetch('/api/builtin-led-control?action=blink').then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.message||(ok?(translations.completed||'Terminé'):'Erreur');document.getElementById('builtin-led-status').innerHTML=msg;showInlineNotice('builtin-led-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('ledBlink',err);showInlineNotice('builtin-led-feedback','Erreur test','error');});}";
+  chunk += "function ledFade(){fetch('/api/builtin-led-control?action=fade').then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.message||(ok?(translations.completed||'Terminé'):'Erreur');document.getElementById('builtin-led-status').innerHTML=msg;showInlineNotice('builtin-led-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('ledFade',err);showInlineNotice('builtin-led-feedback','Erreur test','error');});}";
+  chunk += "function ledOff(){fetch('/api/builtin-led-control?action=off').then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.message||(ok?(translations.led_off_state||'LED éteinte'):'Erreur');document.getElementById('builtin-led-status').innerHTML=msg;showInlineNotice('builtin-led-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('ledOff',err);showInlineNotice('builtin-led-feedback','Erreur test','error');});}";
   
   // NeoPixel
   chunk += "function configNeoPixel(){fetch('/api/neopixel-config?gpio='+document.getElementById('neoGPIO').value+'&count='+document.getElementById('neoCount').value)";
-  chunk += ".then(r=>r.json()).then(d=>{document.getElementById('neopixel-status').innerHTML=d.message;alert(d.message)})}";
-  chunk += "function testNeoPixel(){fetch('/api/neopixel-test').then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.result)}";
-  chunk += "function neoPattern(p){fetch('/api/neopixel-pattern?pattern='+p).then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.message)}";
+  chunk += ".then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.message||(ok?(translations.led_configured||'Configuration mise à jour'):'Erreur');document.getElementById('neopixel-status').innerHTML=msg;showInlineNotice('neopixel-feedback',msg,ok?'success':'error');})";
+  chunk += ".catch(err=>{console.error('configNeoPixel',err);showInlineNotice('neopixel-feedback','Erreur configuration NeoPixel','error');});}";
+  chunk += "function testNeoPixel(){fetch('/api/neopixel-test').then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.result||(ok?(translations.completed||'Terminé'):'Erreur');document.getElementById('neopixel-status').innerHTML=msg;showInlineNotice('neopixel-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('testNeoPixel',err);showInlineNotice('neopixel-feedback','Erreur test','error');});}";
+  chunk += "function neoPattern(p){fetch('/api/neopixel-pattern?pattern='+p).then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.message||(ok?(translations.completed||'Terminé'):'Erreur');document.getElementById('neopixel-status').innerHTML=msg;showInlineNotice('neopixel-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('neoPattern',err);showInlineNotice('neopixel-feedback','Erreur test','error');});}";
   chunk += "function neoCustomColor(){const c=document.getElementById('neoColor').value;";
   chunk += "const r=parseInt(c.substr(1,2),16),g=parseInt(c.substr(3,2),16),b=parseInt(c.substr(5,2),16);";
-  chunk += "fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b).then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.message)}";
-  
-  // TFT
-  chunk += "function testTFT(){document.getElementById('tft-status').innerHTML=tftDisabledMessage;";
-  chunk += "fetch('/api/tft-test').then(r=>r.json()).then(d=>document.getElementById('tft-status').innerHTML=d.result)}";
-  chunk += "function tftPattern(p){document.getElementById('tft-status').innerHTML=tftDisabledMessage;";
-  chunk += "fetch('/api/tft-pattern?pattern='+p).then(r=>r.json()).then(d=>document.getElementById('tft-status').innerHTML=d.message)}";
+  chunk += "fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b).then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.message||(ok?'RGB('+r+','+g+','+b+')':'Erreur');document.getElementById('neopixel-status').innerHTML=msg;showInlineNotice('neopixel-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('neoCustomColor',err);showInlineNotice('neopixel-feedback','Erreur couleur','error');});}";
   
   // OLED
   chunk += "function testOLED(){document.getElementById('oled-status').innerHTML=(translations.testing||'Test...')+' (25s)...';";
-  chunk += "fetch('/api/oled-test').then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.result)}";
+  chunk += "fetch('/api/oled-test').then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.result||(ok?(translations.completed||'Terminé'):'Erreur');document.getElementById('oled-status').innerHTML=msg;showInlineNotice('oled-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('testOLED',err);showInlineNotice('oled-feedback','Erreur test OLED','error');});}";
   chunk += "function oledRun(p){const status=document.getElementById('oled-status');if(status)status.innerHTML=(translations.testing||'Test...');";
-  chunk += "fetch('/api/oled-pattern?pattern='+p).then(r=>r.json()).then(d=>{if(status)status.innerHTML=d.message||status.innerHTML;}).catch(err=>console.error('oledRun',err));}";
+  chunk += "fetch('/api/oled-pattern?pattern='+p).then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.message||(ok?(translations.completed||'Terminé'):'Erreur');if(status)status.innerHTML=msg;showInlineNotice('oled-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('oledRun',err);showInlineNotice('oled-feedback','Erreur motif OLED','error');});}";
   chunk += "function oledMessage(){fetch('/api/oled-message?message='+encodeURIComponent(document.getElementById('oledMsg').value))";
-  chunk += ".then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.message)}";
-  chunk += "function configOLED(){document.getElementById('oled-status').innerHTML=(translations.scanning||'Scan...');";
+  chunk += ".then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.message||(ok?(translations.message_displayed||'Message affiché'):'Erreur');document.getElementById('oled-status').innerHTML=msg;showInlineNotice('oled-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('oledMessage',err);showInlineNotice('oled-feedback','Erreur message OLED','error');});}";
+  chunk += "function configOLED(){const status=document.getElementById('oled-status');if(status)status.innerHTML=(translations.scanning||'Scan...');";
   chunk += "fetch('/api/oled-config?sda='+document.getElementById('oledSDA').value+'&scl='+document.getElementById('oledSCL').value)";
-  chunk += ".then(r=>r.json()).then(d=>{if(d.success){alert(d.message);location.reload()}else{alert('Erreur: '+d.message)}})}";
+  chunk += ".then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.message||(ok?'OK':(translations.invalid_pins||'Erreur'));if(status)status.innerHTML=msg;showInlineNotice('oled-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('configOLED',err);if(status)status.innerHTML='Erreur configuration';showInlineNotice('oled-feedback','Erreur configuration','error');})}";
   
   // Tests avancés
   chunk += "function testADC(){document.getElementById('adc-status').innerHTML=(translations.testing||'Test...');";
@@ -2962,7 +2860,7 @@ void handleRoot() {
   chunk += "document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' '+(translations.networks||'réseaux')+' '+(translations.detected||'détectés')})}";
   
   // I2C
-  chunk += "function scanI2C(){fetch('/api/i2c-scan').then(r=>r.json()).then(d=>{alert('I2C: '+d.count+' peripherique(s)\\n'+d.devices);location.reload()})}";
+  chunk += "function scanI2C(){fetch('/api/i2c-scan').then(r=>r.json()).then(d=>{console.log('I2C scan',d.count,d.devices);location.reload();}).catch(err=>console.error('scanI2C',err));}";
   
   // Benchmarks
   chunk += "function runBenchmarks(){";
@@ -2988,7 +2886,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.4 - FR/EN");
+  Serial.println("     Version 4.0.5 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
@@ -3036,7 +2934,6 @@ void setup() {
     strip->show();
   }
   
-  detectTFT();
   detectOLED();
   
   if (ENABLE_I2C_SCAN) {
@@ -3073,8 +2970,6 @@ void setup() {
   server.on("/api/neopixel-color", handleNeoPixelColor);
   
   // Écrans
-  server.on("/api/tft-test", handleTFTTest);
-  server.on("/api/tft-pattern", handleTFTPattern);
   server.on("/api/oled-test", handleOLEDTest);
   server.on("/api/oled-pattern", handleOLEDPattern);
   server.on("/api/oled-message", handleOLEDMessage);
