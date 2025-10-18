@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v4.0.9
+ * WEB_INTERFACE.H - Interface Web Dynamique v4.0.10
  */
 
 #ifndef WEB_INTERFACE_H
@@ -74,6 +74,12 @@ String generateHTML() {
   html += ".info-item{background:#fff;padding:15px;border-radius:10px;border:1px solid #e0e0e0;";
   html += "transition:all .3s}";
   html += ".info-item:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(0,0,0,.1)}";
+  html += ".status-list{list-style:none;margin:12px 0 0;padding:0}";
+  html += ".status-list li{display:flex;align-items:center;font-size:0.95em;margin-bottom:6px;color:#333}";
+  html += ".status-pill{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:1em;margin-right:10px;font-weight:bold}";
+  html += ".status-pill.ok{background:#d4edda;color:#155724}";
+  html += ".status-pill.warn{background:#fff3cd;color:#856404}";
+  html += ".status-pill.ko{background:#f8d7da;color:#721c24}";
   html += ".info-label{font-weight:bold;color:#667eea;margin-bottom:5px;font-size:.9em;";
   html += "text-transform:uppercase;letter-spacing:0.5px}";
   html += ".info-value{font-size:1.1em;color:#333;font-weight:500}";
@@ -245,7 +251,7 @@ String generateJavaScript() {
   js += "async function updatePeripheralsInfo(){await fetch('/api/peripherals');}";
 
   js += "async function loadWirelessStatus(){try{const r=await fetch('/api/wireless-status');const d=await r.json();updateWirelessSummary(d);}catch(e){console.error('wireless-status',e);}}";
-  js += "function updateWirelessSummary(data){const wifiStatus=document.getElementById('wifi-summary-status');const wifiDetails=document.getElementById('wifi-summary-details');if(wifiStatus){const wifiData=data&&data.wifi?data.wifi:{};if(wifiData.connected){const label=(translations.connected||'Connecté');const ssid=wifiData.ssid?(' - '+wifiData.ssid):'';wifiStatus.textContent=label+ssid;if(wifiDetails){wifiDetails.textContent='RSSI: '+wifiData.rssi+' dBm'+(wifiData.quality?' ('+wifiData.quality+')':'');}}else{wifiStatus.textContent=translations.wifi_not_connected||'Non connecté';if(wifiDetails){wifiDetails.textContent='';}}}const bleStatus=document.getElementById('ble-summary-status');if(bleStatus){const bleData=data&&data.ble?data.ble:{};bleStatus.textContent=bleData.status||'';}const bleHintRow=document.getElementById('ble-summary-hint');const bleHintText=document.getElementById('ble-summary-hint-text');if(bleHintRow&&bleHintText){const hint=data&&data.ble&&data.ble.hint?data.ble.hint:'';if(hint){bleHintRow.style.display='block';bleHintText.textContent=hint;}else{bleHintRow.style.display='none';bleHintText.textContent='';}}}";
+  js += "function updateWirelessSummary(data){const wifiStatus=document.getElementById('wifi-summary-status');const wifiDetails=document.getElementById('wifi-summary-details');if(wifiStatus){const wifiData=data&&data.wifi?data.wifi:{};if(wifiData.connected){const label=(translations.connected||'Connecté');const ssid=wifiData.ssid?(' - '+wifiData.ssid):'';wifiStatus.textContent=label+ssid;if(wifiDetails){wifiDetails.textContent='RSSI: '+wifiData.rssi+' dBm'+(wifiData.quality?' ('+wifiData.quality+')':'');}}else{wifiStatus.textContent=translations.wifi_not_connected||'Non connecté';if(wifiDetails){wifiDetails.textContent='';}}}const bleData=data&&data.ble?data.ble:{};const bleStatus=document.getElementById('ble-summary-status');if(bleStatus){bleStatus.textContent=bleData.status||'';}const bleDetails=document.getElementById('ble-summary-details');if(bleDetails){const chipOk=!!bleData.chipCapable;const stackOk=!!bleData.stackAvailable;const runtimeOk=!!bleData.enabled;const yesText=translations.status_yes||'Oui';const noText=translations.status_no||'Non';const missingText=translations.status_missing||'Manquant';const chipLabel=translations.ble_chip_support||'Compatibilité matérielle BLE';const stackLabel=translations.ble_stack_support||'Pile BLE incluse dans ce firmware';const runtimeLabel=translations.ble_runtime_status||'Fonctions BLE actives';const rows=[];rows.push(`<li><span class="status-pill ${chipOk?'ok':'ko'}">${chipOk?'✅':'❌'}</span>${chipLabel}: <strong>${chipOk?yesText:noText}</strong></li>`);const stackClass=stackOk?'ok':(chipOk?'warn':'ko');const stackIcon=stackOk?'✅':(chipOk?'⚠️':'❌');const stackText=stackOk?yesText:(chipOk?missingText:noText);rows.push(`<li><span class="status-pill ${stackClass}">${stackIcon}</span>${stackLabel}: <strong>${stackText}</strong></li>`);const runtimeClass=runtimeOk?'ok':(stackOk?'warn':'ko');const runtimeIcon=runtimeOk?'✅':(stackOk?'⚠️':'❌');const runtimeText=runtimeOk?yesText:(stackOk?missingText:noText);rows.push(`<li><span class="status-pill ${runtimeClass}">${runtimeIcon}</span>${runtimeLabel}: <strong>${runtimeText}</strong></li>`);bleDetails.innerHTML=rows.join('');}const bleHintRow=document.getElementById('ble-summary-hint');const bleHintText=document.getElementById('ble-summary-hint-text');if(bleHintRow&&bleHintText){const hint=data&&data.ble&&data.ble.hint?data.ble.hint:'';if(hint){bleHintRow.style.display='block';bleHintText.textContent=hint;}else{bleHintRow.style.display='none';bleHintText.textContent='';}}}";
 
   // Tab navigation - CORRIGÉ
   js += "function showTab(tabName,evt){";
@@ -439,7 +445,7 @@ String generateJavaScript() {
   js += "function buildWifi(){";
   js += "let h='<div class=\"section\"><h2>📶 '+(translations.wireless_status||'Statut sans fil')+'</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+(translations.wifi_label||'Wi-Fi')+'</div><div class=\"info-value\" id=\"wifi-summary-status\">-</div><div style=\"font-size:0.85em;color:#555;margin-top:8px\" id=\"wifi-summary-details\"></div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+(translations.ble_label||'Bluetooth Low Energy')+'</div><div class=\"info-value\" id=\"ble-summary-status\">-</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+(translations.ble_label||'Bluetooth Low Energy')+'</div><div class=\"info-value\" id=\"ble-summary-status\">-</div><ul class=\"status-list\" id=\"ble-summary-details\"></ul></div>';";
   js += "h+='<div class=\"info-item\" id=\"ble-summary-hint\" style=\"grid-column:1/-1;display:none\"><div class=\"info-label\">'+(translations.recommendation||'Recommandation')+'</div><div class=\"info-value\" id=\"ble-summary-hint-text\"></div></div>';";
   js += "h+='</div></div>';";
   js += "h+='<div class=\"section\"><h2>📡 '+(translations.wifi_scanner||'Scanner WiFi')+'</h2>';";

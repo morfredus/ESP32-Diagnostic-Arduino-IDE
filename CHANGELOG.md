@@ -5,6 +5,19 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.10] - 2025-10-21
+
+### Added
+- Introduced a Bluetooth readiness card on the Wireless tab summarising chip capability, firmware stack availability, and IDE activation hints before scans begin.
+
+### Changed
+- Updated the bilingual translation bundles to cover the new BLE readiness statuses and recommendations.
+
+### Documentation
+- Bumped firmware identifiers and README content to align with the v4.0.10 diagnostics.
+
+---
+
 ## [4.0.9] - 2025-10-20
 
 ### Added
@@ -370,6 +383,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 4.0.10 | 2025-10-21 | Bluetooth readiness card with detailed hardware/firmware status |
 | 4.0.9 | 2025-10-20 | PSRAM diagnostics mirrored in UI plus Wi-Fi/BLE readiness summary |
 | 4.0.8 | 2025-10-19 | Wireless tab merges Wi-Fi & BLE; guarded BLE build fallback |
 | 4.0.7 | 2025-10-18 | OLED buttons align with executed patterns; encoded requests avoid mislabeled controls |

@@ -114,6 +114,12 @@ struct Translations {
   const char* ble_status_stack_missing;
   const char* ble_status_not_supported;
   const char* ble_enable_hint;
+  const char* ble_chip_support;
+  const char* ble_stack_support;
+  const char* ble_runtime_status;
+  const char* status_yes;
+  const char* status_no;
+  const char* status_missing;
 
   // GPIO et périphériques
   const char* gpio_interfaces;
@@ -393,6 +399,12 @@ const Translations LANG_FR_TEXTS = {
   "BLE supporté par la puce mais absent dans ce firmware",
   "BLE non supporté par cette puce",
   "Activez ou recompilez le support BLE dans l'IDE Arduino",
+  "Compatibilité matérielle BLE",
+  "Pile BLE incluse dans ce firmware",
+  "Fonctions BLE actives",
+  "Oui",
+  "Non",
+  "Manquant",
 
   // GPIO
   "GPIO et Interfaces",
@@ -672,6 +684,13 @@ const Translations LANG_EN_TEXTS = {
   "BLE supported by the chip but missing from this firmware",
   "BLE not supported by this chip",
   "Enable or rebuild the firmware with BLE support in the Arduino IDE",
+
+  "BLE hardware capability",
+  "BLE stack included in this firmware",
+  "BLE features enabled",
+  "Yes",
+  "No",
+  "Missing",
 
   // GPIO
   "GPIO and Interfaces",

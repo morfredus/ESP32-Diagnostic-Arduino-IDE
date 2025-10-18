@@ -1,14 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.9
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.10
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v4.0.9:
- * - Ajoute des statuts PSRAM détaillés (mode détecté, disponibilité, recommandations IDE) dans les exports et l'UI
- * - Diffuse l'état PSRAM via les API JSON afin que l'interface dynamique reflète le diagnostic série
- * - Affiche un résumé Wi-Fi/BLE sur l'onglet Sans fil pour indiquer la disponibilité du BLE et la connexion Wi-Fi
+ * Nouveautés v4.0.10:
+ * - Ajoute un encadré Bluetooth détaillant compatibilité puce, pile firmware et activation BLE dans l'onglet Sans fil
+ * - Met à jour les traductions FR/EN avec les nouveaux statuts BLE et les recommandations correspondantes
+ * - Actualise la documentation et la version projet pour refléter les diagnostics Sans fil enrichis
  *
  * Nouveautés v4.0.6:
  * - Rend tous les tests OLED (complet, message, motifs) accessibles même avant détection automatique
@@ -91,7 +91,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.9"
+#define DIAGNOSTIC_VERSION "4.0.10"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -3164,7 +3164,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.9 - FR/EN");
+  Serial.println("     Version 4.0.10 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
