@@ -65,7 +65,22 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <BLEDevice.h>
+
+#if defined(SOC_BLE_SUPPORTED) && SOC_BLE_SUPPORTED
+  #if defined(__has_include)
+    #if __has_include(<esp_gap_ble_api.h>) && __has_include(<BLEDevice.h>)
+      #include <BLEDevice.h>
+      #define HAS_NATIVE_BLE 1
+    #else
+      #define HAS_NATIVE_BLE 0
+    #endif
+  #else
+    #include <BLEDevice.h>
+    #define HAS_NATIVE_BLE 1
+  #endif
+#else
+  #define HAS_NATIVE_BLE 0
+#endif
 #include <cmath>
 #include <vector>
 
@@ -230,8 +245,11 @@ struct BLEDeviceInfo {
 };
 
 std::vector<BLEDeviceInfo> bleDevices;
-bool bleInitialized = false;
+
+#if HAS_NATIVE_BLE
 BLEScan* bleScanner = nullptr;
+bool bleInitialized = false;
+#endif
 
 struct ADCReading {
   int pin;
@@ -716,6 +734,7 @@ void scanWiFiNetworks() {
   Serial.printf("WiFi: %d reseaux trouves\r\n", n);
 }
 
+#if HAS_NATIVE_BLE
 void ensureBleScanner() {
   if (bleInitialized) return;
 
@@ -757,6 +776,15 @@ void scanBLEDevices() {
   bleScanner->clearResults();
   Serial.printf("BLE: %d devices found\r\n", count);
 }
+#else
+void ensureBleScanner() {}
+
+void scanBLEDevices() {
+  Serial.println("\r\n=== SCAN BLE (disabled) ===");
+  bleDevices.clear();
+  Serial.println("BLE: stack not available in this build");
+}
+#endif
 
 // ========== TEST GPIO ==========
 bool testSingleGPIO(int pin) {
@@ -1488,7 +1516,7 @@ void collectDiagnosticInfo() {
   
   diagnosticData.hasWiFi = (chip_info.features & CHIP_FEATURE_WIFI_BGN);
   diagnosticData.hasBT = (chip_info.features & CHIP_FEATURE_BT);
-  diagnosticData.hasBLE = (chip_info.features & CHIP_FEATURE_BLE);
+  diagnosticData.hasBLE = (chip_info.features & CHIP_FEATURE_BLE) && HAS_NATIVE_BLE;
   
   if (WiFi.status() == WL_CONNECTED) {
     diagnosticData.wifiSSID = WiFi.SSID();
@@ -1550,6 +1578,13 @@ void handleWiFiScan() {
 }
 
 void handleBLEScan() {
+#if !HAS_NATIVE_BLE
+  bleDevices.clear();
+  String json = "{\"supported\":false,\"message\":\"" + jsonEscape(String(T().ble_not_supported)) + "\"}";
+  server.send(200, "application/json", json);
+  return;
+#endif
+
   if (!diagnosticData.hasBLE) {
     String json = "{\"supported\":false,\"message\":\"" + jsonEscape(String(T().ble_not_supported)) + "\"}";
     server.send(200, "application/json", json);
