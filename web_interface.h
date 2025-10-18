@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v4.0.6
+ * WEB_INTERFACE.H - Interface Web Dynamique v4.0.7
  */
 
 #ifndef WEB_INTERFACE_H
@@ -551,7 +551,7 @@ String generateJavaScript() {
   js += "async function oledPattern(p){";
   js += "const status=document.getElementById('oled-status');";
   js += "if(status)status.textContent='Lancement motif...';";
-  js += "const r=await fetch('/api/oled-pattern?pattern='+p);";
+  js += "const r=await fetch('/api/oled-pattern?pattern='+encodeURIComponent(p));";
   js += "const d=await r.json();";
   js += "if(status)status.textContent=d.message||status.textContent;";
   js += "if(d.message)showInlineNotice('oled-feedback',d.message,d.success?'success':'error');";
