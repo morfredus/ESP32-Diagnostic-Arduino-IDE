@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v4.0.13
+ * WEB_INTERFACE.H - Interface Web Dynamique v4.0.14
  */
 
 #ifndef WEB_INTERFACE_H
@@ -373,68 +373,48 @@ String generateJavaScript() {
 ";
   js += "  }
 ";
-  js += "  const bleDetails=document.getElementById('ble-summary-details');
-";
-  js += "  if(bleDetails){
-";
-  js += "    bleDetails.innerHTML='';
-";
-  js += "    const yesText=translations.status_yes||'Oui';
-";
-  js += "    const noText=translations.status_no||'Non';
-";
-  js += "    const missingText=translations.status_missing||'Manquant';
-";
-  js += "    const chipLabel=translations.ble_chip_support||'Compatibilité matérielle BLE';
-";
-  js += "    const stackLabel=translations.ble_stack_support||'Pile BLE incluse dans ce firmware';
-";
-  js += "    const runtimeLabel=translations.ble_runtime_status||'Fonctions BLE actives';
-";
-  js += "    const entries=[
-";
-  js += "      {className:bleData.chipCapable?'ok':'ko',icon:bleData.chipCapable?'✅':'❌',label:chipLabel,value:bleData.chipCapable?yesText:noText},
-";
-  js += "      {className:bleData.stackAvailable?'ok':(bleData.chipCapable?'warn':'ko'),icon:bleData.stackAvailable?'✅':(bleData.chipCapable?'⚠️':'❌'),label:stackLabel,value:bleData.stackAvailable?yesText:(bleData.chipCapable?missingText:noText)},
-";
-  js += "      {className:bleData.enabled?'ok':(bleData.stackAvailable?'warn':'ko'),icon:bleData.enabled?'✅':(bleData.stackAvailable?'⚠️':'❌'),label:runtimeLabel,value:bleData.enabled?yesText:(bleData.stackAvailable?missingText:noText)}
-";
-  js += "    ];
-";
-  js += "    entries.forEach(entry=>{
-";
-  js += "      const li=document.createElement('li');
-";
-  js += "      const pill=document.createElement('span');
-";
-  js += "      pill.className='status-pill '+entry.className;
-";
-  js += "      pill.textContent=entry.icon;
-";
-  js += "      const label=document.createElement('span');
-";
-  js += "      label.className='label';
-";
-  js += "      label.textContent=entry.label;
-";
-  js += "      const value=document.createElement('span');
-";
-  js += "      value.className='value';
-";
-  js += "      value.textContent=entry.value;
-";
-  js += "      li.appendChild(pill);
-";
-  js += "      li.appendChild(label);
-";
-  js += "      li.appendChild(value);
-";
-  js += "      bleDetails.appendChild(li);
-";
-  js += "    });
-";
-  js += "  }
-";
+  js += "  const bleDetails=document.getElementById('ble-summary-details');"
+  js += "  if(bleDetails){"
+  js += "    bleDetails.innerHTML='';"
+  js += "    const yesText=translations.status_yes||'Oui';"
+  js += "    const noText=translations.status_no||'Non';"
+  js += "    const missingText=translations.status_missing||'Manquant';"
+  js += "    const chipLabel=translations.ble_chip_support||'Compatibilité matérielle BLE';"
+  js += "    const stackLabel=translations.ble_stack_support||'Pile BLE incluse dans ce firmware';"
+  js += "    const runtimeLabel=translations.ble_runtime_status||'Fonctions BLE actives';"
+  js += "    const entries=["
+  js += "      {className:bleData.chipCapable?'ok':'ko',icon:bleData.chipCapable?'✅':'❌',label:chipLabel,value:bleData.chipCapable?yesText:noText},"
+  js += "      {className:bleData.stackAvailable?'ok':(bleData.chipCapable?'warn':'ko'),icon:bleData.stackAvailable?'✅':(bleData.chipCapable?'⚠️':'❌'),label:stackLabel,value:bleData.stackAvailable?yesText:(bleData.chipCapable?missingText:noText)},"
+  js += "      {className:bleData.enabled?'ok':(bleData.stackAvailable?'warn':'ko'),icon:bleData.enabled?'✅':(bleData.stackAvailable?'⚠️':'❌'),label:runtimeLabel,value:bleData.enabled?yesText:(bleData.stackAvailable?missingText:noText)}"
+  js += "    ];"
+  js += "    entries.forEach(entry=>{"
+  js += "      const li=document.createElement('li');"
+  js += "      const pill=document.createElement('span');"
+  js += "      pill.className='status-pill '+entry.className;"
+  js += "      pill.textContent=entry.icon;"
+  js += "      const label=document.createElement('span');"
+  js += "      label.className='label';"
+  js += "      label.textContent=entry.label;"
+  js += "      const value=document.createElement('span');"
+  js += "      value.className='value';"
+  js += "      value.textContent=entry.value;"
+  js += "      li.appendChild(pill);"
+  js += "      li.appendChild(label);"
+  js += "      li.appendChild(value);"
+  js += "      bleDetails.appendChild(li);"
+  js += "    });"
+  js += "    const backendItem=document.createElement('li');"
+  js += "    backendItem.className='wireless-backend';"
+  js += "    const backendLabel=document.createElement('span');"
+  js += "    backendLabel.className='label';"
+  js += "    backendLabel.textContent=translations.ble_backend_label||'Pile logicielle BLE';"
+  js += "    const backendValue=document.createElement('span');"
+  js += "    backendValue.className='value';"
+  js += "    backendValue.textContent=bleData.backend||translations.ble_backend_missing||'Pile BLE absente';"
+  js += "    backendItem.appendChild(backendLabel);"
+  js += "    backendItem.appendChild(backendValue);"
+  js += "    bleDetails.appendChild(backendItem);"
+  js += "  }"
   js += "  const bleHint=document.getElementById('ble-summary-hint');
 ";
   js += "  if(bleHint){

@@ -5,6 +5,17 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.14] - 2025-10-25
+
+### Added
+- Automatically select the ESP32 BLE Arduino or NimBLE-Arduino backend when native BLE headers are available so scans keep working across toolchains.
+
+### Changed
+- Surface the detected (or missing) BLE stack throughout the wireless API, UI card, serial monitor, and export formats for clearer guidance.
+- Updated firmware identifiers, documentation, and UI labels to version 4.0.14.
+
+---
+
 ## [4.0.13] - 2025-10-24
 
 ### Added
@@ -416,6 +427,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 4.0.14 | 2025-10-25 | BLE backend auto-detection plus stack visibility in UI/API/exports |
 | 4.0.13 | 2025-10-24 | Bluetooth card always visible plus Wi-Fi IP/subnet/gateway/DNS details |
 | 4.0.12 | 2025-10-23 | Wireless-status JSON fix keeps Bluetooth card visible and exports valid |
 | 4.0.11 | 2025-10-22 | Wireless recap in serial & exports plus auto-disabled BLE scan button |

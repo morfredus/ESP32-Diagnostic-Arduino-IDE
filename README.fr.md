@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# Diagnostic ESP32 Complet v4.0.13
+# Diagnostic ESP32 Complet v4.0.14
 
 🇫🇷 Version française | [🇬🇧 English Version](README.md)
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, accessible via interface web. Teste automatiquement tous les composants matériels, analyse la mémoire, scanne les périphériques et génère des rapports détaillés.
 
-**Nouveautés v4.0.13** : L'onglet Sans fil affiche désormais en permanence la carte Bluetooth avec conseils détaillés, et l'API ainsi que le moniteur série exposent l'adresse IP, le masque, la passerelle et le DNS du Wi-Fi.
+**Nouveautés v4.0.14** : Le firmware sélectionne automatiquement BLEDevice.h ou NimBLEDevice.h lorsque la pile native est disponible, expose la bibliothèque BLE active (ou manquante) dans l'API/UX/exports, et maintient la carte Bluetooth visible avec des conseils localisés même si BLE est désactivé.
 
 ## ✨ Fonctionnalités
 
@@ -347,7 +347,7 @@ Si certains textes restent en français :
 
 **Ne jamais partager `config.h` avec vos identifiants WiFi.**
 
-## 📁 Structure du Projet v4.0.13
+## 📁 Structure du Projet v4.0.14
 
 ```
 ESP32-Diagnostic/
@@ -362,10 +362,10 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v4.0.13 (2025) - FICHE BLUETOOTH PERSISTANTE & DÉTAILS WI-FI
-- 📶 **La carte Bluetooth reste affichée avec ses conseils** même lorsque le support BLE est désactivé dans le firmware ou l'IDE.
-- 🌐 **L'API Sans fil, l'interface web et le moniteur série affichent désormais l'IP, le masque, la passerelle et le DNS Wi-Fi** pour faciliter le diagnostic réseau.
-- 🧾 **Firmware, documentation et interface passent en v4.0.13** pour refléter la nouvelle version.
+### v4.0.14 (2025) - DÉTECTION DE PILE BLE & MESSAGES DE LIBRAIRIE
+- 🔌 **Sélection automatique du backend BLE** entre ESP32 BLE Arduino et NimBLE lorsque les en-têtes natifs sont présents.
+- 📡 **Diagnostics Sans fil** : la carte Bluetooth, l'API, le moniteur série et les exports indiquent la bibliothèque active ou absente.
+- 🧾 **Firmware, documentation et interface passent en v4.0.14** avec des conseils Sans fil actualisés.
 
 ### v4.0.11 (2025) - STATUT BLUETOOTH PARTOUT
 - 📶 **La carte Sans fil reste visible même sans pile BLE**, avec un message clair expliquant pourquoi le Bluetooth est indisponible.
@@ -436,7 +436,7 @@ Code libre d'utilisation, modification et distribution.
 
 Développé pour la communauté ESP32.
 
-**v4.0.13 - Carte Bluetooth persistante + détails réseau Wi-Fi**
+**v4.0.14 - Détection automatique de librairie BLE et messages dédiés**
 **v4.0.11 - Statut Bluetooth partout**
 **v4.0.9 - Statut PSRAM et résumé Sans fil**
 **v4.0.2 - Correctif catalogue de traductions + localisation**
@@ -446,7 +446,7 @@ Développé pour la communauté ESP32.
 
 ---
 
-**Version actuelle** : 4.0.13 Multilingue
+**Version actuelle** : 4.0.14 Multilingue
 **Dernière mise à jour** : Octobre 2025
 **Langues disponibles** : Français (défaut), Anglais
 **Support** : ESP32 Arduino Core 3.3.2+

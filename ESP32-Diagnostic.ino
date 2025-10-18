@@ -1,10 +1,15 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.13
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.14
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v4.0.14:
+ * - Préfère automatiquement BLEDevice.h ou NimBLEDevice.h selon la pile disponible pour activer le scan BLE natif
+ * - Expose la bibliothèque BLE utilisée (ou manquante) dans l'API Sans fil, l'interface web, le moniteur série et les exports
+ * - Affiche la carte Bluetooth même hors support avec un libellé de pile clair et des conseils localisés
+
  * Nouveautés v4.0.13:
  * - Ajoute un panneau Bluetooth détaillé dans l'onglet Sans fil avec messages explicites même hors support BLE
  * - Expose l'IP, le masque, la passerelle et le DNS Wi-Fi dans l'API, l'interface web et le moniteur série
@@ -80,19 +85,29 @@
   #if defined(__has_include)
     #if __has_include(<esp_gap_ble_api.h>) && __has_include(<BLEDevice.h>)
       #include <BLEDevice.h>
-      #define HAS_NATIVE_BLE 1
+      #define BLE_BACKEND_ARDUINO 1
+    #elif __has_include(<NimBLEDevice.h>)
+      #include <NimBLEDevice.h>
+      #define BLE_BACKEND_NIMBLE 1
     #else
-      #define HAS_NATIVE_BLE 0
+      #define BLE_BACKEND_NONE 1
     #endif
   #else
     #include <BLEDevice.h>
-    #define HAS_NATIVE_BLE 1
+    #define BLE_BACKEND_ARDUINO 1
   #endif
+#else
+  #define BLE_BACKEND_NONE 1
+#endif
+
+#if defined(BLE_BACKEND_ARDUINO) || defined(BLE_BACKEND_NIMBLE)
+  #define HAS_NATIVE_BLE 1
 #else
   #define HAS_NATIVE_BLE 0
 #endif
 #include <cmath>
 #include <vector>
+#include <string>
 
 // Configuration WiFi
 #include "config.h"
@@ -101,7 +116,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.13"
+#define DIAGNOSTIC_VERSION "4.0.14"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -181,6 +196,7 @@ struct DiagnosticInfo {
   bool bleStackAvailable;
   String bleStatusMessage;
   String bleHint;
+  String bleBackend;
   String wifiSSID;
   int wifiRSSI;
   String ipAddress;
@@ -266,9 +282,13 @@ struct BLEDeviceInfo {
 std::vector<BLEDeviceInfo> bleDevices;
 
 #if HAS_NATIVE_BLE
+  #if defined(BLE_BACKEND_ARDUINO)
 BLEScan* bleScanner = nullptr;
-bool bleInitialized = false;
+  #elif defined(BLE_BACKEND_NIMBLE)
+NimBLEScan* bleScanner = nullptr;
+  #endif
 #endif
+bool bleInitialized = false;
 
 struct ADCReading {
   int pin;
@@ -694,6 +714,9 @@ void printWirelessDiagnostic() {
                 diagnosticData.bleStackAvailable ? "OUI" : "NON");
   Serial.printf("BLE - Fonctions actives: %s\r\n",
                 diagnosticData.hasBLE ? "OUI" : "NON");
+  Serial.printf("BLE - %s: %s\r\n",
+                T().ble_backend_label,
+                diagnosticData.bleBackend.c_str());
   Serial.printf("BLE - Statut: %s\r\n", diagnosticData.bleStatusMessage.c_str());
   if (diagnosticData.bleHint.length() > 0) {
     Serial.printf("Conseil: %s\r\n", diagnosticData.bleHint.c_str());
@@ -813,13 +836,24 @@ void scanWiFiNetworks() {
 void ensureBleScanner() {
   if (bleInitialized) return;
 
-  BLEDevice::init("ESP32 Diagnostic");
-  bleScanner = BLEDevice::getScan();
-  if (bleScanner != nullptr) {
-    bleScanner->setActiveScan(true);
-    bleScanner->setInterval(100);
-    bleScanner->setWindow(80);
-  }
+  #if defined(BLE_BACKEND_ARDUINO)
+    BLEDevice::init("ESP32 Diagnostic");
+    bleScanner = BLEDevice::getScan();
+    if (bleScanner != nullptr) {
+      bleScanner->setActiveScan(true);
+      bleScanner->setInterval(100);
+      bleScanner->setWindow(80);
+    }
+  #elif defined(BLE_BACKEND_NIMBLE)
+    NimBLEDevice::init("ESP32 Diagnostic");
+    bleScanner = NimBLEDevice::getScan();
+    if (bleScanner != nullptr) {
+      bleScanner->setActiveScan(true);
+      bleScanner->setInterval(45);
+      bleScanner->setWindow(30);
+    }
+  #endif
+
   bleInitialized = true;
 }
 
@@ -838,18 +872,35 @@ void scanBLEDevices() {
     return;
   }
 
-  BLEScanResults results = bleScanner->start(5, false);
-  int count = results.getCount();
-  for (int i = 0; i < count; i++) {
-    BLEAdvertisedDevice device = results.getDevice(i);
-    BLEDeviceInfo info;
-    info.name = device.haveName() ? String(device.getName().c_str()) : String(T().unknown);
-    info.address = String(device.getAddress().toString().c_str());
-    info.rssi = device.getRSSI();
-    bleDevices.push_back(info);
-  }
-  bleScanner->clearResults();
-  Serial.printf("BLE: %d devices found\r\n", count);
+  #if defined(BLE_BACKEND_ARDUINO)
+    BLEScanResults results = bleScanner->start(5, false);
+    int count = results.getCount();
+    for (int i = 0; i < count; i++) {
+      BLEAdvertisedDevice device = results.getDevice(i);
+      BLEDeviceInfo info;
+      info.name = device.haveName() ? String(device.getName().c_str()) : String(T().unknown);
+      info.address = String(device.getAddress().toString().c_str());
+      info.rssi = device.getRSSI();
+      bleDevices.push_back(info);
+    }
+    bleScanner->clearResults();
+    Serial.printf("BLE: %d devices found\r\n", count);
+  #elif defined(BLE_BACKEND_NIMBLE)
+    NimBLEScanResults results = bleScanner->start(5, false);
+    int count = results.getCount();
+    for (int i = 0; i < count; i++) {
+      NimBLEAdvertisedDevice device = results.getDevice(i);
+      BLEDeviceInfo info;
+      std::string deviceName = device.getName();
+      bool hasName = deviceName.length() > 0;
+      info.name = hasName ? String(deviceName.c_str()) : String(T().unknown);
+      info.address = String(device.getAddress().toString().c_str());
+      info.rssi = device.getRSSI();
+      bleDevices.push_back(info);
+    }
+    bleScanner->clearResults();
+    Serial.printf("BLE: %d devices found\r\n", count);
+  #endif
 }
 #else
 void ensureBleScanner() {}
@@ -1595,6 +1646,13 @@ void collectDiagnosticInfo() {
   diagnosticData.bleChipCapable = bleFeatureBit;
   diagnosticData.bleStackAvailable = HAS_NATIVE_BLE;
   diagnosticData.hasBLE = bleFeatureBit && HAS_NATIVE_BLE;
+  #if defined(BLE_BACKEND_ARDUINO)
+    diagnosticData.bleBackend = String(T().ble_backend_arduino);
+  #elif defined(BLE_BACKEND_NIMBLE)
+    diagnosticData.bleBackend = String(T().ble_backend_nimble);
+  #else
+    diagnosticData.bleBackend = String(T().ble_backend_missing);
+  #endif
 
   if (diagnosticData.hasBLE) {
     diagnosticData.bleStatusMessage = String(T().ble_status_active);
@@ -1695,7 +1753,8 @@ void handleWirelessStatus() {
 
   json += ",\"ble\":{\"chipCapable\":" + String(diagnosticData.bleChipCapable ? "true" : "false") + ",";
   json += "\"stackAvailable\":" + String(diagnosticData.bleStackAvailable ? "true" : "false") + ",";
-  json += "\"enabled\":" + String(diagnosticData.hasBLE ? "true" : "false") + ",\"status\":\"" + jsonEscape(diagnosticData.bleStatusMessage) + "\"";
+  json += "\"enabled\":" + String(diagnosticData.hasBLE ? "true" : "false") + ",\"status\":\"" + jsonEscape(diagnosticData.bleStatusMessage) + "\",";
+  json += "\"backend\":\"" + jsonEscape(diagnosticData.bleBackend) + "\"";
   if (diagnosticData.bleHint.length() > 0) {
     json += ",\"hint\":\"" + jsonEscape(diagnosticData.bleHint) + "\"";
   }
@@ -2101,6 +2160,7 @@ void handleExportTXT() {
   txt += String(T().ble_chip_support) + ": " + String(diagnosticData.bleChipCapable ? T().status_yes : T().status_no) + "\r\n";
   txt += String(T().ble_stack_support) + ": " + String(diagnosticData.bleStackAvailable ? T().status_yes : T().status_missing) + "\r\n";
   txt += String(T().ble_runtime_status) + ": " + String(diagnosticData.hasBLE ? T().status_yes : T().status_missing) + "\r\n";
+  txt += String(T().ble_backend_label) + ": " + diagnosticData.bleBackend + "\r\n";
   txt += String(T().status) + ": " + diagnosticData.bleStatusMessage + "\r\n";
   if (diagnosticData.bleHint.length() > 0) {
     txt += String(T().recommendation) + ": " + diagnosticData.bleHint + "\r\n";
@@ -2200,7 +2260,8 @@ void handleExportJSON() {
   json += "\"chip_capable\":" + String(diagnosticData.bleChipCapable ? "true" : "false") + ",";
   json += "\"stack_available\":" + String(diagnosticData.bleStackAvailable ? "true" : "false") + ",";
   json += "\"enabled\":" + String(diagnosticData.hasBLE ? "true" : "false") + ",";
-  json += "\"status\":\"" + jsonEscape(diagnosticData.bleStatusMessage) + "\"";
+  json += "\"status\":\"" + jsonEscape(diagnosticData.bleStatusMessage) + "\",";
+  json += "\"backend\":\"" + jsonEscape(diagnosticData.bleBackend) + "\"";
   if (diagnosticData.bleHint.length() > 0) {
     json += ",\"hint\":\"" + jsonEscape(diagnosticData.bleHint) + "\"";
   }
@@ -2281,6 +2342,7 @@ void handleExportCSV() {
   csv += String(T().ble_label) + "," + String(T().ble_chip_support) + "," + String(diagnosticData.bleChipCapable ? T().status_yes : T().status_no) + "\r\n";
   csv += String(T().ble_label) + "," + String(T().ble_stack_support) + "," + String(diagnosticData.bleStackAvailable ? T().status_yes : T().status_missing) + "\r\n";
   csv += String(T().ble_label) + "," + String(T().ble_runtime_status) + "," + String(diagnosticData.hasBLE ? T().status_yes : T().status_missing) + "\r\n";
+  csv += String(T().ble_label) + "," + String(T().ble_backend_label) + "," + diagnosticData.bleBackend + "\r\n";
   csv += String(T().ble_label) + "," + String(T().status) + "," + diagnosticData.bleStatusMessage + "\r\n";
   if (diagnosticData.bleHint.length() > 0) {
     csv += String(T().ble_label) + "," + String(T().recommendation) + "," + diagnosticData.bleHint + "\r\n";
@@ -2416,6 +2478,7 @@ void handlePrintVersion() {
   html += "<div class='row'><b>Compatibilité puce:</b><span>" + String(diagnosticData.bleChipCapable ? "Oui" : "Non") + "</span></div>";
   html += "<div class='row'><b>Pile firmware:</b><span>" + String(diagnosticData.bleStackAvailable ? "Oui" : "Manquant") + "</span></div>";
   html += "<div class='row'><b>Fonctions actives:</b><span>" + String(diagnosticData.hasBLE ? "Oui" : "Manquant") + "</span></div>";
+  html += "<div class='row'><b>" + String(T().ble_backend_label) + ":</b><span>" + diagnosticData.bleBackend + "</span></div>";
   html += "<div class='row'><b>Statut:</b><span>" + diagnosticData.bleStatusMessage + "</span></div>";
   if (diagnosticData.bleHint.length() > 0) {
     html += "<div class='row'><b>Conseil:</b><span>" + diagnosticData.bleHint + "</span></div>";
@@ -2597,6 +2660,10 @@ void handleGetTranslations() {
   appendJsonField(json, "ble_status_stack_missing", String(T().ble_status_stack_missing));
   appendJsonField(json, "ble_status_not_supported", String(T().ble_status_not_supported));
   appendJsonField(json, "ble_enable_hint", String(T().ble_enable_hint));
+  appendJsonField(json, "ble_backend_label", String(T().ble_backend_label));
+  appendJsonField(json, "ble_backend_missing", String(T().ble_backend_missing));
+  appendJsonField(json, "ble_backend_arduino", String(T().ble_backend_arduino));
+  appendJsonField(json, "ble_backend_nimble", String(T().ble_backend_nimble));
 
   appendJsonField(json, "gpio_interfaces", String(T().gpio_interfaces));
   appendJsonField(json, "total_gpio", String(T().total_gpio));
@@ -3248,7 +3315,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.13 - FR/EN");
+  Serial.println("     Version 4.0.14 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   

@@ -121,6 +121,10 @@ struct Translations {
   const char* status_yes;
   const char* status_no;
   const char* status_missing;
+  const char* ble_backend_label;
+  const char* ble_backend_missing;
+  const char* ble_backend_arduino;
+  const char* ble_backend_nimble;
 
   // GPIO et périphériques
   const char* gpio_interfaces;
@@ -407,6 +411,10 @@ const Translations LANG_FR_TEXTS = {
   "Oui",
   "Non",
   "Manquant",
+  "Pile logicielle BLE",
+  "Pile BLE absente",
+  "Bibliothèque ESP32 BLE Arduino",
+  "Bibliothèque NimBLE-Arduino",
 
   // GPIO
   "GPIO et Interfaces",
@@ -694,6 +702,10 @@ const Translations LANG_EN_TEXTS = {
   "Yes",
   "No",
   "Missing",
+  "BLE software stack",
+  "BLE stack unavailable",
+  "ESP32 BLE Arduino library",
+  "NimBLE-Arduino library",
 
   // GPIO
   "GPIO and Interfaces",
