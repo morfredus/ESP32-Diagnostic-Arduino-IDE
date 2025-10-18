@@ -1578,16 +1578,16 @@ void handleWiFiScan() {
 }
 
 void handleBLEScan() {
+  String unsupportedJson = "{\"supported\":false,\"message\":\"" + jsonEscape(String(T().ble_not_supported)) + "\"}";
+
 #if !HAS_NATIVE_BLE
   bleDevices.clear();
-  String json = "{\"supported\":false,\"message\":\"" + jsonEscape(String(T().ble_not_supported)) + "\"}";
-  server.send(200, "application/json", json);
+  server.send(200, "application/json", unsupportedJson);
   return;
 #endif
 
   if (!diagnosticData.hasBLE) {
-    String json = "{\"supported\":false,\"message\":\"" + jsonEscape(String(T().ble_not_supported)) + "\"}";
-    server.send(200, "application/json", json);
+    server.send(200, "application/json", unsupportedJson);
     return;
   }
 
