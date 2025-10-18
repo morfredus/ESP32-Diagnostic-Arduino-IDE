@@ -5,6 +5,52 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.11] - 2025-10-22
+
+### Added
+- Added a wireless readiness recap to the serial monitor and TXT/JSON/CSV/print exports so offline reports mirror the web UI.
+
+### Changed
+- Kept the Bluetooth readiness card visible with explanatory messaging and auto-disabled the BLE scan button when the firmware lacks native BLE support.
+- Updated documentation and firmware identifiers to reflect version 4.0.11.
+
+---
+
+## [4.0.10] - 2025-10-21
+
+### Added
+- Introduced a Bluetooth readiness card on the Wireless tab summarising chip capability, firmware stack availability, and IDE activation hints before scans begin.
+
+### Changed
+- Updated the bilingual translation bundles to cover the new BLE readiness statuses and recommendations.
+
+### Documentation
+- Bumped firmware identifiers and README content to align with the v4.0.10 diagnostics.
+
+---
+
+## [4.0.9] - 2025-10-20
+
+### Added
+- Surfaced PSRAM capability, mode detection, and IDE enablement hints in the overview UI and exports so the web experience matches the serial diagnostic summary.
+- Introduced a wireless status card that reports Wi-Fi connectivity and BLE availability (including firmware capability hints) before launching scans.
+
+### Changed
+- Expanded `/api/overview` and `/api/memory-details` to include PSRAM support metadata for downstream tools and the dynamic interface.
+
+---
+
+## [4.0.8] - 2025-10-19
+
+### Added
+- Combined the Wi-Fi and BLE diagnostics into a unified **Wireless** tab that lists SSID/channel/security details alongside BLE name, MAC and RSSI cards.
+- Exposed a `/api/ble-scan` endpoint so both web interfaces can enumerate nearby BLE peripherals.
+
+### Fixed
+- Guarded the BLE integration with compile-time capability checks so builds missing `esp_gap_ble_api.h` still compile and report BLE as unavailable.
+
+---
+
 ## [4.0.7] - 2025-10-18
 
 ### Fixed
@@ -347,6 +393,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 4.0.11 | 2025-10-22 | Wireless recap in serial & exports plus auto-disabled BLE scan button |
+| 4.0.10 | 2025-10-21 | Bluetooth readiness card with detailed hardware/firmware status |
+| 4.0.9 | 2025-10-20 | PSRAM diagnostics mirrored in UI plus Wi-Fi/BLE readiness summary |
+| 4.0.8 | 2025-10-19 | Wireless tab merges Wi-Fi & BLE; guarded BLE build fallback |
 | 4.0.7 | 2025-10-18 | OLED buttons align with executed patterns; encoded requests avoid mislabeled controls |
 | 4.0.6 | 2025-10-17 | OLED tests available pre-detection, GPIO warning clarifies FAIL meaning |
 | 4.0.5 | 2025-10-16 | Inline notices, OLED-only screens tab, dynamic language refresh |
