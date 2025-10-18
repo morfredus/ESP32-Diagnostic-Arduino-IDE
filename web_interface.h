@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v4.0.5
+ * WEB_INTERFACE.H - Interface Web Dynamique v4.0.6
  */
 
 #ifndef WEB_INTERFACE_H
@@ -361,17 +361,25 @@ String generateJavaScript() {
   js += "}";
 
   js += "function buildScreens(d){";
-  js += "let h='<div class=\"section\"><h2>🖥️ Écran OLED 0.96\\\" I2C</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"oled-status\">'+d.oled.status+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Pins I2C</div><div class=\"info-value\">SDA:'+d.oled.pins.sda+' SCL:'+d.oled.pins.scl+'</div></div>';";
+  js += "const oled=(d&&d.oled)?d.oled:{};";
+  js += "const pins=oled.pins||{};";
+  js += "const status=oled.status||(translations.no_detected||'Aucun écran détecté');";
+  js += "let h='<div class=\\\"section\\\"><h2>'+ (translations.oled_screen||'Écran OLED 0.96\\\\\" I2C')+'</h2><div class=\\\"info-grid\\\">';";
+  js += "h+='<div class=\\\"info-item\\\"><div class=\\\"info-label\\\">'+(translations.status||'Statut')+'</div><div class=\\\"info-value\\\" id=\\\"oled-status\\\">'+status+'</div></div>';";
+  js += "h+='<div class=\\\"info-item\\\"><div class=\\\"info-label\\\">'+(translations.i2c_pins||'Pins I2C')+'</div><div class=\\\"info-value\\\">SDA:'+(typeof pins.sda!==\"undefined\"?pins.sda:'?')+' SCL:'+(typeof pins.scl!==\"undefined\"?pins.scl:'?')+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<div style=\"margin-bottom:10px\">SDA <input type=\"number\" id=\"oledSDA\" value=\"'+d.oled.pins.sda+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
-  js += "h+='SCL <input type=\"number\" id=\"oledSCL\" value=\"'+d.oled.pins.scl+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
-  js += "h+='<button class=\"btn btn-info\" onclick=\"configOLED()\">⚙️ '+(translations.apply_redetect||'Configurer')+'</button></div>';";
-  js += "h+='<div><button class=\"btn btn-primary\" onclick=\"testOLED()\">🧪 '+(translations.full_test||'Test complet')+' (25s)</button></div>';";
+  js += "h+='<div style=\"margin-bottom:10px\">SDA <input type=\"number\" id=\"oledSDA\" value=\"'+(typeof pins.sda!==\"undefined\"?pins.sda:21)+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
+  js += "h+='SCL <input type=\"number\" id=\"oledSCL\" value=\"'+(typeof pins.scl!==\"undefined\"?pins.scl:22)+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
+  js += "h+='<button class=\\\"btn btn-info\\\" onclick=\\\"configOLED()\\\">⚙️ '+(translations.apply_redetect||'Configurer')+'</button></div>';";
+  js += "h+='<div class=\\\"inline-feedback\\\" id=\\\"oled-feedback\\\"></div>';";
+  js += "h+='</div>';";
+  js += "if(oled&&oled.available===false){";
+  js += "h+='<div class=\\\"info-item\\\" style=\\\"grid-column:1/-1\\\"><div class=\\\"info-value\\\" style=\\\"background:#fff3cd;color:#856404;padding:12px;border-radius:10px;\\\">'+(translations.no_detected||'Aucun écran OLED détecté. Vérifiez le câblage et relancez la détection.')+'</div></div>';";
+  js += "}";
+  js += "h+='<div class=\\\"info-item\\\" style=\\\"grid-column:1/-1;text-align:center\\\">';";
+  js += "h+='<div><button class=\\\"btn btn-primary\\\" onclick=\\\"testOLED()\\\">🧪 '+(translations.full_test||'Test complet')+' (25s)</button></div>';";
   js += "h+='<div style=\"margin-top:10px\"><input type=\"text\" id=\"oledText\" placeholder=\"'+(translations.custom_message||'Message à afficher')+'\" style=\"width:300px;padding:10px\"> ';";
   js += "h+='<button class=\"btn btn-success\" onclick=\"oledDisplayText()\">📤 '+(translations.show_message||'Afficher message')+'</button></div>';";
-  js += "h+='<div class=\"inline-feedback\" id=\"oled-feedback\"></div>';";
   js += "h+='<div style=\"margin-top:15px\">';";
   js += "h+='<button class=\"btn btn-primary\" onclick=\"oledPattern(\\'intro\\')\">🏁 '+(translations.oled_intro||'Accueil')+'</button> ';";
   js += "h+='<button class=\"btn btn-primary\" onclick=\"oledPattern(\\'large\\')\">🔠 '+(translations.oled_large_text||'Texte géant')+'</button> ';";
@@ -409,10 +417,11 @@ String generateJavaScript() {
 
   // Build GPIO
   js += "function buildGpio(){";
-  js += "let h='<div class=\"section\"><h2>🔌 Test GPIO</h2>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"testAllGPIO()\">🧪 Tester tous les GPIO</button>';";
-  js += "h+='<div id=\"gpio-status\" class=\"status-live\">Cliquez pour tester</div></div>';";
-  js += "h+='<div id=\"gpio-results\" class=\"gpio-grid\"></div></div>';";
+  js += "let h='<div class=\\\"section\\\"><h2>🔌 '+(translations.gpio_test||'Test GPIO')+'</h2>';";
+  js += "h+='<div style=\\\"text-align:center;margin:20px 0\\\"><button class=\\\"btn btn-primary\\\" onclick=\\\"testAllGPIO()\\\">🧪 '+(translations.test_all_gpio||'Tester tous les GPIO')+'</button>';";
+  js += "h+='<div id=\\\"gpio-status\\\" class=\\\"status-live\\\">'+(translations.click_to_test||'Cliquez pour tester')+'</div></div>';";
+  js += "h+='<p id=\\\"gpio-warning\\\" style=\\\"margin:10px 0;padding:12px;border-radius:10px;background:#fff3cd;color:#856404;border-left:4px solid #f2c94c\\\">'+(translations.gpio_fail_hint||'Un GPIO \"FAIL\" peut être réservé. Vérifiez sa fonction avant de conclure qu\'il est défectueux.')+'</p>';";
+  js += "h+='<div id=\\\"gpio-results\\\" class=\\\"gpio-grid\\\"></div></div>';";
   js += "return h;";
   js += "}";
 
@@ -666,6 +675,8 @@ String generateJavaScript() {
   js += "const tabs=['overview','leds','screens','tests','gpio','wifi','benchmark','export'];";
   js += "const btns=document.querySelectorAll('.nav-btn');";
   js += "btns.forEach((btn,i)=>{if(t[tabs[i]])btn.textContent=t[tabs[i]];});";
+  js += "const gpioWarn=document.getElementById('gpio-warning');if(gpioWarn&&t.gpio_fail_hint)gpioWarn.textContent=t.gpio_fail_hint;";
+  js += "const oledInput=document.getElementById('oledText');if(oledInput&&t.custom_message)oledInput.placeholder=t.custom_message;";
   js += "}";
 
   return js;

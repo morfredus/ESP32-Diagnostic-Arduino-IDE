@@ -5,6 +5,19 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.6] - 2025-10-17
+
+### Added
+- Restored the full OLED workflow in both interfaces with individual pattern buttons and message entry even before the display is auto-detected.
+
+### Changed
+- Dynamic and legacy UIs now display a localized GPIO warning to clarify that a `FAIL` result can correspond to a reserved pin instead of a hardware fault.
+
+### Fixed
+- Ensured the OLED tab always exposes the complete test suite and inline feedback, preventing missing controls after language switches or fresh boots.
+
+---
+
 ## [4.0.5] - 2025-10-16
 
 ### Changed
@@ -323,6 +336,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 4.0.6 | 2025-10-17 | OLED tests available pre-detection, GPIO warning clarifies FAIL meaning |
 | 4.0.5 | 2025-10-16 | Inline notices, OLED-only screens tab, dynamic language refresh |
 | 4.0.4 | 2025-10-15 | LED conflict guard, localized LED/OLED API, legacy OLED buttons |
 | 3.0.0 | 2025-10-10 | Official release, Core 3.3.2 support, multilingual docs |
