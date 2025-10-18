@@ -1,9 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.6
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.7
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v4.0.7:
+ * - Corrige l'association entre boutons et motifs OLED individuels
+ * - Uniformise les réponses API/firmware pour annoncer le bon motif exécuté
+ * - Clarifie les libellés OLED afin d'éviter les boutons redondants
  *
  * Nouveautés v4.0.6:
  * - Rend tous les tests OLED (complet, message, motifs) accessibles même avant détection automatique
@@ -70,7 +75,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.6"
+#define DIAGNOSTIC_VERSION "4.0.7"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -1118,47 +1123,54 @@ void oledFinalFrame() {
   oled.display();
 }
 
-String getOledPatternLabel(const String& pattern) {
-  if (pattern == "intro") return String(T().oled_intro);
-  if (pattern == "large") return String(T().oled_large_text);
-  if (pattern == "fonts") return String(T().oled_fonts);
-  if (pattern == "shapes") return String(T().oled_shapes);
-  if (pattern == "lines") return String(T().oled_lines);
-  if (pattern == "diagonals") return String(T().oled_diagonals);
-  if (pattern == "square") return String(T().oled_animation);
-  if (pattern == "progress") return String(T().oled_progress);
-  if (pattern == "scroll") return String(T().oled_scroll);
-  if (pattern == "final") return String(T().oled_final);
+struct OledPatternEntry {
+  const char* id;
+  void (*action)();
+  const char* Translations::*label;
+};
+
+const OledPatternEntry OLED_PATTERNS[] = {
+  {"intro", oledIntroScreen, &Translations::oled_intro},
+  {"large", oledLargeText, &Translations::oled_large_text},
+  {"fonts", oledFontSizes, &Translations::oled_fonts},
+  {"shapes", oledShapes, &Translations::oled_shapes},
+  {"lines", oledHorizontalLines, &Translations::oled_lines},
+  {"diagonals", oledDiagonalLines, &Translations::oled_diagonals},
+  {"square", oledMovingSquare, &Translations::oled_animation},
+  {"progress", oledProgressBar, &Translations::oled_progress},
+  {"scroll", oledScrollingText, &Translations::oled_scroll},
+  {"final", oledFinalFrame, &Translations::oled_final},
+};
+
+String normalizePatternId(String pattern) {
+  pattern.trim();
+  pattern.toLowerCase();
   return pattern;
 }
 
-bool runOledPattern(const String& pattern) {
+String getOledPatternLabel(const String& rawPattern) {
+  String normalized = normalizePatternId(rawPattern);
+  for (const auto& entry : OLED_PATTERNS) {
+    if (normalized == entry.id) {
+      return String(T().*entry.label);
+    }
+  }
+  return normalized;
+}
+
+bool runOledPattern(const String& rawPattern) {
   if (!oledAvailable) return false;
 
-  if (pattern == "intro") {
-    oledIntroScreen();
-  } else if (pattern == "large") {
-    oledLargeText();
-  } else if (pattern == "fonts") {
-    oledFontSizes();
-  } else if (pattern == "shapes") {
-    oledShapes();
-  } else if (pattern == "lines") {
-    oledHorizontalLines();
-  } else if (pattern == "diagonals") {
-    oledDiagonalLines();
-  } else if (pattern == "square") {
-    oledMovingSquare();
-  } else if (pattern == "progress") {
-    oledProgressBar();
-  } else if (pattern == "scroll") {
-    oledScrollingText();
-  } else if (pattern == "final") {
-    oledFinalFrame();
-  } else {
-    return false;
+  String normalized = normalizePatternId(rawPattern);
+  for (const auto& entry : OLED_PATTERNS) {
+    if (normalized == entry.id) {
+      if (entry.action) {
+        entry.action();
+      }
+      return true;
+    }
   }
-  return true;
+  return false;
 }
 
 void testOLED() {
@@ -1676,16 +1688,17 @@ void handleOLEDPattern() {
   }
 
   String pattern = server.arg("pattern");
-  if (!runOledPattern(pattern)) {
+  String normalizedPattern = normalizePatternId(pattern);
+  if (!runOledPattern(normalizedPattern)) {
     server.send(400, "application/json", "{\"success\":false,\"message\":\"" + jsonEscape(String(T().pattern_unknown)) + "\"}");
     return;
   }
 
-  String label = getOledPatternLabel(pattern);
+  String label = getOledPatternLabel(normalizedPattern);
   String message = label + " - " + String(T().completed);
   oledTestResult = message;
   oledTested = true;
-  server.send(200, "application/json", "{\"success\":true,\"pattern\":\"" + jsonEscape(pattern) + "\",\"message\":\"" + jsonEscape(message) + "\"}");
+  server.send(200, "application/json", "{\"success\":true,\"pattern\":\"" + jsonEscape(normalizedPattern) + "\",\"message\":\"" + jsonEscape(message) + "\"}");
 }
 
 void handleOLEDMessage() {
@@ -2832,7 +2845,7 @@ void handleRoot() {
   chunk += "function testOLED(){document.getElementById('oled-status').innerHTML=(translations.testing||'Test...')+' (25s)...';";
   chunk += "fetch('/api/oled-test').then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.result||(ok?(translations.completed||'Terminé'):'Erreur');document.getElementById('oled-status').innerHTML=msg;showInlineNotice('oled-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('testOLED',err);showInlineNotice('oled-feedback','Erreur test OLED','error');});}";
   chunk += "function oledRun(p){const status=document.getElementById('oled-status');if(status)status.innerHTML=(translations.testing||'Test...');";
-  chunk += "fetch('/api/oled-pattern?pattern='+p).then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.message||(ok?(translations.completed||'Terminé'):'Erreur');if(status)status.innerHTML=msg;showInlineNotice('oled-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('oledRun',err);showInlineNotice('oled-feedback','Erreur motif OLED','error');});}";
+  chunk += "fetch('/api/oled-pattern?pattern='+encodeURIComponent(p)).then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.message||(ok?(translations.completed||'Terminé'):'Erreur');if(status)status.innerHTML=msg;showInlineNotice('oled-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('oledRun',err);showInlineNotice('oled-feedback','Erreur motif OLED','error');});}";
   chunk += "function oledMessage(){fetch('/api/oled-message?message='+encodeURIComponent(document.getElementById('oledMsg').value))";
   chunk += ".then(r=>r.json()).then(d=>{const ok=isSuccessFlag(d.success);const msg=d.message||(ok?(translations.message_displayed||'Message affiché'):'Erreur');document.getElementById('oled-status').innerHTML=msg;showInlineNotice('oled-feedback',msg,ok?'success':'error');}).catch(err=>{console.error('oledMessage',err);showInlineNotice('oled-feedback','Erreur message OLED','error');});}";
   chunk += "function configOLED(){const status=document.getElementById('oled-status');if(status)status.innerHTML=(translations.scanning||'Scan...');";
@@ -2900,7 +2913,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.6 - FR/EN");
+  Serial.println("     Version 4.0.7 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   

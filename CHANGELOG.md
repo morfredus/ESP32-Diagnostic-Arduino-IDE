@@ -5,6 +5,17 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.7] - 2025-10-18
+
+### Fixed
+- Corrected the OLED pattern dispatcher so each button (intro, font sizes, shapes, etc.) now triggers the intended rendering routine instead of the previous item in the sequence.
+- Normalised the pattern identifier returned by `/api/oled-pattern` to reflect the executed test, preventing mismatches between firmware feedback and the on-screen result.
+
+### Changed
+- Encoded OLED pattern requests in both web clients to avoid stray labels such as “Veuillez saisir un message” appearing on buttons after localisation updates.
+
+---
+
 ## [4.0.6] - 2025-10-17
 
 ### Added
@@ -336,6 +347,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 4.0.7 | 2025-10-18 | OLED buttons align with executed patterns; encoded requests avoid mislabeled controls |
 | 4.0.6 | 2025-10-17 | OLED tests available pre-detection, GPIO warning clarifies FAIL meaning |
 | 4.0.5 | 2025-10-16 | Inline notices, OLED-only screens tab, dynamic language refresh |
 | 4.0.4 | 2025-10-15 | LED conflict guard, localized LED/OLED API, legacy OLED buttons |
