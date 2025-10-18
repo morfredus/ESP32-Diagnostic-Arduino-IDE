@@ -1,14 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.7
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.8
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v4.0.7:
- * - Corrige l'association entre boutons et motifs OLED individuels
- * - Uniformise les réponses API/firmware pour annoncer le bon motif exécuté
- * - Clarifie les libellés OLED afin d'éviter les boutons redondants
+ * Nouveautés v4.0.8:
+ * - Fusionne l'onglet Wi-Fi et BLE en diagnostics « Sans fil » avec cartes RSSI complètes
+ * - Ajoute l'endpoint `/api/ble-scan` consommé par les interfaces dynamique et classique
+ * - Neutralise le BLE à la compilation lorsque `esp_gap_ble_api.h` est absent afin d'éviter les erreurs
  *
  * Nouveautés v4.0.6:
  * - Rend tous les tests OLED (complet, message, motifs) accessibles même avant détection automatique
@@ -91,7 +91,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.7"
+#define DIAGNOSTIC_VERSION "4.0.8"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -3026,7 +3026,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.7 - FR/EN");
+  Serial.println("     Version 4.0.8 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
