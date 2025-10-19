@@ -5,6 +5,129 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.18] - 2025-10-29
+
+### Fixed
+- Corrected the Wi-Fi scan JavaScript function so web buttons (including language switching and BLE refresh) execute again.
+
+### Changed
+- Updated firmware identifiers, documentation, and UI labels to version 4.0.18.
+
+---
+
+## [4.0.17] - 2025-10-28
+
+### Added
+- Ensured the Wireless tab always renders Wi-Fi and Bluetooth readiness cards, even when BLE support is disabled or missing in the firmware build.
+
+### Changed
+- Automatically disable the BLE scan controls and reuse the runtime hints whenever the firmware lacks a BLE stack.
+- Updated firmware identifiers, documentation, and UI labels to version 4.0.17.
+
+---
+
+## [4.0.16] - 2025-10-27
+
+### Fixed
+- Removed an errant escape sequence in the wireless status template so the Bluetooth readiness card always renders beneath Wi-Fi details.
+- Served the refreshed `/js/app.js` bundle on every request to guarantee the Sans fil tab runs the latest UI logic.
+
+### Changed
+- Prefer the NimBLE-Arduino stack when multiple BLE backends are available while keeping backend reporting across diagnostics.
+- Updated firmware identifiers, documentation, and UI labels to version 4.0.16.
+
+---
+
+## [4.0.15] - 2025-10-26
+
+### Fixed
+- Repaired the wireless status JavaScript so the Bluetooth readiness card is always rendered with backend and capability details.
+
+### Changed
+- Ensured the wireless API/UI keep BLE backend and hint messaging visible even when BLE is disabled or unsupported.
+- Updated firmware identifiers, documentation, and UI labels to version 4.0.15.
+
+---
+
+## [4.0.14] - 2025-10-25
+
+### Added
+- Automatically select the ESP32 BLE Arduino or NimBLE-Arduino backend when native BLE headers are available so scans keep working across toolchains.
+
+### Changed
+- Surface the detected (or missing) BLE stack throughout the wireless API, UI card, serial monitor, and export formats for clearer guidance.
+- Updated firmware identifiers, documentation, and UI labels to version 4.0.14.
+
+---
+
+## [4.0.13] - 2025-10-24
+
+### Added
+- Introduced a persistent Bluetooth readiness card in the Wireless tab so capability and hint messaging stay visible even when BLE support is disabled.
+
+### Changed
+- Expanded the wireless status API and serial report to expose Wi-Fi IP, subnet, gateway, and DNS details alongside signal quality.
+- Updated firmware identifiers, documentation, and UI labels to version 4.0.13.
+
+---
+
+## [4.0.12] - 2025-10-23
+
+### Fixed
+- Corrected the `/api/wireless-status` JSON assembly so the Bluetooth readiness card stays visible even when Wi-Fi identifiers include quotes or special characters.
+- Escaped Wi-Fi/BLE fields in the JSON export to prevent malformed payloads during downloads.
+
+### Changed
+- Updated firmware identifiers, documentation, and UI banners to version 4.0.12.
+
+---
+
+## [4.0.11] - 2025-10-22
+
+### Added
+- Added a wireless readiness recap to the serial monitor and TXT/JSON/CSV/print exports so offline reports mirror the web UI.
+
+### Changed
+- Kept the Bluetooth readiness card visible with explanatory messaging and auto-disabled the BLE scan button when the firmware lacks native BLE support.
+- Updated documentation and firmware identifiers to reflect version 4.0.11.
+
+---
+
+## [4.0.10] - 2025-10-21
+
+### Added
+- Introduced a Bluetooth readiness card on the Wireless tab summarising chip capability, firmware stack availability, and IDE activation hints before scans begin.
+
+### Changed
+- Updated the bilingual translation bundles to cover the new BLE readiness statuses and recommendations.
+
+### Documentation
+- Bumped firmware identifiers and README content to align with the v4.0.10 diagnostics.
+
+---
+
+## [4.0.9] - 2025-10-20
+
+### Added
+- Surfaced PSRAM capability, mode detection, and IDE enablement hints in the overview UI and exports so the web experience matches the serial diagnostic summary.
+- Introduced a wireless status card that reports Wi-Fi connectivity and BLE availability (including firmware capability hints) before launching scans.
+
+### Changed
+- Expanded `/api/overview` and `/api/memory-details` to include PSRAM support metadata for downstream tools and the dynamic interface.
+
+---
+
+## [4.0.8] - 2025-10-19
+
+### Added
+- Combined the Wi-Fi and BLE diagnostics into a unified **Wireless** tab that lists SSID/channel/security details alongside BLE name, MAC and RSSI cards.
+- Exposed a `/api/ble-scan` endpoint so both web interfaces can enumerate nearby BLE peripherals.
+
+### Fixed
+- Guarded the BLE integration with compile-time capability checks so builds missing `esp_gap_ble_api.h` still compile and report BLE as unavailable.
+
+---
+
 ## [4.0.7] - 2025-10-18
 
 ### Fixed
@@ -347,6 +470,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 4.0.18 | 2025-10-29 | Restored web buttons via Wi-Fi scan JS fix, docs bump |
+| 4.0.17 | 2025-10-28 | Wireless cards always visible, guarded BLE scans, docs bump |
+| 4.0.16 | 2025-10-27 | Bluetooth card template fix, app.js routing, NimBLE-preferred backend |
+| 4.0.15 | 2025-10-26 | Wireless tab fix keeps Bluetooth readiness card permanently visible |
+| 4.0.14 | 2025-10-25 | BLE backend auto-detection plus stack visibility in UI/API/exports |
+| 4.0.13 | 2025-10-24 | Bluetooth card always visible plus Wi-Fi IP/subnet/gateway/DNS details |
+| 4.0.12 | 2025-10-23 | Wireless-status JSON fix keeps Bluetooth card visible and exports valid |
+| 4.0.11 | 2025-10-22 | Wireless recap in serial & exports plus auto-disabled BLE scan button |
+| 4.0.10 | 2025-10-21 | Bluetooth readiness card with detailed hardware/firmware status |
+| 4.0.9 | 2025-10-20 | PSRAM diagnostics mirrored in UI plus Wi-Fi/BLE readiness summary |
+| 4.0.8 | 2025-10-19 | Wireless tab merges Wi-Fi & BLE; guarded BLE build fallback |
 | 4.0.7 | 2025-10-18 | OLED buttons align with executed patterns; encoded requests avoid mislabeled controls |
 | 4.0.6 | 2025-10-17 | OLED tests available pre-detection, GPIO warning clarifies FAIL meaning |
 | 4.0.5 | 2025-10-16 | Inline notices, OLED-only screens tab, dynamic language refresh |
