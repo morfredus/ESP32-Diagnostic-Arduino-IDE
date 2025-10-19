@@ -1,14 +1,29 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.7
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.16
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v4.0.7:
- * - Corrige l'association entre boutons et motifs OLED individuels
- * - Uniformise les réponses API/firmware pour annoncer le bon motif exécuté
- * - Clarifie les libellés OLED afin d'éviter les boutons redondants
+ * Nouveautés v4.0.16:
+ * - Corrige le script Sans fil pour supprimer une apostrophe échappée qui empêchait l'affichage de la carte Bluetooth
+ * - Sert systématiquement l'application JavaScript dynamique et garantit l'initialisation de la carte BLE dès l'ouverture de l'onglet
+ * - Préfère la bibliothèque NimBLE-Arduino lorsque disponible et met à jour les identifiants firmware vers la version 4.0.16
+
+ * Nouveautés v4.0.13:
+ * - Ajoute un panneau Bluetooth détaillé dans l'onglet Sans fil avec messages explicites même hors support BLE
+ * - Expose l'IP, le masque, la passerelle et le DNS Wi-Fi dans l'API, l'interface web et le moniteur série
+ * - Met à jour la documentation et l'interface pour refléter la version 4.0.13
+
+ * Nouveautés v4.0.12:
+ * - Corrige la génération JSON du statut Sans fil pour que la carte Bluetooth reste visible même hors connexion
+ * - Fiabilise les exports JSON WiFi/BLE lorsque les textes contiennent des caractères spéciaux
+ * - Met à jour les références documentaires et l'interface vers la version 4.0.12
+ *
+ * Nouveautés v4.0.11:
+ * - Assure l'affichage permanent de la fiche Bluetooth avec messages explicites même sans pile BLE active
+ * - Ajoute un récapitulatif Sans fil (WiFi + BLE) dans le moniteur série, les exports TXT/JSON/CSV et la version imprimable
+ * - Désactive proprement le scan BLE côté interface et bouton quand le firmware ou l'IDE ne propose pas la pile native
  *
  * Nouveautés v4.0.6:
  * - Rend tous les tests OLED (complet, message, motifs) accessibles même avant détection automatique
@@ -65,8 +80,34 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+
+#if defined(SOC_BLE_SUPPORTED) && SOC_BLE_SUPPORTED
+  #if defined(__has_include)
+    #if __has_include(<NimBLEDevice.h>)
+      #include <NimBLEDevice.h>
+      #define BLE_BACKEND_NIMBLE 1
+    #elif __has_include(<esp_gap_ble_api.h>) && __has_include(<BLEDevice.h>)
+      #include <BLEDevice.h>
+      #define BLE_BACKEND_ARDUINO 1
+    #else
+      #define BLE_BACKEND_NONE 1
+    #endif
+  #else
+    #include <BLEDevice.h>
+    #define BLE_BACKEND_ARDUINO 1
+  #endif
+#else
+  #define BLE_BACKEND_NONE 1
+#endif
+
+#if defined(BLE_BACKEND_ARDUINO) || defined(BLE_BACKEND_NIMBLE)
+  #define HAS_NATIVE_BLE 1
+#else
+  #define HAS_NATIVE_BLE 0
+#endif
 #include <cmath>
 #include <vector>
+#include <string>
 
 // Configuration WiFi
 #include "config.h"
@@ -75,7 +116,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.7"
+#define DIAGNOSTIC_VERSION "4.0.16"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -151,6 +192,11 @@ struct DiagnosticInfo {
   bool hasWiFi;
   bool hasBT;
   bool hasBLE;
+  bool bleChipCapable;
+  bool bleStackAvailable;
+  String bleStatusMessage;
+  String bleHint;
+  String bleBackend;
   String wifiSSID;
   int wifiRSSI;
   String ipAddress;
@@ -188,7 +234,12 @@ struct DetailedMemoryInfo {
   uint32_t psramLargestBlock;
   bool psramAvailable;
   bool psramConfigured;
-  
+  bool psramSupported;
+  String psramMode;
+  String psramModeLabel;
+  String psramStatusMessage;
+  String psramRecommendation;
+
   uint32_t sramTotal;
   uint32_t sramFree;
   uint32_t sramUsed;
@@ -221,6 +272,23 @@ struct WiFiNetwork {
 };
 
 std::vector<WiFiNetwork> wifiNetworks;
+
+struct BLEDeviceInfo {
+  String name;
+  String address;
+  int rssi;
+};
+
+std::vector<BLEDeviceInfo> bleDevices;
+
+#if HAS_NATIVE_BLE
+  #if defined(BLE_BACKEND_ARDUINO)
+BLEScan* bleScanner = nullptr;
+  #elif defined(BLE_BACKEND_NIMBLE)
+NimBLEScan* bleScanner = nullptr;
+  #endif
+#endif
+bool bleInitialized = false;
 
 struct ADCReading {
   int pin;
@@ -471,50 +539,77 @@ bool testPSRAMQuick() {
 }
 
 void collectDetailedMemory() {
+  refreshLocalizedStatusMessages();
   uint32_t flashSizeReal;
   esp_flash_get_size(NULL, &flashSizeReal);
-  
+
   detailedMemory.flashSizeChip = flashSizeReal;
   detailedMemory.flashSizeReal = ESP.getFlashChipSize();
-  
+
   detailedMemory.psramTotal = ESP.getPsramSize();
   detailedMemory.psramAvailable = (detailedMemory.psramTotal > 0);
-  
-  detailedMemory.psramConfigured = false;
-  
-  #if defined(CONFIG_SPIRAM)
-    detailedMemory.psramConfigured = true;
-  #endif
-  #if defined(CONFIG_SPIRAM_SUPPORT)
-    detailedMemory.psramConfigured = true;
-  #endif
-  #if defined(BOARD_HAS_PSRAM)
-    detailedMemory.psramConfigured = true;
-  #endif
+  detailedMemory.psramConfigured = detailedMemory.psramAvailable;
+
+  bool psramFlagDetected = false;
+  String psramModeShort = "";
+
   #if defined(CONFIG_SPIRAM_MODE_OCT)
-    detailedMemory.psramConfigured = true;
+    psramFlagDetected = true;
+    psramModeShort = "OPI";
   #endif
   #if defined(CONFIG_SPIRAM_MODE_QUAD)
-    detailedMemory.psramConfigured = true;
+    psramFlagDetected = true;
+    if (psramModeShort.length() == 0) psramModeShort = "QSPI";
   #endif
-  
-  if (detailedMemory.psramTotal == 0) {
-    detailedMemory.psramConfigured = false;
+  #if defined(CONFIG_SPIRAM)
+    psramFlagDetected = true;
+  #endif
+  #if defined(CONFIG_SPIRAM_SUPPORT)
+    psramFlagDetected = true;
+  #endif
+  #if defined(BOARD_HAS_PSRAM)
+    psramFlagDetected = true;
+  #endif
+
+  detailedMemory.psramSupported = psramFlagDetected;
+  detailedMemory.psramMode = psramModeShort;
+
+  String psramModeLabel;
+  if (psramModeShort == "OPI") {
+    psramModeLabel = String(T().psram_mode_opi);
+  } else if (psramModeShort == "QSPI") {
+    psramModeLabel = String(T().psram_mode_qspi);
+  } else if (psramFlagDetected) {
+    psramModeLabel = String(T().psram_mode_unknown);
+  } else {
+    psramModeLabel = String(T().none);
   }
-  
+  detailedMemory.psramModeLabel = psramModeLabel;
+
   if (detailedMemory.psramAvailable) {
     detailedMemory.psramFree = ESP.getFreePsram();
     detailedMemory.psramUsed = detailedMemory.psramTotal - detailedMemory.psramFree;
-    
+
     multi_heap_info_t info;
     heap_caps_get_info(&info, MALLOC_CAP_SPIRAM);
     detailedMemory.psramLargestBlock = info.largest_free_block;
+    detailedMemory.psramStatusMessage = String(T().psram_status_active);
+    detailedMemory.psramStatusMessage.replace("%MODE%", psramModeLabel);
+    detailedMemory.psramRecommendation = "";
   } else {
     detailedMemory.psramFree = 0;
     detailedMemory.psramUsed = 0;
     detailedMemory.psramLargestBlock = 0;
+    if (psramFlagDetected) {
+      detailedMemory.psramStatusMessage = String(T().psram_status_disabled);
+      detailedMemory.psramStatusMessage.replace("%MODE%", psramModeLabel);
+      detailedMemory.psramRecommendation = String(T().psram_enable_hint);
+    } else {
+      detailedMemory.psramStatusMessage = String(T().psram_status_not_supported);
+      detailedMemory.psramRecommendation = "";
+    }
   }
-  
+
   multi_heap_info_t infoInternal;
   heap_caps_get_info(&infoInternal, MALLOC_CAP_INTERNAL);
   detailedMemory.sramTotal = infoInternal.total_free_bytes + infoInternal.total_allocated_bytes;
@@ -545,8 +640,9 @@ void collectDetailedMemory() {
 }
 
 void printPSRAMDiagnostic() {
+  collectDetailedMemory();
   Serial.println("\r\n=== DIAGNOSTIC PSRAM DETAILLE ===");
-  Serial.printf("ESP.getPsramSize(): %u octets (%.2f MB)\r\n", 
+  Serial.printf("ESP.getPsramSize(): %u octets (%.2f MB)\r\n",
                 ESP.getPsramSize(), ESP.getPsramSize() / 1048576.0);
   
   Serial.println("\r\nFlags de compilation detectes (indication du type supporte par la carte):");
@@ -586,13 +682,44 @@ void printPSRAMDiagnostic() {
   Serial.printf("  psramAvailable = %s\r\n", detailedMemory.psramAvailable ? "TRUE" : "FALSE");
   
   Serial.println("\r\nConclusion:");
-  if (ESP.getPsramSize() > 0) {
-    Serial.printf("  → PSRAM fonctionnelle! Type: %s\r\n", psramType.c_str());
-  } else if (anyFlag) {
-    Serial.printf("  → Carte compatible PSRAM %s mais DESACTIVEE dans IDE\r\n", psramType.c_str());
-    Serial.println("  → Pour activer: Tools → PSRAM → OPI PSRAM (ou QSPI)");
+  Serial.print("  → ");
+  Serial.println(detailedMemory.psramStatusMessage);
+  if (detailedMemory.psramRecommendation.length() > 0) {
+    Serial.print("  → ");
+    Serial.println(detailedMemory.psramRecommendation);
+  }
+  Serial.println("=====================================\r\n");
+}
+
+void printWirelessDiagnostic() {
+  Serial.println("\r\n=== STATUT SANS FIL ===");
+
+  bool wifiConnected = WiFi.status() == WL_CONNECTED;
+  if (wifiConnected) {
+    Serial.printf("WiFi: CONNECTE (%s) RSSI %d dBm\r\n",
+                  diagnosticData.wifiSSID.c_str(),
+                  diagnosticData.wifiRSSI);
+    Serial.printf("Qualite: %s\r\n", getWiFiSignalQuality().c_str());
+    Serial.printf("IP: %s\r\n", WiFi.localIP().toString().c_str());
+    Serial.printf("Masque: %s\r\n", WiFi.subnetMask().toString().c_str());
+    Serial.printf("Passerelle: %s\r\n", WiFi.gatewayIP().toString().c_str());
+    Serial.printf("DNS: %s\r\n\r\n", WiFi.dnsIP().toString().c_str());
   } else {
-    Serial.println("  → Carte sans support PSRAM");
+    Serial.println("WiFi: Non connecte");
+  }
+
+  Serial.printf("BLE - Compatibilite puce: %s\r\n",
+                diagnosticData.bleChipCapable ? "OUI" : "NON");
+  Serial.printf("BLE - Pile firmware: %s\r\n",
+                diagnosticData.bleStackAvailable ? "OUI" : "NON");
+  Serial.printf("BLE - Fonctions actives: %s\r\n",
+                diagnosticData.hasBLE ? "OUI" : "NON");
+  Serial.printf("BLE - %s: %s\r\n",
+                T().ble_backend_label,
+                diagnosticData.bleBackend.c_str());
+  Serial.printf("BLE - Statut: %s\r\n", diagnosticData.bleStatusMessage.c_str());
+  if (diagnosticData.bleHint.length() > 0) {
+    Serial.printf("Conseil: %s\r\n", diagnosticData.bleHint.c_str());
   }
   Serial.println("=====================================\r\n");
 }
@@ -704,6 +831,86 @@ void scanWiFiNetworks() {
   }
   Serial.printf("WiFi: %d reseaux trouves\r\n", n);
 }
+
+#if HAS_NATIVE_BLE
+void ensureBleScanner() {
+  if (bleInitialized) return;
+
+  #if defined(BLE_BACKEND_NIMBLE)
+    NimBLEDevice::init("ESP32 Diagnostic");
+    bleScanner = NimBLEDevice::getScan();
+    if (bleScanner != nullptr) {
+      bleScanner->setActiveScan(true);
+      bleScanner->setInterval(45);
+      bleScanner->setWindow(30);
+    }
+  #elif defined(BLE_BACKEND_ARDUINO)
+    BLEDevice::init("ESP32 Diagnostic");
+    bleScanner = BLEDevice::getScan();
+    if (bleScanner != nullptr) {
+      bleScanner->setActiveScan(true);
+      bleScanner->setInterval(100);
+      bleScanner->setWindow(80);
+    }
+  #endif
+
+  bleInitialized = true;
+}
+
+void scanBLEDevices() {
+  Serial.println("\r\n=== SCAN BLE ===");
+  bleDevices.clear();
+
+  if (!diagnosticData.hasBLE) {
+    Serial.println("BLE: not supported on this board");
+    return;
+  }
+
+  ensureBleScanner();
+  if (bleScanner == nullptr) {
+    Serial.println("BLE: scanner unavailable");
+    return;
+  }
+
+  #if defined(BLE_BACKEND_NIMBLE)
+    NimBLEScanResults results = bleScanner->start(5, false);
+    int count = results.getCount();
+    for (int i = 0; i < count; i++) {
+      NimBLEAdvertisedDevice device = results.getDevice(i);
+      BLEDeviceInfo info;
+      std::string deviceName = device.getName();
+      bool hasName = deviceName.length() > 0;
+      info.name = hasName ? String(deviceName.c_str()) : String(T().unknown);
+      info.address = String(device.getAddress().toString().c_str());
+      info.rssi = device.getRSSI();
+      bleDevices.push_back(info);
+    }
+    bleScanner->clearResults();
+    Serial.printf("BLE: %d devices found\r\n", count);
+  #elif defined(BLE_BACKEND_ARDUINO)
+    BLEScanResults results = bleScanner->start(5, false);
+    int count = results.getCount();
+    for (int i = 0; i < count; i++) {
+      BLEAdvertisedDevice device = results.getDevice(i);
+      BLEDeviceInfo info;
+      info.name = device.haveName() ? String(device.getName().c_str()) : String(T().unknown);
+      info.address = String(device.getAddress().toString().c_str());
+      info.rssi = device.getRSSI();
+      bleDevices.push_back(info);
+    }
+    bleScanner->clearResults();
+    Serial.printf("BLE: %d devices found\r\n", count);
+  #endif
+}
+#else
+void ensureBleScanner() {}
+
+void scanBLEDevices() {
+  Serial.println("\r\n=== SCAN BLE (disabled) ===");
+  bleDevices.clear();
+  Serial.println("BLE: stack not available in this build");
+}
+#endif
 
 // ========== TEST GPIO ==========
 bool testSingleGPIO(int pin) {
@@ -1435,12 +1642,37 @@ void collectDiagnosticInfo() {
   
   diagnosticData.hasWiFi = (chip_info.features & CHIP_FEATURE_WIFI_BGN);
   diagnosticData.hasBT = (chip_info.features & CHIP_FEATURE_BT);
-  diagnosticData.hasBLE = (chip_info.features & CHIP_FEATURE_BLE);
-  
+  bool bleFeatureBit = (chip_info.features & CHIP_FEATURE_BLE);
+  diagnosticData.bleChipCapable = bleFeatureBit;
+  diagnosticData.bleStackAvailable = HAS_NATIVE_BLE;
+  diagnosticData.hasBLE = bleFeatureBit && HAS_NATIVE_BLE;
+  #if defined(BLE_BACKEND_NIMBLE)
+    diagnosticData.bleBackend = String(T().ble_backend_nimble);
+  #elif defined(BLE_BACKEND_ARDUINO)
+    diagnosticData.bleBackend = String(T().ble_backend_arduino);
+  #else
+    diagnosticData.bleBackend = String(T().ble_backend_missing);
+  #endif
+
+  if (diagnosticData.hasBLE) {
+    diagnosticData.bleStatusMessage = String(T().ble_status_active);
+    diagnosticData.bleHint = "";
+  } else if (bleFeatureBit && !HAS_NATIVE_BLE) {
+    diagnosticData.bleStatusMessage = String(T().ble_status_stack_missing);
+    diagnosticData.bleHint = String(T().ble_enable_hint);
+  } else {
+    diagnosticData.bleStatusMessage = String(T().ble_status_not_supported);
+    diagnosticData.bleHint = "";
+  }
+
   if (WiFi.status() == WL_CONNECTED) {
     diagnosticData.wifiSSID = WiFi.SSID();
     diagnosticData.wifiRSSI = WiFi.RSSI();
     diagnosticData.ipAddress = WiFi.localIP().toString();
+  } else {
+    diagnosticData.wifiSSID = "";
+    diagnosticData.wifiRSSI = -120;
+    diagnosticData.ipAddress = "";
   }
   
   diagnosticData.gpioList = getGPIOList();
@@ -1472,6 +1704,67 @@ void collectDiagnosticInfo() {
 }
 
 // ========== HANDLERS API ==========
+void handleOverview() {
+  collectDiagnosticInfo();
+  collectDetailedMemory();
+
+  String json = "{";
+  json += "\"chip\":{\"model\":\"" + jsonEscape(diagnosticData.chipModel) + "\",";
+  json += "\"revision\":\"" + jsonEscape(diagnosticData.chipRevision) + "\",";
+  json += "\"cores\":" + String(diagnosticData.cpuCores) + ",";
+  json += "\"freq\":" + String(diagnosticData.cpuFreqMHz) + ",";
+  json += "\"mac\":\"" + diagnosticData.macAddress + "\",";
+  json += "\"uptime\":" + String(diagnosticData.uptime) + ",";
+  json += "\"temperature\":" + String(diagnosticData.temperature, 1) + "},";
+
+  json += "\"memory\":{";
+  json += "\"flash\":{\"real\":" + String(detailedMemory.flashSizeReal) + ",\"chip\":" + String(detailedMemory.flashSizeChip) + ",\"type\":\"" + jsonEscape(getFlashType()) + "\"},";
+  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",";
+  json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) + ",\"free\":" + String(detailedMemory.sramFree) + ",\"used\":" + String(detailedMemory.sramUsed) + "},";
+  json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") + ",";
+  json += "\"supported\":" + String(detailedMemory.psramSupported ? "true" : "false") + ",";
+  json += "\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") + ",";
+  json += "\"total\":" + String(detailedMemory.psramTotal) + ",\"free\":" + String(detailedMemory.psramFree) + ",";
+  json += "\"used\":" + String(detailedMemory.psramUsed) + ",\"mode\":\"" + jsonEscape(detailedMemory.psramMode) + "\",";
+  json += "\"mode_label\":\"" + jsonEscape(detailedMemory.psramModeLabel) + "\",\"status\":\"" + jsonEscape(detailedMemory.psramStatusMessage) + "\"";
+  if (detailedMemory.psramRecommendation.length() > 0) {
+    json += ",\"hint\":\"" + jsonEscape(detailedMemory.psramRecommendation) + "\"";
+  }
+  json += "}},";
+
+  json += "\"wifi\":{\"ssid\":\"" + jsonEscape(diagnosticData.wifiSSID) + "\",\"rssi\":" + String(diagnosticData.wifiRSSI) + ",\"quality\":\"" + jsonEscape(getWiFiSignalQuality()) + "\",\"ip\":\"" + jsonEscape(diagnosticData.ipAddress) + "\"},";
+
+  json += "\"gpio\":{\"total\":" + String(diagnosticData.totalGPIO) + ",\"i2c_count\":" + String(diagnosticData.i2cCount) + ",\"i2c_devices\":\"" + jsonEscape(diagnosticData.i2cDevices) + "\"}";
+
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleWirelessStatus() {
+  collectDiagnosticInfo();
+
+  String json = "{";
+  bool wifiConnected = WiFi.status() == WL_CONNECTED;
+  json += "\"wifi\":{\"connected\":" + String(wifiConnected ? "true" : "false") + ",";
+  json += "\"ssid\":\"" + jsonEscape(diagnosticData.wifiSSID) + "\",\"rssi\":" + String(diagnosticData.wifiRSSI) + ",\"quality\":\"" + jsonEscape(getWiFiSignalQuality()) + "\",";
+  json += "\"ip\":\"" + jsonEscape(diagnosticData.ipAddress) + "\",\"subnet\":\"" + jsonEscape(WiFi.subnetMask().toString()) + "\",";
+  json += "\"gateway\":\"" + jsonEscape(WiFi.gatewayIP().toString()) + "\",\"dns\":\"" + jsonEscape(WiFi.dnsIP().toString()) + "\"}";
+
+  json += ",\"ble\":{\"chipCapable\":" + String(diagnosticData.bleChipCapable ? "true" : "false") + ",";
+  json += "\"stackAvailable\":" + String(diagnosticData.bleStackAvailable ? "true" : "false") + ",";
+  json += "\"enabled\":" + String(diagnosticData.hasBLE ? "true" : "false") + ",\"status\":\"" + jsonEscape(diagnosticData.bleStatusMessage) + "\",";
+  json += "\"backend\":\"" + jsonEscape(diagnosticData.bleBackend) + "\"";
+  if (diagnosticData.bleHint.length() > 0) {
+    json += ",\"hint\":\"" + jsonEscape(diagnosticData.bleHint) + "\"";
+  }
+  json += "}";
+
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
 void handleTestGPIO() {
   testAllGPIOs();
   String json = "{\"results\":[";
@@ -1493,6 +1786,31 @@ void handleWiFiScan() {
             "\",\"bssid\":\"" + wifiNetworks[i].bssid + "\"}";
   }
   json += "]}";
+  server.send(200, "application/json", json);
+}
+
+void handleBLEScan() {
+  String unsupportedJson = "{\"supported\":false,\"message\":\"" + jsonEscape(String(T().ble_not_supported)) + "\"}";
+
+#if !HAS_NATIVE_BLE
+  bleDevices.clear();
+  server.send(200, "application/json", unsupportedJson);
+  return;
+#endif
+
+  if (!diagnosticData.hasBLE) {
+    server.send(200, "application/json", unsupportedJson);
+    return;
+  }
+
+  scanBLEDevices();
+  String json = "{\"supported\":true,\"devices\":[";
+  for (size_t i = 0; i < bleDevices.size(); i++) {
+    if (i > 0) json += ",";
+    json += "{\"name\":\"" + jsonEscape(bleDevices[i].name) + "\",\"address\":\"" + bleDevices[i].address +
+            "\",\"rssi\":" + String(bleDevices[i].rssi) + "}";
+  }
+  json += "],\"count\":" + String(bleDevices.size()) + "}";
   server.send(200, "application/json", json);
 }
 
@@ -1776,12 +2094,20 @@ void handleMemoryDetails() {
   collectDetailedMemory();
   
   String json = "{\"flash\":{\"real\":" + String(detailedMemory.flashSizeReal) + ",\"chip\":" + String(detailedMemory.flashSizeChip) + "},";
-  json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") + 
-          ",\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") + 
-          ",\"total\":" + String(detailedMemory.psramTotal) + ",\"free\":" + String(detailedMemory.psramFree) + "},";
+  json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") +
+          ",\"supported\":" + String(detailedMemory.psramSupported ? "true" : "false") +
+          ",\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") +
+          ",\"total\":" + String(detailedMemory.psramTotal) + ",\"free\":" + String(detailedMemory.psramFree) +
+          ",\"used\":" + String(detailedMemory.psramUsed) + ",\"mode\":\"" + jsonEscape(detailedMemory.psramMode) +
+          "\",\"mode_label\":\"" + jsonEscape(detailedMemory.psramModeLabel) +
+          "\",\"status\":\"" + jsonEscape(detailedMemory.psramStatusMessage) + "\"";
+  if (detailedMemory.psramRecommendation.length() > 0) {
+    json += ",\"hint\":\"" + jsonEscape(detailedMemory.psramRecommendation) + "\"";
+  }
+  json += "},";
   json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) + ",\"free\":" + String(detailedMemory.sramFree) + "},";
   json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",\"status\":\"" + detailedMemory.memoryStatus + "\"}";
-  
+
   server.send(200, "application/json", json);
 }
 
@@ -1829,7 +2155,18 @@ void handleExportTXT() {
   txt += String(T().gateway) + ": " + WiFi.gatewayIP().toString() + "\r\n";
   txt += "DNS: " + WiFi.dnsIP().toString() + "\r\n";
   txt += "\r\n";
-  
+
+  txt += "=== BLUETOOTH ===\r\n";
+  txt += String(T().ble_chip_support) + ": " + String(diagnosticData.bleChipCapable ? T().status_yes : T().status_no) + "\r\n";
+  txt += String(T().ble_stack_support) + ": " + String(diagnosticData.bleStackAvailable ? T().status_yes : T().status_missing) + "\r\n";
+  txt += String(T().ble_runtime_status) + ": " + String(diagnosticData.hasBLE ? T().status_yes : T().status_missing) + "\r\n";
+  txt += String(T().ble_backend_label) + ": " + diagnosticData.bleBackend + "\r\n";
+  txt += String(T().status) + ": " + diagnosticData.bleStatusMessage + "\r\n";
+  if (diagnosticData.bleHint.length() > 0) {
+    txt += String(T().recommendation) + ": " + diagnosticData.bleHint + "\r\n";
+  }
+  txt += "\r\n";
+
   txt += "=== GPIO ===\r\n";
   txt += String(T().total_gpio) + ": " + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "\r\n";
   txt += String(T().gpio_list) + ": " + diagnosticData.gpioList + "\r\n";
@@ -1907,16 +2244,29 @@ void handleExportJSON() {
   json += "\"status\":\"" + detailedMemory.memoryStatus + "\"";
   json += "},";
   
+  bool wifiConnected = WiFi.status() == WL_CONNECTED;
   json += "\"wifi\":{";
-  json += "\"ssid\":\"" + diagnosticData.wifiSSID + "\",";
+  json += "\"connected\":" + String(wifiConnected ? "true" : "false") + ",";
+  json += "\"ssid\":\"" + jsonEscape(diagnosticData.wifiSSID) + "\",";
   json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
-  json += "\"quality\":\"" + getWiFiSignalQuality() + "\",";
+  json += "\"quality\":\"" + jsonEscape(getWiFiSignalQuality()) + "\",";
   json += "\"ip\":\"" + diagnosticData.ipAddress + "\",";
   json += "\"subnet\":\"" + WiFi.subnetMask().toString() + "\",";
   json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",";
   json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
   json += "},";
-  
+
+  json += "\"bluetooth\":{";
+  json += "\"chip_capable\":" + String(diagnosticData.bleChipCapable ? "true" : "false") + ",";
+  json += "\"stack_available\":" + String(diagnosticData.bleStackAvailable ? "true" : "false") + ",";
+  json += "\"enabled\":" + String(diagnosticData.hasBLE ? "true" : "false") + ",";
+  json += "\"status\":\"" + jsonEscape(diagnosticData.bleStatusMessage) + "\",";
+  json += "\"backend\":\"" + jsonEscape(diagnosticData.bleBackend) + "\"";
+  if (diagnosticData.bleHint.length() > 0) {
+    json += ",\"hint\":\"" + jsonEscape(diagnosticData.bleHint) + "\"";
+  }
+  json += "},";
+
   json += "\"gpio\":{";
   json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
   json += "\"list\":\"" + diagnosticData.gpioList + "\"";
@@ -1988,7 +2338,16 @@ void handleExportCSV() {
   csv += "WiFi,RSSI dBm," + String(diagnosticData.wifiRSSI) + "\r\n";
   csv += "WiFi,IP," + diagnosticData.ipAddress + "\r\n";
   csv += "WiFi," + String(T().gateway) + "," + WiFi.gatewayIP().toString() + "\r\n";
-  
+
+  csv += String(T().ble_label) + "," + String(T().ble_chip_support) + "," + String(diagnosticData.bleChipCapable ? T().status_yes : T().status_no) + "\r\n";
+  csv += String(T().ble_label) + "," + String(T().ble_stack_support) + "," + String(diagnosticData.bleStackAvailable ? T().status_yes : T().status_missing) + "\r\n";
+  csv += String(T().ble_label) + "," + String(T().ble_runtime_status) + "," + String(diagnosticData.hasBLE ? T().status_yes : T().status_missing) + "\r\n";
+  csv += String(T().ble_label) + "," + String(T().ble_backend_label) + "," + diagnosticData.bleBackend + "\r\n";
+  csv += String(T().ble_label) + "," + String(T().status) + "," + diagnosticData.bleStatusMessage + "\r\n";
+  if (diagnosticData.bleHint.length() > 0) {
+    csv += String(T().ble_label) + "," + String(T().recommendation) + "," + diagnosticData.bleHint + "\r\n";
+  }
+
   csv += "GPIO," + String(T().total_gpio) + "," + String(diagnosticData.totalGPIO) + "\r\n";
   
   csv += String(T().i2c_peripherals) + "," + String(T().device_count) + "," + String(diagnosticData.i2cCount) + "\r\n";
@@ -2112,7 +2471,20 @@ void handlePrintVersion() {
   html += "<div class='row'><b>Passerelle:</b><span>" + WiFi.gatewayIP().toString() + "</span></div>";
   html += "<div class='row'><b>DNS:</b><span>" + WiFi.dnsIP().toString() + "</span></div>";
   html += "</div></div>";
-  
+
+  html += "<div class='section'>";
+  html += "<h2>Bluetooth Low Energy</h2>";
+  html += "<div class='grid'>";
+  html += "<div class='row'><b>Compatibilité puce:</b><span>" + String(diagnosticData.bleChipCapable ? "Oui" : "Non") + "</span></div>";
+  html += "<div class='row'><b>Pile firmware:</b><span>" + String(diagnosticData.bleStackAvailable ? "Oui" : "Manquant") + "</span></div>";
+  html += "<div class='row'><b>Fonctions actives:</b><span>" + String(diagnosticData.hasBLE ? "Oui" : "Manquant") + "</span></div>";
+  html += "<div class='row'><b>" + String(T().ble_backend_label) + ":</b><span>" + diagnosticData.bleBackend + "</span></div>";
+  html += "<div class='row'><b>Statut:</b><span>" + diagnosticData.bleStatusMessage + "</span></div>";
+  if (diagnosticData.bleHint.length() > 0) {
+    html += "<div class='row'><b>Conseil:</b><span>" + diagnosticData.bleHint + "</span></div>";
+  }
+  html += "</div></div>";
+
   // GPIO et Périphériques
   html += "<div class='section'>";
   html += "<h2>GPIO et Périphériques</h2>";
@@ -2243,6 +2615,14 @@ void handleGetTranslations() {
   appendJsonField(json, "not_detected", String(T().not_detected));
   appendJsonField(json, "disabled", String(T().disabled));
   appendJsonField(json, "psram_usage", String(T().psram_usage));
+  appendJsonField(json, "psram_mode_label", String(T().psram_mode_label));
+  appendJsonField(json, "psram_status_active", String(T().psram_status_active));
+  appendJsonField(json, "psram_status_disabled", String(T().psram_status_disabled));
+  appendJsonField(json, "psram_status_not_supported", String(T().psram_status_not_supported));
+  appendJsonField(json, "psram_enable_hint", String(T().psram_enable_hint));
+  appendJsonField(json, "psram_mode_opi", String(T().psram_mode_opi));
+  appendJsonField(json, "psram_mode_qspi", String(T().psram_mode_qspi));
+  appendJsonField(json, "psram_mode_unknown", String(T().psram_mode_unknown));
 
   appendJsonField(json, "internal_sram", String(T().internal_sram));
   appendJsonField(json, "min_free", String(T().min_free));
@@ -2264,6 +2644,26 @@ void handleGetTranslations() {
   appendJsonField(json, "gateway", String(T().gateway));
   appendJsonField(json, "dns", String(T().dns));
   appendJsonField(json, "wifi_channel", String(T().wifi_channel));
+  appendJsonField(json, "wifi_click_to_scan", String(T().wifi_click_to_scan));
+  appendJsonField(json, "wifi_no_networks", String(T().wifi_no_networks));
+  appendJsonField(json, "wifi_not_connected", String(T().wifi_not_connected));
+  appendJsonField(json, "ble_scanner", String(T().ble_scanner));
+  appendJsonField(json, "scan_ble_devices", String(T().scan_ble_devices));
+  appendJsonField(json, "ble_click_to_scan", String(T().ble_click_to_scan));
+  appendJsonField(json, "ble_no_devices", String(T().ble_no_devices));
+  appendJsonField(json, "ble_not_supported", String(T().ble_not_supported));
+  appendJsonField(json, "wireless_status", String(T().wireless_status));
+  appendJsonField(json, "wifi_label", String(T().wifi_label));
+  appendJsonField(json, "ble_label", String(T().ble_label));
+  appendJsonField(json, "recommendation", String(T().recommendation));
+  appendJsonField(json, "ble_status_active", String(T().ble_status_active));
+  appendJsonField(json, "ble_status_stack_missing", String(T().ble_status_stack_missing));
+  appendJsonField(json, "ble_status_not_supported", String(T().ble_status_not_supported));
+  appendJsonField(json, "ble_enable_hint", String(T().ble_enable_hint));
+  appendJsonField(json, "ble_backend_label", String(T().ble_backend_label));
+  appendJsonField(json, "ble_backend_missing", String(T().ble_backend_missing));
+  appendJsonField(json, "ble_backend_arduino", String(T().ble_backend_arduino));
+  appendJsonField(json, "ble_backend_nimble", String(T().ble_backend_nimble));
 
   appendJsonField(json, "gpio_interfaces", String(T().gpio_interfaces));
   appendJsonField(json, "total_gpio", String(T().total_gpio));
@@ -2556,13 +2956,15 @@ void handleRoot() {
   
   // Memory - PSRAM
   chunk = "<h3 data-i18n='psram_external'>" + String(T().psram_external) + "</h3><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='hardware_status'>" + String(T().hardware_status) + "</div><div class='info-value'>" + detailedMemory.psramStatusMessage + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='psram_mode_label'>" + String(T().psram_mode_label) + "</div><div class='info-value'>" + detailedMemory.psramModeLabel + "</div></div>";
   if (detailedMemory.psramAvailable) {
-    chunk += "<div class='info-item'><div class='info-label' data-i18n='hardware_status'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-success' data-i18n='detected_active'>" + String(T().detected_active) + "</span></div></div>";
     chunk += "<div class='info-item'><div class='info-label' data-i18n='total_size'>" + String(T().total_size) + "</div><div class='info-value'>" + String(detailedMemory.psramTotal / 1048576.0, 2) + " MB</div></div>";
     chunk += "<div class='info-item'><div class='info-label' data-i18n='free'>" + String(T().free) + "</div><div class='info-value'>" + String(detailedMemory.psramFree / 1048576.0, 2) + " MB</div></div>";
     chunk += "<div class='info-item'><div class='info-label' data-i18n='used'>" + String(T().used) + "</div><div class='info-value'>" + String(detailedMemory.psramUsed / 1048576.0, 2) + " MB</div></div>";
-  } else {
-    chunk += "<div class='info-item'><div class='info-label' data-i18n='hardware_status'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-danger' data-i18n='not_detected'>" + String(T().not_detected) + "</span></div></div>";
+  }
+  if (detailedMemory.psramRecommendation.length() > 0) {
+    chunk += "<div class='info-item' style='grid-column:1/-1'><div class='info-label' data-i18n='recommendation'>" + String(T().recommendation) + "</div><div class='info-value'>" + detailedMemory.psramRecommendation + "</div></div>";
   }
   chunk += "</div>";
   server.sendContent(chunk);
@@ -2913,7 +3315,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.7 - FR/EN");
+  Serial.println("     Version 4.0.16 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
@@ -2972,17 +3374,23 @@ void setup() {
   
   collectDiagnosticInfo();
   collectDetailedMemory();
-  
+  printWirelessDiagnostic();
+
   // ========== ROUTES SERVEUR ==========
   server.on("/", handleRoot);
-  
+  server.on("/js/app.js", handleJavaScript);
+
   // **NOUVELLES ROUTES MULTILINGUES**
   server.on("/api/set-language", handleSetLanguage);
   server.on("/api/get-translations", handleGetTranslations);
-  
+
+  server.on("/api/overview", handleOverview);
+  server.on("/api/wireless-status", handleWirelessStatus);
+
   // GPIO & WiFi
   server.on("/api/test-gpio", handleTestGPIO);
   server.on("/api/wifi-scan", handleWiFiScan);
+  server.on("/api/ble-scan", handleBLEScan);
   server.on("/api/i2c-scan", handleI2CScan);
   
   // LED intégrée

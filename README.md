@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v4.0.7
+# ESP32 Complete Diagnostic v4.0.16
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v4.0.7**: Each OLED shortcut now launches the intended animation instead of the previous one, the API reports the executed pattern identifier, and the UI encodes pattern requests to avoid stray translated labels on the buttons.
+**What's new in v4.0.16**: Restored the Wireless tab Bluetooth card by fixing the escaped quote bug, serving the refreshed JavaScript bundle, and preferring the NimBLE-Arduino stack whenever it's available.
 
 ## ✨ Features
 
@@ -37,7 +37,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 
 ### System Analysis
 - **Detailed Memory** - Flash, PSRAM (OPI/QSPI), SRAM with integrity tests
-- **WiFi Scanner** - Network scan with RSSI, channel, encryption
+- **Wireless Scanners** - Wi-Fi networks (RSSI, channel, security) and BLE devices (name, MAC, RSSI)
 - **I2C Scan** - Automatic peripheral detection (0x01-0x7F)
 - **SPI Scan** - Available SPI bus information
 - **Flash Partitions** - Complete partition list
@@ -45,7 +45,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **Stress Test** - Memory allocation limit testing
 
 ### Web Interface
-- **8 tabs** - Intuitive navigation (Overview, LEDs, Screens, Advanced Tests, GPIO, WiFi, Performance, Export)
+- **8 tabs** - Intuitive navigation (Overview, LEDs, Screens, Advanced Tests, GPIO, Wireless, Performance, Export)
 - **Language selector** - FR/EN buttons in top right
 - **Dynamic configuration** - OLED I2C pins modifiable via web
 - **Real-time** - Data refresh without reload
@@ -246,7 +246,7 @@ curl http://ESP32-Diagnostic.local/api/get-translations
 3. **Screens** - OLED tests
 4. **Advanced Tests** - ADC, Touch, PWM, SPI, Partitions, Stress Test
 5. **GPIO** - Automatic all GPIO testing
-6. **WiFi** - WiFi network scanner
+6. **Wireless** - Wi-Fi network and BLE device scanners
 7. **Performance** - CPU/Memory benchmarks
 8. **Export** - TXT, JSON, CSV, Printable version
 
@@ -304,6 +304,7 @@ GET /api/get-translations        → Get JSON translations
 GET /                            → Web interface
 GET /api/test-gpio               → GPIO test
 GET /api/wifi-scan               → WiFi scanner
+GET /api/ble-scan                → BLE scanner
 GET /api/benchmark               → Benchmarks
 GET /export/txt                  → TXT export
 GET /export/json                 → JSON export
@@ -344,7 +345,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v4.0.7
+## 📁 Project Structure v4.0.16
 
 ```
 ESP32-Diagnostic/
@@ -359,10 +360,21 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v4.0.7 (2025) - OLED PATTERN ALIGNMENT & CLEANER UI
-- 🖥️ **OLED shortcuts now launch the correct animations** thanks to a single dispatcher that maps each button to its dedicated routine.
-- 📡 **The `/api/oled-pattern` response echoes the executed identifier**, keeping the web interface and firmware feedback perfectly in sync.
-- 🧼 **Pattern requests are URL-encoded on both UIs**, preventing stray translated labels such as “Please enter a message” from appearing on shortcut buttons.
+### v4.0.16 (2025) - NIMBLE-FIRST BLUETOOTH CARD FIX
+- ♻️ **Patched the wireless status template** so the Bluetooth readiness card renders reliably under the Wi-Fi summary.
+- 📡 **Serves the refreshed JavaScript bundle on every load** to guarantee the Sans fil tab uses the latest logic.
+- 🧭 **Automatically prefers the NimBLE-Arduino stack** when available, while still reporting the active backend in diagnostics.
+- 🧾 **Documentation, firmware banner, and UI bumped to v4.0.16** alongside these Bluetooth fixes.
+
+### v4.0.11 (2025) - BLUETOOTH STATUS EVERYWHERE
+- 📶 **Wireless tab keeps the Bluetooth readiness card visible**, even when the firmware lacks native BLE, and spells out the reason why.
+- 🧾 **Serial monitor plus TXT/JSON/CSV/print exports gain wireless summaries**, mirroring the UI with Wi-Fi/BLE capability details.
+- 🛠️ **Firmware, docs, and UI bumped to v4.0.11**, disabling the BLE scan button automatically when the stack is absent.
+
+### v4.0.9 (2025) - PSRAM STATUS & WIRELESS SUMMARY
+- 🧠 **Overview & exports now surface PSRAM support/mode**, including IDE enablement hints that mirror the serial diagnostic output.
+- 📶 **Wireless tab opens with a Wi-Fi/BLE readiness summary**, revealing connection details and whether BLE is compiled in before launching scans.
+- 🔗 **`/api/overview` and `/api/memory-details` share PSRAM capability metadata**, enabling external tools and the dynamic UI to stay in sync.
 
 ### v4.0.4 (2025) - LED CONFLICT GUARD + LOCALIZED API
 - 💡 **Built-in LED test now aborts when the NeoPixel shares the GPIO** and reports the conflict instead of flashing the strip
@@ -423,7 +435,9 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
-**v4.0.7 - OLED pattern alignment & cleaner UI**
+**v4.0.16 - Wireless Bluetooth card + NimBLE preference**
+**v4.0.11 - Bluetooth readiness everywhere**
+**v4.0.9 - PSRAM insights with wireless readiness summary**
 **v4.0.2 - Translation catalog fix + localization refresh**
 **v3.0.0 - Official Core 3.3.2 support**
 **v2.4 - Multilingual system**
@@ -431,7 +445,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 4.0.7 (multilingual)
+**Current version**: 4.0.16 (multilingual)
 **Last update**: October 2025
 **Available languages**: French (default), English
 **Support**: ESP32 Arduino Core 3.3.2+

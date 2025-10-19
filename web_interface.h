@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v4.0.7
+ * WEB_INTERFACE.H - Interface Web Dynamique v4.0.16
  */
 
 #ifndef WEB_INTERFACE_H
@@ -74,6 +74,22 @@ String generateHTML() {
   html += ".info-item{background:#fff;padding:15px;border-radius:10px;border:1px solid #e0e0e0;";
   html += "transition:all .3s}";
   html += ".info-item:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(0,0,0,.1)}";
+  html += ".status-list{list-style:none;margin:12px 0 0;padding:0}";
+  html += ".status-list li{display:flex;align-items:center;font-size:0.95em;margin-bottom:6px;color:#333}";
+  html += ".status-pill{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:1em;margin-right:10px;font-weight:bold}";
+  html += ".status-pill.ok{background:#d4edda;color:#155724}";
+  html += ".status-pill.warn{background:#fff3cd;color:#856404}";
+  html += ".status-pill.ko{background:#f8d7da;color:#721c24}";
+  html += ".wireless-summary{display:flex;flex-direction:column;gap:15px}";
+  html += ".wireless-card{margin:0}";
+  html += ".wireless-card-title{font-weight:700;color:#3a7bd5;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-size:0.95em}";
+  html += ".wireless-status{font-size:1.05em;font-weight:600;color:#333;margin-bottom:10px}";
+  html += ".wireless-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}";
+  html += ".wireless-list li{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f7f8ff;border-radius:8px;border:1px solid #e3e7ff}";
+  html += ".wireless-list li .label{flex:1;color:#667eea;font-weight:600}";
+  html += ".wireless-list li .value{font-weight:600;color:#333}";
+  html += ".wireless-empty{font-style:italic;color:#666;background:#f0f0f5;border-style:dashed;border-color:#d0d0d8}";
+  html += ".wireless-hint{margin-top:12px;padding:12px;border-radius:8px;background:#fff8e6;border-left:4px solid #f2c94c;color:#8a6d3b;font-size:0.95em}";
   html += ".info-label{font-weight:bold;color:#667eea;margin-bottom:5px;font-size:.9em;";
   html += "text-transform:uppercase;letter-spacing:0.5px}";
   html += ".info-value{font-size:1.1em;color:#333;font-weight:500}";
@@ -86,6 +102,7 @@ String generateHTML() {
   html += ".btn{padding:12px 24px;border:none;border-radius:8px;font-size:1em;font-weight:bold;";
   html += "cursor:pointer;margin:5px;transition:all .3s;text-decoration:none;display:inline-block}";
   html += ".btn:hover{opacity:.9;transform:translateY(-2px);box-shadow:0 5px 15px rgba(0,0,0,.2)}";
+  html += ".btn:disabled,.btn[disabled]{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}";
   html += ".btn-primary{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff}";
   html += ".btn-success{background:linear-gradient(135deg,#56ab2f 0%,#a8e063 100%);color:#fff}";
   html += ".btn-info{background:linear-gradient(135deg,#3a7bd5 0%,#00d2ff 100%);color:#fff}";
@@ -120,6 +137,10 @@ String generateHTML() {
   html += ".wifi-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;";
   html += "border-left:4px solid #667eea;transition:all .3s}";
   html += ".wifi-item:hover{transform:translateX(5px);box-shadow:0 5px 15px rgba(0,0,0,.1)}";
+  html += ".ble-list{max-height:500px;overflow-y:auto}";
+  html += ".ble-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;";
+  html += "border-left:4px solid #3a7bd5;transition:all .3s}";
+  html += ".ble-item:hover{transform:translateX(5px);box-shadow:0 5px 15px rgba(0,0,0,.1)}";
   html += "input[type='number'],input[type='color'],input[type='text']{padding:10px;";
   html += "border:2px solid #ddd;border-radius:5px;font-size:1em;transition:border .3s}";
   html += "input:focus{outline:none;border-color:#667eea}";
@@ -169,7 +190,7 @@ String generateHTML() {
   html += "<button class='nav-btn' onclick='showTab(\"screens\",event)'>Écrans</button>";
   html += "<button class='nav-btn' onclick='showTab(\"tests\",event)'>Tests</button>";
   html += "<button class='nav-btn' onclick='showTab(\"gpio\",event)'>GPIO</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"wifi\",event)'>WiFi</button>";
+  html += "<button class='nav-btn' onclick='showTab(\"wifi\",event)'>Sans fil</button>";
   html += "<button class='nav-btn' onclick='showTab(\"benchmark\",event)'>Performance</button>";
   html += "<button class='nav-btn' onclick='showTab(\"export\",event)'>Export</button>";
   html += "</div>";
@@ -240,6 +261,139 @@ String generateJavaScript() {
   js += "async function updateWiFiInfo(){await fetch('/api/wifi-info');}";
   js += "async function updatePeripheralsInfo(){await fetch('/api/peripherals');}";
 
+  js += "async function loadWirelessStatus(){try{const r=await fetch('/api/wireless-status');const d=await r.json();updateWirelessSummary(d);}catch(e){console.error('wireless-status',e);}}";
+  js += R"JS(function updateWirelessSummary(data) {
+    const wifiData = (data && data.wifi) ? data.wifi : {};
+    const wifiStatus = document.getElementById('wifi-summary-status');
+    if (wifiStatus) {
+      if (wifiData.connected) {
+        const baseLabel = (translations.connected || 'Connecté');
+        const ssidLabel = wifiData.ssid ? ' · ' + wifiData.ssid : '';
+        wifiStatus.textContent = baseLabel + ssidLabel;
+      } else {
+        wifiStatus.textContent = translations.wifi_not_connected || 'Non connecté';
+      }
+    }
+
+    const wifiDetails = document.getElementById('wifi-summary-details');
+    if (wifiDetails) {
+      wifiDetails.innerHTML = '';
+      if (wifiData.connected) {
+        const rows = [
+          { label: translations.connected_ssid || 'SSID connecté', value: wifiData.ssid || '—' },
+          { label: translations.signal_power || 'Puissance Signal (RSSI)', value: (typeof wifiData.rssi === 'number' ? wifiData.rssi + ' dBm' : '—') },
+          { label: translations.signal_quality || 'Qualité Signal', value: wifiData.quality || '—' },
+          { label: translations.ip_address || 'Adresse IP', value: wifiData.ip || '—' },
+          { label: translations.subnet_mask || 'Masque Sous-réseau', value: wifiData.subnet || '—' },
+          { label: translations.gateway || 'Passerelle', value: wifiData.gateway || '—' },
+          { label: translations.dns || 'DNS', value: wifiData.dns || '—' }
+        ];
+        rows.filter(item => item.value && item.value !== '—').forEach(item => {
+          const li = document.createElement('li');
+          const label = document.createElement('span');
+          label.className = 'label';
+          label.textContent = item.label;
+          const value = document.createElement('span');
+          value.className = 'value';
+          value.textContent = item.value;
+          li.appendChild(label);
+          li.appendChild(value);
+          wifiDetails.appendChild(li);
+        });
+        if (!wifiDetails.children.length) {
+          const li = document.createElement('li');
+          li.className = 'wireless-empty';
+          li.textContent = '—';
+          wifiDetails.appendChild(li);
+        }
+      } else {
+        const li = document.createElement('li');
+        li.className = 'wireless-empty';
+        li.textContent = translations.wifi_not_connected || 'Non connecté';
+        wifiDetails.appendChild(li);
+      }
+    }
+
+    const bleData = (data && data.ble) ? data.ble : {};
+    const bleStatus = document.getElementById('ble-summary-status');
+    if (bleStatus) {
+      bleStatus.textContent = bleData.status || (translations.ble_not_supported || 'Bluetooth LE non disponible');
+    }
+
+    const bleDetails = document.getElementById('ble-summary-details');
+    if (bleDetails) {
+      bleDetails.innerHTML = '';
+      const yesText = translations.status_yes || 'Oui';
+      const noText = translations.status_no || 'Non';
+      const missingText = translations.status_missing || 'Manquant';
+      const chipLabel = translations.ble_chip_support || 'Compatibilité matérielle BLE';
+      const stackLabel = translations.ble_stack_support || 'Pile BLE incluse dans ce firmware';
+      const runtimeLabel = translations.ble_runtime_status || 'Fonctions BLE actives';
+      const entries = [
+        { className: bleData.chipCapable ? 'ok' : 'ko', icon: bleData.chipCapable ? '✅' : '❌', label: chipLabel, value: bleData.chipCapable ? yesText : noText },
+        { className: bleData.stackAvailable ? 'ok' : (bleData.chipCapable ? 'warn' : 'ko'), icon: bleData.stackAvailable ? '✅' : (bleData.chipCapable ? '⚠️' : '❌'), label: stackLabel, value: bleData.stackAvailable ? yesText : (bleData.chipCapable ? missingText : noText) },
+        { className: bleData.enabled ? 'ok' : (bleData.stackAvailable ? 'warn' : 'ko'), icon: bleData.enabled ? '✅' : (bleData.stackAvailable ? '⚠️' : '❌'), label: runtimeLabel, value: bleData.enabled ? yesText : (bleData.stackAvailable ? missingText : noText) }
+      ];
+      entries.forEach(entry => {
+        const li = document.createElement('li');
+        const pill = document.createElement('span');
+        pill.className = 'status-pill ' + entry.className;
+        pill.textContent = entry.icon;
+        const label = document.createElement('span');
+        label.className = 'label';
+        label.textContent = entry.label;
+        const value = document.createElement('span');
+        value.className = 'value';
+        value.textContent = entry.value;
+        li.appendChild(pill);
+        li.appendChild(label);
+        li.appendChild(value);
+        bleDetails.appendChild(li);
+      });
+      const backendItem = document.createElement('li');
+      backendItem.className = 'wireless-backend';
+      const backendLabel = document.createElement('span');
+      backendLabel.className = 'label';
+      backendLabel.textContent = translations.ble_backend_label || 'Pile logicielle BLE';
+      const backendValue = document.createElement('span');
+      backendValue.className = 'value';
+      backendValue.textContent = bleData.backend || (translations.ble_backend_missing || 'Pile BLE absente');
+      backendItem.appendChild(backendLabel);
+      backendItem.appendChild(backendValue);
+      bleDetails.appendChild(backendItem);
+    }
+
+    const bleHint = document.getElementById('ble-summary-hint');
+    if (bleHint) {
+      const hint = bleData.hint || '';
+      if (hint) {
+        bleHint.style.display = 'block';
+        bleHint.textContent = hint;
+      } else {
+        bleHint.style.display = 'none';
+        bleHint.textContent = '';
+      }
+    }
+
+    const bleButton = document.getElementById('ble-scan-button');
+    const bleMonitor = document.getElementById('ble-status');
+    const canScan = !!bleData.enabled;
+    if (bleButton) {
+      bleButton.disabled = !canScan;
+      bleButton.title = (!canScan && (bleData.hint || bleData.status)) ? (bleData.hint || bleData.status) : '';
+    }
+    if (bleMonitor && bleMonitor.dataset.locked !== '1' && (bleMonitor.dataset.state !== 'results' || !canScan)) {
+      if (canScan) {
+        bleMonitor.textContent = translations.ble_click_to_scan || 'Cliquez pour scanner';
+        bleMonitor.dataset.state = 'ready';
+      } else {
+        bleMonitor.textContent = bleData.status || (translations.ble_not_supported || 'Bluetooth LE non disponible');
+        bleMonitor.dataset.state = 'unavailable';
+      }
+    }
+  }
+)JS";
+
   // Tab navigation - CORRIGÉ
   js += "function showTab(tabName,evt){";
   js += "document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));";
@@ -262,7 +416,7 @@ String generateJavaScript() {
   js += "else if(tabName==='screens'){const r=await fetch('/api/screens-info');const d=await r.json();tab.innerHTML=buildScreens(d);}";
   js += "else if(tabName==='tests'){tab.innerHTML=buildTests();}";
   js += "else if(tabName==='gpio'){tab.innerHTML=buildGpio();}";
-  js += "else if(tabName==='wifi'){tab.innerHTML=buildWifi();}";
+  js += "else if(tabName==='wifi'){tab.innerHTML=buildWifi();await loadWirelessStatus();}";
   js += "else if(tabName==='benchmark'){tab.innerHTML=buildBenchmark();}";
   js += "else if(tabName==='export'){tab.innerHTML=buildExport();}";
   js += "}catch(e){tab.innerHTML='<div class=\"section\"><h2>❌ Erreur</h2><p>'+e+'</p></div>';}";
@@ -293,15 +447,18 @@ String generateJavaScript() {
   js += "const sramPct=((d.memory.sram.used/d.memory.sram.total)*100).toFixed(1);";
   js += "h+='<div class=\"progress-bar\"><div class=\"progress-fill\" id=\"sram-progress\" style=\"width:'+sramPct+'%\">'+sramPct+'%</div></div>';";
 
-  js += "if(d.memory.psram.total>0){";
+  js += "const psram=d.memory.psram||{};";
   js += "h+='<h3>PSRAM (Externe)</h3><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Total</div><div class=\"info-value\" id=\"psram-total\">'+(d.memory.psram.total/1048576).toFixed(2)+' MB</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Libre</div><div class=\"info-value\" id=\"psram-free\">'+(d.memory.psram.free/1048576).toFixed(2)+' MB</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Utilisée</div><div class=\"info-value\" id=\"psram-used\">'+(d.memory.psram.used/1048576).toFixed(2)+' MB</div></div>';";
-  js += "h+='</div>';";
-  js += "const psramPct=((d.memory.psram.used/d.memory.psram.total)*100).toFixed(1);";
-  js += "h+='<div class=\"progress-bar\"><div class=\"progress-fill\" id=\"psram-progress\" style=\"width:'+psramPct+'%\">'+psramPct+'%</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+(translations.status||'Statut')+'</div><div class=\"info-value\" id=\"psram-status\">'+(psram.status||'-')+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+(translations.psram_mode_label||'Mode supporté')+'</div><div class=\"info-value\" id=\"psram-mode\">'+(psram.mode_label||psram.mode||'-')+'</div></div>';";
+  js += "if(psram.available&&psram.total>0){";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+(translations.total_size||'Total')+'</div><div class=\"info-value\" id=\"psram-total\">'+(psram.total/1048576).toFixed(2)+' MB</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+(translations.free||'Libre')+'</div><div class=\"info-value\" id=\"psram-free\">'+(psram.free/1048576).toFixed(2)+' MB</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">'+(translations.used||'Utilisée')+'</div><div class=\"info-value\" id=\"psram-used\">'+(psram.used/1048576).toFixed(2)+' MB</div></div>';";
   js += "}";
+  js += "if(psram.hint){h+='<div class=\"info-item\" style=\"grid-column:1/-1\"><div class=\"info-label\">'+(translations.recommendation||'Recommandation')+'</div><div class=\"info-value\" id=\"psram-hint\">'+psram.hint+'</div></div>'; }";
+  js += "h+='</div>';";
+  js += "if(psram.available&&psram.total>0){const psramPct=((psram.used/psram.total)*100).toFixed(1);h+='<div class=\"progress-bar\"><div class=\"progress-fill\" id=\"psram-progress\" style=\"width:'+psramPct+'%\">'+psramPct+'%</div></div>'; }";
   js += "h+='</div>';";
 
   js += "h+='<div class=\"section\"><h2>📡 Connexion WiFi</h2><div class=\"info-grid\">';";
@@ -425,12 +582,26 @@ String generateJavaScript() {
   js += "return h;";
   js += "}";
 
-  // Build WiFi
+  // Build Wireless
   js += "function buildWifi(){";
-  js += "let h='<div class=\"section\"><h2>📡 Scanner WiFi</h2>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"scanWiFi()\">🔍 Scanner les réseaux</button>';";
-  js += "h+='<div id=\"wifi-status\" class=\"status-live\">Cliquez pour scanner</div></div>';";
+  js += "let h='<div class=\"section\"><h2>📶 '+(translations.wireless_status||'Statut sans fil')+'</h2>';";
+  js += "h+='<div class=\"wireless-summary\">';";
+  js += "h+='<div class=\"card wireless-card\"><div class=\"wireless-card-title\">'+(translations.wifi_label||'Wi-Fi')+'</div>';";
+  js += "h+='<div class=\"wireless-status\" id=\"wifi-summary-status\">'+(translations.wireless_loading||'...')+'</div>';";
+  js += "h+='<ul class=\"wireless-list\" id=\"wifi-summary-details\"><li class=\"wireless-empty\">'+(translations.wireless_loading||'...')+'</li></ul></div>';";
+  js += "h+='<div class=\"card wireless-card\"><div class=\"wireless-card-title\">'+(translations.ble_label||'Bluetooth Low Energy')+'</div>';";
+  js += "h+='<div class=\"wireless-status\" id=\"ble-summary-status\">'+(translations.wireless_loading||'...')+'</div>';";
+  js += "h+='<ul class=\"wireless-list\" id=\"ble-summary-details\"><li class=\"wireless-empty\">'+(translations.wireless_loading||'...')+'</li></ul>';";
+  js += "h+='<div class=\"wireless-hint\" id=\"ble-summary-hint\" style=\"display:none\"></div></div>';";
+  js += "h+='</div></div>';";
+  js += "h+='<div class=\"section\"><h2>📡 '+(translations.wifi_scanner||'Scanner WiFi')+'</h2>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"scanWiFi()\">🔍 '+(translations.scan_networks||'Scanner les réseaux')+'</button>';";
+  js += "h+='<div id=\"wifi-status\" class=\"status-live\">'+(translations.wifi_click_to_scan||'Cliquez pour scanner')+'</div></div>';";
   js += "h+='<div id=\"wifi-results\" class=\"wifi-list\"></div></div>';";
+  js += "h+='<div class=\"section\"><h2>🛰️ '+(translations.ble_scanner||'Scanner Bluetooth Low Energy')+'</h2>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" id=\"ble-scan-button\" onclick=\"scanBLE()\">🔍 '+(translations.scan_ble_devices||'Scanner les appareils BLE')+'</button>';";
+  js += "h+='<div id=\"ble-status\" class=\"status-live\">'+(translations.ble_click_to_scan||'Cliquez pour scanner')+'</div></div>';";
+  js += "h+='<div id=\"ble-results\" class=\"ble-list\"></div></div>';";
   js += "return h;";
   js += "}";
 
@@ -585,16 +756,71 @@ String generateJavaScript() {
   js += "}";
 
   js += "async function scanWiFi(){";
-  js += "document.getElementById('wifi-status').textContent='Scan en cours...';";
-  js += "const r=await fetch('/api/wifi-scan');const d=await r.json();";
-  js += "let h='';d.networks.forEach(n=>{";
+  js += "const status=document.getElementById('wifi-status');";
+  js += "const results=document.getElementById('wifi-results');";
+  js += "if(status)status.textContent=translations.scanning||'Scan...';";
+  js += "if(results)results.innerHTML='<div class=\\\"loading\\\"></div>';";
+  js += "try{";
+  js += "const r=await fetch('/api/wifi-scan');";
+  js += "const d=await r.json();";
+  js += "let h='';";
+  js += "const channelLabel=translations.wifi_channel||'Canal WiFi';";
+  js += "if(d.networks&&d.networks.length){";
+  js += "d.networks.forEach(n=>{";
   js += "const icon=n.rssi>=-60?'🟢':n.rssi>=-70?'🟡':'🔴';";
   js += "const color=n.rssi>=-60?'#28a745':n.rssi>=-70?'#ffc107':'#dc3545';";
-  js += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+icon+' '+n.ssid+'</strong><br><small>'+n.bssid+' | Canal '+n.channel+'</small></div>';";
+  js += "const name=n.ssid||translations.unknown||'(hidden)';";
+  js += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+icon+' '+name+'</strong><br><small>'+n.bssid+' | '+channelLabel+' '+n.channel+'</small></div>';";
   js += "h+='<div style=\"font-size:1.3em;font-weight:bold;color:'+color+'\">'+n.rssi+' dBm</div></div></div>';";
   js += "});";
-  js += "document.getElementById('wifi-results').innerHTML=h;";
-  js += "document.getElementById('wifi-status').textContent=d.networks.length+' réseaux détectés';";
+  js += "}else{";
+  js += "h='<div class=\"wifi-item\">'+(translations.wifi_no_networks||'Aucun réseau détecté')+'</div>';";
+  js += "}";
+  js += "if(results)results.innerHTML=h;";
+  js += "if(status)status.textContent=((d.networks&&d.networks.length)||0)+' '+(translations.networks||'réseaux');";
+  js += "}catch(e){";
+  js += "console.error('scanWiFi',e);";
+  js += "if(status){status.textContent='❌ '+e;status.dataset.state='error';}";
+  js += "if(results)results.innerHTML='';";
+  js += "}finally{if(status){status.dataset.locked='0';}}";
+  js += "}";
+
+  js += "async function scanBLE(){";
+  js += "const status=document.getElementById('ble-status');";
+  js += "if(status){status.dataset.locked='1';}";
+  js += "const results=document.getElementById('ble-results');";
+  js += "if(status)status.textContent=translations.scanning||'Scan...';";
+  js += "if(results)results.innerHTML='<div class=\\\"loading\\\"></div>';";
+  js += "try{";
+  js += "const r=await fetch('/api/ble-scan');";
+  js += "const d=await r.json();";
+  js += "if(!d.supported){";
+  js += "if(results)results.innerHTML='';";
+  js += "if(status){status.textContent=d.message||(translations.ble_not_supported||'Bluetooth LE non disponible');status.dataset.state='unavailable';}";
+  js += "const btn=document.getElementById('ble-scan-button');";
+  js += "if(btn){btn.disabled=true;btn.title=d.message||'';}";
+  js += "return;";
+  js += "}";
+  js += "if(!d.devices||!d.devices.length){";
+  js += "if(results)results.innerHTML='';";
+  js += "if(status){status.textContent=translations.ble_no_devices||'Aucun appareil détecté';status.dataset.state='results';}";
+  js += "return;";
+  js += "}";
+  js += "let h='';";
+  js += "d.devices.forEach(dev=>{";
+  js += "const icon=dev.rssi>=-60?'🟢':dev.rssi>=-70?'🟡':'🔴';";
+  js += "const color=dev.rssi>=-60?'#28a745':dev.rssi>=-70?'#ffc107':'#dc3545';";
+  js += "const name=dev.name||translations.unknown||'Inconnu';";
+  js += "h+='<div class=\"ble-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+icon+' '+name+'</strong><br><small>'+dev.address+'</small></div>';";
+  js += "h+='<div style=\"font-size:1.3em;font-weight:bold;color:'+color+'\">'+dev.rssi+' dBm</div></div></div>';";
+  js += "});";
+  js += "if(results)results.innerHTML=h;";
+  js += "if(status){status.textContent=d.count+' '+(translations.devices||'périphérique(s)');status.dataset.state='results';}";
+  js += "}catch(e){";
+  js += "console.error('scanBLE',e);";
+  js += "if(status){status.textContent='❌ '+e;status.dataset.state='error';}";
+  js += "if(results)results.innerHTML='';";
+  js += "}finally{if(status){status.dataset.locked='0';}}";
   js += "}";
 
   js += "async function runBenchmarks(){";
