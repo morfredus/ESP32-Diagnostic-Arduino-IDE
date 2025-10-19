@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v4.0.15
+# ESP32 Complete Diagnostic v4.0.16
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v4.0.15**: Fixed the Wireless tab initialisation so the Bluetooth readiness card always renders with stack/back-end details, ensuring BLE guidance is visible even when the feature is unavailable.
+**What's new in v4.0.16**: Restored the Wireless tab Bluetooth card by fixing the escaped quote bug, serving the refreshed JavaScript bundle, and preferring the NimBLE-Arduino stack whenever it's available.
 
 ## ✨ Features
 
@@ -345,7 +345,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v4.0.15
+## 📁 Project Structure v4.0.16
 
 ```
 ESP32-Diagnostic/
@@ -360,10 +360,11 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v4.0.15 (2025) - WIRELESS TAB BLUETOOTH CARD FIXES
-- ♻️ **Resolved the wireless status initialisation bug** so the Bluetooth readiness card always renders beneath Wi-Fi details.
-- 📡 **Kept backend, capability, and hint messaging visible** in the wireless API/UI even when BLE support is disabled or missing.
-- 🧾 **Documentation, firmware banner, and UI bumped to v4.0.15** with the Bluetooth visibility corrections.
+### v4.0.16 (2025) - NIMBLE-FIRST BLUETOOTH CARD FIX
+- ♻️ **Patched the wireless status template** so the Bluetooth readiness card renders reliably under the Wi-Fi summary.
+- 📡 **Serves the refreshed JavaScript bundle on every load** to guarantee the Sans fil tab uses the latest logic.
+- 🧭 **Automatically prefers the NimBLE-Arduino stack** when available, while still reporting the active backend in diagnostics.
+- 🧾 **Documentation, firmware banner, and UI bumped to v4.0.16** alongside these Bluetooth fixes.
 
 ### v4.0.11 (2025) - BLUETOOTH STATUS EVERYWHERE
 - 📶 **Wireless tab keeps the Bluetooth readiness card visible**, even when the firmware lacks native BLE, and spells out the reason why.
@@ -434,7 +435,7 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
-**v4.0.15 - Wireless Bluetooth card visibility fixes**
+**v4.0.16 - Wireless Bluetooth card + NimBLE preference**
 **v4.0.11 - Bluetooth readiness everywhere**
 **v4.0.9 - PSRAM insights with wireless readiness summary**
 **v4.0.2 - Translation catalog fix + localization refresh**
@@ -444,7 +445,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 4.0.15 (multilingual)
+**Current version**: 4.0.16 (multilingual)
 **Last update**: October 2025
 **Available languages**: French (default), English
 **Support**: ESP32 Arduino Core 3.3.2+

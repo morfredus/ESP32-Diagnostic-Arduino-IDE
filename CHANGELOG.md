@@ -5,6 +5,18 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.16] - 2025-10-27
+
+### Fixed
+- Removed an errant escape sequence in the wireless status template so the Bluetooth readiness card always renders beneath Wi-Fi details.
+- Served the refreshed `/js/app.js` bundle on every request to guarantee the Sans fil tab runs the latest UI logic.
+
+### Changed
+- Prefer the NimBLE-Arduino stack when multiple BLE backends are available while keeping backend reporting across diagnostics.
+- Updated firmware identifiers, documentation, and UI labels to version 4.0.16.
+
+---
+
 ## [4.0.15] - 2025-10-26
 
 ### Fixed
@@ -438,6 +450,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 4.0.16 | 2025-10-27 | Bluetooth card template fix, app.js routing, NimBLE-preferred backend |
 | 4.0.15 | 2025-10-26 | Wireless tab fix keeps Bluetooth readiness card permanently visible |
 | 4.0.14 | 2025-10-25 | BLE backend auto-detection plus stack visibility in UI/API/exports |
 | 4.0.13 | 2025-10-24 | Bluetooth card always visible plus Wi-Fi IP/subnet/gateway/DNS details |

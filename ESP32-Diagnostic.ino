@@ -1,14 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.15
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.16
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v4.0.15:
- * - Corrige la génération JavaScript du statut Sans fil pour afficher systématiquement la carte Bluetooth sous le bloc WiFi
- * - Maintient les messages de pile/capacité BLE visibles dans l'API et l'interface même sans support natif ou désactivé
- * - Met à jour la documentation, l'interface web et les identifiants firmware vers la version 4.0.15
+ * Nouveautés v4.0.16:
+ * - Corrige le script Sans fil pour supprimer une apostrophe échappée qui empêchait l'affichage de la carte Bluetooth
+ * - Sert systématiquement l'application JavaScript dynamique et garantit l'initialisation de la carte BLE dès l'ouverture de l'onglet
+ * - Préfère la bibliothèque NimBLE-Arduino lorsque disponible et met à jour les identifiants firmware vers la version 4.0.16
 
  * Nouveautés v4.0.13:
  * - Ajoute un panneau Bluetooth détaillé dans l'onglet Sans fil avec messages explicites même hors support BLE
@@ -83,12 +83,12 @@
 
 #if defined(SOC_BLE_SUPPORTED) && SOC_BLE_SUPPORTED
   #if defined(__has_include)
-    #if __has_include(<esp_gap_ble_api.h>) && __has_include(<BLEDevice.h>)
-      #include <BLEDevice.h>
-      #define BLE_BACKEND_ARDUINO 1
-    #elif __has_include(<NimBLEDevice.h>)
+    #if __has_include(<NimBLEDevice.h>)
       #include <NimBLEDevice.h>
       #define BLE_BACKEND_NIMBLE 1
+    #elif __has_include(<esp_gap_ble_api.h>) && __has_include(<BLEDevice.h>)
+      #include <BLEDevice.h>
+      #define BLE_BACKEND_ARDUINO 1
     #else
       #define BLE_BACKEND_NONE 1
     #endif
@@ -116,7 +116,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.15"
+#define DIAGNOSTIC_VERSION "4.0.16"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -836,21 +836,21 @@ void scanWiFiNetworks() {
 void ensureBleScanner() {
   if (bleInitialized) return;
 
-  #if defined(BLE_BACKEND_ARDUINO)
-    BLEDevice::init("ESP32 Diagnostic");
-    bleScanner = BLEDevice::getScan();
-    if (bleScanner != nullptr) {
-      bleScanner->setActiveScan(true);
-      bleScanner->setInterval(100);
-      bleScanner->setWindow(80);
-    }
-  #elif defined(BLE_BACKEND_NIMBLE)
+  #if defined(BLE_BACKEND_NIMBLE)
     NimBLEDevice::init("ESP32 Diagnostic");
     bleScanner = NimBLEDevice::getScan();
     if (bleScanner != nullptr) {
       bleScanner->setActiveScan(true);
       bleScanner->setInterval(45);
       bleScanner->setWindow(30);
+    }
+  #elif defined(BLE_BACKEND_ARDUINO)
+    BLEDevice::init("ESP32 Diagnostic");
+    bleScanner = BLEDevice::getScan();
+    if (bleScanner != nullptr) {
+      bleScanner->setActiveScan(true);
+      bleScanner->setInterval(100);
+      bleScanner->setWindow(80);
     }
   #endif
 
@@ -872,20 +872,7 @@ void scanBLEDevices() {
     return;
   }
 
-  #if defined(BLE_BACKEND_ARDUINO)
-    BLEScanResults results = bleScanner->start(5, false);
-    int count = results.getCount();
-    for (int i = 0; i < count; i++) {
-      BLEAdvertisedDevice device = results.getDevice(i);
-      BLEDeviceInfo info;
-      info.name = device.haveName() ? String(device.getName().c_str()) : String(T().unknown);
-      info.address = String(device.getAddress().toString().c_str());
-      info.rssi = device.getRSSI();
-      bleDevices.push_back(info);
-    }
-    bleScanner->clearResults();
-    Serial.printf("BLE: %d devices found\r\n", count);
-  #elif defined(BLE_BACKEND_NIMBLE)
+  #if defined(BLE_BACKEND_NIMBLE)
     NimBLEScanResults results = bleScanner->start(5, false);
     int count = results.getCount();
     for (int i = 0; i < count; i++) {
@@ -894,6 +881,19 @@ void scanBLEDevices() {
       std::string deviceName = device.getName();
       bool hasName = deviceName.length() > 0;
       info.name = hasName ? String(deviceName.c_str()) : String(T().unknown);
+      info.address = String(device.getAddress().toString().c_str());
+      info.rssi = device.getRSSI();
+      bleDevices.push_back(info);
+    }
+    bleScanner->clearResults();
+    Serial.printf("BLE: %d devices found\r\n", count);
+  #elif defined(BLE_BACKEND_ARDUINO)
+    BLEScanResults results = bleScanner->start(5, false);
+    int count = results.getCount();
+    for (int i = 0; i < count; i++) {
+      BLEAdvertisedDevice device = results.getDevice(i);
+      BLEDeviceInfo info;
+      info.name = device.haveName() ? String(device.getName().c_str()) : String(T().unknown);
       info.address = String(device.getAddress().toString().c_str());
       info.rssi = device.getRSSI();
       bleDevices.push_back(info);
@@ -1646,10 +1646,10 @@ void collectDiagnosticInfo() {
   diagnosticData.bleChipCapable = bleFeatureBit;
   diagnosticData.bleStackAvailable = HAS_NATIVE_BLE;
   diagnosticData.hasBLE = bleFeatureBit && HAS_NATIVE_BLE;
-  #if defined(BLE_BACKEND_ARDUINO)
-    diagnosticData.bleBackend = String(T().ble_backend_arduino);
-  #elif defined(BLE_BACKEND_NIMBLE)
+  #if defined(BLE_BACKEND_NIMBLE)
     diagnosticData.bleBackend = String(T().ble_backend_nimble);
+  #elif defined(BLE_BACKEND_ARDUINO)
+    diagnosticData.bleBackend = String(T().ble_backend_arduino);
   #else
     diagnosticData.bleBackend = String(T().ble_backend_missing);
   #endif
@@ -3315,7 +3315,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.15 - FR/EN");
+  Serial.println("     Version 4.0.16 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
@@ -3378,7 +3378,8 @@ void setup() {
 
   // ========== ROUTES SERVEUR ==========
   server.on("/", handleRoot);
-  
+  server.on("/js/app.js", handleJavaScript);
+
   // **NOUVELLES ROUTES MULTILINGUES**
   server.on("/api/set-language", handleSetLanguage);
   server.on("/api/get-translations", handleGetTranslations);
