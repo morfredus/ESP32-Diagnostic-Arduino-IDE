@@ -1,10 +1,13 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.18
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.1.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v4.1.0:
+ * - Refonte totale de l'interface web avec une mise en page moderne et parfaitement responsive
+
  * Nouveautés v4.0.18:
  * - Corrige la fonction JavaScript du scan Wi-Fi pour restaurer les boutons et le changement de langue de l'interface web
  * - Met à jour les identifiants firmware, le moniteur série et la documentation en version 4.0.18
@@ -125,7 +128,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.18"
+#define DIAGNOSTIC_VERSION "4.1.0"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2848,94 +2851,761 @@ void handleRoot() {
   chunk += "<meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>";
   chunk += "<title>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</title>";
   chunk += "<style>";
-  chunk += "*{margin:0;padding:0;box-sizing:border-box}";
-  chunk += "body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:20px}";
-  chunk += ".container{max-width:1400px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}";
-  chunk += ".header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:30px;text-align:center;position:relative}";
-  chunk += ".header h1{font-size:2.5em;margin-bottom:10px}";
-  chunk += ".lang-switcher{position:absolute;top:20px;right:20px;display:flex;gap:5px}";
-  chunk += ".lang-btn{padding:8px 15px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
-  chunk += ".lang-btn:hover{background:rgba(255,255,255,.3)}";
-  chunk += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
-  chunk += ".nav{display:flex;justify-content:center;gap:10px;margin-top:20px;flex-wrap:wrap}";
-  chunk += ".nav-btn{padding:10px 20px;background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;cursor:pointer;font-weight:bold}";
-  chunk += ".nav-btn:hover{background:rgba(255,255,255,.3)}";
-  chunk += ".nav-btn.active{background:rgba(255,255,255,.4)}";
-  chunk += ".content{padding:30px}";
-  chunk += ".tab-content{display:none}";
-  chunk += ".tab-content.active{display:block}";
-  chunk += ".section{background:#f8f9fa;border-radius:15px;padding:25px;margin-bottom:20px;border-left:5px solid #667eea}";
-  chunk += ".section h2{color:#667eea;margin-bottom:20px;font-size:1.5em}";
-  chunk += ".section h3{color:#667eea;margin:15px 0 10px;font-size:1.2em}";
-  chunk += ".info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:15px}";
-  chunk += ".info-item{background:#fff;padding:15px;border-radius:10px;border:1px solid #e0e0e0}";
-  chunk += ".info-label{font-weight:bold;color:#667eea;margin-bottom:5px;font-size:.9em}";
-  chunk += ".info-value{font-size:1.1em;color:#333}";
-  chunk += ".badge{display:inline-block;padding:5px 15px;border-radius:20px;font-size:.9em;font-weight:bold}";
-  chunk += ".badge-success{background:#d4edda;color:#155724}";
-  chunk += ".badge-warning{background:#fff3cd;color:#856404}";
-  chunk += ".badge-danger{background:#f8d7da;color:#721c24}";
-  chunk += ".btn{padding:12px 24px;border:none;border-radius:8px;font-size:1em;font-weight:bold;cursor:pointer;margin:5px;text-decoration:none;display:inline-block}";
-  chunk += ".btn-primary{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff}";
-  chunk += ".btn-success{background:linear-gradient(135deg,#56ab2f 0%,#a8e063 100%);color:#fff}";
-  chunk += ".btn-info{background:linear-gradient(135deg,#3a7bd5 0%,#00d2ff 100%);color:#fff}";
-  chunk += ".btn-danger{background:linear-gradient(135deg,#eb3349 0%,#f45c43 100%);color:#fff}";
-  chunk += ".btn:hover{opacity:.9;transform:translateY(-2px);transition:all .3s}";
-  chunk += ".progress-bar{background:#e0e0e0;border-radius:10px;height:20px;overflow:hidden;margin-top:10px}";
-  chunk += ".progress-fill{height:100%;border-radius:10px;transition:width .3s}";
-  chunk += ".gpio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px}";
-  chunk += ".gpio-item{padding:15px;background:#fff;border:2px solid #ddd;border-radius:8px;text-align:center;font-weight:bold}";
-  chunk += ".gpio-ok{border-color:#28a745;background:#d4edda}";
-  chunk += ".gpio-fail{border-color:#dc3545;background:#f8d7da}";
-  chunk += ".wifi-list{max-height:400px;overflow-y:auto}";
-  chunk += ".wifi-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;border-left:4px solid #667eea}";
-  chunk += ".wireless-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;margin-bottom:20px}";
-  chunk += ".wireless-card{background:#fff;padding:20px;border-radius:12px;border:1px solid #e0e0e0;box-shadow:0 10px 30px rgba(0,0,0,.08)}";
-  chunk += ".wireless-card-title{font-weight:700;color:#3a7bd5;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;font-size:.95em}";
-  chunk += ".wireless-status{font-size:1.05em;font-weight:600;color:#333;margin-bottom:10px}";
-  chunk += ".wireless-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}";
-  chunk += ".wireless-list li{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f7f8ff;border-radius:8px;border:1px solid #e3e7ff}";
-  chunk += ".wireless-list li .label{flex:1;color:#667eea;font-weight:600}";
-  chunk += ".wireless-list li .value{font-weight:600;color:#333}";
-  chunk += ".wireless-empty{font-style:italic;color:#666;background:#f0f0f5;border-style:dashed;border-color:#d0d0d8}";
-  chunk += ".status-pill{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:1.1em;font-weight:bold}";
-  chunk += ".status-pill.ok{background:#d4edda;color:#155724}";
-  chunk += ".status-pill.warn{background:#fff3cd;color:#856404}";
-  chunk += ".status-pill.ko{background:#f8d7da;color:#721c24}";
-  chunk += ".wireless-hint{margin-top:12px;padding:12px;border-radius:8px;background:#fff8e6;border-left:4px solid #f2c94c;color:#8a6d3b;font-size:.95em}";
-  chunk += ".wireless-backend{border-style:dashed;border-color:#cfd4ff}";
-  chunk += ".status-live{padding:10px;background:#f0f0f0;border-radius:5px;text-align:center;font-weight:bold;margin:10px 0}";
-  chunk += ".inline-feedback{margin-top:8px;font-size:0.9em;opacity:0;transition:opacity .3s;color:#0c5460;}";
-  chunk += ".inline-feedback.show{opacity:1;}";
-  chunk += ".inline-feedback.success{color:#155724;}";
-  chunk += ".inline-feedback.error{color:#721c24;}";
-  chunk += ".inline-feedback.info{color:#0c5460;}";
-  chunk += "input[type='number'],input[type='color'],input[type='text']{padding:10px;border:2px solid #ddd;border-radius:5px;font-size:1em}";
-  chunk += "@media print{.nav,.btn,.lang-switcher{display:none}}";
+  chunk += R"CSS(
+:root {
+  --bg-gradient: linear-gradient(135deg, #0b1220 0%, #182b4d 45%, #1f3a70 100%);
+  --card-bg: rgba(15, 23, 42, 0.72);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --surface: rgba(148, 163, 184, 0.08);
+  --accent: #38bdf8;
+  --accent-strong: #0ea5e9;
+  --success: #34d399;
+  --danger: #f87171;
+  --warning: #fbbf24;
+  --text-primary: #f8fafc;
+  --text-secondary: rgba(226, 232, 240, 0.82);
+  --muted: rgba(148, 163, 184, 0.7);
+  --shadow-xl: 0 22px 48px rgba(8, 15, 35, 0.55);
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg-gradient);
+  color: var(--text-primary);
+  min-height: 100vh;
+  padding: 28px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  overflow-x: hidden;
+}
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(14, 165, 233, 0.25), transparent 60%);
+  z-index: -1;
+  opacity: 0.6;
+  transition: transform 0.6s ease;
+}
+body::before {
+  top: -160px;
+  left: -120px;
+}
+body::after {
+  bottom: -200px;
+  right: -120px;
+  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.18), transparent 60%);
+}
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--accent-strong);
+}
+.app-wrapper {
+  width: min(1220px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  position: relative;
+}
+.app-header {
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 28px;
+  padding: 32px;
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(18px);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  overflow: hidden;
+}
+.app-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.25), transparent 60%);
+  opacity: 0.9;
+}
+.header-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  position: relative;
+  z-index: 1;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.brand h1 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: clamp(1.9rem, 2vw + 1.2rem, 3rem);
+  font-weight: 700;
+}
+.version-inline {
+  font-size: 0.6em;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.22);
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.status-indicator {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  display: inline-block;
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.8);
+}
+.status-online {
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+}
+.status-offline {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+  box-shadow: 0 0 16px rgba(248, 113, 113, 0.8);
+}
+.lang-switcher {
+  display: flex;
+  gap: 10px;
+}
+.lang-btn {
+  padding: 10px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--text-secondary);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+.lang-btn:hover {
+  color: var(--text-primary);
+  border-color: rgba(56, 189, 248, 0.5);
+  transform: translateY(-2px);
+}
+.lang-btn.active {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.88), rgba(56, 189, 248, 0.6));
+  color: #0f172a;
+  border-color: transparent;
+  box-shadow: 0 16px 30px rgba(14, 165, 233, 0.3);
+}
+.header-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  position: relative;
+  z-index: 1;
+}
+.summary-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 22px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.62);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.summary-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.summary-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 18px 38px rgba(8, 15, 35, 0.32);
+}
+.summary-card:hover::after {
+  opacity: 1;
+}
+.summary-icon {
+  font-size: 1.8rem;
+}
+.summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.summary-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.summary-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.summary-sub {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+.meta-card {
+  background: var(--surface);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 120px;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.meta-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 18px 40px rgba(8, 15, 35, 0.32);
+}
+.meta-label {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.meta-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+.meta-sub {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+.app-nav {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(18px);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+.nav-btn {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.nav-btn::before {
+  content: attr(data-icon);
+  font-size: 1.15rem;
+}
+.nav-btn:hover {
+  color: var(--text-primary);
+  border-color: rgba(56, 189, 248, 0.5);
+  transform: translateY(-2px);
+}
+.nav-btn.active {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.9), rgba(56, 189, 248, 0.6));
+  color: #0b1220;
+  border-color: transparent;
+  box-shadow: 0 18px 36px rgba(14, 165, 233, 0.25);
+}
+.app-main {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 28px;
+  padding: 34px;
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(18px);
+}
+.tab-container {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+.content {
+  display: contents;
+}
+.tab-content {
+  display: none;
+  animation: fadeIn 0.45s ease;
+}
+.tab-content.active {
+  display: block;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.section {
+  background: rgba(15, 23, 42, 0.65);
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
+}
+.section h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.4rem;
+  color: var(--accent);
+}
+.section h3 {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+}
+.info-item {
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  padding: 18px;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.info-item:hover {
+  transform: translateY(-4px);
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 18px 32px rgba(14, 165, 233, 0.18);
+}
+.info-label {
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+}
+.info-value {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+.badge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.badge-success {
+  background: rgba(52, 211, 153, 0.18);
+  color: #bbf7d0;
+}
+.badge-warning {
+  background: rgba(250, 204, 21, 0.18);
+  color: #fef08a;
+}
+.badge-danger {
+  background: rgba(248, 113, 113, 0.2);
+  color: #fecaca;
+}
+.btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 5px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.25s ease;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.35);
+}
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(14, 165, 233, 0.28);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+  color: #f8fafc;
+}
+.btn-success {
+  background: linear-gradient(135deg, #059669, #34d399);
+  color: #f0fdf4;
+}
+.btn-info {
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  color: #f0f9ff;
+}
+.btn-danger {
+  background: linear-gradient(135deg, #dc2626, #f87171);
+  color: #fff5f5;
+}
+.progress-bar {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+  height: 26px;
+  overflow: hidden;
+  position: relative;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0b1220;
+  font-weight: 700;
+  transition: width 0.5s ease;
+}
+.card {
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 20px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(56, 189, 248, 0.5);
+}
+.status-live {
+  padding: 18px;
+  border-radius: 16px;
+  border-left: 4px solid var(--accent);
+  background: rgba(56, 189, 248, 0.12);
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.inline-feedback {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.inline-feedback.show {
+  opacity: 1;
+}
+.inline-feedback.success {
+  color: var(--success);
+}
+.inline-feedback.error {
+  color: var(--danger);
+}
+.inline-feedback.info {
+  color: var(--text-secondary);
+}
+.gpio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 12px;
+}
+.gpio-item {
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 700;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.55);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.gpio-item:hover {
+  transform: translateY(-3px);
+}
+.gpio-ok {
+  border-color: rgba(52, 211, 153, 0.6);
+  background: rgba(52, 211, 153, 0.15);
+}
+.gpio-fail {
+  border-color: rgba(248, 113, 113, 0.6);
+  background: rgba(248, 113, 113, 0.15);
+}
+.wireless-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+.wireless-card {
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.wireless-card-title {
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.95rem;
+}
+.wireless-status {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.wireless-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wireless-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(148, 163, 184, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+.wireless-list .label {
+  flex: 1;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.wireless-list .value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.wireless-empty {
+  font-style: italic;
+  color: var(--muted);
+  background: rgba(148, 163, 184, 0.08);
+  border-style: dashed;
+  border-color: rgba(148, 163, 184, 0.25);
+  padding: 12px;
+  border-radius: 12px;
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.status-pill.ok {
+  background: rgba(52, 211, 153, 0.25);
+  color: #34d399;
+}
+.status-pill.warn {
+  background: rgba(250, 204, 21, 0.25);
+  color: #fbbf24;
+}
+.status-pill.ko {
+  background: rgba(248, 113, 113, 0.25);
+  color: #f87171;
+}
+.wireless-hint {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(250, 204, 21, 0.14);
+  border-left: 4px solid var(--warning);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+.wireless-backend {
+  border-style: dashed;
+  border-color: rgba(148, 163, 184, 0.28);
+}
+.wifi-list {
+  max-height: 480px;
+  overflow-y: auto;
+  display: grid;
+  gap: 16px;
+  padding-right: 4px;
+}
+.wifi-item {
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  padding: 18px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.wifi-item:hover {
+  transform: translateY(-4px);
+  border-color: rgba(56, 189, 248, 0.5);
+}
+input[type='number'],
+input[type='color'],
+input[type='text'] {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+input:focus {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+}
+@media (max-width: 900px) {
+  body {
+    padding: 20px;
+  }
+  .app-nav {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  .app-main,
+  .app-header {
+    padding: 26px;
+  }
+}
+@media (max-width: 640px) {
+  body {
+    padding: 16px 12px;
+  }
+  .header-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .lang-switcher {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .summary-card {
+    align-items: flex-start;
+  }
+}
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .app-wrapper {
+    width: 100%;
+  }
+  .app-nav,
+  .btn,
+  .lang-switcher {
+    display: none !important;
+  }
+  .section {
+    background: #fff;
+    color: #000;
+    box-shadow: none;
+    border-color: #ddd;
+  }
+}
+)CSS";
   chunk += "</style></head><body>";
   server.sendContent(chunk);
-  
+
   // CHUNK 2: HEADER + NAV
-  chunk = "<div class='container'><div class='header'>";
+  bool wifiConnected = diagnosticData.wifiSSID.length() > 0;
+  String wifiSummary = wifiConnected ? String(T().connected) + " · " + diagnosticData.wifiSSID : String(T().wifi_not_connected);
+  String wifiQuality = wifiConnected ? getWiFiSignalQuality() : "—";
+  String ipLabel = diagnosticData.ipAddress.length() ? diagnosticData.ipAddress : "—";
+
+  unsigned long summarySeconds = diagnosticData.uptime / 1000;
+  unsigned long summaryMinutes = summarySeconds / 60;
+  unsigned long summaryHours = summaryMinutes / 60;
+  unsigned long summaryDays = summaryHours / 24;
+  String uptimeSummary = String(summaryDays) + "j " + String(summaryHours % 24) + "h " + String(summaryMinutes % 60) + "m";
+
+  chunk = "<div class='app-wrapper'>";
+  chunk += "<header class='app-header'>";
+  chunk += "<div class='header-top'>";
+  chunk += "<div class='brand'>";
+  chunk += "<span class='status-indicator " + String(wifiConnected ? "status-online" : "status-offline") + "'></span>";
+  chunk += "<h1 id='main-title'><span data-i18n='title'>" + String(T().title) + "</span> <span class='version-inline' data-i18n='version'>" + String(T().version) + "</span>" + String(DIAGNOSTIC_VERSION) + "</h1>";
+  chunk += "</div>";
   chunk += "<div class='lang-switcher'>";
   chunk += "<button class='lang-btn " + String(currentLanguage == LANG_FR ? "active" : "") + "' data-lang='fr' onclick='changeLang(\"fr\",event)'>FR</button>";
   chunk += "<button class='lang-btn " + String(currentLanguage == LANG_EN ? "active" : "") + "' data-lang='en' onclick='changeLang(\"en\",event)'>EN</button>";
+  chunk += "</div></div>";
+  chunk += "<div class='header-summary'>";
+  chunk += "<div class='summary-card'><div class='summary-icon'>🧠</div><div class='summary-content'><span class='summary-label' data-i18n='chip_info'>" + String(T().chip_info) + "</span><span class='summary-value' id='summaryChip'>" + diagnosticData.chipModel + "</span></div></div>";
+  chunk += "<div class='summary-card'><div class='summary-icon'>📶</div><div class='summary-content'><span class='summary-label' data-i18n='wifi_connection'>" + String(T().wifi_connection) + "</span><span class='summary-value' id='summaryNetwork'>" + wifiSummary + "</span><span class='summary-sub' id='networkQuality'>" + wifiQuality + "</span></div></div>";
+  chunk += "<div class='summary-card'><div class='summary-icon'>⏱️</div><div class='summary-content'><span class='summary-label' data-i18n='uptime'>" + String(T().uptime) + "</span><span class='summary-value' id='summaryUptime'>" + uptimeSummary + "</span></div></div>";
   chunk += "</div>";
-  chunk += "<h1 id='main-title'><span data-i18n='title'>" + String(T().title) + "</span> <span data-i18n='version'>" + String(T().version) + "</span>" + String(DIAGNOSTIC_VERSION) + "</h1>";
-  chunk += "<div style='font-size:1.2em;margin:10px 0' id='chipModel'>" + diagnosticData.chipModel + "</div>";
-  chunk += "<div style='font-size:.9em;opacity:.9;margin:10px 0'>";
-  chunk += "<span data-i18n='access'>" + String(T().access) + "</span>: <a href='http://" + String(MDNS_HOSTNAME) + ".local' style='color:#fff;text-decoration:underline'><strong>http://" + String(MDNS_HOSTNAME) + ".local</strong></a> <span data-i18n='or_text'>" + String(T().or_text) + "</span> <strong id='ipAddress'>" + diagnosticData.ipAddress + "</strong>";
-  chunk += "</div>";
-  chunk += "<div class='nav'>";
-  chunk += "<button class='nav-btn active' onclick='showTab(\"overview\",event)' data-i18n='nav_overview'>" + String(T().nav_overview) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"leds\",event)' data-i18n='nav_leds'>" + String(T().nav_leds) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"screens\",event)' data-i18n='nav_screens'>" + String(T().nav_screens) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"tests\",event)' data-i18n='nav_tests'>" + String(T().nav_tests) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"gpio\",event)' data-i18n='nav_gpio'>" + String(T().nav_gpio) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"wifi\",event)' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"benchmark\",event)' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"export\",event)' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
-  chunk += "</div></div><div class='content'>";
+  chunk += "<span id='chipModel' style='display:none'>" + diagnosticData.chipModel + "</span>";
+  chunk += "<div class='meta-grid'>";
+  chunk += "<div class='meta-card'><span class='meta-label' data-i18n='access'>" + String(T().access) + "</span><span class='meta-value'><a href='http://" + String(MDNS_HOSTNAME) + ".local'>http://" + String(MDNS_HOSTNAME) + ".local</a></span><span class='meta-sub'><span data-i18n='or_text'>" + String(T().or_text) + "</span> <span id='ipAddress'>" + ipLabel + "</span></span></div>";
+  chunk += "<div class='meta-card'><span class='meta-label' data-i18n='mac_wifi'>" + String(T().mac_wifi) + "</span><span class='meta-value'>" + diagnosticData.macAddress + "</span><span class='meta-sub'>" + String(T().sdk_version) + ": " + diagnosticData.sdkVersion + "</span></div>";
+  chunk += "<div class='meta-card'><span class='meta-label' data-i18n='idf_version'>" + String(T().idf_version) + "</span><span class='meta-value'>" + diagnosticData.idfVersion + "</span><span class='meta-sub'>" + String(T().version) + " " + String(DIAGNOSTIC_VERSION) + "</span></div>";
+  chunk += "</div></header>";
+  chunk += "<nav class='app-nav'>";
+  chunk += "<button class='nav-btn active' data-icon='📊' onclick='showTab(\"overview\",event)' data-i18n='nav_overview'>" + String(T().nav_overview) + "</button>";
+  chunk += "<button class='nav-btn' data-icon='💡' onclick='showTab(\"leds\",event)' data-i18n='nav_leds'>" + String(T().nav_leds) + "</button>";
+  chunk += "<button class='nav-btn' data-icon='🖥️' onclick='showTab(\"screens\",event)' data-i18n='nav_screens'>" + String(T().nav_screens) + "</button>";
+  chunk += "<button class='nav-btn' data-icon='🧪' onclick='showTab(\"tests\",event)' data-i18n='nav_tests'>" + String(T().nav_tests) + "</button>";
+  chunk += "<button class='nav-btn' data-icon='🧷' onclick='showTab(\"gpio\",event)' data-i18n='nav_gpio'>" + String(T().nav_gpio) + "</button>";
+  chunk += "<button class='nav-btn' data-icon='📡' onclick='showTab(\"wifi\",event)' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</button>";
+  chunk += "<button class='nav-btn' data-icon='⚡' onclick='showTab(\"benchmark\",event)' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</button>";
+  chunk += "<button class='nav-btn' data-icon='💾' onclick='showTab(\"export\",event)' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
+  chunk += "</nav><main class='app-main'><div class='content'>";
   server.sendContent(chunk);
   
 // CHUNK 3: OVERVIEW TAB - VERSION UNIQUE COMPLÈTE
@@ -3131,7 +3801,7 @@ void handleRoot() {
   chunk += "<div class='section'><h2 data-i18n='flash_partitions'>" + String(T().flash_partitions) + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='listPartitions()' data-i18n='list_partitions'>" + String(T().list_partitions) + "</button>";
-  chunk += "</div><div id='partitions-results' style='background:#fff;padding:15px;border-radius:10px;font-family:monospace;white-space:pre-wrap;font-size:0.85em'>";
+  chunk += "</div><div id='partitions-results' style='background:rgba(15,23,42,0.55);padding:18px;border-radius:18px;border:1px solid rgba(148,163,184,0.24);font-family:monospace;white-space:pre-wrap;font-size:0.85em'>";
   chunk += partitionsInfo.length() > 0 ? partitionsInfo : String(T().click_button);
   chunk += "</div></div>";
 
@@ -3149,7 +3819,7 @@ void handleRoot() {
   chunk += "<button class='btn btn-primary' onclick='testAllGPIO()' data-i18n='test_all_gpio'>" + String(T().test_all_gpio) + "</button>";
   chunk += "<div id='gpio-status' class='status-live' data-i18n='click_to_test'>" + String(T().click_to_test) + "</div>";
   chunk += "</div>";
-  chunk += "<p class='status-live' style='margin:10px 0;background:#fff3cd;color:#856404;border-left:4px solid #f2c94c;padding:12px' data-i18n='gpio_fail_hint'>" + String(T().gpio_fail_hint) + "</p>";
+  chunk += "<p class='status-live' style='margin:10px 0' data-i18n='gpio_fail_hint'>" + String(T().gpio_fail_hint) + "</p>";
   chunk += "<div id='gpio-results' class='gpio-grid'></div></div></div>";
   server.sendContent(chunk);
   
@@ -3194,24 +3864,24 @@ void handleRoot() {
   chunk = "<div id='export' class='tab-content'>";
   chunk += "<div class='section'><h2 data-i18n='data_export'>" + String(T().data_export) + "</h2>";
   chunk += "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-top:20px'>";
-  chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #667eea'>";
+  chunk += "<div class='card' style='text-align:center;padding:30px;border:1px solid rgba(102,126,234,0.45)'>";
   chunk += "<h3 style='color:#667eea;margin-bottom:15px' data-i18n='txt_file'>" + String(T().txt_file) + "</h3>";
   chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px' data-i18n='readable_report'>" + String(T().readable_report) + "</p>";
   chunk += "<a href='/export/txt' class='btn btn-primary' data-i18n='download_txt'>" + String(T().download_txt) + "</a></div>";
-  chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #3a7bd5'>";
+  chunk += "<div class='card' style='text-align:center;padding:30px;border:1px solid rgba(58,123,213,0.45)'>";
   chunk += "<h3 style='color:#3a7bd5;margin-bottom:15px' data-i18n='json_file'>" + String(T().json_file) + "</h3>";
   chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px' data-i18n='structured_format'>" + String(T().structured_format) + "</p>";
   chunk += "<a href='/export/json' class='btn btn-info' data-i18n='download_json'>" + String(T().download_json) + "</a></div>";
-  chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #56ab2f'>";
+  chunk += "<div class='card' style='text-align:center;padding:30px;border:1px solid rgba(86,171,47,0.45)'>";
   chunk += "<h3 style='color:#56ab2f;margin-bottom:15px' data-i18n='csv_file'>" + String(T().csv_file) + "</h3>";
   chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px' data-i18n='for_excel'>" + String(T().for_excel) + "</p>";
   chunk += "<a href='/export/csv' class='btn btn-success' data-i18n='download_csv'>" + String(T().download_csv) + "</a></div>";
-  chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #667eea'>";
+  chunk += "<div class='card' style='text-align:center;padding:30px;border:1px solid rgba(102,126,234,0.45)'>";
   chunk += "<h3 style='color:#667eea;margin-bottom:15px' data-i18n='printable_version'>" + String(T().printable_version) + "</h3>";
   chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px' data-i18n='pdf_format'>" + String(T().pdf_format) + "</p>";
   chunk += "<a href='/print' target='_blank' class='btn btn-primary' data-i18n='open'>" + String(T().open) + "</a></div>";
   chunk += "</div></div></div>";
-  chunk += "</div></div>"; // Fermeture content + container
+  chunk += "</div></main></div>"; // Fermeture content + wrapper
   server.sendContent(chunk);
   // CHUNK 11: JavaScript complet
   chunk = "<script>";
@@ -3388,7 +4058,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.18 - FR/EN");
+  Serial.println("     Version 4.1.0 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   

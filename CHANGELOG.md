@@ -5,6 +5,14 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2025-10-30
+### Added
+- Complete redesign of the web dashboard with a responsive, modern layout while keeping every diagnostic feature accessible.
+### Changed
+- Introduced glassmorphism-inspired styling, live summary cards, and updated export panels for consistent dark-mode visuals.
+### Fixed
+- Removed the unused `/js/app.js` handler so the firmware compiles cleanly with the refreshed interface.
+
 ## [4.0.18] - 2025-10-29
 
 ### Fixed
@@ -471,6 +479,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 4.1.0 | 2025-10-30 | Full responsive redesign of the web diagnostics UI |
 | 4.0.18 | 2025-10-29 | Restored web buttons via Wi-Fi scan JS fix, docs bump |
 | 4.0.17 | 2025-10-28 | Wireless cards always visible, guarded BLE scans, docs bump |
 | 4.0.16 | 2025-10-27 | Bluetooth card template fix, app.js routing, NimBLE-preferred backend |

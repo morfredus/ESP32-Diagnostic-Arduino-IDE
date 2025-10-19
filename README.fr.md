@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# Diagnostic ESP32 Complet v4.0.18
+# Diagnostic ESP32 Complet v4.1.0
 
 🇫🇷 Version française | [🇬🇧 English Version](README.md)
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, accessible via interface web. Teste automatiquement tous les composants matériels, analyse la mémoire, scanne les périphériques et génère des rapports détaillés.
 
-**Nouveautés v4.0.18** : Corrige le script JavaScript du scan Wi-Fi pour réactiver les boutons (dont le changement de langue) et met à jour le firmware/la documentation en version 4.0.18.
+**Nouveautés v4.1.0** : Refonte complète et responsive de l'interface web tout en conservant chaque outil de diagnostic.
 
 ## ✨ Fonctionnalités
 
@@ -347,7 +347,7 @@ Si certains textes restent en français :
 
 **Ne jamais partager `config.h` avec vos identifiants WiFi.**
 
-## 📁 Structure du Projet v4.0.18
+## 📁 Structure du Projet v4.1.0
 
 ```
 ESP32-Diagnostic/
@@ -361,6 +361,10 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v4.1.0 (2025) - INTERFACE RESPONSIVE MODERNE
+- 🧭 **Nouvelle interface web totalement revisitée** avec une mise en page fluide, une typographie modernisée et des cartes translucides tout en conservant chaque fonction de test.
+- 📱 **Lisibilité accrue sur ordinateur comme sur mobile**, grâce à une navigation adaptative, des indicateurs de statut retravaillés et des panneaux contextuels réorganisés.
 
 ### v4.0.18 (2025) - BOUTONS WEB RÉACTIVÉS
 - 🔁 **Réparation du script de scan Wi-Fi** : tous les boutons de l'interface (dont le changement de langue et la mise à jour BLE) fonctionnent à nouveau.
@@ -446,6 +450,7 @@ Code libre d'utilisation, modification et distribution.
 
 Développé pour la communauté ESP32.
 
+**v4.1.0 - Interface web moderne et responsive**
 **v4.0.18 - Boutons web rétablis & version mise à jour**
 **v4.0.17 - Résumé Sans fil permanent & scan BLE protégé**
 **v4.0.16 - Carte Bluetooth Sans fil + priorité NimBLE**
@@ -458,7 +463,7 @@ Développé pour la communauté ESP32.
 
 ---
 
-**Version actuelle** : 4.0.18 Multilingue
+**Version actuelle** : 4.1.0 Multilingue
 **Dernière mise à jour** : Octobre 2025
 **Langues disponibles** : Français (défaut), Anglais
 **Support** : ESP32 Arduino Core 3.3.2+
