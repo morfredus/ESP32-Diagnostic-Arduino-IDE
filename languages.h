@@ -56,6 +56,7 @@ struct Translations {
   const char* psram_external;
   const char* hardware_status;
   const char* detected_active;
+  const char* supported_not_enabled;
   const char* ide_config;
   const char* enabled;
   const char* total_size;
@@ -66,6 +67,7 @@ struct Translations {
   const char* not_detected;
   const char* disabled;
   const char* psram_usage;
+  const char* enable_psram_hint;
   
   const char* internal_sram;
   const char* min_free;
@@ -274,6 +276,7 @@ const Translations LANG_FR_TEXTS = {
   "PSRAM (Mémoire Externe)",
   "Statut Hardware",
   "Détectée et active",
+  "Support détecté (désactivée dans l'IDE)",
   "Configuration IDE",
   "Activée",
   "Taille Totale",
@@ -284,6 +287,7 @@ const Translations LANG_FR_TEXTS = {
   "Non détectée",
   "Désactivée",
   "Utilisation PSRAM",
+  "Activez la PSRAM %TYPE% dans l'IDE Arduino (Outils → PSRAM).",
   
   "SRAM Interne",
   "Min Libre (Record)",
@@ -492,6 +496,7 @@ const Translations LANG_EN_TEXTS = {
   "PSRAM (External Memory)",
   "Hardware Status",
   "Detected and active",
+  "Support detected (disabled in IDE)",
   "IDE Configuration",
   "Enabled",
   "Total Size",
@@ -502,6 +507,7 @@ const Translations LANG_EN_TEXTS = {
   "Not detected",
   "Disabled",
   "PSRAM Usage",
+  "Enable the %TYPE% PSRAM in Arduino IDE (Tools → PSRAM).",
   
   "Internal SRAM",
   "Min Free (Record)",
