@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v4.0.18
+ * WEB_INTERFACE.H - Interface Web Dynamique v4.1.0
  */
 
 #ifndef WEB_INTERFACE_H
@@ -13,6 +13,7 @@ extern const char* MDNS_HOSTNAME_STR;
 extern WebServer server;
 extern DiagnosticInfo diagnosticData;
 extern Language currentLanguage;
+extern String getWiFiSignalQuality();
 
 // Déclarations forward des fonctions
 String generateHTML();
@@ -37,166 +38,1038 @@ String generateHTML() {
   html += DIAGNOSTIC_VERSION_STR;
   html += "</title>";
   html += "<style>";
-  html += "*{margin:0;padding:0;box-sizing:border-box}";
-  html += "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;";
-  html += "background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px}";
-  html += ".container{max-width:1400px;margin:0 auto;background:#fff;border-radius:20px;";
-  html += "box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}";
-  html += ".header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);";
-  html += "color:#fff;padding:30px;text-align:center;position:relative}";
-  html += ".header h1{font-size:2.5em;margin-bottom:10px;animation:fadeIn 0.5s}";
-  html += "@keyframes fadeIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}";
-  html += ".lang-switcher{position:absolute;top:20px;right:20px;display:flex;gap:5px}";
-  html += ".lang-btn{padding:8px 15px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);";
-  html += "border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
-  html += ".lang-btn:hover{background:rgba(255,255,255,.3)}";
-  html += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
-  html += ".status-indicator{display:inline-block;width:12px;height:12px;border-radius:50%;";
-  html += "margin-right:8px;animation:pulse 2s infinite}";
-  html += ".status-online{background:#0f0;box-shadow:0 0 10px #0f0}";
-  html += ".status-offline{background:#f00;box-shadow:0 0 10px #f00}";
-  html += "@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}";
-  html += ".nav{display:flex;justify-content:center;gap:10px;margin-top:20px;flex-wrap:wrap}";
-  html += ".nav-btn{padding:10px 20px;background:rgba(255,255,255,.2);border:none;";
-  html += "border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
-  html += ".nav-btn:hover{background:rgba(255,255,255,.3);transform:translateY(-2px)}";
-  html += ".nav-btn.active{background:rgba(255,255,255,.4)}";
-  html += ".content{padding:30px;animation:fadeIn 0.5s}";
-  html += ".tab-content{display:none;animation:fadeIn 0.3s}";
-  html += ".tab-content.active{display:block}";
-  html += ".section{background:#f8f9fa;border-radius:15px;padding:25px;margin-bottom:20px;";
-  html += "border-left:5px solid #667eea;transition:transform .3s}";
-  html += ".section:hover{transform:translateX(5px)}";
-  html += ".section h2{color:#667eea;margin-bottom:20px;font-size:1.5em;display:flex;";
-  html += "align-items:center;gap:10px}";
-  html += ".section h3{color:#667eea;margin:15px 0 10px;font-size:1.2em}";
-  html += ".info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:15px}";
-  html += ".info-item{background:#fff;padding:15px;border-radius:10px;border:1px solid #e0e0e0;";
-  html += "transition:all .3s}";
-  html += ".info-item:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(0,0,0,.1)}";
-  html += ".status-list{list-style:none;margin:12px 0 0;padding:0}";
-  html += ".status-list li{display:flex;align-items:center;font-size:0.95em;margin-bottom:6px;color:#333}";
-  html += ".status-pill{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:1em;margin-right:10px;font-weight:bold}";
-  html += ".status-pill.ok{background:#d4edda;color:#155724}";
-  html += ".status-pill.warn{background:#fff3cd;color:#856404}";
-  html += ".status-pill.ko{background:#f8d7da;color:#721c24}";
-  html += ".wireless-summary{display:flex;flex-direction:column;gap:15px}";
-  html += ".wireless-card{margin:0}";
-  html += ".wireless-card-title{font-weight:700;color:#3a7bd5;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-size:0.95em}";
-  html += ".wireless-status{font-size:1.05em;font-weight:600;color:#333;margin-bottom:10px}";
-  html += ".wireless-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}";
-  html += ".wireless-list li{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f7f8ff;border-radius:8px;border:1px solid #e3e7ff}";
-  html += ".wireless-list li .label{flex:1;color:#667eea;font-weight:600}";
-  html += ".wireless-list li .value{font-weight:600;color:#333}";
-  html += ".wireless-empty{font-style:italic;color:#666;background:#f0f0f5;border-style:dashed;border-color:#d0d0d8}";
-  html += ".wireless-hint{margin-top:12px;padding:12px;border-radius:8px;background:#fff8e6;border-left:4px solid #f2c94c;color:#8a6d3b;font-size:0.95em}";
-  html += ".info-label{font-weight:bold;color:#667eea;margin-bottom:5px;font-size:.9em;";
-  html += "text-transform:uppercase;letter-spacing:0.5px}";
-  html += ".info-value{font-size:1.1em;color:#333;font-weight:500}";
-  html += ".badge{display:inline-block;padding:5px 15px;border-radius:20px;font-size:.9em;";
-  html += "font-weight:bold;animation:fadeIn 0.5s}";
-  html += ".badge-success{background:#d4edda;color:#155724}";
-  html += ".badge-warning{background:#fff3cd;color:#856404}";
-  html += ".badge-danger{background:#f8d7da;color:#721c24}";
-  html += ".badge-info{background:#d1ecf1;color:#0c5460}";
-  html += ".btn{padding:12px 24px;border:none;border-radius:8px;font-size:1em;font-weight:bold;";
-  html += "cursor:pointer;margin:5px;transition:all .3s;text-decoration:none;display:inline-block}";
-  html += ".btn:hover{opacity:.9;transform:translateY(-2px);box-shadow:0 5px 15px rgba(0,0,0,.2)}";
-  html += ".btn:disabled,.btn[disabled]{opacity:.6;cursor:not-allowed;box-shadow:none;transform:none}";
-  html += ".btn-primary{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff}";
-  html += ".btn-success{background:linear-gradient(135deg,#56ab2f 0%,#a8e063 100%);color:#fff}";
-  html += ".btn-info{background:linear-gradient(135deg,#3a7bd5 0%,#00d2ff 100%);color:#fff}";
-  html += ".btn-danger{background:linear-gradient(135deg,#eb3349 0%,#f45c43 100%);color:#fff}";
-  html += ".btn-warning{background:linear-gradient(135deg,#f2994a 0%,#f2c94c 100%);color:#fff}";
-  html += ".progress-bar{background:#e0e0e0;border-radius:10px;height:25px;overflow:hidden;";
-  html += "margin-top:10px;position:relative}";
-  html += ".progress-fill{height:100%;border-radius:10px;transition:width .5s ease;";
-  html += "background:linear-gradient(90deg,#667eea 0%,#764ba2 100%);display:flex;";
-  html += "align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:0.85em}";
-  html += ".card{background:#fff;border-radius:10px;padding:20px;margin:10px 0;";
-  html += "border:2px solid #e0e0e0;transition:all .3s}";
-  html += ".card:hover{border-color:#667eea;box-shadow:0 5px 15px rgba(102,126,234,.2)}";
-  html += ".loading{display:inline-block;width:20px;height:20px;border:3px solid #f3f3f3;";
-  html += "border-top:3px solid #667eea;border-radius:50%;animation:spin 1s linear infinite}";
-  html += "@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}";
-  html += ".status-live{padding:15px;background:#f0f0f0;border-radius:10px;text-align:center;";
-  html += "font-weight:bold;margin:15px 0;border-left:4px solid #667eea}";
-  html += ".inline-feedback{margin-top:10px;font-size:0.9em;opacity:0;transition:opacity .3s;color:#0c5460;}";
-  html += ".inline-feedback.show{opacity:1;}";
-  html += ".inline-feedback.success{color:#155724;}";
-  html += ".inline-feedback.error{color:#721c24;}";
-  html += ".inline-feedback.info{color:#0c5460;}";
-  html += ".gpio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));";
-  html += "gap:10px;margin-top:15px}";
-  html += ".gpio-item{padding:15px;background:#fff;border:2px solid #ddd;border-radius:8px;";
-  html += "text-align:center;font-weight:bold;transition:all .3s}";
-  html += ".gpio-item:hover{transform:scale(1.05)}";
-  html += ".gpio-ok{border-color:#28a745;background:#d4edda}";
-  html += ".gpio-fail{border-color:#dc3545;background:#f8d7da}";
-  html += ".wifi-list{max-height:500px;overflow-y:auto}";
-  html += ".wifi-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;";
-  html += "border-left:4px solid #667eea;transition:all .3s}";
-  html += ".wifi-item:hover{transform:translateX(5px);box-shadow:0 5px 15px rgba(0,0,0,.1)}";
-  html += ".ble-list{max-height:500px;overflow-y:auto}";
-  html += ".ble-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;";
-  html += "border-left:4px solid #3a7bd5;transition:all .3s}";
-  html += ".ble-item:hover{transform:translateX(5px);box-shadow:0 5px 15px rgba(0,0,0,.1)}";
-  html += "input[type='number'],input[type='color'],input[type='text']{padding:10px;";
-  html += "border:2px solid #ddd;border-radius:5px;font-size:1em;transition:border .3s}";
-  html += "input:focus{outline:none;border-color:#667eea}";
-  html += ".update-indicator{position:fixed;top:20px;right:20px;padding:10px 20px;";
-  html += "background:#667eea;color:#fff;border-radius:5px;font-weight:bold;opacity:0;";
-  html += "transition:opacity .3s;z-index:1000}";
-  html += ".update-indicator.show{opacity:1}";
-  html += "@media(max-width:768px){";
-  html += ".header h1{font-size:1.8em}";
-  html += ".info-grid{grid-template-columns:1fr}";
-  html += ".nav{flex-direction:column}";
-  html += ".nav-btn{width:100%}";
-  html += ".lang-switcher{position:static;margin-top:10px;justify-content:center}";
-  html += "}";
-  html += "@media print{";
-  html += ".nav,.btn,.lang-switcher{display:none}";
-  html += ".container{box-shadow:none}";
-  html += "}";
+  html += R"CSS(
+:root {
+  --bg-gradient: linear-gradient(135deg, #0b1220 0%, #182b4d 45%, #1f3a70 100%);
+  --card-bg: rgba(15, 23, 42, 0.72);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --accent: #38bdf8;
+  --accent-strong: #0ea5e9;
+  --danger: #f87171;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --surface: rgba(148, 163, 184, 0.08);
+  --text-primary: #f8fafc;
+  --text-secondary: rgba(226, 232, 240, 0.82);
+  --muted: rgba(148, 163, 184, 0.7);
+  --shadow-xl: 0 20px 45px rgba(8, 15, 35, 0.55);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg-gradient);
+  color: var(--text-primary);
+  min-height: 100vh;
+  padding: 28px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(14, 165, 233, 0.28), transparent 65%);
+  z-index: -1;
+  opacity: 0.55;
+  transition: transform 0.6s ease;
+}
+
+body::before {
+  top: -160px;
+  left: -120px;
+}
+
+body::after {
+  bottom: -180px;
+  right: -90px;
+  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.22), transparent 60%);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent-strong);
+}
+
+.app-wrapper {
+  width: min(1200px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  position: relative;
+}
+
+.app-header {
+  position: relative;
+  overflow: hidden;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 26px;
+  padding: 32px;
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.app-header::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.22), transparent 55%);
+  opacity: 0.85;
+}
+
+.header-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand h1 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: clamp(1.8rem, 2vw + 1.2rem, 2.8rem);
+  font-weight: 700;
+}
+
+.version-inline {
+  font-size: 0.58em;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.18);
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.status-indicator {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  display: inline-block;
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.8);
+  animation: pulse 2.4s infinite;
+}
+
+.status-online {
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+}
+
+.status-offline {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+  box-shadow: 0 0 18px rgba(248, 113, 113, 0.8);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.6;
+  }
+}
+
+.lang-switcher {
+  display: flex;
+  gap: 10px;
+}
+
+.lang-btn {
+  padding: 10px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.45);
+  color: var(--text-secondary);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.lang-btn:hover {
+  color: var(--text-primary);
+  border-color: rgba(56, 189, 248, 0.6);
+}
+
+.lang-btn.active {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.85), rgba(56, 189, 248, 0.6));
+  color: #0f172a;
+  border-color: transparent;
+}
+
+.header-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.header-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.summary-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 22px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.summary-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 18px 38px rgba(8, 15, 35, 0.32);
+}
+
+.summary-card:hover::after {
+  opacity: 1;
+}
+
+.summary-icon {
+  position: relative;
+  font-size: 1.8rem;
+  z-index: 1;
+}
+
+.summary-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 1;
+}
+
+.summary-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.summary-value {
+  font-size: 1.18rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.meta-card {
+  background: var(--surface);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 132px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.meta-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 60%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.meta-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 22px 45px rgba(8, 15, 35, 0.35);
+}
+
+.meta-card:hover::after {
+  opacity: 1;
+}
+
+.meta-card a {
+  color: var(--accent);
+}
+
+.meta-label {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.meta-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.meta-sub {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.status-card {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(14, 116, 233, 0.08));
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.status-text.offline {
+  color: var(--warning);
+}
+
+.app-body {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.app-nav {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: var(--shadow-xl);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  backdrop-filter: blur(16px);
+}
+
+.nav-btn {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  background: rgba(15, 23, 42, 0.45);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.nav-btn:hover {
+  color: var(--text-primary);
+  border-color: rgba(56, 189, 248, 0.5);
+  transform: translateY(-2px);
+}
+
+.nav-btn::before {
+  content: attr(data-icon);
+  font-size: 1.15rem;
+}
+
+.nav-btn.active {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.9), rgba(56, 189, 248, 0.55));
+  color: #0b1220;
+  border-color: transparent;
+  box-shadow: 0 16px 30px rgba(14, 165, 233, 0.25);
+}
+
+.app-main {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 26px;
+  padding: 34px;
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(18px);
+}
+
+.tab-container {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.content {
+  display: contents;
+}
+
+.tab-content {
+  display: none;
+  animation: fadeIn 0.45s ease;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.section {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.06);
+}
+
+.section h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.4rem;
+  color: var(--accent);
+}
+
+.section h3 {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.info-item {
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 18px;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.info-item:hover {
+  transform: translateY(-4px);
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 18px 30px rgba(14, 165, 233, 0.18);
+}
+
+.info-label {
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+}
+
+.info-value {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+
+.status-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.status-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.status-pill.ok {
+  background: rgba(52, 211, 153, 0.2);
+  color: #34d399;
+}
+
+.status-pill.warn {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.status-pill.ko {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+.wireless-summary {
+  display: grid;
+  gap: 18px;
+}
+
+.wireless-card {
+  margin: 0;
+}
+
+.wireless-card-title {
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.9rem;
+}
+
+.wireless-status {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.wireless-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+}
+
+.wireless-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.wireless-list .label {
+  flex: 1;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.wireless-list .value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.wireless-empty {
+  font-style: italic;
+  color: var(--muted);
+  border-style: dashed;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.wireless-hint {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(251, 191, 36, 0.12);
+  border-left: 4px solid rgba(251, 191, 36, 0.5);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.badge-success {
+  background: rgba(52, 211, 153, 0.22);
+  color: #34d399;
+}
+
+.badge-warning {
+  background: rgba(251, 191, 36, 0.22);
+  color: #fbbf24;
+}
+
+.badge-danger {
+  background: rgba(248, 113, 113, 0.22);
+  color: #f87171;
+}
+
+.badge-info {
+  background: rgba(59, 130, 246, 0.22);
+  color: #60a5fa;
+}
+
+.btn {
+  padding: 12px 20px;
+  border-radius: 14px;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 6px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px rgba(14, 165, 233, 0.18);
+}
+
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+  color: #f8fafc;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #059669, #34d399);
+  color: #f0fdf4;
+}
+
+.btn-info {
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  color: #f0f9ff;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #dc2626, #f87171);
+  color: #fff5f5;
+}
+
+.btn-warning {
+  background: linear-gradient(135deg, #ea580c, #fbbf24);
+  color: #fff7ed;
+}
+
+.progress-bar {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+  height: 26px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0b1220;
+  font-weight: 700;
+  transition: width 0.5s ease;
+}
+
+.card {
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 20px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.loading {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(148, 163, 184, 0.3);
+  border-top-color: var(--accent);
+  border-radius: 999px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.status-live {
+  padding: 18px;
+  border-radius: 16px;
+  border-left: 4px solid var(--accent);
+  background: rgba(56, 189, 248, 0.1);
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.inline-feedback {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.inline-feedback.show {
+  opacity: 1;
+}
+
+.inline-feedback.success {
+  color: #34d399;
+}
+
+.inline-feedback.error {
+  color: #f87171;
+}
+
+.inline-feedback.info {
+  color: var(--text-secondary);
+}
+
+.gpio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 12px;
+}
+
+.gpio-item {
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 700;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.55);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.gpio-item:hover {
+  transform: translateY(-3px);
+}
+
+.gpio-ok {
+  border-color: rgba(52, 211, 153, 0.6);
+  background: rgba(52, 211, 153, 0.12);
+}
+
+.gpio-fail {
+  border-color: rgba(248, 113, 113, 0.6);
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.wifi-list,
+.ble-list {
+  max-height: 480px;
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+  padding-right: 4px;
+}
+
+.wifi-item,
+.ble-item {
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  padding: 18px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.wifi-item:hover,
+.ble-item:hover {
+  transform: translateY(-4px);
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.ble-item {
+  border-left: 4px solid rgba(14, 165, 233, 0.6);
+}
+
+.wifi-item {
+  border-left: 4px solid rgba(56, 189, 248, 0.6);
+}
+
+input[type='number'],
+input[type='color'],
+input[type='text'] {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+}
+
+.update-indicator {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  padding: 12px 22px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.92), rgba(56, 189, 248, 0.7));
+  color: #0b1220;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: translateY(-12px);
+  z-index: 1000;
+}
+
+.update-indicator.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 900px) {
+  body {
+    padding: 18px;
+  }
+
+  .app-nav {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .header-summary {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .app-main,
+  .app-header {
+    padding: 26px;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 16px 12px;
+  }
+
+  .lang-switcher {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .header-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .app-nav {
+    overflow-x: auto;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+  }
+
+  .nav-btn {
+    flex: 1 0 auto;
+    min-width: 160px;
+  }
+
+  .header-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .update-indicator,
+  .lang-switcher,
+  .app-nav,
+  .btn,
+  .status-indicator {
+    display: none !important;
+  }
+
+  .app-wrapper,
+  .app-header,
+  .app-main,
+  .section,
+  .info-item {
+    background: #fff;
+    border: 1px solid #ccc;
+    box-shadow: none;
+    color: #000;
+  }
+}
+)CSS";
   html += "</style>";
   html += "</head><body>";
   html += "<div class='update-indicator' id='updateIndicator'>Mise à jour...</div>";
-  html += "<div class='container'>";
-  html += "<div class='header'>";
+  html += "<div class='app-wrapper'>";
+  html += "<header class='app-header'>";
+  html += "<div class='header-main'>";
+  html += "<div class='brand'>";
+  html += "<span class='status-indicator status-online' id='statusIndicator'></span>";
+  html += "<h1 id='main-title'>Diagnostic ESP32 <span class='version-inline'>v"; 
+  html += DIAGNOSTIC_VERSION_STR;
+  html += "</span></h1>";
+  html += "</div>";
   html += "<div class='lang-switcher'>";
   html += "<button class='lang-btn active' onclick='changeLang(\"fr\")'>FR</button>";
   html += "<button class='lang-btn' onclick='changeLang(\"en\")'>EN</button>";
   html += "</div>";
-  html += "<h1 id='main-title'>";
-  html += "<span class='status-indicator status-online' id='statusIndicator'></span>";
-  html += "Diagnostic ESP32 v";
-  html += DIAGNOSTIC_VERSION_STR;
-  html += "</h1>";
-  html += "<div style='font-size:1.2em;margin:10px 0' id='chipModel'>";
+  html += "</div>";
+  html += "<div class='header-summary'>";
+  html += "<div class='summary-card'>";
+  html += "<span class='summary-icon'>🧠</span>";
+  html += "<div class='summary-content'>";
+  html += "<span class='summary-label' data-i18n='chip_info'>Informations Chip Détaillées</span>";
+  html += "<span class='summary-value' id='summaryChip'>";
   html += diagnosticData.chipModel;
+  html += "</span>";
+  html += "</div></div>";
+  html += "<div class='summary-card'>";
+  html += "<span class='summary-icon'>📶</span>";
+  html += "<div class='summary-content'>";
+  html += "<span class='summary-label' data-i18n='wifi_connection'>Connexion WiFi Détaillée</span>";
+  html += "<span class='summary-value' id='summaryNetwork'>";
+  if (diagnosticData.wifiSSID.length()) {
+    html += diagnosticData.wifiSSID;
+  } else {
+    html += "—";
+  }
+  html += "</span>";
+  html += "</div></div>";
+  html += "<div class='summary-card'>";
+  html += "<span class='summary-icon'>⏱️</span>";
+  html += "<div class='summary-content'>";
+  html += "<span class='summary-label' data-i18n='uptime'>Uptime</span>";
+  html += "<span class='summary-value' id='summaryUptime'>—</span>";
+  html += "</div></div>";
   html += "</div>";
-  html += "<div style='font-size:.9em;opacity:.9;margin:10px 0'>";
-  html += "Accès: <a href='http://";
+  html += "<div class='header-grid'>";
+  html += "<div class='meta-card'>";
+  html += "<span class='meta-label'>Modèle de puce</span>";
+  html += "<span class='meta-value' id='chipModel'>";
+  html += diagnosticData.chipModel;
+  html += "</span>";
+  html += "</div>";
+  html += "<div class='meta-card'>";
+  html += "<span class='meta-label'>Accès réseau</span>";
+  html += "<span class='meta-value'><a href='http://";
   html += MDNS_HOSTNAME_STR;
-  html += ".local' style='color:#fff;text-decoration:underline'><strong>http://";
+  html += ".local' target='_blank' rel='noopener'>http://";
   html += MDNS_HOSTNAME_STR;
-  html += ".local</strong></a> ou <strong id='ipAddress'>";
-  html += diagnosticData.ipAddress;
-  html += "</strong></div>";
-  html += "<div class='nav'>";
-  html += "<button class='nav-btn active' onclick='showTab(\"overview\",event)'>Vue d'ensemble</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"leds\",event)'>LEDs</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"screens\",event)'>Écrans</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"tests\",event)'>Tests</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"gpio\",event)'>GPIO</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"wifi\",event)'>Sans fil</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"benchmark\",event)'>Performance</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"export\",event)'>Export</button>";
+  html += ".local</a></span>";
+  html += "<span class='meta-sub'><span data-i18n='ip_address'>Adresse IP</span> : <strong id='ipAddress'>";
+  if (diagnosticData.ipAddress.length()) {
+    html += diagnosticData.ipAddress;
+  } else {
+    html += "—";
+  }
+  html += "</strong></span>";
+  html += "<span class='meta-sub'><span data-i18n='signal_quality'>Qualité Signal</span> : <strong id='networkQuality'>";
+  html += getWiFiSignalQuality();
+  html += "</strong></span>";
+  html += "</div>";
+  html += "<div class='meta-card status-card'>";
+  html += "<span class='meta-label'>Statut du service</span>";
+  html += "<span class='meta-value status-text' id='serviceStatus'>Connecté</span>";
+  html += "<span class='meta-sub'>Les données se rafraîchissent automatiquement.</span>";
   html += "</div>";
   html += "</div>";
+  html += "</header>";
+  html += "<div class='app-body'>";
+  html += "<nav class='app-nav'>";
+  html += "<button class='nav-btn active' data-icon='🏠' onclick='showTab(\"overview\",event)'>Vue d'ensemble</button>";
+  html += "<button class='nav-btn' data-icon='💡' onclick='showTab(\"leds\",event)'>LEDs</button>";
+  html += "<button class='nav-btn' data-icon='🖥️' onclick='showTab(\"screens\",event)'>Écrans</button>";
+  html += "<button class='nav-btn' data-icon='🧪' onclick='showTab(\"tests\",event)'>Tests</button>";
+  html += "<button class='nav-btn' data-icon='🔌' onclick='showTab(\"gpio\",event)'>GPIO</button>";
+  html += "<button class='nav-btn' data-icon='📶' onclick='showTab(\"wifi\",event)'>Sans fil</button>";
+  html += "<button class='nav-btn' data-icon='⚡' onclick='showTab(\"benchmark\",event)'>Performance</button>";
+  html += "<button class='nav-btn' data-icon='📤' onclick='showTab(\"export\",event)'>Export</button>";
+  html += "</nav>";
+  html += "<main class='app-main'>";
   html += "<div class='content'>";
-  html += "<div id='tabContainer'></div>";
+  html += "<div id='tabContainer' class='tab-container'></div>";
+  html += "</div>";
+  html += "</main>";
   html += "</div>";
   html += "</div>";
   html += "<script src='/js/app.js'></script>";
@@ -204,7 +1077,6 @@ String generateHTML() {
 
   return html;
 }
-
 // Génère le JavaScript principal
 String generateJavaScript() {
   String js = "console.log('ESP32 Diagnostic v";
@@ -235,7 +1107,12 @@ String generateJavaScript() {
   js += "async function loadAllData(){";
   js += "showUpdateIndicator();";
   js += "try{";
-  js += "await Promise.all([updateSystemInfo(),updateMemoryInfo(),updateWiFiInfo(),updatePeripheralsInfo()]);";
+  js += "const [overviewRes,wirelessRes]=await Promise.all([fetch('/api/overview'),fetch('/api/wireless-status')]);";
+  js += "const overview=await overviewRes.json();";
+  js += "const wireless=await wirelessRes.json();";
+  js += "applyOverviewData(overview);";
+  js += "updateRealtimeValues(overview);";
+  js += "updateWirelessSummary(wireless);";
   js += "isConnected=true;updateStatusIndicator(true);";
   js += "}catch(error){console.error('Erreur:',error);isConnected=false;updateStatusIndicator(false);}";
   js += "hideUpdateIndicator();";
@@ -244,22 +1121,33 @@ String generateJavaScript() {
   // Live data
   js += "async function updateLiveData(){";
   js += "try{";
-  js += "const response=await fetch('/api/status');";
-  js += "const data=await response.json();";
-  js += "updateRealtimeValues(data);";
+  js += "const [overviewRes,wirelessRes]=await Promise.all([fetch('/api/overview'),fetch('/api/wireless-status')]);";
+  js += "const overview=await overviewRes.json();";
+  js += "const wireless=await wirelessRes.json();";
+  js += "applyOverviewData(overview);";
+  js += "updateRealtimeValues(overview);";
+  js += "updateWirelessSummary(wireless);";
   js += "isConnected=true;updateStatusIndicator(true);";
   js += "}catch(error){console.error('Erreur:',error);isConnected=false;updateStatusIndicator(false);}";
   js += "}";
 
-  // Update functions
-  js += "async function updateSystemInfo(){";
-  js += "const r=await fetch('/api/system-info');const d=await r.json();";
-  js += "document.getElementById('chipModel').textContent=d.chipModel;";
-  js += "document.getElementById('ipAddress').textContent=d.ipAddress;";
+  js += "function applyOverviewData(data){";
+  js += "if(!data)return;";
+  js += "const chip=data.chip||{};";
+  js += "const wifi=data.wifi||{};";
+  js += "const chipEl=document.getElementById('chipModel');";
+  js += "if(chipEl)chipEl.textContent=chip.model||'—';";
+  js += "const ipEl=document.getElementById('ipAddress');";
+  js += "if(ipEl)ipEl.textContent=(wifi.ip&&wifi.ip.length)?wifi.ip:'—';";
+  js += "const summaryChip=document.getElementById('summaryChip');";
+  js += "if(summaryChip)summaryChip.textContent=chip.model||'—';";
+  js += "const summaryNetwork=document.getElementById('summaryNetwork');";
+  js += "if(summaryNetwork)summaryNetwork.textContent=(wifi.ssid&&wifi.ssid.length)?wifi.ssid:(translations.wifi_not_connected||'Non connecté');";
+  js += "const summaryUptime=document.getElementById('summaryUptime');";
+  js += "if(summaryUptime&&typeof chip.uptime!=='undefined')summaryUptime.textContent=formatUptime(chip.uptime);";
+  js += "const qualityEl=document.getElementById('networkQuality');";
+  js += "if(qualityEl)qualityEl.textContent=wifi.quality||'—';";
   js += "}";
-  js += "async function updateMemoryInfo(){await fetch('/api/memory');}";
-  js += "async function updateWiFiInfo(){await fetch('/api/wifi-info');}";
-  js += "async function updatePeripheralsInfo(){await fetch('/api/peripherals');}";
 
   js += "async function loadWirelessStatus(){try{const r=await fetch('/api/wireless-status');const d=await r.json();updateWirelessSummary(d);}catch(e){console.error('wireless-status',e);}}";
   js += R"JS(function updateWirelessSummary(data) {
@@ -273,6 +1161,17 @@ String generateJavaScript() {
       } else {
         wifiStatus.textContent = translations.wifi_not_connected || 'Non connecté';
       }
+    }
+
+    const summaryNetwork = document.getElementById('summaryNetwork');
+    if (summaryNetwork) {
+      summaryNetwork.textContent = wifiData.connected
+        ? (wifiData.ssid || '—')
+        : (translations.wifi_not_connected || 'Non connecté');
+    }
+    const qualityChip = document.getElementById('networkQuality');
+    if (qualityChip) {
+      qualityChip.textContent = wifiData.quality || '—';
     }
 
     const wifiDetails = document.getElementById('wifi-summary-details');
@@ -411,7 +1310,7 @@ String generateJavaScript() {
   js += "tab.innerHTML='<div class=\"section\"><div class=\"loading\"></div><p style=\"text-align:center\">Chargement...</p></div>';";
   js += "tab.classList.add('active');";
   js += "try{";
-  js += "if(tabName==='overview'){const r=await fetch('/api/overview');const d=await r.json();tab.innerHTML=buildOverview(d);}";
+  js += "if(tabName==='overview'){const r=await fetch('/api/overview');const d=await r.json();tab.innerHTML=buildOverview(d);applyOverviewData(d);updateRealtimeValues(d);}";
   js += "else if(tabName==='leds'){const r=await fetch('/api/leds-info');const d=await r.json();tab.innerHTML=buildLeds(d);}";
   js += "else if(tabName==='screens'){const r=await fetch('/api/screens-info');const d=await r.json();tab.innerHTML=buildScreens(d);}";
   js += "else if(tabName==='tests'){tab.innerHTML=buildTests();}";
@@ -861,24 +1760,46 @@ String generateJavaScript() {
   js += "function showInlineNotice(id,message,type){const el=document.getElementById(id);if(!el||!message)return;const tone=type||'info';el.classList.remove('success','error','info');el.classList.add('inline-feedback',tone);el.classList.add('show');clearTimeout(inlineNoticeTimers[id]);inlineNoticeTimers[id]=setTimeout(()=>{el.classList.remove('show');},4000);}";
   js += "function updateStatusIndicator(c){";
   js += "const i=document.getElementById('statusIndicator');";
-  js += "if(c){i.classList.remove('status-offline');i.classList.add('status-online');}";
-  js += "else{i.classList.remove('status-online');i.classList.add('status-offline');}";
+  js += "if(i){if(c){i.classList.remove('status-offline');i.classList.add('status-online');}";
+  js += "else{i.classList.remove('status-online');i.classList.add('status-offline');}}";
+  js += "const txt=document.getElementById('serviceStatus');";
+  js += "if(txt){const online=(translations.online_status||'Connecté');const offline=(translations.offline_status||'Déconnecté');";
+  js += "txt.textContent=c?online:offline;txt.classList.toggle('offline',!c);}";
   js += "}";
 
-  js += "function updateRealtimeValues(d){";
-  js += "const u=document.getElementById('uptime');if(u)u.textContent=formatUptime(d.uptime);";
-  js += "const t=document.getElementById('temperature');if(t&&d.temperature!==-999)t.textContent=d.temperature.toFixed(1)+' °C';";
-  js += "const sf=document.getElementById('sram-free');if(sf)sf.textContent=(d.sram.free/1024).toFixed(2)+' KB';";
-  js += "const su=document.getElementById('sram-used');if(su)su.textContent=(d.sram.used/1024).toFixed(2)+' KB';";
-  js += "const sp=document.getElementById('sram-progress');";
-  js += "if(sp&&d.sram.total>0){const pct=((d.sram.used/d.sram.total)*100).toFixed(1);sp.style.width=pct+'%';sp.textContent=pct+'%';}";
-  js += "if(d.psram&&d.psram.total>0){";
-  js += "const pf=document.getElementById('psram-free');if(pf)pf.textContent=(d.psram.free/1048576).toFixed(2)+' MB';";
-  js += "const pu=document.getElementById('psram-used');if(pu)pu.textContent=(d.psram.used/1048576).toFixed(2)+' MB';";
-  js += "const pp=document.getElementById('psram-progress');";
-  js += "if(pp){const pct=((d.psram.used/d.psram.total)*100).toFixed(1);pp.style.width=pct+'%';pp.textContent=pct+'%';}";
+  js += "function updateRealtimeValues(data){";
+  js += "if(!data)return;";
+  js += "const chip=data.chip||{};";
+  js += "const memory=data.memory||{};";
+  js += "const wifi=data.wifi||{};";
+  js += "const uptimeEl=document.getElementById('uptime');";
+  js += "if(uptimeEl&&typeof chip.uptime!=='undefined')uptimeEl.textContent=formatUptime(chip.uptime);";
+  js += "const summaryUptime=document.getElementById('summaryUptime');";
+  js += "if(summaryUptime&&typeof chip.uptime!=='undefined')summaryUptime.textContent=formatUptime(chip.uptime);";
+  js += "const tempEl=document.getElementById('temperature');";
+  js += "if(tempEl&&typeof chip.temperature!=='undefined'&&chip.temperature!==-999){const tempVal=typeof chip.temperature==='number'?chip.temperature:parseFloat(chip.temperature);if(!isNaN(tempVal))tempEl.textContent=tempVal.toFixed(1)+' °C';}";
+  js += "const ipEl=document.getElementById('ipAddress');";
+  js += "if(ipEl)ipEl.textContent=(wifi.ip&&wifi.ip.length)?wifi.ip:'—';";
+  js += "const summaryNetwork=document.getElementById('summaryNetwork');";
+  js += "if(summaryNetwork)summaryNetwork.textContent=(wifi.ssid&&wifi.ssid.length)?wifi.ssid:(translations.wifi_not_connected||'Non connecté');";
+  js += "const qualityEl=document.getElementById('networkQuality');";
+  js += "if(qualityEl)qualityEl.textContent=wifi.quality||'—';";
+  js += "const sram=memory.sram||{};";
+  js += "const sramFree=document.getElementById('sram-free');";
+  js += "if(sramFree&&typeof sram.free!=='undefined')sramFree.textContent=(sram.free/1024).toFixed(2)+' KB';";
+  js += "const sramUsed=document.getElementById('sram-used');";
+  js += "if(sramUsed&&typeof sram.used!=='undefined')sramUsed.textContent=(sram.used/1024).toFixed(2)+' KB';";
+  js += "const sramProgress=document.getElementById('sram-progress');";
+  js += "if(sramProgress&&typeof sram.total!=='undefined'&&sram.total>0){const pct=((sram.used/sram.total)*100).toFixed(1);sramProgress.style.width=pct+'%';sramProgress.textContent=pct+'%';}";
+  js += "const psram=memory.psram||{};";
+  js += "if(psram&&typeof psram.total!=='undefined'&&psram.total>0){";
+  js += "const psramFree=document.getElementById('psram-free');if(psramFree)psramFree.textContent=(psram.free/1048576).toFixed(2)+' MB';";
+  js += "const psramUsed=document.getElementById('psram-used');if(psramUsed)psramUsed.textContent=(psram.used/1048576).toFixed(2)+' MB';";
+  js += "const psramProgress=document.getElementById('psram-progress');";
+  js += "if(psramProgress){const pct=((psram.used/psram.total)*100).toFixed(1);psramProgress.style.width=pct+'%';psramProgress.textContent=pct+'%';}";
   js += "}";
-  js += "const f=document.getElementById('fragmentation');if(f)f.textContent=d.fragmentation.toFixed(1)+'%';";
+  js += "const fragEl=document.getElementById('fragmentation');";
+  js += "if(fragEl&&typeof memory.fragmentation!=='undefined')fragEl.textContent=parseFloat(memory.fragmentation).toFixed(1)+'%';";
   js += "}";
 
   // Changement de langue
@@ -892,6 +1813,7 @@ String generateJavaScript() {
   js += "}).then(r=>r.json()).then(tr=>{";
   js += "translations=tr||{};";
   js += "updateInterfaceTexts(translations);";
+  js += "updateLiveData();";
   js += "const msg=(translations.language_changed||'Langue changée')+' : '+lang.toUpperCase();";
   js += "showUpdateIndicator(msg);hideUpdateIndicator(2000);";
   js += "}).catch(()=>{showUpdateIndicator('Erreur changement langue');hideUpdateIndicator(2500);});";
@@ -901,8 +1823,10 @@ String generateJavaScript() {
   js += "const tabs=['overview','leds','screens','tests','gpio','wifi','benchmark','export'];";
   js += "const btns=document.querySelectorAll('.nav-btn');";
   js += "btns.forEach((btn,i)=>{if(t[tabs[i]])btn.textContent=t[tabs[i]];});";
+  js += "document.querySelectorAll('[data-i18n]').forEach(el=>{const key=el.dataset.i18n;if(key&&t[key])el.textContent=t[key];});";
   js += "const gpioWarn=document.getElementById('gpio-warning');if(gpioWarn&&t.gpio_fail_hint)gpioWarn.textContent=t.gpio_fail_hint;";
   js += "const oledInput=document.getElementById('oledText');if(oledInput&&t.custom_message)oledInput.placeholder=t.custom_message;";
+  js += "if(typeof isConnected!=='undefined'){updateStatusIndicator(isConnected);}";
   js += "}";
 
   return js;

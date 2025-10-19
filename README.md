@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v4.0.18
+# ESP32 Complete Diagnostic v4.1.0
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v4.0.18**: Fixes the Wi-Fi scan JavaScript so interface buttons (including language switching) respond again, and bumps the firmware/docs to version 4.0.18.
+**What's new in v4.1.0**: Complete responsive redesign of the web dashboard while preserving every diagnostic control.
 
 ## ✨ Features
 
@@ -345,7 +345,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v4.0.18
+## 📁 Project Structure v4.1.0
 
 ```
 ESP32-Diagnostic/
@@ -359,6 +359,10 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v4.1.0 (2025) - MODERN RESPONSIVE DASHBOARD
+- 🧭 **Brand-new responsive web interface** with a streamlined layout, refined typography, and glassmorphism-inspired cards while keeping all diagnostics one click away.
+- 🖥️ **Improved readability on desktops and mobile devices**, including adaptive navigation, refreshed status indicators, and reorganized context panels.
 
 ### v4.0.18 (2025) - WEB CONTROLS RESTORED
 - 🔁 **Repaired the Wi-Fi scan script** so every button (including language switching and BLE refresh) works again.
@@ -444,6 +448,7 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
+**v4.1.0 - Modern responsive dashboard overhaul**
 **v4.0.18 - Web UI button hotfix & version bump**
 **v4.0.17 - Always-on wireless summary & guarded BLE scans**
 **v4.0.16 - Wireless Bluetooth card + NimBLE preference**
@@ -456,7 +461,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 4.0.18 (multilingual)
+**Current version**: 4.1.0 (multilingual)
 **Last update**: October 2025
 **Available languages**: French (default), English
 **Support**: ESP32 Arduino Core 3.3.2+
