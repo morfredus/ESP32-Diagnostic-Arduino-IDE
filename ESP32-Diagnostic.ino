@@ -1,10 +1,13 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.18
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.1.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v4.1.0:
+ * - Refonte totale de l'interface web avec une mise en page moderne et parfaitement responsive
+
  * Nouveautés v4.0.18:
  * - Corrige la fonction JavaScript du scan Wi-Fi pour restaurer les boutons et le changement de langue de l'interface web
  * - Met à jour les identifiants firmware, le moniteur série et la documentation en version 4.0.18
@@ -125,7 +128,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.18"
+#define DIAGNOSTIC_VERSION "4.1.0"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -3388,7 +3391,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.18 - FR/EN");
+  Serial.println("     Version 4.1.0 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
