@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.5
+# ESP32 Complete Diagnostic v2.6.0
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.5**: Interface available in **French** and **English** (reload page to set)**.
+**What's new in v2.6.0**: Removed TFT screen handling, expanded OLED tooling with per-step controls, and streamlined I2C reconfiguration for the display.
 
 ## ✨ Features
 
@@ -29,8 +29,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 ### Hardware Tests
 - **Built-in LED** - Configuration and testing with patterns (blink, fade)
 - **NeoPixel/WS2812B** - Multi-LED support with RGB effects
-- **TFT 320x240 Screen** - Color, shape, text testing
-- **OLED 0.96" I2C Screen** - 10 display tests including animations
+- **OLED 0.96" I2C Screen** - 10 display tests including animations + manual step triggers
 - **GPIO** - Automatic testing of all available GPIO
 - **ADC** - Reading all analog channels
 - **Touch Pads** - Capacitive touch sensor testing
@@ -72,7 +71,7 @@ Tested and optimized for:
 ### Hardware
 - ESP32 board (any model)
 - USB cable
-- Optional: NeoPixel LED, TFT screen, OLED screen
+- Optional: NeoPixel LED, OLED screen
 
 ### Software
 - **Arduino IDE** 2.x or higher
@@ -86,7 +85,6 @@ Tested and optimized for:
 2. Adafruit GFX Library
 3. Adafruit SSD1306
 4. Adafruit NeoPixel
-5. TFT_eSPI
 ```
 
 **Included with ESP32 Core:**
@@ -226,11 +224,6 @@ curl http://ESP32-Diagnostic.local/api/get-translations
 | ESP32-S3 | 8   | 9   |
 | ESP32-C3 | 5   | 6   |
 
-**TFT SPI (fixed):**
-```
-MOSI: 45, SCLK: 3, CS: 14, DC: 47, RST: 21, MISO: 46
-```
-
 **Built-in LED (auto-detected):**
 - ESP32-S3: GPIO 2
 - ESP32-C3: GPIO 8
@@ -250,7 +243,7 @@ MOSI: 45, SCLK: 3, CS: 14, DC: 47, RST: 21, MISO: 46
 
 1. **Overview** - Complete system information
 2. **LEDs** - Built-in LED and NeoPixel tests
-3. **Screens** - TFT and OLED tests
+3. **Screens** - OLED tests with manual step controls
 4. **Advanced Tests** - ADC, Touch, PWM, SPI, Partitions, Stress Test
 5. **GPIO** - Automatic all GPIO testing
 6. **WiFi** - WiFi network scanner
@@ -351,7 +344,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.5
+## 📁 Project Structure v2.6.0
 
 ```
 ESP32-Diagnostic/
@@ -365,6 +358,15 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v2.6.0 (2025) - OLED CONTROLS REFRESH
+- Removed TFT SPI screen support from firmware, UI and documentation
+- Added individual OLED test buttons alongside the full test workflow
+- Simplified OLED I2C reconfiguration from the web interface
+
+### v2.5.1 (2025) - PSRAM GUIDANCE
+- ✅ **Clearer PSRAM hardware status** when the board supports external RAM but it is disabled in the Arduino IDE
+- 📊 Web overview, printable export, TXT/CSV/JSON outputs and API now surface PSRAM support and activation hints
 
 ### v2.5 (2025) - MULTILINGUAL
 - ✨ **Exporting files in multilingual** (FR/EN)
@@ -400,13 +402,15 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
+**v2.6.0 - OLED controls refresh & TFT removal**
+**v2.5.1 - Clearer PSRAM status guidance**
 **v2.5 - Translation of export files**
 **v2.4 - Multilingual system**
 **v2.3 - Comprehensive base**
 
 ---
 
-**Current version**: 2.5 Multilingual  
+**Current version**: 2.6.0 Multilingual + OLED tooling refresh
 **Last update**: October 2025  
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.1.3+
