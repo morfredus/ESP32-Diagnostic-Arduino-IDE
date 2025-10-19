@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.5
+# ESP32 Complete Diagnostic v2.5.1
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.5**: Interface available in **French** and **English** (reload page to set)**.
+**What's new in v2.5.1**: Clear PSRAM status when the board supports external RAM but it is disabled in the Arduino IDE (OPI/QSPI).
 
 ## ✨ Features
 
@@ -351,7 +351,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.5
+## 📁 Project Structure v2.5.1
 
 ```
 ESP32-Diagnostic/
@@ -365,6 +365,10 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v2.5.1 (2025) - PSRAM GUIDANCE
+- ✅ **Clearer PSRAM hardware status** when the board supports external RAM but it is disabled in the Arduino IDE
+- 📊 Web overview, printable export, TXT/CSV/JSON outputs and API now surface PSRAM support and activation hints
 
 ### v2.5 (2025) - MULTILINGUAL
 - ✨ **Exporting files in multilingual** (FR/EN)
@@ -400,13 +404,14 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
+**v2.5.1 - Clearer PSRAM status guidance**
 **v2.5 - Translation of export files**
 **v2.4 - Multilingual system**
 **v2.3 - Comprehensive base**
 
 ---
 
-**Current version**: 2.5 Multilingual  
+**Current version**: 2.5.1 Multilingual + PSRAM guidance
 **Last update**: October 2025  
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.1.3+

@@ -1,12 +1,15 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.5
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.5.1
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.1.3
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v2.5.1:
+ * - Statut PSRAM clarifié quand la carte supporte la mémoire mais n'est pas activée dans l'IDE
+ *
  * Nouveautés v2.5:
- * - Traducion des exports (Français/Anglais)
+ * - Traduction des exports (Français/Anglais)
  * 
  * Nouveautés v2.4:
  * - Interface multilingue (Français/Anglais)
@@ -39,7 +42,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.5"
+#define DIAGNOSTIC_VERSION "2.5.1"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -166,7 +169,9 @@ struct DetailedMemoryInfo {
   uint32_t psramLargestBlock;
   bool psramAvailable;
   bool psramConfigured;
-  
+  bool psramBoardSupported;
+  const char* psramType;
+
   uint32_t sramTotal;
   uint32_t sramFree;
   uint32_t sramUsed;
@@ -389,25 +394,34 @@ void collectDetailedMemory() {
   
   detailedMemory.psramTotal = ESP.getPsramSize();
   detailedMemory.psramAvailable = (detailedMemory.psramTotal > 0);
-  
+
   detailedMemory.psramConfigured = false;
-  
+  detailedMemory.psramBoardSupported = false;
+  detailedMemory.psramType = "PSRAM";
+
   #if defined(CONFIG_SPIRAM)
     detailedMemory.psramConfigured = true;
+    detailedMemory.psramBoardSupported = true;
   #endif
   #if defined(CONFIG_SPIRAM_SUPPORT)
     detailedMemory.psramConfigured = true;
+    detailedMemory.psramBoardSupported = true;
   #endif
   #if defined(BOARD_HAS_PSRAM)
     detailedMemory.psramConfigured = true;
+    detailedMemory.psramBoardSupported = true;
   #endif
   #if defined(CONFIG_SPIRAM_MODE_OCT)
     detailedMemory.psramConfigured = true;
+    detailedMemory.psramBoardSupported = true;
+    detailedMemory.psramType = "OPI";
   #endif
   #if defined(CONFIG_SPIRAM_MODE_QUAD)
     detailedMemory.psramConfigured = true;
+    detailedMemory.psramBoardSupported = true;
+    detailedMemory.psramType = "QSPI";
   #endif
-  
+
   if (detailedMemory.psramTotal == 0) {
     detailedMemory.psramConfigured = false;
   }
@@ -461,7 +475,7 @@ void printPSRAMDiagnostic() {
   
   Serial.println("\r\nFlags de compilation detectes (indication du type supporte par la carte):");
   bool anyFlag = false;
-  String psramType = "Inconnu";
+  String psramType = detailedMemory.psramType ? detailedMemory.psramType : "Inconnu";
   
   #ifdef CONFIG_SPIRAM
     Serial.println("  ✓ CONFIG_SPIRAM");
@@ -1614,8 +1628,10 @@ void handleMemoryDetails() {
   collectDetailedMemory();
   
   String json = "{\"flash\":{\"real\":" + String(detailedMemory.flashSizeReal) + ",\"chip\":" + String(detailedMemory.flashSizeChip) + "},";
-  json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") + 
-          ",\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") + 
+  json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") +
+          ",\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") +
+          ",\"supported\":" + String(detailedMemory.psramBoardSupported ? "true" : "false") +
+          ",\"type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : "Inconnu") + "\"" +
           ",\"total\":" + String(detailedMemory.psramTotal) + ",\"free\":" + String(detailedMemory.psramFree) + "},";
   json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) + ",\"free\":" + String(detailedMemory.sramFree) + "},";
   json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",\"status\":\"" + detailedMemory.memoryStatus + "\"}";
@@ -1650,6 +1666,10 @@ void handleExportTXT() {
   txt += "PSRAM: " + String(detailedMemory.psramTotal / 1048576.0, 2) + " MB";
   if (detailedMemory.psramAvailable) {
     txt += " (" + String(T().free) + ": " + String(detailedMemory.psramFree / 1048576.0, 2) + " MB)\r\n";
+  } else if (detailedMemory.psramBoardSupported) {
+    String psramHint = String(T().enable_psram_hint);
+    psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
+    txt += " (" + String(T().supported_not_enabled) + " - " + psramHint + ")\r\n";
   } else {
     txt += " (" + String(T().not_detected) + ")\r\n";
   }
@@ -1740,6 +1760,8 @@ void handleExportJSON() {
   json += "\"psram_mb\":" + String(detailedMemory.psramTotal / 1048576.0, 2) + ",";
   json += "\"psram_free_mb\":" + String(detailedMemory.psramFree / 1048576.0, 2) + ",";
   json += "\"psram_available\":" + String(detailedMemory.psramAvailable ? "true" : "false") + ",";
+  json += "\"psram_supported\":" + String(detailedMemory.psramBoardSupported ? "true" : "false") + ",";
+  json += "\"psram_type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : "Inconnu") + "\",";
   json += "\"sram_kb\":" + String(detailedMemory.sramTotal / 1024.0, 2) + ",";
   json += "\"sram_free_kb\":" + String(detailedMemory.sramFree / 1024.0, 2) + ",";
   json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",";
@@ -1820,6 +1842,16 @@ void handleExportCSV() {
   csv += String(T().memory_details) + "," + String(T().flash_type) + "," + getFlashType() + "\r\n";
   csv += String(T().memory_details) + ",PSRAM MB," + String(detailedMemory.psramTotal / 1048576.0, 2) + "\r\n";
   csv += String(T().memory_details) + ",PSRAM " + String(T().free) + " MB," + String(detailedMemory.psramFree / 1048576.0, 2) + "\r\n";
+  String psramStatus = detailedMemory.psramAvailable ? String(T().detected_active)
+                                                    : (detailedMemory.psramBoardSupported ? String(T().supported_not_enabled)
+                                                                                        : String(T().not_detected));
+  csv += String(T().memory_details) + ",PSRAM Statut,\"" + psramStatus + "\"\r\n";
+  if (!detailedMemory.psramAvailable && detailedMemory.psramBoardSupported) {
+    String psramHint = String(T().enable_psram_hint);
+    psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
+    psramHint.replace("\"", "'");
+    csv += String(T().memory_details) + ",PSRAM Conseils,\"" + psramHint + "\"\r\n";
+  }
   csv += String(T().memory_details) + ",SRAM KB," + String(detailedMemory.sramTotal / 1024.0, 2) + "\r\n";
   csv += String(T().memory_details) + ",SRAM " + String(T().free) + " KB," + String(detailedMemory.sramFree / 1024.0, 2) + "\r\n";
   csv += String(T().memory_details) + "," + String(T().memory_fragmentation) + " %," + String(detailedMemory.fragmentationPercent, 1) + "\r\n";
@@ -1926,6 +1958,11 @@ void handlePrintVersion() {
     html += "<td>" + String(detailedMemory.psramFree / 1048576.0, 1) + " MB</td>";
     html += "<td>" + String(detailedMemory.psramUsed / 1048576.0, 1) + " MB</td>";
     html += "<td><span class='badge badge-success'>Détectée</span></td>";
+  } else if (detailedMemory.psramBoardSupported) {
+    html += "<td>-</td><td>-</td>";
+    String psramHint = String(T().enable_psram_hint);
+    psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
+    html += "<td><span class='badge badge-warning'>" + String(T().supported_not_enabled) + "</span><br><small>" + psramHint + "</small></td>";
   } else {
     html += "<td>-</td><td>-</td>";
     html += "<td><span class='badge badge-danger'>Non détectée</span></td>";
@@ -2180,6 +2217,11 @@ void handleRoot() {
     chunk += "<div class='info-item'><div class='info-label'>" + String(T().total_size) + "</div><div class='info-value'>" + String(detailedMemory.psramTotal / 1048576.0, 2) + " MB</div></div>";
     chunk += "<div class='info-item'><div class='info-label'>" + String(T().free) + "</div><div class='info-value'>" + String(detailedMemory.psramFree / 1048576.0, 2) + " MB</div></div>";
     chunk += "<div class='info-item'><div class='info-label'>" + String(T().used) + "</div><div class='info-value'>" + String(detailedMemory.psramUsed / 1048576.0, 2) + " MB</div></div>";
+  } else if (detailedMemory.psramBoardSupported) {
+    chunk += "<div class='info-item'><div class='info-label'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-warning'>" + String(T().supported_not_enabled) + "</span></div></div>";
+    String psramHint = String(T().enable_psram_hint);
+    psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
+    chunk += "<div class='info-item' style='grid-column:1/-1'><div class='info-label'>" + String(T().ide_config) + "</div><div class='info-value'>" + psramHint + "</div></div>";
   } else {
     chunk += "<div class='info-item'><div class='info-label'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-danger'>" + String(T().not_detected) + "</span></div></div>";
   }
