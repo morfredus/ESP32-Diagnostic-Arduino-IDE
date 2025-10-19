@@ -1,10 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.17
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.18
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v4.0.18:
+ * - Corrige la fonction JavaScript du scan Wi-Fi pour restaurer les boutons et le changement de langue de l'interface web
+ * - Met à jour les identifiants firmware, le moniteur série et la documentation en version 4.0.18
+
  * Nouveautés v4.0.17:
  * - Ajoute un résumé Wi-Fi/Bluetooth permanent dans l'onglet Sans fil, quel que soit l'état des piles radio
  * - Désactive intelligemment le scan BLE et affiche les messages d'indisponibilité quand la pile n'est pas compilée
@@ -121,7 +125,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.17"
+#define DIAGNOSTIC_VERSION "4.0.18"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -3342,6 +3346,7 @@ void handleRoot() {
   chunk += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+n.bssid+' | Ch'+n.channel+' | '+n.encryption+'</small></div>';";
   chunk += "h+='<div style=\"font-size:1.2em;font-weight:bold\">'+n.rssi+' dBm</div></div></div>'});";
   chunk += "document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' '+(translations.networks||'réseaux')+' '+(translations.detected||'détectés');}).then(()=>loadWirelessStatus()).catch(err=>{console.error('scanWiFi',err);});";
+  chunk += "}";
 
   chunk += "function scanBLE(){";
   chunk += "const status=document.getElementById('ble-status');";
@@ -3383,7 +3388,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.17 - FR/EN");
+  Serial.println("     Version 4.0.18 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
