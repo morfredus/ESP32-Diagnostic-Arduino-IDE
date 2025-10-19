@@ -1,12 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.5.1
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.1.3
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v2.5.1:
- * - Statut PSRAM clarifié quand la carte supporte la mémoire mais n'est pas activée dans l'IDE
+ * Nouveautés v2.6.0:
+ * - Suppression complète du support des écrans TFT SPI
+ * - Ajout de commandes individuelles pour chaque étape du test OLED
+ * - Amélioration de l'interface web OLED avec reconfiguration I2C simplifiée
  *
  * Nouveautés v2.5:
  * - Traduction des exports (Français/Anglais)
@@ -30,7 +32,6 @@
 #include <soc/rtc.h>
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
-#include <TFT_eSPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <vector>
@@ -42,7 +43,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.5.1"
+#define DIAGNOSTIC_VERSION "2.6.0"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -51,14 +52,6 @@
 // Pins I2C pour OLED (modifiables via web)
 int I2C_SCL = 20;
 int I2C_SDA = 21;
-
-// Pins TFT (FIXES - non modifiables)
-#define TFT_MOSI  45
-#define TFT_SCLK   3
-#define TFT_CS    14
-#define TFT_DC    47
-#define TFT_RST   21
-#define TFT_MISO  46
 
 // OLED 0.96" I2C
 #define SCREEN_WIDTH 128
@@ -69,7 +62,6 @@ int I2C_SDA = 21;
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
 WiFiMulti wifiMulti;
-TFT_eSPI tft = TFT_eSPI();
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // NeoPixel
@@ -87,13 +79,6 @@ int BUILTIN_LED_PIN = -1;
 bool builtinLedTested = false;
 bool builtinLedAvailable = false;
 String builtinLedTestResult = "En attente d'initialisation";
-
-// TFT
-bool tftTested = false;
-bool tftAvailable = false;
-String tftTestResult = "En attente d'initialisation";
-int tftWidth = 0;
-int tftHeight = 0;
 
 // OLED
 bool oledTested = false;
@@ -147,12 +132,6 @@ struct DiagnosticInfo {
   
   String i2cDevices;
   int i2cCount;
-  
-  bool tftTested;
-  bool tftAvailable;
-  String tftResult;
-  int tftWidth;
-  int tftHeight;
   
   bool oledTested;
   bool oledAvailable;
@@ -824,102 +803,6 @@ void neopixelFade(uint32_t color) {
   strip->setBrightness(255);
 }
 
-// ========== TFT ==========
-void detectTFT() {
-  Serial.println("\r\n=== DETECTION TFT ===");
-  pinMode(TFT_CS, OUTPUT);
-  pinMode(TFT_DC, OUTPUT);
-  pinMode(TFT_RST, OUTPUT);
-  
-  digitalWrite(TFT_RST, LOW);
-  delay(20);
-  digitalWrite(TFT_RST, HIGH);
-  delay(150);
-  
-  // TFT SPI ne peut pas être détecté automatiquement
-  tftAvailable = false; // Par défaut NON détecté
-  tftTestResult = "Non teste - Config SPI prete";
-  Serial.printf("TFT: Pins configures CS=%d DC=%d RST=%d (test requis)\r\n", TFT_CS, TFT_DC, TFT_RST);
-}
-
-void testTFT() {
-  if (tftTested) return;
-  
-  Serial.println("\r\n=== TEST TFT ===");
-  tft.init();
-  tft.setRotation(1);
-  
-  tft.fillScreen(TFT_RED);
-  delay(500);
-  tft.fillScreen(TFT_GREEN);
-  delay(500);
-  tft.fillScreen(TFT_BLUE);
-  delay(500);
-  tft.fillScreen(TFT_WHITE);
-  delay(500);
-  
-  tft.fillScreen(TFT_BLACK);
-  int sq = 20;
-  for(int y = 0; y < 240; y += sq) {
-    for(int x = 0; x < 320; x += sq) {
-      if ((x/sq + y/sq) % 2 == 0) {
-        tft.fillRect(x, y, sq, sq, TFT_WHITE);
-      }
-    }
-  }
-  delay(1000);
-  
-  tft.fillScreen(TFT_NAVY);
-  tft.setTextColor(TFT_WHITE);
-  tft.setTextSize(2);
-  tft.setCursor(50, 100);
-  tft.println("TEST TFT OK");
-  delay(2000);
-  
-  tft.fillScreen(TFT_BLACK);
-  
-  tftWidth = tft.width();
-  tftHeight = tft.height();
-  tftAvailable = true;
-  tftTestResult = "Test OK - " + String(tftWidth) + "x" + String(tftHeight);
-  tftTested = true;
-  Serial.println("TFT: OK");
-}
-
-void resetTFTTest() {
-  tftTested = false;
-  tftAvailable = false;
-  tft.fillScreen(TFT_BLACK);
-}
-
-void tftTestColors() {
-  if (!tftAvailable) return;
-  tft.fillScreen(TFT_RED);
-  delay(300);
-  tft.fillScreen(TFT_GREEN);
-  delay(300);
-  tft.fillScreen(TFT_BLUE);
-  delay(300);
-  tft.fillScreen(TFT_BLACK);
-}
-
-void tftTestCheckerboard() {
-  if (!tftAvailable) return;
-  tft.fillScreen(TFT_BLACK);
-  int sq = 20;
-  for(int y = 0; y < 240; y += sq) {
-    for(int x = 0; x < 320; x += sq) {
-      if ((x/sq + y/sq) % 2 == 0) {
-        tft.fillRect(x, y, sq, sq, TFT_WHITE);
-      }
-    }
-  }
-}
-
-void tftClear() {
-  tft.fillScreen(TFT_BLACK);
-}
-
 // ========== OLED 0.96" ==========
 void detectOLED() {
   Serial.println("\r\n=== DETECTION OLED ===");
@@ -944,12 +827,8 @@ void detectOLED() {
   }
 }
 
-void testOLED() {
-  if (!oledAvailable || oledTested) return;
-  
-  Serial.println("\r\n=== TEST OLED ===");
-  
-  // Test 1: Texte de bienvenue
+void oledStepWelcome() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
   oled.setTextSize(1);
   oled.setTextColor(SSD1306_WHITE);
@@ -961,18 +840,24 @@ void testOLED() {
   oled.printf("SDA:%d SCL:%d", I2C_SDA, I2C_SCL);
   oled.display();
   delay(2000);
-  
-  // Test 2: Texte grand
+}
+
+void oledStepBigText() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
   oled.setTextSize(2);
+  oled.setTextColor(SSD1306_WHITE);
   oled.setCursor(20, 20);
   oled.println("ESP32");
   oled.display();
   delay(1500);
-  
-  // Test 3: Plusieurs tailles de texte
+}
+
+void oledStepTextSizes() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
   oled.setTextSize(1);
+  oled.setTextColor(SSD1306_WHITE);
   oled.setCursor(0, 0);
   oled.println("Taille 1");
   oled.setTextSize(2);
@@ -981,48 +866,59 @@ void testOLED() {
   oled.println("Retour taille 1");
   oled.display();
   delay(2000);
-  
-  // Test 4: Formes géométriques
+}
+
+void oledStepShapes() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
-  oled.drawRect(10, 10, 30, 20, SSD1306_WHITE);      // Rectangle
-  oled.fillRect(50, 10, 30, 20, SSD1306_WHITE);      // Rectangle plein
-  oled.drawCircle(25, 50, 10, SSD1306_WHITE);        // Cercle
-  oled.fillCircle(65, 50, 10, SSD1306_WHITE);        // Cercle plein
-  oled.drawTriangle(95, 30, 85, 10, 105, 10, SSD1306_WHITE); // Triangle
+  oled.drawRect(10, 10, 30, 20, SSD1306_WHITE);
+  oled.fillRect(50, 10, 30, 20, SSD1306_WHITE);
+  oled.drawCircle(25, 50, 10, SSD1306_WHITE);
+  oled.fillCircle(65, 50, 10, SSD1306_WHITE);
+  oled.drawTriangle(95, 30, 85, 10, 105, 10, SSD1306_WHITE);
   oled.display();
   delay(2000);
-  
-  // Test 5: Lignes
+}
+
+void oledStepHorizontalLines() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
-  for(int i = 0; i < SCREEN_HEIGHT; i += 4) {
+  for (int i = 0; i < SCREEN_HEIGHT; i += 4) {
     oled.drawLine(0, i, SCREEN_WIDTH, i, SSD1306_WHITE);
   }
   oled.display();
   delay(1500);
-  
-  // Test 6: Lignes diagonales
+}
+
+void oledStepDiagonals() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
-  for(int i = 0; i < SCREEN_WIDTH; i += 8) {
-    oled.drawLine(0, 0, i, SCREEN_HEIGHT-1, SSD1306_WHITE);
-    oled.drawLine(SCREEN_WIDTH-1, 0, i, SCREEN_HEIGHT-1, SSD1306_WHITE);
+  for (int i = 0; i < SCREEN_WIDTH; i += 8) {
+    oled.drawLine(0, 0, i, SCREEN_HEIGHT - 1, SSD1306_WHITE);
+    oled.drawLine(SCREEN_WIDTH - 1, 0, i, SCREEN_HEIGHT - 1, SSD1306_WHITE);
   }
   oled.display();
   delay(1500);
-  
-  // Test 7: Animation - carré mobile
-  for(int x = 0; x < SCREEN_WIDTH - 20; x += 4) {
+}
+
+void oledStepMovingSquare() {
+  if (!oledAvailable) return;
+  for (int x = 0; x < SCREEN_WIDTH - 20; x += 4) {
     oled.clearDisplay();
     oled.fillRect(x, 22, 20, 20, SSD1306_WHITE);
     oled.display();
     delay(20);
   }
-  
-  // Test 8: Barre de progression
+}
+
+void oledStepProgressBar() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
   oled.setTextSize(1);
+  oled.setTextColor(SSD1306_WHITE);
   oled.setCursor(20, 10);
   oled.println("Chargement");
-  for(int i = 0; i <= 100; i += 5) {
+  for (int i = 0; i <= 100; i += 5) {
     oled.drawRect(10, 30, 108, 15, SSD1306_WHITE);
     oled.fillRect(12, 32, i, 11, SSD1306_WHITE);
     oled.setCursor(45, 50);
@@ -1030,35 +926,103 @@ void testOLED() {
     oled.display();
     delay(100);
     if (i < 100) {
-      oled.fillRect(12, 32, i, 11, SSD1306_BLACK); // Effacer la barre
-      oled.fillRect(45, 50, 40, 10, SSD1306_BLACK); // Effacer le %
+      oled.fillRect(12, 32, i, 11, SSD1306_BLACK);
+      oled.fillRect(45, 50, 40, 10, SSD1306_BLACK);
     }
   }
   delay(1000);
-  
-  // Test 9: Texte défilant
+}
+
+void oledStepScrollText() {
+  if (!oledAvailable) return;
   String scrollText = "  DIAGNOSTIC ESP32 COMPLET - OLED 0.96 pouces I2C  ";
-  for(int offset = 0; offset < scrollText.length() * 6; offset += 2) {
+  for (int offset = 0; offset < scrollText.length() * 6; offset += 2) {
     oled.clearDisplay();
     oled.setTextSize(1);
+    oled.setTextColor(SSD1306_WHITE);
     oled.setCursor(-offset, 28);
     oled.print(scrollText);
     oled.display();
     delay(30);
   }
-  
-  // Test 10: Affichage final
+}
+
+void oledStepFinalMessage() {
+  if (!oledAvailable) return;
   oled.clearDisplay();
   oled.setTextSize(1);
+  oled.setTextColor(SSD1306_WHITE);
   oled.setCursor(30, 20);
   oled.println("TEST OK!");
   oled.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
   oled.display();
   delay(2000);
-  
   oled.clearDisplay();
   oled.display();
-  
+}
+
+bool performOLEDStep(const String &stepId) {
+  if (!oledAvailable) {
+    return false;
+  }
+
+  if (stepId == "welcome") {
+    oledStepWelcome();
+  } else if (stepId == "big_text") {
+    oledStepBigText();
+  } else if (stepId == "text_sizes") {
+    oledStepTextSizes();
+  } else if (stepId == "shapes") {
+    oledStepShapes();
+  } else if (stepId == "horizontal_lines") {
+    oledStepHorizontalLines();
+  } else if (stepId == "diagonals") {
+    oledStepDiagonals();
+  } else if (stepId == "moving_square") {
+    oledStepMovingSquare();
+  } else if (stepId == "progress_bar") {
+    oledStepProgressBar();
+  } else if (stepId == "scroll_text") {
+    oledStepScrollText();
+  } else if (stepId == "final_message") {
+    oledStepFinalMessage();
+  } else {
+    return false;
+  }
+
+  return true;
+}
+
+String getOLEDStepLabel(const String &stepId) {
+  if (stepId == "welcome") return String(T().oled_step_welcome);
+  if (stepId == "big_text") return String(T().oled_step_big_text);
+  if (stepId == "text_sizes") return String(T().oled_step_text_sizes);
+  if (stepId == "shapes") return String(T().oled_step_shapes);
+  if (stepId == "horizontal_lines") return String(T().oled_step_horizontal_lines);
+  if (stepId == "diagonals") return String(T().oled_step_diagonals);
+  if (stepId == "moving_square") return String(T().oled_step_moving_square);
+  if (stepId == "progress_bar") return String(T().oled_step_progress_bar);
+  if (stepId == "scroll_text") return String(T().oled_step_scroll_text);
+  if (stepId == "final_message") return String(T().oled_step_final_message);
+  return stepId;
+}
+
+void testOLED() {
+  if (!oledAvailable || oledTested) return;
+
+  Serial.println("\r\n=== TEST OLED ===");
+
+  oledStepWelcome();
+  oledStepBigText();
+  oledStepTextSizes();
+  oledStepShapes();
+  oledStepHorizontalLines();
+  oledStepDiagonals();
+  oledStepMovingSquare();
+  oledStepProgressBar();
+  oledStepScrollText();
+  oledStepFinalMessage();
+
   oledTested = true;
   oledTestResult = "Test OK - 128x64";
   Serial.println("OLED: Tests complets OK\r\n");
@@ -1313,12 +1277,6 @@ void collectDiagnosticInfo() {
   diagnosticData.neopixelAvailable = neopixelAvailable;
   diagnosticData.neopixelResult = neopixelTestResult;
   
-  diagnosticData.tftTested = tftTested;
-  diagnosticData.tftAvailable = tftAvailable;
-  diagnosticData.tftResult = tftTestResult;
-  diagnosticData.tftWidth = tftWidth;
-  diagnosticData.tftHeight = tftHeight;
-  
   diagnosticData.oledTested = oledTested;
   diagnosticData.oledAvailable = oledAvailable;
   diagnosticData.oledResult = oledTestResult;
@@ -1501,40 +1459,6 @@ void handleNeoPixelColor() {
   server.send(200, "application/json", "{\"success\":true,\"message\":\"RGB(" + String(r) + "," + String(g) + "," + String(b) + ")\"}");
 }
 
-void handleTFTTest() {
-  resetTFTTest();
-  testTFT();
-  server.send(200, "application/json", "{\"success\":" + String(tftAvailable ? "true" : "false") + 
-              ",\"result\":\"" + tftTestResult + "\",\"width\":" + String(tftWidth) + ",\"height\":" + String(tftHeight) + "}");
-}
-
-void handleTFTPattern() {
-  if (!server.hasArg("pattern")) {
-    server.send(400, "application/json", "{\"success\":false}");
-    return;
-  }
-  
-  String pattern = server.arg("pattern");
-  String message = "";
-  
-  if (pattern == "colors") {
-    tftTestColors();
-    message = "Couleurs OK";
-  } else if (pattern == "checkerboard") {
-    tftTestCheckerboard();
-    message = "Damier OK";
-  } else if (pattern == "clear") {
-    tftClear();
-    tftTested = false;
-    message = "Ecran efface";
-  } else {
-    server.send(400, "application/json", "{\"success\":false}");
-    return;
-  }
-  
-  server.send(200, "application/json", "{\"success\":true,\"message\":\"" + message + "\"}");
-}
-
 void handleOLEDConfig() {
   if (server.hasArg("sda") && server.hasArg("scl")) {
     int newSDA = server.arg("sda").toInt();
@@ -1557,6 +1481,29 @@ void handleOLEDTest() {
   resetOLEDTest();
   testOLED();
   server.send(200, "application/json", "{\"success\":" + String(oledAvailable ? "true" : "false") + ",\"result\":\"" + oledTestResult + "\"}");
+}
+
+void handleOLEDStep() {
+  if (!server.hasArg("step")) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().oled_step_unknown) + "\"}");
+    return;
+  }
+
+  String stepId = server.arg("step");
+
+  if (!oledAvailable) {
+    server.send(200, "application/json", "{\"success\":false,\"message\":\"" + String(T().oled_step_unavailable) + "\"}");
+    return;
+  }
+
+  bool ok = performOLEDStep(stepId);
+  if (!ok) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().oled_step_unknown) + "\"}");
+    return;
+  }
+
+  String label = getOLEDStepLabel(stepId);
+  server.send(200, "application/json", "{\"success\":true,\"message\":\"" + String(T().oled_step_executed_prefix) + " " + label + "\"}");
 }
 
 void handleOLEDMessage() {
@@ -1701,7 +1648,6 @@ void handleExportTXT() {
   txt += "=== " + String(T().test) + " ===\r\n";
   txt += String(T().builtin_led) + ": " + builtinLedTestResult + "\r\n";
   txt += "NeoPixel: " + neopixelTestResult + "\r\n";
-  txt += "TFT: " + tftTestResult + "\r\n";
   txt += "OLED: " + oledTestResult + "\r\n";
   txt += "ADC: " + adcTestResult + "\r\n";
   txt += "Touch: " + touchTestResult + "\r\n";
@@ -1792,7 +1738,6 @@ void handleExportJSON() {
   json += "\"hardware_tests\":{";
   json += "\"builtin_led\":\"" + builtinLedTestResult + "\",";
   json += "\"neopixel\":\"" + neopixelTestResult + "\",";
-  json += "\"tft\":\"" + tftTestResult + "\",";
   json += "\"oled\":\"" + oledTestResult + "\",";
   json += "\"adc\":\"" + adcTestResult + "\",";
   json += "\"touch\":\"" + touchTestResult + "\",";
@@ -1868,7 +1813,6 @@ void handleExportCSV() {
   
   csv += String(T().test) + "," + String(T().builtin_led) + "," + builtinLedTestResult + "\r\n";
   csv += String(T().test) + ",NeoPixel," + neopixelTestResult + "\r\n";
-  csv += String(T().test) + ",TFT," + tftTestResult + "\r\n";
   csv += String(T().test) + ",OLED," + oledTestResult + "\r\n";
   csv += String(T().test) + ",ADC," + adcTestResult + "\r\n";
   csv += String(T().test) + ",Touch," + touchTestResult + "\r\n";
@@ -2007,7 +1951,6 @@ void handlePrintVersion() {
   html += "<tr><th>Périphérique</th><th>Résultat</th></tr>";
   html += "<tr><td>LED intégrée</td><td>" + builtinLedTestResult + "</td></tr>";
   html += "<tr><td>NeoPixel</td><td>" + neopixelTestResult + "</td></tr>";
-  html += "<tr><td>Écran TFT</td><td>" + tftTestResult + "</td></tr>";
   html += "<tr><td>Écran OLED</td><td>" + oledTestResult + "</td></tr>";
   html += "<tr><td>ADC</td><td>" + adcTestResult + "</td></tr>";
   html += "<tr><td>Touch Pads</td><td>" + touchTestResult + "</td></tr>";
@@ -2068,7 +2011,6 @@ void handleGetTranslations() {
   json += "\"gpio_interfaces\":\"" + String(T().gpio_interfaces) + "\",";
   json += "\"i2c_peripherals\":\"" + String(T().i2c_peripherals) + "\",";
   json += "\"builtin_led\":\"" + String(T().builtin_led) + "\",";
-  json += "\"tft_screen\":\"" + String(T().tft_screen) + "\",";
   json += "\"oled_screen\":\"" + String(T().oled_screen) + "\",";
   json += "\"adc_test\":\"" + String(T().adc_test) + "\",";
   json += "\"touch_test\":\"" + String(T().touch_test) + "\",";
@@ -2293,16 +2235,6 @@ void handleRoot() {
   
   // CHUNK 5: TAB Screens
   chunk = "<div id='screens' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().tft_screen) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='tft-status'>" + tftTestResult + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().spi_pins) + "</div><div class='info-value'>CS:" + String(TFT_CS) + " DC:" + String(TFT_DC) + " RST:" + String(TFT_RST) + "</div></div>";
-  chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
-  chunk += "<button class='btn btn-primary' onclick='testTFT()'>" + String(T().full_test) + "</button>";
-  chunk += "<button class='btn btn-success' onclick='tftPattern(\"colors\")'>" + String(T().colors) + "</button>";
-  chunk += "<button class='btn btn-info' onclick='tftPattern(\"checkerboard\")'>" + String(T().checkerboard) + "</button>";
-  chunk += "<button class='btn btn-danger' onclick='tftPattern(\"clear\")'>" + String(T().clear) + "</button>";
-  chunk += "</div></div></div>";
-  
   chunk += "<div class='section'><h2>" + String(T().oled_screen) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='oled-status'>" + oledTestResult + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().i2c_pins) + "</div><div class='info-value'>SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "</div></div>";
@@ -2311,9 +2243,25 @@ void handleRoot() {
   chunk += "SCL: <input type='number' id='oledSCL' value='" + String(I2C_SCL) + "' min='0' max='48' style='width:70px'> ";
   chunk += "<button class='btn btn-info' onclick='configOLED()'>" + String(T().apply_redetect) + "</button>";
   if (oledAvailable) {
+    chunk += "<div style='margin-top:15px'>";
     chunk += "<button class='btn btn-primary' onclick='testOLED()'>" + String(T().full_test) + "</button>";
+    chunk += "</div>";
+    chunk += "<div class='oled-step-grid' style='margin-top:15px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px'>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"welcome\")'>" + String(T().oled_step_welcome) + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"big_text\")'>" + String(T().oled_step_big_text) + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"text_sizes\")'>" + String(T().oled_step_text_sizes) + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"shapes\")'>" + String(T().oled_step_shapes) + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"horizontal_lines\")'>" + String(T().oled_step_horizontal_lines) + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"diagonals\")'>" + String(T().oled_step_diagonals) + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"moving_square\")'>" + String(T().oled_step_moving_square) + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"progress_bar\")'>" + String(T().oled_step_progress_bar) + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"scroll_text\")'>" + String(T().oled_step_scroll_text) + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"final_message\")'>" + String(T().oled_step_final_message) + "</button>";
+    chunk += "</div>";
+    chunk += "<div style='margin-top:15px'>";
     chunk += "<input type='text' id='oledMsg' placeholder='" + String(T().custom_message) + "' style='width:250px;margin:0 5px'>";
     chunk += "<button class='btn btn-success' onclick='oledMessage()'>" + String(T().show_message) + "</button>";
+    chunk += "</div>";
   }
   chunk += "</div></div></div></div>";
   server.sendContent(chunk);
@@ -2457,14 +2405,11 @@ void handleRoot() {
   chunk += "const r=parseInt(c.substr(1,2),16),g=parseInt(c.substr(3,2),16),b=parseInt(c.substr(5,2),16);";
   chunk += "fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b).then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.message)}";
   
-  // TFT
-  chunk += "function testTFT(){document.getElementById('tft-status').innerHTML='Test en cours (15s)...';";
-  chunk += "fetch('/api/tft-test').then(r=>r.json()).then(d=>document.getElementById('tft-status').innerHTML=d.result)}";
-  chunk += "function tftPattern(p){fetch('/api/tft-pattern?pattern='+p).then(r=>r.json()).then(d=>document.getElementById('tft-status').innerHTML=d.message)}";
-  
   // OLED
   chunk += "function testOLED(){document.getElementById('oled-status').innerHTML='Test en cours (25s)...';";
   chunk += "fetch('/api/oled-test').then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.result)}";
+  chunk += "function oledStep(step){document.getElementById('oled-status').innerHTML='" + String(T().testing) + "';";
+  chunk += "fetch('/api/oled-step?step='+step).then(r=>r.json()).then(d=>{document.getElementById('oled-status').innerHTML=d.message;if(!d.success){alert(d.message)}})}";
   chunk += "function oledMessage(){fetch('/api/oled-message?message='+encodeURIComponent(document.getElementById('oledMsg').value))";
   chunk += ".then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.message)}";
   chunk += "function configOLED(){document.getElementById('oled-status').innerHTML='Reconfiguration...';";
@@ -2580,7 +2525,6 @@ void setup() {
     strip->show();
   }
   
-  detectTFT();
   detectOLED();
   
   if (ENABLE_I2C_SCAN) {
@@ -2617,9 +2561,8 @@ void setup() {
   server.on("/api/neopixel-color", handleNeoPixelColor);
   
   // Écrans
-  server.on("/api/tft-test", handleTFTTest);
-  server.on("/api/tft-pattern", handleTFTPattern);
   server.on("/api/oled-test", handleOLEDTest);
+  server.on("/api/oled-step", handleOLEDStep);
   server.on("/api/oled-message", handleOLEDMessage);
   server.on("/api/oled-config", handleOLEDConfig);
   
