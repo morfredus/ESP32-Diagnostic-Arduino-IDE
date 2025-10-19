@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# Diagnostic ESP32 Complet v4.0.16
+# Diagnostic ESP32 Complet v4.0.17
 
 🇫🇷 Version française | [🇬🇧 English Version](README.md)
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Outil de diagnostic exhaustif **multilingue** pour microcontrôleurs ESP32, accessible via interface web. Teste automatiquement tous les composants matériels, analyse la mémoire, scanne les périphériques et génère des rapports détaillés.
 
-**Nouveautés v4.0.16** : Restaure la carte Bluetooth de l'onglet Sans fil en corrigeant l'apostrophe mal échappée, en servant systématiquement le nouveau script JavaScript et en privilégiant NimBLE-Arduino lorsqu'elle est présente.
+**Nouveautés v4.0.17** : L'onglet Sans fil affiche toujours les cartes Wi-Fi et Bluetooth, désactive le scan BLE si la pile est absente et aligne le firmware/la documentation sur la version 4.0.17.
 
 ## ✨ Fonctionnalités
 
@@ -347,7 +347,7 @@ Si certains textes restent en français :
 
 **Ne jamais partager `config.h` avec vos identifiants WiFi.**
 
-## 📁 Structure du Projet v4.0.16
+## 📁 Structure du Projet v4.0.17
 
 ```
 ESP32-Diagnostic/
@@ -361,6 +361,11 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v4.0.17 (2025) - RÉSUMÉ SANS FIL TOUJOURS PRÉSENT
+- ♾️ **Les cartes Wi-Fi et Bluetooth s'affichent désormais systématiquement**, même lorsque le firmware ne contient pas la pile BLE.
+- 📴 **Le bouton de scan BLE se désactive automatiquement** en reprenant les mêmes messages d'indisponibilité que le moniteur série et les exports.
+- 🧾 **Firmware, interface et documentation passent en v4.0.17** pour refléter ce panneau sans fil permanent.
 
 ### v4.0.16 (2025) - CARTE BLUETOOTH FIABLE & NIMBLE PAR DÉFAUT
 - ♻️ **Correction du gabarit JavaScript Sans fil** afin que la carte Bluetooth s'affiche toujours sous le statut Wi-Fi.
@@ -437,6 +442,7 @@ Code libre d'utilisation, modification et distribution.
 
 Développé pour la communauté ESP32.
 
+**v4.0.17 - Résumé Sans fil permanent & scan BLE protégé**
 **v4.0.16 - Carte Bluetooth Sans fil + priorité NimBLE**
 **v4.0.11 - Statut Bluetooth partout**
 **v4.0.9 - Statut PSRAM et résumé Sans fil**
@@ -447,7 +453,7 @@ Développé pour la communauté ESP32.
 
 ---
 
-**Version actuelle** : 4.0.16 Multilingue
+**Version actuelle** : 4.0.17 Multilingue
 **Dernière mise à jour** : Octobre 2025
 **Langues disponibles** : Français (défaut), Anglais
 **Support** : ESP32 Arduino Core 3.3.2+

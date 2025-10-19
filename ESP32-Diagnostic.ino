@@ -1,10 +1,15 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.16
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v4.0.17
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v4.0.17:
+ * - Ajoute un résumé Wi-Fi/Bluetooth permanent dans l'onglet Sans fil, quel que soit l'état des piles radio
+ * - Désactive intelligemment le scan BLE et affiche les messages d'indisponibilité quand la pile n'est pas compilée
+ * - Met à jour la documentation et les identifiants firmware vers la version 4.0.17
+
  * Nouveautés v4.0.16:
  * - Corrige le script Sans fil pour supprimer une apostrophe échappée qui empêchait l'affichage de la carte Bluetooth
  * - Sert systématiquement l'application JavaScript dynamique et garantit l'initialisation de la carte BLE dès l'ouverture de l'onglet
@@ -116,7 +121,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "4.0.16"
+#define DIAGNOSTIC_VERSION "4.0.17"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2880,6 +2885,21 @@ void handleRoot() {
   chunk += ".gpio-fail{border-color:#dc3545;background:#f8d7da}";
   chunk += ".wifi-list{max-height:400px;overflow-y:auto}";
   chunk += ".wifi-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;border-left:4px solid #667eea}";
+  chunk += ".wireless-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;margin-bottom:20px}";
+  chunk += ".wireless-card{background:#fff;padding:20px;border-radius:12px;border:1px solid #e0e0e0;box-shadow:0 10px 30px rgba(0,0,0,.08)}";
+  chunk += ".wireless-card-title{font-weight:700;color:#3a7bd5;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;font-size:.95em}";
+  chunk += ".wireless-status{font-size:1.05em;font-weight:600;color:#333;margin-bottom:10px}";
+  chunk += ".wireless-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}";
+  chunk += ".wireless-list li{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f7f8ff;border-radius:8px;border:1px solid #e3e7ff}";
+  chunk += ".wireless-list li .label{flex:1;color:#667eea;font-weight:600}";
+  chunk += ".wireless-list li .value{font-weight:600;color:#333}";
+  chunk += ".wireless-empty{font-style:italic;color:#666;background:#f0f0f5;border-style:dashed;border-color:#d0d0d8}";
+  chunk += ".status-pill{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:1.1em;font-weight:bold}";
+  chunk += ".status-pill.ok{background:#d4edda;color:#155724}";
+  chunk += ".status-pill.warn{background:#fff3cd;color:#856404}";
+  chunk += ".status-pill.ko{background:#f8d7da;color:#721c24}";
+  chunk += ".wireless-hint{margin-top:12px;padding:12px;border-radius:8px;background:#fff8e6;border-left:4px solid #f2c94c;color:#8a6d3b;font-size:.95em}";
+  chunk += ".wireless-backend{border-style:dashed;border-color:#cfd4ff}";
   chunk += ".status-live{padding:10px;background:#f0f0f0;border-radius:5px;text-align:center;font-weight:bold;margin:10px 0}";
   chunk += ".inline-feedback{margin-top:8px;font-size:0.9em;opacity:0;transition:opacity .3s;color:#0c5460;}";
   chunk += ".inline-feedback.show{opacity:1;}";
@@ -3131,11 +3151,26 @@ void handleRoot() {
   
   // CHUNK 8: TAB WiFi
   chunk = "<div id='wifi' class='tab-content'>";
+  chunk += "<div class='section'><h2 data-i18n='wireless_status'>" + String(T().wireless_status) + "</h2>";
+  chunk += "<div class='wireless-summary'>";
+  chunk += "<div class='wireless-card'><div class='wireless-card-title' data-i18n='wifi_label'>" + String(T().wifi_label) + "</div>";
+  chunk += "<div class='wireless-status' id='wifi-summary-status' data-i18n='wireless_loading'>" + String(T().wireless_loading) + "</div>";
+  chunk += "<ul class='wireless-list' id='wifi-summary-details'><li class='wireless-empty' data-i18n='wireless_loading'>" + String(T().wireless_loading) + "</li></ul></div>";
+  chunk += "<div class='wireless-card'><div class='wireless-card-title' data-i18n='ble_label'>" + String(T().ble_label) + "</div>";
+  chunk += "<div class='wireless-status' id='ble-summary-status' data-i18n='wireless_loading'>" + String(T().wireless_loading) + "</div>";
+  chunk += "<ul class='wireless-list' id='ble-summary-details'><li class='wireless-empty' data-i18n='wireless_loading'>" + String(T().wireless_loading) + "</li></ul>";
+  chunk += "<div class='wireless-hint' id='ble-summary-hint' style='display:none'></div></div>";
+  chunk += "</div></div>";
   chunk += "<div class='section'><h2 data-i18n='wifi_scanner'>" + String(T().wifi_scanner) + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='scanWiFi()' data-i18n='scan_networks'>" + String(T().scan_networks) + "</button>";
   chunk += "<div id='wifi-status' class='status-live' data-i18n='click_to_test'>" + String(T().click_to_test) + "</div>";
-  chunk += "</div><div id='wifi-results' class='wifi-list'></div></div></div>";
+  chunk += "</div><div id='wifi-results' class='wifi-list'></div></div>";
+  chunk += "<div class='section'><h2 data-i18n='ble_scanner'>" + String(T().ble_scanner) + "</h2>";
+  chunk += "<div style='text-align:center;margin:20px 0'>";
+  chunk += "<button class='btn btn-primary' id='ble-scan-button' onclick='scanBLE()' data-i18n='scan_ble_devices'>" + String(T().scan_ble_devices) + "</button>";
+  chunk += "<div id='ble-status' class='status-live' data-state='idle' data-i18n='ble_click_to_scan'>" + String(T().ble_click_to_scan) + "</div>";
+  chunk += "</div><div id='ble-results' class='wifi-list'></div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 9: TAB Benchmark
@@ -3192,7 +3227,7 @@ void handleRoot() {
   // Changement de langue
   chunk += "function changeLang(lang,evt){";
   chunk += "if(evt)evt.preventDefault();";
-  chunk += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{if(d.success){currentLang=lang;updateLangButtons(lang);updateTranslations();}}).catch(err=>console.error('Lang switch',err));";
+  chunk += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{if(d.success){currentLang=lang;updateLangButtons(lang);updateTranslations().then(()=>loadWirelessStatus()).catch(()=>loadWirelessStatus());}}).catch(err=>console.error('Lang switch',err));";
   chunk += "}";
 
   // Mise à jour traductions
@@ -3209,8 +3244,27 @@ void handleRoot() {
   chunk += "document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{const key=el.getAttribute('data-i18n-placeholder');const value=tr[key];if(value)applyPlaceholder(el,value);});";
   chunk += "}).catch(err=>console.error('updateTranslations',err));";
   chunk += "}";
+  chunk += "function loadWirelessStatus(){fetch('/api/wireless-status').then(r=>r.json()).then(data=>{updateWirelessSummary(data);}).catch(err=>console.error('wireless-status',err));}";
+  chunk += "function updateWirelessSummary(data){";
+  chunk += "const wifiData=(data&&data.wifi)?data.wifi:{};";
+  chunk += "const wifiStatus=document.getElementById('wifi-summary-status');";
+  chunk += "if(wifiStatus){if(wifiData.connected){const baseLabel=(translations.connected||'Connecté');const ssidLabel=wifiData.ssid?' · '+wifiData.ssid:'';wifiStatus.textContent=baseLabel+ssidLabel;}else{wifiStatus.textContent=translations.wifi_not_connected||'Non connecté';}}";
+  chunk += "const wifiDetails=document.getElementById('wifi-summary-details');";
+  chunk += "if(wifiDetails){wifiDetails.innerHTML='';if(wifiData.connected){const rows=[{label:translations.connected_ssid||'SSID connecté',value:wifiData.ssid||'—'},{label:translations.signal_power||'Puissance Signal (RSSI)',value:(typeof wifiData.rssi==='number'?wifiData.rssi+' dBm':'—')},{label:translations.signal_quality||'Qualité Signal',value:wifiData.quality||'—'},{label:translations.ip_address||'Adresse IP',value:wifiData.ip||'—'},{label:translations.subnet_mask||'Masque Sous-réseau',value:wifiData.subnet||'—'},{label:translations.gateway||'Passerelle',value:wifiData.gateway||'—'},{label:translations.dns||'DNS',value:wifiData.dns||'—'}];rows.forEach(row=>{if(row.value&&row.value!=='—'){const li=document.createElement('li');const label=document.createElement('span');label.className='label';label.textContent=row.label;const value=document.createElement('span');value.className='value';value.textContent=row.value;li.appendChild(label);li.appendChild(value);wifiDetails.appendChild(li);}});if(!wifiDetails.children.length){const li=document.createElement('li');li.className='wireless-empty';li.textContent='—';wifiDetails.appendChild(li);}}else{const li=document.createElement('li');li.className='wireless-empty';li.textContent=translations.wifi_not_connected||'Non connecté';wifiDetails.appendChild(li);}}";
+  chunk += "const bleData=(data&&data.ble)?data.ble:{};";
+  chunk += "const bleStatus=document.getElementById('ble-summary-status');";
+  chunk += "if(bleStatus){bleStatus.textContent=bleData.status||(translations.ble_not_supported||'Bluetooth LE non disponible');}";
+  chunk += "const bleDetails=document.getElementById('ble-summary-details');";
+  chunk += "if(bleDetails){bleDetails.innerHTML='';const yesText=translations.status_yes||'Oui';const noText=translations.status_no||'Non';const missingText=translations.status_missing||'Manquant';const entries=[{flag:!!bleData.chipCapable,label:translations.ble_chip_support||'Compatibilité matérielle BLE'},{flag:!!bleData.stackAvailable,label:translations.ble_stack_support||'Pile BLE incluse dans ce firmware',warnWhenMissing:!!bleData.chipCapable},{flag:!!bleData.enabled,label:translations.ble_runtime_status||'Fonctions BLE actives',warnWhenMissing:!!bleData.stackAvailable}];entries.forEach(entry=>{const li=document.createElement('li');let stateClass='ok';let icon='✅';let valueText=yesText;if(!entry.flag){if(entry.warnWhenMissing){stateClass='warn';icon='⚠️';valueText=missingText;}else{stateClass='ko';icon='❌';valueText=noText;}}const pill=document.createElement('span');pill.className='status-pill '+stateClass;pill.textContent=icon;const label=document.createElement('span');label.className='label';label.textContent=entry.label;const value=document.createElement('span');value.className='value';value.textContent=entry.flag?yesText:valueText;li.appendChild(pill);li.appendChild(label);li.appendChild(value);bleDetails.appendChild(li);});const backendItem=document.createElement('li');backendItem.className='wireless-backend';const backendLabel=document.createElement('span');backendLabel.className='label';backendLabel.textContent=translations.ble_backend_label||'Pile logicielle BLE';const backendValue=document.createElement('span');backendValue.className='value';backendValue.textContent=bleData.backend||(translations.ble_backend_missing||'Pile BLE absente');backendItem.appendChild(backendLabel);backendItem.appendChild(backendValue);bleDetails.appendChild(backendItem);}";
+  chunk += "const bleHint=document.getElementById('ble-summary-hint');";
+  chunk += "if(bleHint){const hint=bleData.hint||'';if(hint){bleHint.style.display='block';bleHint.textContent=hint;}else{bleHint.style.display='none';bleHint.textContent='';}}";
+  chunk += "const bleButton=document.getElementById('ble-scan-button');";
+  chunk += "if(bleButton){bleButton.disabled=!bleData.enabled;bleButton.title=!bleData.enabled&&(bleData.hint||bleData.status)?(bleData.hint||bleData.status):'';}";
+  chunk += "const bleMonitor=document.getElementById('ble-status');";
+  chunk += "if(bleMonitor&&bleMonitor.dataset.locked!=='1'){if(bleData.enabled){if(bleMonitor.dataset.state!=='results'){bleMonitor.textContent=translations.ble_click_to_scan||'Cliquez pour scanner';bleMonitor.dataset.state='ready';}}else{bleMonitor.textContent=bleData.status||(translations.ble_not_supported||'Bluetooth LE non disponible');bleMonitor.dataset.state='unavailable';}}";
+  chunk += "}";
 
-  chunk += "document.addEventListener('DOMContentLoaded',()=>{updateLangButtons(currentLang);updateTranslations();});";
+  chunk += "document.addEventListener('DOMContentLoaded',()=>{updateLangButtons(currentLang);updateTranslations().then(()=>loadWirelessStatus()).catch(()=>loadWirelessStatus());});";
 
   // Navigation onglets
   chunk += "function showTab(t,evt){";
@@ -3219,6 +3273,7 @@ void handleRoot() {
   chunk += "const tab=document.getElementById(t);";
   chunk += "if(tab)tab.classList.add('active');";
   chunk += "if(evt&&evt.target)evt.target.classList.add('active');";
+  chunk += "if(t==='wifi'){loadWirelessStatus();}";
   chunk += "}";
   
   // LED intégrée
@@ -3286,8 +3341,21 @@ void handleRoot() {
   chunk += "data.networks.forEach(n=>{let s=n.rssi>=-60?'🟢':n.rssi>=-70?'🟡':'🔴';";
   chunk += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+n.bssid+' | Ch'+n.channel+' | '+n.encryption+'</small></div>';";
   chunk += "h+='<div style=\"font-size:1.2em;font-weight:bold\">'+n.rssi+' dBm</div></div></div>'});";
-  chunk += "document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' '+(translations.networks||'réseaux')+' '+(translations.detected||'détectés')})}";
-  
+  chunk += "document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' '+(translations.networks||'réseaux')+' '+(translations.detected||'détectés');}).then(()=>loadWirelessStatus()).catch(err=>{console.error('scanWiFi',err);});";
+
+  chunk += "function scanBLE(){";
+  chunk += "const status=document.getElementById('ble-status');";
+  chunk += "const button=document.getElementById('ble-scan-button');";
+  chunk += "const list=document.getElementById('ble-results');";
+  chunk += "if(button)button.disabled=true;";
+  chunk += "if(status){status.dataset.locked='1';status.dataset.state='scanning';status.textContent=(translations.scanning||'Scan...');}";
+  chunk += "if(list)list.innerHTML='';";
+  chunk += "fetch('/api/ble-scan').then(r=>r.json()).then(data=>{";
+  chunk += "if(status){if(data.supported){const count=Array.isArray(data.devices)?data.devices.length:0;status.textContent=count+' '+(translations.devices||'appareils')+' '+(translations.detected||'détectés');status.dataset.state='results';}else{status.textContent=data.message||(translations.ble_not_supported||'Bluetooth LE non disponible');status.dataset.state='unavailable';}}";
+  chunk += "if(list){if(data.supported&&Array.isArray(data.devices)&&data.devices.length){let html='';data.devices.forEach(dev=>{const name=(dev.name&&dev.name.length)?dev.name:(translations.unknown||'Inconnu');const rssi=(typeof dev.rssi==='number'?dev.rssi+' dBm':'—');html+=\"<div class=\\'wifi-item\\'><div><strong>\"+name+\"</strong><br><small>\"+dev.address+\"</small></div><div style=\\'font-weight:bold\\'>\"+rssi+\"</div></div>\";});list.innerHTML=html;}else{const fallback=data.supported?(translations.ble_no_devices||'Aucun appareil détecté'):(data.message||(translations.ble_not_supported||'Bluetooth LE non disponible'));list.innerHTML=\"<div class=\\'wifi-item\\'>\"+fallback+\"</div>\";}}";
+  chunk += "}).catch(err=>{console.error('scanBLE',err);if(status){status.textContent='Erreur';status.dataset.state='error';}if(list){list.innerHTML=\"<div class=\\'wifi-item\\'>Erreur</div>\";}}).finally(()=>{if(button)button.disabled=false;if(status){status.dataset.locked='0';}loadWirelessStatus();});";
+  chunk += "}";
+
   // I2C
   chunk += "function scanI2C(){fetch('/api/i2c-scan').then(r=>r.json()).then(d=>{console.log('I2C scan',d.count,d.devices);location.reload();}).catch(err=>console.error('scanI2C',err));}";
   
@@ -3315,7 +3383,7 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 4.0.16 - FR/EN");
+  Serial.println("     Version 4.0.17 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
@@ -3378,7 +3446,6 @@ void setup() {
 
   // ========== ROUTES SERVEUR ==========
   server.on("/", handleRoot);
-  server.on("/js/app.js", handleJavaScript);
 
   // **NOUVELLES ROUTES MULTILINGUES**
   server.on("/api/set-language", handleSetLanguage);

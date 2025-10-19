@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v4.0.16
+# ESP32 Complete Diagnostic v4.0.17
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v4.0.16**: Restored the Wireless tab Bluetooth card by fixing the escaped quote bug, serving the refreshed JavaScript bundle, and preferring the NimBLE-Arduino stack whenever it's available.
+**What's new in v4.0.17**: Wireless diagnostics now always render Wi-Fi and Bluetooth readiness cards, disable BLE scans when the stack is missing, and align the firmware/docs with the 4.0.17 release.
 
 ## ✨ Features
 
@@ -345,7 +345,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v4.0.16
+## 📁 Project Structure v4.0.17
 
 ```
 ESP32-Diagnostic/
@@ -359,6 +359,11 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v4.0.17 (2025) - ALWAYS-ON WIRELESS SUMMARY
+- ♾️ **Wireless tab now renders Wi-Fi and Bluetooth readiness cards by default**, even when BLE support is missing at compile time.
+- 📴 **BLE scan controls automatically disable with the same guidance shown in the serial monitor and exports when the stack is unavailable.**
+- 🧾 **Documentation, firmware banner, and UI bumped to v4.0.17** to reflect the persistent wireless panel.
 
 ### v4.0.16 (2025) - NIMBLE-FIRST BLUETOOTH CARD FIX
 - ♻️ **Patched the wireless status template** so the Bluetooth readiness card renders reliably under the Wi-Fi summary.
@@ -435,6 +440,7 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
+**v4.0.17 - Always-on wireless summary & guarded BLE scans**
 **v4.0.16 - Wireless Bluetooth card + NimBLE preference**
 **v4.0.11 - Bluetooth readiness everywhere**
 **v4.0.9 - PSRAM insights with wireless readiness summary**
@@ -445,7 +451,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 4.0.16 (multilingual)
+**Current version**: 4.0.17 (multilingual)
 **Last update**: October 2025
 **Available languages**: French (default), English
 **Support**: ESP32 Arduino Core 3.3.2+
