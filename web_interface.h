@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v2.5
+ * WEB_INTERFACE.H - Interface Web Dynamique v2.5.1
  */
 
 #ifndef WEB_INTERFACE_H
@@ -350,25 +350,28 @@ String generateJavaScript() {
   js += "}";
 
 js += "function buildScreens(d){";
-  js += "let h='<div class=\"section\"><h2>📺 Écran TFT SPI</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"tft-status\">'+d.tft.status+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Résolution</div><div class=\"info-value\">'+d.tft.width+'x'+d.tft.height+'</div></div>';";
-  js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testTFT()\">🧪 Test complet (15s)</button> ';";
-  js += "h+='<button class=\"btn btn-success\" onclick=\"tftPattern(\\'colors\\')\">🎨 Couleurs</button> ';";
-  js += "h+='<button class=\"btn btn-info\" onclick=\"tftPattern(\\'checkerboard\\')\">⬛ Damier</button> ';";
-  js += "h+='<button class=\"btn btn-danger\" onclick=\"tftPattern(\\'clear\\')\">🗑️ Effacer</button>';";
-  js += "h+='<br><br><input type=\"text\" id=\"tftText\" placeholder=\"Texte à afficher\" style=\"width:300px;padding:10px\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"tftDisplayText()\">📤 Afficher texte</button>';";
-  js += "h+='</div></div></div>';";
-
-  js += "h+='<div class=\"section\"><h2>🖥️ Écran OLED 0.96\\\" I2C</h2><div class=\"info-grid\">';";
+  js += "let h='<div class=\"section\"><h2>🖥️ Écran OLED 0.96\\\" I2C</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"oled-status\">'+d.oled.status+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Pins I2C</div><div class=\"info-value\">SDA:'+d.oled.pins.sda+' SCL:'+d.oled.pins.scl+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testOLED()\">🧪 Test complet (25s)</button>';";
-  js += "h+='<br><br><input type=\"text\" id=\"oledText\" placeholder=\"Message à afficher\" style=\"width:300px;padding:10px\">';";
-  js += "h+='<button class=\"btn btn-success\" onclick=\"oledDisplayText()\">📤 Afficher message</button>';";
+  js += "h+='SDA: <input type=\"number\" id=\"oledSDA\" value=\"'+d.oled.pins.sda+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
+  js += "h+='SCL: <input type=\"number\" id=\"oledSCL\" value=\"'+d.oled.pins.scl+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
+  js += "h+='<button class=\"btn btn-info\" onclick=\"configOLED()\">🔄 Reconfigurer</button>';";
+  js += "h+='<div style=\"margin-top:15px\"><button class=\"btn btn-primary\" onclick=\"testOLED()\">🧪 Test complet (25s)</button></div>';";
+  js += "h+='<div class=\"oled-step-grid\" style=\"margin-top:15px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px\">';";
+  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'welcome\')\">🏁 Accueil</button>';";
+  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'big_text\')\">🔠 Texte grand format</button>';";
+  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'text_sizes\')\">🔤 Tailles de texte</button>';";
+  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'shapes\')\">🟦 Formes géométriques</button>';";
+  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'horizontal_lines\')\">📏 Lignes horizontales</button>';";
+  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'diagonals\')\">📐 Lignes diagonales</button>';";
+  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'moving_square\')\">⬜ Carré en mouvement</button>';";
+  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'progress_bar\')\">📊 Barre de progression</button>';";
+  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'scroll_text\')\">📜 Texte défilant</button>';";
+  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'final_message\')\">✅ Message final</button>';";
+  js += "h+='</div>';";
+  js += "h+='<div style=\"margin-top:15px\"><input type=\"text\" id=\"oledText\" placeholder=\"Message à afficher\" style=\"width:300px;padding:10px\"> ';";
+  js += "h+='<button class=\"btn btn-success\" onclick=\"oledDisplayText()\">📤 Afficher message</button></div>';";
   js += "h+='</div></div></div>';";
   js += "return h;";
   js += "}";
@@ -483,32 +486,20 @@ js += "function buildScreens(d){";
   js += "document.getElementById('neopixel-status').textContent=d.message;";
   js += "}";
 
-  // FONCTIONS API - TFT/OLED
-  js += "async function testTFT(){";
-  js += "document.getElementById('tft-status').textContent='Test en cours (15s)...';";
-  js += "const r=await fetch('/api/tft-test');const d=await r.json();";
-  js += "document.getElementById('tft-status').textContent=d.result;";
-  js += "}";
-  js += "async function tftPattern(p){";
-  js += "const r=await fetch('/api/tft-pattern?pattern='+p);const d=await r.json();";
-  js += "document.getElementById('tft-status').textContent=d.message;";
-  js += "}";
+  // FONCTIONS API - OLED
   js += "async function testOLED(){";
   js += "document.getElementById('oled-status').textContent='Test en cours (25s)...';";
   js += "const r=await fetch('/api/oled-test');const d=await r.json();";
   js += "document.getElementById('oled-status').textContent=d.result;";
   js += "}";
-
-  // FONCTIONS API - Affichage texte TFT/OLED
-  js += "async function tftDisplayText(){";
-  js += "const text=document.getElementById('tftText').value;";
-  js += "if(!text){alert('Entrez un texte!');return;}";
-  js += "document.getElementById('tft-status').textContent='Affichage en cours...';";
-  js += "const r=await fetch('/api/tft-text?text='+encodeURIComponent(text));";
-  js += "const d=await r.json();";
-  js += "document.getElementById('tft-status').textContent=d.message;";
+  js += "async function oledStep(step){";
+  js += "document.getElementById('oled-status').textContent='Étape en cours...';";
+  js += "const r=await fetch('/api/oled-step?step='+step);const d=await r.json();";
+  js += "document.getElementById('oled-status').textContent=d.message;";
+  js += "if(!d.success){alert(d.message);}";
   js += "}";
 
+  // FONCTIONS API - Affichage texte OLED
   js += "async function oledDisplayText(){";
   js += "const text=document.getElementById('oledText').value;";
   js += "if(!text){alert('Entrez un message!');return;}";
@@ -516,6 +507,15 @@ js += "function buildScreens(d){";
   js += "const r=await fetch('/api/oled-message?message='+encodeURIComponent(text));";
   js += "const d=await r.json();";
   js += "document.getElementById('oled-status').textContent=d.message;";
+  js += "}";
+  js += "async function configOLED(){";
+  js += "document.getElementById('oled-status').textContent='Reconfiguration...';";
+  js += "const sda=document.getElementById('oledSDA').value;";
+  js += "const scl=document.getElementById('oledSCL').value;";
+  js += "const r=await fetch('/api/oled-config?sda='+sda+'&scl='+scl);";
+  js += "const d=await r.json();";
+  js += "document.getElementById('oled-status').textContent=d.message;";
+  js += "if(d.success){alert(d.message);location.reload();}else{alert('Erreur: '+d.message);}";
   js += "}";
 
   // FONCTIONS API - Tests

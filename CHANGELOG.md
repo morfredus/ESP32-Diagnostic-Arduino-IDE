@@ -5,6 +5,29 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2025-10-15
+
+### Removed
+- Dropped TFT SPI display support, associated libraries, and UI elements.
+
+### Added
+- Manual step buttons for each OLED diagnostic animation via the web interface and API.
+
+### Changed
+- Simplified OLED I2C reconfiguration workflow and refreshed translations.
+
+---
+
+## [2.5.1] - 2025-10-10
+
+### Changed
+- Clarified PSRAM status messaging across the web interface, printable report, and exports when hardware support exists but PSRAM is disabled in the Arduino IDE.
+
+### Fixed
+- Highlight PSRAM-compatible boards with activation guidance instead of reporting them as missing.
+
+---
+
 ## [2.5] - 2025-10-08
 
 ### Added
@@ -236,6 +259,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 | Version | Date | Key Features |
 |---------|------|--------------|
 | 3.0-dev | 2025-10-09 | Dynamic interface, REST API, real-time updates |
+| 2.5.1 | 2025-10-10 | PSRAM guidance for IDE configuration |
 | 2.5 | 2025-10-08 | Translated exports |
 | 2.4 | 2025-10-07 | Multilingual interface (FR/EN) |
 | 2.3 | 2025-10-06 | OLED display support |

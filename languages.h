@@ -56,6 +56,7 @@ struct Translations {
   const char* psram_external;
   const char* hardware_status;
   const char* detected_active;
+  const char* supported_not_enabled;
   const char* ide_config;
   const char* enabled;
   const char* total_size;
@@ -66,6 +67,7 @@ struct Translations {
   const char* not_detected;
   const char* disabled;
   const char* psram_usage;
+  const char* enable_psram_hint;
   
   const char* internal_sram;
   const char* min_free;
@@ -112,13 +114,7 @@ struct Translations {
   const char* color;
   
   // Écrans
-  const char* tft_screen;
-  const char* spi_pins;
   const char* full_test;
-  const char* colors;
-  const char* checkerboard;
-  const char* clear;
-  
   const char* oled_screen;
   const char* i2c_pins;
   const char* i2c_address;
@@ -130,6 +126,19 @@ struct Translations {
   const char* show_message;
   const char* no_detected;
   const char* check_wiring;
+  const char* oled_step_welcome;
+  const char* oled_step_big_text;
+  const char* oled_step_text_sizes;
+  const char* oled_step_shapes;
+  const char* oled_step_horizontal_lines;
+  const char* oled_step_diagonals;
+  const char* oled_step_moving_square;
+  const char* oled_step_progress_bar;
+  const char* oled_step_scroll_text;
+  const char* oled_step_final_message;
+  const char* oled_step_executed_prefix;
+  const char* oled_step_unavailable;
+  const char* oled_step_unknown;
   
   // Tests avancés
   const char* adc_test;
@@ -274,6 +283,7 @@ const Translations LANG_FR_TEXTS = {
   "PSRAM (Mémoire Externe)",
   "Statut Hardware",
   "Détectée et active",
+  "Support détecté (désactivée dans l'IDE)",
   "Configuration IDE",
   "Activée",
   "Taille Totale",
@@ -284,6 +294,7 @@ const Translations LANG_FR_TEXTS = {
   "Non détectée",
   "Désactivée",
   "Utilisation PSRAM",
+  "Activez la PSRAM %TYPE% dans l'IDE Arduino (Outils → PSRAM).",
   
   "SRAM Interne",
   "Min Libre (Record)",
@@ -330,13 +341,7 @@ const Translations LANG_FR_TEXTS = {
   "Couleur",
   
   // Écrans
-  "Écran TFT 320x240",
-  "Pins SPI",
   "Test Complet",
-  "Couleurs",
-  "Damier",
-  "Effacer",
-  
   "Écran OLED 0.96\" I2C",
   "Pins I2C",
   "Adresse I2C",
@@ -348,6 +353,19 @@ const Translations LANG_FR_TEXTS = {
   "Afficher Message",
   "Aucun écran OLED détecté. Vérifiez le câblage et les pins I2C ci-dessus.",
   "Vérifiez le câblage et les pins I2C",
+  "Accueil",
+  "Texte grand format",
+  "Tailles de texte",
+  "Formes géométriques",
+  "Lignes horizontales",
+  "Lignes diagonales",
+  "Carré en mouvement",
+  "Barre de progression",
+  "Texte défilant",
+  "Message final",
+  "Étape exécutée :",
+  "OLED non disponible",
+  "Étape inconnue",
   
   // Tests
   "Test ADC",
@@ -492,6 +510,7 @@ const Translations LANG_EN_TEXTS = {
   "PSRAM (External Memory)",
   "Hardware Status",
   "Detected and active",
+  "Support detected (disabled in IDE)",
   "IDE Configuration",
   "Enabled",
   "Total Size",
@@ -502,6 +521,7 @@ const Translations LANG_EN_TEXTS = {
   "Not detected",
   "Disabled",
   "PSRAM Usage",
+  "Enable the %TYPE% PSRAM in Arduino IDE (Tools → PSRAM).",
   
   "Internal SRAM",
   "Min Free (Record)",
@@ -548,13 +568,7 @@ const Translations LANG_EN_TEXTS = {
   "Color",
   
   // Screens
-  "TFT Screen 320x240",
-  "SPI Pins",
   "Full Test",
-  "Colors",
-  "Checkerboard",
-  "Clear",
-  
   "OLED Screen 0.96\" I2C",
   "I2C Pins",
   "I2C Address",
@@ -566,6 +580,19 @@ const Translations LANG_EN_TEXTS = {
   "Display Message",
   "No OLED screen detected. Check wiring and I2C pins above.",
   "Check wiring and I2C pins",
+  "Welcome",
+  "Large text",
+  "Text sizes",
+  "Geometric shapes",
+  "Horizontal lines",
+  "Diagonal lines",
+  "Moving square",
+  "Progress bar",
+  "Scrolling text",
+  "Final message",
+  "Step executed:",
+  "OLED not available",
+  "Unknown step",
   
   // Tests
   "ADC Test",
