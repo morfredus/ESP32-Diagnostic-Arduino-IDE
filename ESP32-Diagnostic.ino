@@ -1,9 +1,13 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.10
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.11
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v2.8.11:
+ * - Conversion explicite des booléens renvoyés par `/api/wireless-info` afin de garantir des voyants WiFi/Bluetooth conformes à la réalité (même lorsque le firmware renvoie des chaînes).
+ * - Mise à jour de la documentation (README, guides FR/EN, références) et renommage du guide français en `USER_GUIDE.fr.md`.
  *
  * Nouveautés v2.8.10:
  * - Correction du modèle `wifi-config.h` pour éviter les erreurs de syntaxe lors de l'ajout d'un second réseau.
@@ -167,7 +171,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.10"
+#define DIAGNOSTIC_VERSION "2.8.11"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;

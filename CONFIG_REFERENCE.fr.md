@@ -1,4 +1,4 @@
-# Référence de configuration ESP32-Diagnostic (v2.8.10)
+# Référence de configuration ESP32-Diagnostic (v2.8.11)
 
 Ce document récapitule l'ensemble des paramètres modifiables. Consultez-le avant toute compilation personnalisée.
 
@@ -46,4 +46,4 @@ static const WiFiCredential WIFI_NETWORKS[] = {
 - [ ] Optionnel : passer `ENABLE_BLUETOOTH_AUTOTEST` à `false` si la pile Bluetooth n'est pas incluse.
 - [ ] Ajuster `WIRELESS_STATUS_REFRESH_MS` si vous souhaitez un rafraîchissement plus rapide/lent du bandeau.
 
-Pour une procédure détaillée, consultez [`USER_GUIDE.md`](USER_GUIDE.md) ou [`GUIDE_UTILISATION.fr.md`](GUIDE_UTILISATION.fr.md).
+Pour une procédure détaillée, consultez [`USER_GUIDE.md`](USER_GUIDE.md) ou [`USER_GUIDE.fr.md`](USER_GUIDE.fr.md).

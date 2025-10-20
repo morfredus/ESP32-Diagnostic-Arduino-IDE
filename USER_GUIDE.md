@@ -1,6 +1,6 @@
 # ESP32 Diagnostic – Setup & Compilation Guide (EN)
 
-This checklist describes everything required to build and run **ESP32-Diagnostic v2.8.10** with the Arduino IDE 2.x toolchain.
+This checklist describes everything required to build and run **ESP32-Diagnostic v2.8.11** with the Arduino IDE 2.x toolchain.
 
 ## 1. Prerequisites
 
@@ -63,14 +63,14 @@ The ESP32 core already ships with `WiFi`, `WebServer`, `ESPmDNS`, `Wire`, `SPI`,
 | Issue | Suggested fix |
 | --- | --- |
 | `esp_bt_main.h: No such file or directory` | Enable Bluetooth in *Tools → Bluetooth* or ignore the test (banner will show “Indisponible”). |
-| Web page shows stale WiFi data | Trigger “Actualiser l’onglet Sans fil” or reload; v2.8.10 refreshes the banner automatically and keeps the WiFi dot green while connected. |
+| Wireless banner shows the wrong dot colour | Reload the page or click “Sans fil”; v2.8.11 normalises boolean fields from the firmware so WiFi/Bluetooth indicators always match the real connectivity. |
 | SoftAP only but WiFi dot stays red | Verify SSID/password in `wifi-config.h` or rely on SoftAP (orange dot indicates AP-only mode). |
 | Translations missing | Ensure `languages.h` is present beside the `.ino` and re-upload. |
 
 ## 8. Related documentation
 - [`README.md`](README.md) – detailed English documentation & changelog.
 - [`README.fr.md`](README.fr.md) – French documentation.
-- [`GUIDE_UTILISATION.fr.md`](GUIDE_UTILISATION.fr.md) – French edition of this setup guide.
+- [`USER_GUIDE.fr.md`](USER_GUIDE.fr.md) – French edition of this setup guide.
 - [`CONFIG_REFERENCE.md`](CONFIG_REFERENCE.md) / [`CONFIG_REFERENCE.fr.md`](CONFIG_REFERENCE.fr.md) – exhaustive list of configurable parameters.
 
 Happy debugging! ✅

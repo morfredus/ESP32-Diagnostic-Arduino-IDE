@@ -5,6 +5,17 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.11] - 2025-10-20
+
+### Changed
+- Normalisation côté client des champs booléens renvoyés par `/api/wireless-info`, garantissant des voyants WiFi/Bluetooth cohérents même si le firmware renvoie des chaînes.
+- Renommage du guide d'installation français en `USER_GUIDE.fr.md` et mise à jour des liens croisés (README, références, guides).
+
+### Fixed
+- Voyant Bluetooth correctement marqué *Indisponible* lorsque la pile n'est pas compilée (plus de faux positifs "OK").
+
+---
+
 ## [2.8.10] - 2025-10-20
 
 ### Changed

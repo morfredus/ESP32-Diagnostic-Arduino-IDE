@@ -60,7 +60,8 @@ inline String buildAppScript() {
     tested: "{{TESTED}}",
     unknown: "{{UNKNOWN}}",
     networks: "{{NETWORKS}}",
-    devices: "{{DEVICES}}"
+    devices: "{{DEVICES}}",
+    notTested: "{{NOT_TESTED}}"
   };
 
   const indicator = {
@@ -69,6 +70,24 @@ inline String buildAppScript() {
     offline: "{{OFFLINE}}",
     unavailable: "{{UNAVAILABLE}}",
     ap: "{{AP_STATE}}"
+  };
+
+  const toBool = value => {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const lowered = value.toLowerCase();
+      if (lowered === 'true') return true;
+      if (lowered === 'false') return false;
+    }
+    if (typeof value === 'number') {
+      return value !== 0;
+    }
+    if (value === null || value === undefined) {
+      return false;
+    }
+    return !!value;
   };
 
   let lastBuiltinGPIO = null;
@@ -690,11 +709,11 @@ inline String buildAppScript() {
     const bt = data.bluetooth || {};
     const wifiDot = document.getElementById('wifi-status-dot');
     const wifiLabel = document.getElementById('wifi-status-label');
-    const wifiFlag = Object.prototype.hasOwnProperty.call(wifi, 'available') ? !!wifi.available : true;
-    const wifiStation = !!wifi.station_connected;
-    const wifiAP = !!wifi.ap_active;
+    const wifiFlag = Object.prototype.hasOwnProperty.call(wifi, 'available') ? toBool(wifi.available) : true;
+    const wifiStation = toBool(wifi.station_connected);
+    const wifiAP = toBool(wifi.ap_active);
     const wifiConnected = Object.prototype.hasOwnProperty.call(wifi, 'connected')
-      ? !!wifi.connected
+      ? toBool(wifi.connected)
       : (wifiStation || wifiAP);
     const wifiAvailable = wifiFlag || wifiStation || wifiAP || wifiConnected;
 
@@ -778,41 +797,54 @@ inline String buildAppScript() {
       updateText('wifi-gateway', fallbackChar);
       updateText('wifi-dns', fallbackChar);
     }
+    const btClassic = toBool(bt.classic);
+    const btBle = toBool(bt.ble);
+    const compileEnabled = toBool(bt.compile_enabled);
+    const controllerEnabled = toBool(bt.controller_enabled);
+    const controllerInitialized = toBool(bt.controller_initialized);
+    const lastTestSuccess = toBool(bt.last_test_success);
+
     const capabilities = [];
-    if (bt.classic) {
+    if (btClassic) {
       capabilities.push(currentLang === 'fr' ? 'Classique' : 'Classic');
     }
-    if (bt.ble) {
+    if (btBle) {
       capabilities.push('BLE');
     }
     updateText('bluetooth-capabilities', capabilities.length ? capabilities.join(', ') : fallbackChar);
     updateText('bluetooth-controller', bt.controller || fallbackChar);
-    updateText('bluetooth-last-test', bt.last_test_message || fallbackChar);
-    if (bt.last_test_message) {
-      if (bt.last_test_success === false) {
-        setStatusError('bluetooth-status', bt.last_test_message);
+    const lastMessage = typeof bt.last_test_message === 'string' ? bt.last_test_message : '';
+    updateText('bluetooth-last-test', lastMessage.length ? lastMessage : fallbackChar);
+    const hasMeaningfulTest = lastMessage.length && lastMessage !== messages.notTested;
+    if (hasMeaningfulTest) {
+      if (!lastTestSuccess) {
+        setStatusError('bluetooth-status', lastMessage);
       } else {
-        setStatusSuccess('bluetooth-status', bt.last_test_message);
+        setStatusSuccess('bluetooth-status', lastMessage);
       }
+    } else if (!compileEnabled && bt.hint && bt.hint.length) {
+      setStatusError('bluetooth-status', bt.hint);
+    } else {
+      setText('bluetooth-status', messages.notTested);
     }
     const hint = bt.hint && bt.hint.length ? bt.hint : '\u00A0';
     setText('bluetooth-hint', hint);
     const btDot = document.getElementById('bt-status-dot');
     const btLabel = document.getElementById('bt-status-label');
-    const hasBluetoothHardware = !!(bt.classic || bt.ble);
+    const hasBluetoothHardware = btClassic || btBle;
     let btStateClass = 'pending';
     let btStateText = indicator.unavailable;
 
     if (!hasBluetoothHardware) {
       btStateClass = 'pending';
       btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (!bt.compile_enabled) {
+    } else if (!compileEnabled) {
       btStateClass = 'offline';
       btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (bt.controller_enabled) {
+    } else if (controllerEnabled) {
       btStateClass = 'online';
       btStateText = bt.controller || labels.connected;
-    } else if (bt.controller_initialized) {
+    } else if (controllerInitialized) {
       btStateClass = 'pending';
       btStateText = bt.controller || indicator.offline;
     } else {
@@ -820,18 +852,17 @@ inline String buildAppScript() {
       btStateText = bt.controller || indicator.offline;
     }
 
-    if (bt.last_test_message && bt.last_test_message.length) {
-      if (bt.compile_enabled === false) {
-        btStateText = bt.hint && bt.hint.length ? bt.hint : bt.last_test_message;
+    if (hasMeaningfulTest) {
+      if (!compileEnabled) {
+        btStateText = bt.hint && bt.hint.length ? bt.hint : lastMessage;
         btStateClass = 'offline';
       } else {
-        const success = bt.last_test_success === true;
-        btStateText = bt.last_test_message;
-        btStateClass = success ? 'online' : 'offline';
+        btStateText = lastMessage;
+        btStateClass = lastTestSuccess ? 'online' : 'offline';
       }
     }
 
-    if (!bt.compile_enabled && bt.hint && bt.hint.length) {
+    if (!compileEnabled && bt.hint && bt.hint.length) {
       btStateText = bt.hint;
     }
 
@@ -1001,6 +1032,7 @@ inline String buildAppScript() {
   script.replace(F("{{UNKNOWN}}"), escapeForJS(String(T().unknown)));
   script.replace(F("{{NETWORKS}}"), escapeForJS(String(T().networks)));
   script.replace(F("{{DEVICES}}"), escapeForJS(String(T().devices)));
+  script.replace(F("{{NOT_TESTED}}"), escapeForJS(String(T().not_tested)));
   script.replace(F("{{WIRELESS_REFRESH}}"), String(WIRELESS_STATUS_REFRESH_MS));
 
   return script;

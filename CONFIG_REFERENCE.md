@@ -1,4 +1,4 @@
-# ESP32-Diagnostic Configuration Reference (v2.8.10)
+# ESP32-Diagnostic Configuration Reference (v2.8.11)
 
 This document centralises every tunable option exposed by the firmware. Review it before compiling a customised build.
 
@@ -48,4 +48,4 @@ static const WiFiCredential WIFI_NETWORKS[] = {
 - [ ] Optional: disable `ENABLE_BLUETOOTH_AUTOTEST` if the Bluetooth stack is not compiled.
 - [ ] Adjust `WIRELESS_STATUS_REFRESH_MS` if you need faster or slower banner updates.
 
-Need more guidance? See [`USER_GUIDE.md`](USER_GUIDE.md) / [`GUIDE_UTILISATION.fr.md`](GUIDE_UTILISATION.fr.md) for a full step-by-step setup.
+Need more guidance? See [`USER_GUIDE.md`](USER_GUIDE.md) / [`USER_GUIDE.fr.md`](USER_GUIDE.fr.md) for a full step-by-step setup.

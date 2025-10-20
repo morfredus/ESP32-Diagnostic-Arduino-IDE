@@ -3,7 +3,7 @@ Disponible en plusieurs langues :
 - Français : README.fr.md
 - English: README.md
 -->
-# Diagnostic Complet ESP32 v2.8.10
+# Diagnostic Complet ESP32 v2.8.11
 
 [🇬🇧 English version](README.md) | 🇫🇷 Version française
 
@@ -15,7 +15,7 @@ Disponible en plusieurs langues :
 
 Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via une interface web moderne. Il automatise les tests matériels (LED, NeoPixel, OLED, GPIO, ADC, Touch, PWM), dresse l'inventaire mémoire, scanne les bus I2C/SPI et génère des rapports détaillés.
 
-**Nouveautés de la v2.8.10** : le modèle `wifi-config.h` inclut désormais une virgule de fin pour éviter toute erreur de compilation lors de l'ajout d'un deuxième réseau, et le bandeau sans fil détecte mieux l'état WiFi afin d'éviter l'inversion WiFi/Bluetooth quand la pile Bluetooth est désactivée à la compilation.
+**Nouveautés de la v2.8.11** : le bandeau sans fil interprète désormais correctement les champs booléens renvoyés par le firmware, garantissant une correspondance exacte entre les voyants WiFi/Bluetooth et l'état réel de connectivité. Le guide d'installation français a également été renommé en `USER_GUIDE.fr.md` pour être plus facilement identifié.
 
 ## ✨ Fonctionnalités principales
 
@@ -42,7 +42,7 @@ Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via
 
 ### Interface web
 - **8 onglets** : Vue d'ensemble, LEDs, Écrans, Tests avancés, GPIO, Sans fil, Performance, Export
-- **Bandeau sans fil** (v2.8.6, affiné en v2.8.10) – indicateurs WiFi/Bluetooth temps réel, conscience STA/AP et rappels si le Bluetooth est désactivé à la compilation
+- **Bandeau sans fil** (v2.8.6, affiné en v2.8.11) – indicateurs WiFi/Bluetooth temps réel, conscience STA/AP et rappels si le Bluetooth est désactivé à la compilation
 - **Statuts uniformes** (v2.8.7 affiné en v2.8.8) – préfixes ⏳/✅/❌ cohérents jusqu'à la fin des actions
 - **Responsive & sans pop-up** – compatible mobile/tablette/desktop
 - **API REST** – endpoints JSON pour intégration externe
@@ -51,7 +51,7 @@ Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via
 
 - [`README.md`](README.md) – version anglaise complète.
 - [`USER_GUIDE.md`](USER_GUIDE.md) – checklist d'installation et de compilation (anglais).
-- [`GUIDE_UTILISATION.fr.md`](GUIDE_UTILISATION.fr.md) – mode d'emploi détaillé en français (pré-requis, bibliothèques, compilation Arduino IDE).
+- [`USER_GUIDE.fr.md`](USER_GUIDE.fr.md) – mode d'emploi détaillé en français (pré-requis, bibliothèques, compilation Arduino IDE).
 - [`CONFIG_REFERENCE.md`](CONFIG_REFERENCE.md) – référence (EN) des paramètres personnalisables (`config.h`, `wifi-config.h`).
 - [`CONFIG_REFERENCE.fr.md`](CONFIG_REFERENCE.fr.md) – version française de la référence de configuration.
 
@@ -111,13 +111,14 @@ ESP32-Diagnostic/
 ├── config.h                  (paramètres matériels personnalisables)
 ├── wifi-config.example.h     (modèle WiFi → copier en wifi-config.h)
 ├── README.md / README.fr.md  (documentation principale)
-├── USER_GUIDE.md / GUIDE_UTILISATION.fr.md
+├── USER_GUIDE.md / USER_GUIDE.fr.md
 ├── CONFIG_REFERENCE.md / CONFIG_REFERENCE.fr.md
 └── .gitignore                (ignore wifi-config.h)
 ```
 
 ## 🔄 Historique des versions récentes
 
+- **v2.8.11 – 20/10/2025** : normalisation des booléens du bandeau sans fil (voyants WiFi/Bluetooth cohérents) et renommage du guide français en `USER_GUIDE.fr.md`.
 - **v2.8.10 – 20/10/2025** : modèle `wifi-config.h` sécurisé (virgule finale par défaut) et détection WiFi du bandeau renforcée lorsque le Bluetooth est désactivé.
 - **v2.8.9 – 20/10/2025** : refonte de la configuration (`config.h`, `wifi-config.h`), nouvelle référence FR/EN et bannière sans fil corrigée (rafraîchissement paramétrable).
 - **v2.8.8 – 20/10/2025** : correction des voyants WiFi/Bluetooth (STA/AP, Bluetooth désactivé, purge des valeurs périmées) et publication des guides renommés (`USER_GUIDE` / `GUIDE_UTILISATION`).

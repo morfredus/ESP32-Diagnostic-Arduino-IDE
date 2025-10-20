@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.8.10
+# ESP32 Complete Diagnostic v2.8.11
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.8.10**: The `wifi-config.h` template now prevents missing commas when you add extra networks, and the wireless banner detects WiFi connectivity more reliably so the WiFi/Bluetooth dots no longer show inverted states on boards compiled without Bluetooth.
+**What's new in v2.8.11**: The wireless banner now normalises boolean flags coming from the firmware, so the WiFi/Bluetooth dots always reflect the actual connectivity even when the firmware sends string values. The French setup guide has also been renamed to `USER_GUIDE.fr.md` for easier discovery.
 
 ## ✨ Features
 
@@ -51,7 +51,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **Real-time** - Data refresh without reload
 - **Responsive** - Mobile/tablet/desktop compatible
 - **Complete exports** - TXT, JSON, CSV, printable PDF version
-- **Wireless status banner** (since v2.8.6, refined in v2.8.10) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness, compile-time Bluetooth hints and inline reminders for LED/NeoPixel/OLED tests
+- **Wireless status banner** (since v2.8.6, refined in v2.8.11) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness, compile-time Bluetooth hints and inline reminders for LED/NeoPixel/OLED tests
 - **Inline status feedback** (since v2.8.7, refined in v2.8.8) - Unified ⏳/✅/❌ messages for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth actions with automatic config acknowledgements and accurate completion states
 
 ### Network Access
@@ -63,7 +63,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 
 - [`README.fr.md`](README.fr.md) – guide complet en français avec les mêmes sections que la version anglaise.
 - [`USER_GUIDE.md`](USER_GUIDE.md) – setup & compilation checklist (EN) for Arduino IDE 2.x.
-- [`GUIDE_UTILISATION.fr.md`](GUIDE_UTILISATION.fr.md) – mode d'emploi détaillé en français (pré-requis, bibliothèques, compilation Arduino IDE).
+- [`USER_GUIDE.fr.md`](USER_GUIDE.fr.md) – mode d'emploi détaillé en français (pré-requis, bibliothèques, compilation Arduino IDE).
 - [`CONFIG_REFERENCE.md`](CONFIG_REFERENCE.md) – English reference for every configurable parameter (`config.h`, `wifi-config.h`).
 - [`CONFIG_REFERENCE.fr.md`](CONFIG_REFERENCE.fr.md) – référence française des paramètres personnalisables.
 
@@ -120,7 +120,7 @@ ESP32-Diagnostic/
 ├── app_script.h                      (client-side JS generator)
 ├── languages.h                       (translations)
 ├── README.md / README.fr.md          (project overview)
-├── USER_GUIDE.md / GUIDE_UTILISATION.fr.md
+├── USER_GUIDE.md / USER_GUIDE.fr.md
 ├── CONFIG_REFERENCE.md / CONFIG_REFERENCE.fr.md
 └── .gitignore                        (ignores wifi-config.h)
 ```
@@ -339,7 +339,7 @@ If some texts remain in French:
 
 **Never share `wifi-config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.8.10
+## 📁 Project Structure v2.8.11
 
 ```
 ESP32-Diagnostic/
@@ -349,12 +349,16 @@ ESP32-Diagnostic/
 ├── app_script.h                      (client-side JS generator – wireless banner, auto-config helpers)
 ├── languages.h                       (translation system)
 ├── README.md / README.fr.md          (project overview)
-├── USER_GUIDE.md / GUIDE_UTILISATION.fr.md
+├── USER_GUIDE.md / USER_GUIDE.fr.md
 ├── CONFIG_REFERENCE.md / CONFIG_REFERENCE.fr.md
 └── .gitignore                        (excludes wifi-config.h)
 ```
 
 ## 🔄 Changelog
+
+### v2.8.11 (2025-10-20) - BOOLEAN NORMALISATION & GUIDE RENAME
+- Normalised boolean fields received by the web client so WiFi/Bluetooth indicators reflect real connectivity even when the firmware replies with strings.
+- Renamed the French setup guide to `USER_GUIDE.fr.md` and refreshed cross-links for easier onboarding.
 
 ### v2.8.10 (2025-10-20) - WIRELESS POLISH & TEMPLATE SAFEGUARD
 - Improved WiFi detection so the wireless banner stays green when STA/AP are active even if hardware feature flags are missing.
