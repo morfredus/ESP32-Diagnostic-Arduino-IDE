@@ -264,6 +264,7 @@ struct Translations {
   const char* indicator_wifi;
   const char* indicator_bluetooth;
   const char* testing;
+  const char* testing_oled;
   const char* completed;
   const char* scan;
   const char* scanning;
@@ -540,10 +541,11 @@ const Translations LANG_FR_TEXTS = {
   "Indisponible",
   "WiFi",
   "Bluetooth",
-  "Test...",
+  "Test en cours...",
+  "Test complet en cours (~25s)...",
   "Terminé",
-  "Scan...",
-  "Scan...",
+  "Scanner",
+  "Scan en cours...",
   "Reconfiguration...",
   "Configuration mise à jour",
   "Erreur de configuration",
@@ -817,9 +819,10 @@ const Translations LANG_EN_TEXTS = {
   "Unavailable",
   "WiFi",
   "Bluetooth",
-  "Testing...",
+  "Test in progress...",
+  "Full test running (~25s)...",
   "Completed",
-  "Scanning...",
+  "Scan",
   "Scanning...",
   "Reconfiguring...",
   "Configuration updated",

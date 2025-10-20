@@ -89,6 +89,19 @@ inline String buildAppScript() {
     }
   };
 
+  const setStatusRunning = (id, label) => {
+    setText(id, `⏳ ${label || messages.testing}`);
+  };
+
+  const setStatusSuccess = (id, detail) => {
+    const base = `✅ ${messages.completed}`;
+    setText(id, detail && detail.length ? `${base} – ${detail}` : base);
+  };
+
+  const setStatusError = (id, detail) => {
+    setText(id, `❌ ${detail || messages.configError}`);
+  };
+
   const updateText = (id, value, fallback) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -162,23 +175,20 @@ inline String buildAppScript() {
       return Promise.resolve();
     }
     if (manual) {
-      setText('builtin-led-status', messages.reconfiguring);
+      setStatusRunning('builtin-led-status', messages.reconfiguring);
     }
     return fetch('/api/builtin-led-config?gpio=' + encodeURIComponent(value))
       .then(r => r.json())
       .then(d => {
         if (d && d.success) {
           lastBuiltinGPIO = value;
-          if (d.message) {
-            setHTML('builtin-led-status', d.message);
-          } else if (manual) {
-            setText('builtin-led-status', messages.configUpdated);
-          }
+          const detail = d.message && d.message.length ? d.message : messages.configUpdated;
+          setStatusSuccess('builtin-led-status', detail);
           return true;
         }
         const errMessage = d && d.message ? d.message : messages.configError;
         if (manual) {
-          setHTML('builtin-led-status', '❌ ' + errMessage);
+          setStatusError('builtin-led-status', errMessage);
         }
         throw new Error(errMessage);
       });
@@ -193,9 +203,9 @@ inline String buildAppScript() {
     if (!value.length || value === lastBuiltinGPIO) {
       return Promise.resolve();
     }
-    setText('builtin-led-status', messages.reconfiguring);
+    setStatusRunning('builtin-led-status', messages.reconfiguring);
     return applyBuiltinConfig(false).catch(err => {
-      setHTML('builtin-led-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      setStatusError('builtin-led-status', err && err.message ? err.message : messages.configError);
       throw err;
     });
   }
@@ -215,7 +225,7 @@ inline String buildAppScript() {
       return Promise.resolve();
     }
     if (manual) {
-      setText('neopixel-status', messages.reconfiguring);
+      setStatusRunning('neopixel-status', messages.reconfiguring);
     }
     const url = `/api/neopixel-config?gpio=${encodeURIComponent(gpioValue)}&count=${encodeURIComponent(countValue)}`;
     return fetch(url)
@@ -224,16 +234,13 @@ inline String buildAppScript() {
         if (d && d.success) {
           lastNeoGPIO = gpioValue;
           lastNeoCount = countValue;
-          if (d.message) {
-            setHTML('neopixel-status', d.message);
-          } else if (manual) {
-            setText('neopixel-status', messages.configUpdated);
-          }
+          const detail = d.message && d.message.length ? d.message : messages.configUpdated;
+          setStatusSuccess('neopixel-status', detail);
           return true;
         }
         const msg = d && d.message ? d.message : messages.configError;
         if (manual) {
-          setHTML('neopixel-status', '❌ ' + msg);
+          setStatusError('neopixel-status', msg);
         }
         throw new Error(msg);
       });
@@ -253,9 +260,9 @@ inline String buildAppScript() {
     if (gpioValue === lastNeoGPIO && countValue === lastNeoCount) {
       return Promise.resolve();
     }
-    setText('neopixel-status', messages.reconfiguring);
+    setStatusRunning('neopixel-status', messages.reconfiguring);
     return applyNeoPixelConfig(false).catch(err => {
-      setHTML('neopixel-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      setStatusError('neopixel-status', err && err.message ? err.message : messages.configError);
       throw err;
     });
   }
@@ -275,8 +282,8 @@ inline String buildAppScript() {
     if (!manual && lastOledConfig.sda === sda && lastOledConfig.scl === scl) {
       return Promise.resolve();
     }
-    if (status && manual) {
-      status.textContent = messages.reconfiguring;
+    if (manual) {
+      setStatusRunning('oled-status', messages.reconfiguring);
     }
     const url = `/api/oled-config?sda=${encodeURIComponent(sda)}&scl=${encodeURIComponent(scl)}`;
     return fetch(url)
@@ -284,10 +291,8 @@ inline String buildAppScript() {
       .then(d => {
         if (d && d.success) {
           lastOledConfig = { sda, scl };
-          if (status) {
-            const msg = d.message || messages.configUpdated;
-            status.innerHTML = '✅ ' + msg;
-          }
+          const detail = d.message && d.message.length ? d.message : messages.configUpdated;
+          setStatusSuccess('oled-status', detail);
           const pins = document.getElementById('oled-pins');
           if (pins) {
             pins.textContent = `SDA:${sda} SCL:${scl}`;
@@ -295,9 +300,7 @@ inline String buildAppScript() {
           return true;
         }
         const msg = d && d.message ? d.message : messages.configError;
-        if (status) {
-          status.innerHTML = '❌ ' + msg;
-        }
+        setStatusError('oled-status', msg);
         throw new Error(msg);
       });
   }
@@ -317,13 +320,9 @@ inline String buildAppScript() {
     if (lastOledConfig.sda === sda && lastOledConfig.scl === scl) {
       return Promise.resolve();
     }
-    if (status) {
-      status.textContent = messages.reconfiguring;
-    }
+    setStatusRunning('oled-status', messages.reconfiguring);
     return applyOLEDConfig(false).catch(err => {
-      if (status) {
-        status.innerHTML = '❌ ' + (err && err.message ? err.message : messages.configError);
-      }
+      setStatusError('oled-status', err && err.message ? err.message : messages.configError);
       throw err;
     });
   }
@@ -331,86 +330,136 @@ inline String buildAppScript() {
   function configBuiltinLED() {
     applyBuiltinConfig(true).catch(err => {
       console.error('LED config', err);
-      setHTML('builtin-led-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      setStatusError('builtin-led-status', err && err.message ? err.message : messages.configError);
     });
   }
 
   function testBuiltinLED() {
     ensureBuiltinConfigured()
       .then(() => {
-        setText('builtin-led-status', messages.testing);
+        setStatusRunning('builtin-led-status');
         return fetch('/api/builtin-led-test');
       })
       .then(r => r.json())
-      .then(d => setHTML('builtin-led-status', d.result || ''))
+      .then(d => {
+        if (!d) return;
+        if (d.success === false) {
+          setStatusError('builtin-led-status', d.result || messages.configError);
+        } else {
+          setStatusSuccess('builtin-led-status', d.result || messages.ok);
+        }
+      })
       .catch(err => {
         console.error('LED test', err);
-        setHTML('builtin-led-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+        setStatusError('builtin-led-status', err && err.message ? err.message : messages.configError);
       });
   }
 
   function ledBlink() {
     ensureBuiltinConfigured()
-      .then(() => fetch('/api/builtin-led-control?action=blink'))
+      .then(() => {
+        setStatusRunning('builtin-led-status', messages.testing);
+        return fetch('/api/builtin-led-control?action=blink');
+      })
       .then(r => r.json())
-      .then(d => setHTML('builtin-led-status', d.message || ''))
+      .then(d => {
+        if (!d || d.success === false) {
+          setStatusError('builtin-led-status', d && d.message ? d.message : messages.configError);
+        } else {
+          setStatusSuccess('builtin-led-status', d.message || messages.ok);
+        }
+      })
       .catch(err => {
         console.error('LED blink', err);
-        setHTML('builtin-led-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+        setStatusError('builtin-led-status', err && err.message ? err.message : messages.configError);
       });
   }
 
   function ledFade() {
     ensureBuiltinConfigured()
-      .then(() => fetch('/api/builtin-led-control?action=fade'))
+      .then(() => {
+        setStatusRunning('builtin-led-status', messages.testing);
+        return fetch('/api/builtin-led-control?action=fade');
+      })
       .then(r => r.json())
-      .then(d => setHTML('builtin-led-status', d.message || ''))
+      .then(d => {
+        if (!d || d.success === false) {
+          setStatusError('builtin-led-status', d && d.message ? d.message : messages.configError);
+        } else {
+          setStatusSuccess('builtin-led-status', d.message || messages.ok);
+        }
+      })
       .catch(err => {
         console.error('LED fade', err);
-        setHTML('builtin-led-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+        setStatusError('builtin-led-status', err && err.message ? err.message : messages.configError);
       });
   }
 
   function ledOff() {
     ensureBuiltinConfigured()
-      .then(() => fetch('/api/builtin-led-control?action=off'))
+      .then(() => {
+        setStatusRunning('builtin-led-status', messages.testing);
+        return fetch('/api/builtin-led-control?action=off');
+      })
       .then(r => r.json())
-      .then(d => setHTML('builtin-led-status', d.message || ''))
+      .then(d => {
+        if (!d || d.success === false) {
+          setStatusError('builtin-led-status', d && d.message ? d.message : messages.configError);
+        } else {
+          setStatusSuccess('builtin-led-status', d.message || messages.ok);
+        }
+      })
       .catch(err => {
         console.error('LED off', err);
-        setHTML('builtin-led-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+        setStatusError('builtin-led-status', err && err.message ? err.message : messages.configError);
       });
   }
 
   function configNeoPixel() {
     applyNeoPixelConfig(true).catch(err => {
       console.error('NeoPixel config', err);
-      setHTML('neopixel-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      setStatusError('neopixel-status', err && err.message ? err.message : messages.configError);
     });
   }
 
   function testNeoPixel() {
     ensureNeoPixelConfigured()
       .then(() => {
-        setText('neopixel-status', messages.testing);
+        setStatusRunning('neopixel-status');
         return fetch('/api/neopixel-test');
       })
       .then(r => r.json())
-      .then(d => setHTML('neopixel-status', d.result || ''))
+      .then(d => {
+        if (!d) return;
+        if (d.success === false) {
+          setStatusError('neopixel-status', d.result || messages.configError);
+        } else {
+          setStatusSuccess('neopixel-status', d.result || messages.ok);
+        }
+      })
       .catch(err => {
         console.error('NeoPixel test', err);
-        setHTML('neopixel-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+        setStatusError('neopixel-status', err && err.message ? err.message : messages.configError);
       });
   }
 
   function neoPattern(pattern) {
     ensureNeoPixelConfigured()
-      .then(() => fetch('/api/neopixel-pattern?pattern=' + encodeURIComponent(pattern)))
+      .then(() => {
+        setStatusRunning('neopixel-status', messages.testing);
+        return fetch('/api/neopixel-pattern?pattern=' + encodeURIComponent(pattern));
+      })
       .then(r => r.json())
-      .then(d => setHTML('neopixel-status', d.message || ''))
+      .then(d => {
+        if (!d || d.success === false) {
+          setStatusError('neopixel-status', d && d.message ? d.message : messages.configError);
+        } else {
+          setStatusSuccess('neopixel-status', d.message || messages.ok);
+        }
+      })
       .catch(err => {
         console.error('NeoPixel pattern', err);
-        setHTML('neopixel-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+        setStatusError('neopixel-status', err && err.message ? err.message : messages.configError);
       });
   }
 
@@ -422,72 +471,95 @@ inline String buildAppScript() {
     const g = parseInt(value.substring(3, 5), 16) || 0;
     const b = parseInt(value.substring(5, 7), 16) || 0;
     ensureNeoPixelConfigured()
-      .then(() => fetch(`/api/neopixel-color?r=${r}&g=${g}&b=${b}`))
+      .then(() => {
+        setStatusRunning('neopixel-status', messages.testing);
+        return fetch(`/api/neopixel-color?r=${r}&g=${g}&b=${b}`);
+      })
       .then(r => r.json())
-      .then(d => setHTML('neopixel-status', d.message || ''))
+      .then(d => {
+        if (!d || d.success === false) {
+          setStatusError('neopixel-status', d && d.message ? d.message : messages.configError);
+        } else {
+          setStatusSuccess('neopixel-status', d.message || messages.ok);
+        }
+      })
       .catch(err => {
         console.error('NeoPixel color', err);
-        setHTML('neopixel-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+        setStatusError('neopixel-status', err && err.message ? err.message : messages.configError);
       });
   }
 
   function testOLED() {
     ensureOLEDConfigured()
       .then(() => {
-        setText('oled-status', messages.testingOled);
+        setStatusRunning('oled-status', messages.testingOled);
         return fetch('/api/oled-test');
       })
       .then(r => r.json())
-      .then(d => setHTML('oled-status', d.result || ''))
+      .then(d => {
+        if (!d) return;
+        if (d.success === false) {
+          setStatusError('oled-status', d.result || messages.configError);
+        } else {
+          setStatusSuccess('oled-status', d.result || messages.ok);
+        }
+      })
       .catch(err => {
         console.error('OLED test', err);
-        setHTML('oled-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+        setStatusError('oled-status', err && err.message ? err.message : messages.configError);
       });
   }
 
   function oledStep(step) {
     ensureOLEDConfigured()
       .then(() => {
-        setText('oled-status', messages.testing);
+        setStatusRunning('oled-status');
         return fetch('/api/oled-step?step=' + encodeURIComponent(step));
       })
       .then(r => r.json())
       .then(d => {
         if (!d) return;
         if (d.success) {
-          setHTML('oled-status', d.message || '');
+          setStatusSuccess('oled-status', d.message || messages.ok);
         } else {
-          setHTML('oled-status', '❌ ' + (d.message || messages.configError));
+          setStatusError('oled-status', d.message || messages.configError);
         }
       })
-      .catch(err => setHTML('oled-status', '❌ ' + (err && err.message ? err.message : err)));
+      .catch(err => setStatusError('oled-status', err && err.message ? err.message : err));
   }
 
   function oledMessage() {
     const input = document.getElementById('oledMsg');
     if (!input) return;
     ensureOLEDConfigured()
-      .then(() => fetch('/api/oled-message?message=' + encodeURIComponent(input.value || '')))
+      .then(() => {
+        setStatusRunning('oled-status');
+        return fetch('/api/oled-message?message=' + encodeURIComponent(input.value || ''));
+      })
       .then(r => r.json())
-      .then(d => setHTML('oled-status', d.message || ''))
+      .then(d => {
+        if (!d) return;
+        if (d.success === false) {
+          setStatusError('oled-status', d.message || messages.configError);
+        } else {
+          setStatusSuccess('oled-status', d.message || messages.ok);
+        }
+      })
       .catch(err => {
         console.error('OLED message', err);
-        setHTML('oled-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+        setStatusError('oled-status', err && err.message ? err.message : messages.configError);
       });
   }
 
   function configOLED() {
     applyOLEDConfig(true).catch(err => {
       console.error('OLED config', err);
-      const status = document.getElementById('oled-status');
-      if (status) {
-        status.innerHTML = '❌ ' + messages.errorPrefix + (err && err.message ? err.message : messages.configError);
-      }
+      setStatusError('oled-status', messages.errorPrefix + (err && err.message ? err.message : messages.configError));
     });
   }
 
   function testADC() {
-    setText('adc-status', messages.testing);
+    setStatusRunning('adc-status');
     fetch('/api/adc-test')
       .then(r => r.json())
       .then(data => {
@@ -500,13 +572,16 @@ inline String buildAppScript() {
           });
         }
         setHTML('adc-results', html);
-        setHTML('adc-status', data.result || '');
+        setStatusSuccess('adc-status', data.result || '');
       })
-      .catch(err => console.error('ADC test', err));
+      .catch(err => {
+        console.error('ADC test', err);
+        setStatusError('adc-status', err && err.message ? err.message : messages.configError);
+      });
   }
 
   function testTouch() {
-    setText('touch-status', messages.testing);
+    setStatusRunning('touch-status');
     fetch('/api/touch-test')
       .then(r => r.json())
       .then(data => {
@@ -518,25 +593,40 @@ inline String buildAppScript() {
           });
         }
         setHTML('touch-results', html);
-        setHTML('touch-status', data.result || '');
+        setStatusSuccess('touch-status', data.result || '');
       })
-      .catch(err => console.error('Touch test', err));
+      .catch(err => {
+        console.error('Touch test', err);
+        setStatusError('touch-status', err && err.message ? err.message : messages.configError);
+      });
   }
 
   function testPWM() {
-    setText('pwm-status', messages.testing);
+    setStatusRunning('pwm-status');
     fetch('/api/pwm-test')
       .then(r => r.json())
-      .then(d => setHTML('pwm-status', d.result || ''))
-      .catch(err => console.error('PWM test', err));
+      .then(d => {
+        if (!d) return;
+        setStatusSuccess('pwm-status', d.result || '');
+      })
+      .catch(err => {
+        console.error('PWM test', err);
+        setStatusError('pwm-status', err && err.message ? err.message : messages.configError);
+      });
   }
 
   function scanSPI() {
-    setText('spi-status', messages.scanning);
+    setStatusRunning('spi-status', messages.scanning);
     fetch('/api/spi-scan')
       .then(r => r.json())
-      .then(d => setHTML('spi-status', d.info || ''))
-      .catch(err => console.error('SPI scan', err));
+      .then(d => {
+        if (!d) return;
+        setStatusSuccess('spi-status', d.info || messages.ok);
+      })
+      .catch(err => {
+        console.error('SPI scan', err);
+        setStatusError('spi-status', err && err.message ? err.message : messages.configError);
+      });
   }
 
   function listPartitions() {
@@ -548,15 +638,21 @@ inline String buildAppScript() {
   }
 
   function stressTest() {
-    setText('stress-status', messages.testing);
+    setStatusRunning('stress-status');
     fetch('/api/stress-test')
       .then(r => r.json())
-      .then(d => setHTML('stress-status', d.result || ''))
-      .catch(err => console.error('Stress test', err));
+      .then(d => {
+        if (!d) return;
+        setStatusSuccess('stress-status', d.result || '');
+      })
+      .catch(err => {
+        console.error('Stress test', err);
+        setStatusError('stress-status', err && err.message ? err.message : messages.configError);
+      });
   }
 
   function testAllGPIO() {
-    setText('gpio-status', messages.testing);
+    setStatusRunning('gpio-status');
     fetch('/api/test-gpio')
       .then(r => r.json())
       .then(data => {
@@ -570,9 +666,12 @@ inline String buildAppScript() {
         }
         setHTML('gpio-results', html);
         const total = Array.isArray(data.results) ? data.results.length : 0;
-        setText('gpio-status', `✅ ${messages.completed} - ${total} ${messages.gpio} ${messages.tested}`);
+        setStatusSuccess('gpio-status', `${total} ${messages.gpio} ${messages.tested}`);
       })
-      .catch(err => console.error('GPIO test', err));
+      .catch(err => {
+        console.error('GPIO test', err);
+        setStatusError('gpio-status', err && err.message ? err.message : messages.configError);
+      });
   }
 
   function refreshWirelessInfo() {
@@ -632,7 +731,11 @@ inline String buildAppScript() {
     updateText('bluetooth-controller', bt.controller || fallbackChar);
     updateText('bluetooth-last-test', bt.last_test_message || fallbackChar);
     if (bt.last_test_message) {
-      setText('bluetooth-status', bt.last_test_message);
+      if (bt.last_test_success === false) {
+        setStatusError('bluetooth-status', bt.last_test_message);
+      } else {
+        setStatusSuccess('bluetooth-status', bt.last_test_message);
+      }
     }
     const hint = bt.hint && bt.hint.length ? bt.hint : '\u00A0';
     setText('bluetooth-hint', hint);
@@ -671,19 +774,23 @@ inline String buildAppScript() {
   }
 
   function testBluetooth() {
-    setText('bluetooth-status', messages.testing);
+    setStatusRunning('bluetooth-status');
     fetch('/api/bluetooth-test')
       .then(r => r.json())
       .then(d => {
         if (!d) return;
-        setText('bluetooth-status', d.message || messages.unknown);
+        if (d.success === false) {
+          setStatusError('bluetooth-status', d.message || messages.unknown);
+        } else {
+          setStatusSuccess('bluetooth-status', d.message || messages.ok);
+        }
         refreshWirelessInfo();
       })
-      .catch(err => setText('bluetooth-status', '❌ ' + err));
+      .catch(err => setStatusError('bluetooth-status', err && err.message ? err.message : String(err)));
   }
 
   function scanWiFi() {
-    setText('wifi-status', messages.scanning);
+    setStatusRunning('wifi-status', messages.scanning);
     fetch('/api/wifi-scan')
       .then(r => r.json())
       .then(data => {
@@ -697,9 +804,12 @@ inline String buildAppScript() {
         }
         setHTML('wifi-results', html);
         const total = Array.isArray(data.networks) ? data.networks.length : 0;
-        setText('wifi-status', `${total} ${messages.networks}`);
+        setStatusSuccess('wifi-status', `${total} ${messages.networks}`);
       })
-      .catch(err => console.error('WiFi scan', err));
+      .catch(err => {
+        console.error('WiFi scan', err);
+        setStatusError('wifi-status', err && err.message ? err.message : messages.configError);
+      });
   }
 
   function scanI2C() {
@@ -806,7 +916,7 @@ inline String buildAppScript() {
   String channelPrefix = (currentLanguage == LANG_FR) ? String("Canal ") : String("Ch ");
   script.replace(F("{{CHANNEL_PREFIX}}"), escapeForJS(channelPrefix));
   script.replace(F("{{TESTING}}"), escapeForJS(String(T().testing)));
-  script.replace(F("{{TESTING_OLED}}"), escapeForJS(String(T().testing) + String(" (25s)...")));
+  script.replace(F("{{TESTING_OLED}}"), escapeForJS(String(T().testing_oled)));
   script.replace(F("{{RECONFIGURING}}"), escapeForJS(String(T().reconfiguring)));
   script.replace(F("{{CONFIG_UPDATED}}"), escapeForJS(String(T().config_updated)));
   script.replace(F("{{CONFIG_ERROR}}"), escapeForJS(String(T().config_error)));

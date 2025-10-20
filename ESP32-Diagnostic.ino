@@ -1,10 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.6
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.7
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v2.8.7:
+ * - Statuts de tests harmonisés avec indicateurs ⏳/✅/❌ et messages "Test en cours..." jusqu'à la fin effective des actions LED, NeoPixel, OLED, ADC, GPIO, WiFi et Bluetooth.
+ * - Messages de reconfiguration et de tests lumineux ajustés pour refléter l'application automatique des configurations et les retours Bluetooth.
+
  * Nouveautés v2.8.6:
  * - Ajout d'une bannière fixe indiquant en direct l'état WiFi/Bluetooth sans bloquer l'interface.
  * - Les tests LED, NeoPixel et OLED appliquent automatiquement la configuration saisie avant leur première exécution tout en conservant le bouton Config pour des modifications ultérieures.
@@ -141,7 +145,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.6"
+#define DIAGNOSTIC_VERSION "2.8.7"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true

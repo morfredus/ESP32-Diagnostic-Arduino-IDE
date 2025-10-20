@@ -5,6 +5,16 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.7] - 2025-11-02
+
+### Changed
+- Harmonisation des statuts en ligne avec préfixes ⏳/✅/❌ pour tous les tests LED, NeoPixel, OLED, ADC, GPIO, scans WiFi et Bluetooth, avec rappels de reconfiguration cohérents.
+
+### Fixed
+- Les messages des tests lumineux et OLED affichent désormais "Test en cours..." jusqu'à la fin réelle et ne marquent plus "Terminé" prématurément, y compris pour le test Bluetooth.
+
+---
+
 ## [2.8.6] - 2025-11-01
 
 ### Added
