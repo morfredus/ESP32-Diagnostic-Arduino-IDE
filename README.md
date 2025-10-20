@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.6.0
+# ESP32 Complete Diagnostic v2.8.2
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.6.0**: Removed TFT screen handling, expanded OLED tooling with per-step controls, and streamlined I2C reconfiguration for the display.
+**What's new in v2.8.2**: Ships the `app_script.h` helper so the `/js/app.js` endpoint is always generated (no more "buildAppScript missing" errors on fresh checkouts).
 
 ## ✨ Features
 
@@ -75,7 +75,7 @@ Tested and optimized for:
 
 ### Software
 - **Arduino IDE** 2.x or higher
-- **ESP32 Arduino Core** 3.1.3 or higher
+- **ESP32 Arduino Core** 3.3.2 or higher
 
 ### Required Arduino Libraries
 
@@ -334,7 +334,7 @@ If some texts remain in French:
 
 - **Startup time**: ~5s
 - **Web page generation**: ~200ms
-- **Language switching**: <100ms (no reload)
+- **Language switching**: <1s (auto reload to apply translations)
 - **Heap memory used**: ~250KB
 - **Multilingual overhead**: ~15KB Flash
 
@@ -344,11 +344,12 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.6.0
+## 📁 Project Structure v2.8.2
 
 ```
 ESP32-Diagnostic/
 ├── ESP32-Diagnostic.ino              (main code)
+├── app_script.h                      (client-side JS generator - NEW v2.8.2)
 ├── languages.h                       (translation system - NEW)
 ├── config.h.example                  (template)
 ├── config.h                          (your credentials - gitignore)
@@ -359,10 +360,18 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v2.6.0 (2025) - OLED CONTROLS REFRESH
-- Removed TFT SPI screen support from firmware, UI and documentation
-- Added individual OLED test buttons alongside the full test workflow
-- Simplified OLED I2C reconfiguration from the web interface
+### v2.8.2 (2025) - APP SCRIPT PACKAGING
+- Added the dedicated `app_script.h` helper so firmware builds always embed the `/js/app.js` logic.
+- Documentation updated to reflect version 2.8.2 and the new project file layout.
+
+### v2.8.1 (2025) - ESP32 ARDUINO CORE 3.3.2 & WIFI AVANCÉ
+- Compatibilité validée avec l'Arduino Core ESP32 3.3.2 et affichage de la version du core dans l'interface, les exports et l'API.
+- Nouvelles métriques WiFi (mode, veille, bande, plan de bande, puissance TX, hostname) visibles sur l'onglet Sans fil, la vue d'ensemble et tous les formats d'export.
+
+### v2.6.3 (2025) - CHANGEMENT DE LANGUE IMMÉDIAT
+- Replaced blocking popups with inline status banners on every test panel
+- Reserved fixed-height feedback areas to prevent layout jumps during updates
+- Highlighted that a ❌ on GPIO tests can signal a reserved or unconnected pin
 
 ### v2.5.1 (2025) - PSRAM GUIDANCE
 - ✅ **Clearer PSRAM hardware status** when the board supports external RAM but it is disabled in the Arduino IDE
@@ -402,7 +411,7 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
-**v2.6.0 - OLED controls refresh & TFT removal**
+**v2.6.3 - Changement de langue immédiat**
 **v2.5.1 - Clearer PSRAM status guidance**
 **v2.5 - Translation of export files**
 **v2.4 - Multilingual system**
@@ -410,10 +419,10 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.6.0 Multilingual + OLED tooling refresh
+**Current version**: 2.8.2 ESP32 Arduino Core 3.3.2 + WiFi avancé
 **Last update**: October 2025  
 **Available languages**: French (default), English  
-**Support**: ESP32 Arduino Core 3.1.3+
+**Support**: ESP32 Arduino Core 3.3.2+
 
 🌐 **Access**: http://ESP32-Diagnostic.local  
 🇫🇷🇬🇧 **Language switching**: FR/EN buttons in interface
