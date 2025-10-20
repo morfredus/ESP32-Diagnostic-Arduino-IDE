@@ -5,6 +5,58 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] - 2025-10-25
+
+### Fixed
+- Préprocesseur renforcé pour ignorer proprement le diagnostic Bluetooth quand les en-têtes `esp_bt*.h` sont absents, supprimant l'erreur de compilation tout en conservant les indications d'activation.
+
+---
+
+## [2.7.0] - 2025-10-24
+
+### Added
+- Nouvel onglet **Sans fil** réunissant les informations WiFi et Bluetooth avec zones d'état réservées.
+- Test automatisé du contrôleur Bluetooth avec messages contextualisés et retour inline.
+- Indication claire pour activer le Bluetooth lorsque le matériel est détecté mais désactivé à la compilation.
+
+### Changed
+- Présentation enrichie du statut WiFi (SSID, RSSI, IP, passerelle, DNS) sans recours aux pop-ups bloquantes.
+
+---
+
+## [2.6.3] - 2025-10-22
+
+### Fixed
+- Le changement de langue se réapplique désormais immédiatement sans rechargement manuel et conserve la sélection active.
+- Harmonisation des libellés de boutons lumineux en français pour éviter les restes de termes anglais.
+
+---
+
+## [2.6.2] - 2025-10-21
+
+### Fixed
+- Le changement de broches OLED met désormais à jour l'interface sans rechargement complet, conservant l'onglet actif et le retour inline.
+- Les scans I2C actualisent les compteurs et adresses détectées sans provoquer de redirection.
+
+### Changed
+- Stabilisation visuelle des zones de message (classes `status-field`/`status-live`) et rappel GPIO directement sous la grille de résultats.
+
+---
+
+## [2.6.1] - 2025-10-20
+
+### Changed
+- Remplacement des fenêtres popup par des messages intégrés aux sections de test.
+- Réservation d'espaces d'information stables pour éviter les décalages de mise en page.
+
+### Added
+- Indication proactive rappelant qu'un GPIO en échec peut être simplement réservé ou non câblé.
+
+### Fixed
+- Harmonisation de la remontée d'erreurs sur les actions OLED et changement de langue via des toasts non bloquants.
+
+---
+
 ## [2.6.0] - 2025-10-15
 
 ### Removed
