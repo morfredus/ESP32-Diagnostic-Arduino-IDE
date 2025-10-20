@@ -1,10 +1,15 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.2
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.3
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v2.8.3:
+ * - Correction de l'échappement du script embarqué pour supprimer les erreurs `stray '\'` à la compilation.
+ * - Restauration de l'ensemble des handlers REST (WiFi, I2C, LEDs, NeoPixel, OLED, tests matériels, exports).
+ * - API `/api/wireless-info` enrichie avec l'état Bluetooth et réponses JSON uniformément échappées.
+
  * Nouveautés v2.8.2:
  * - Ajout du fichier `app_script.h` embarquant la fonction `buildAppScript()`.
  * - Publication du script `/js/app.js` lors des exports afin d'éviter les erreurs "fonction manquante".
@@ -124,7 +129,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.2"
+#define DIAGNOSTIC_VERSION "2.8.3"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -514,7 +519,7 @@ String describeWiFiBandLabel(bool supports5G) {
 
 String describeWiFiBandModeLabel(bool supports5G) {
 #if HAS_WIFI_BAND_MODE_API
-  wifi_band_mode_t mode = WiFiGenericClass::getBandMode();
+  wifi_band_mode_t mode = WiFi.getBandMode();
   switch (mode) {
     case WIFI_BAND_MODE_AUTO:
       return String(T().wifi_band_mode_auto);
@@ -1647,6 +1652,368 @@ void handleWirelessInfo() {
   server.send(200, "application/json", json);
 }
 
+void handleWiFiScan() {
+  scanWiFiNetworks();
+
+  String json = "{\"networks\":[";
+  for (size_t i = 0; i < wifiNetworks.size(); ++i) {
+    if (i > 0) json += ",";
+    json += "{\"ssid\":\"" + jsonEscape(wifiNetworks[i].ssid) + "\",";
+    json += "\"rssi\":" + String(wifiNetworks[i].rssi) + ",";
+    json += "\"channel\":" + String(wifiNetworks[i].channel) + ",";
+    json += "\"encryption\":\"" + jsonEscape(wifiNetworks[i].encryption) + "\",";
+    json += "\"bssid\":\"" + jsonEscape(wifiNetworks[i].bssid) + "\"}";
+  }
+  json += "]}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleI2CScan() {
+  scanI2C();
+  String json = "{\"count\":" + String(diagnosticData.i2cCount) + ",\"devices\":\"" + jsonEscape(diagnosticData.i2cDevices) + "\"}";
+  server.send(200, "application/json", json);
+}
+
+void handleBuiltinLEDConfig() {
+  if (server.hasArg("gpio")) {
+    int newGPIO = server.arg("gpio").toInt();
+    if (newGPIO >= 0 && newGPIO <= 48) {
+      BUILTIN_LED_PIN = newGPIO;
+      resetBuiltinLEDTest();
+      String json = "{\"success\":true,\"message\":\"" + jsonEscape("LED GPIO " + String(BUILTIN_LED_PIN)) + "\"}";
+      server.send(200, "application/json", json);
+      return;
+    }
+  }
+
+  server.send(400, "application/json", "{\"success\":false}");
+}
+
+void handleBuiltinLEDTest() {
+  resetBuiltinLEDTest();
+  testBuiltinLED();
+  String json = "{\"success\":" + String(builtinLedAvailable ? "true" : "false") + ",\"result\":\"" + jsonEscape(builtinLedTestResult) + "\"}";
+  server.send(200, "application/json", json);
+}
+
+void handleBuiltinLEDControl() {
+  if (!server.hasArg("action")) {
+    server.send(400, "application/json", "{\"success\":false}");
+    return;
+  }
+
+  if (BUILTIN_LED_PIN == -1) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"LED non configuree\"}");
+    return;
+  }
+
+  String action = server.arg("action");
+  pinMode(BUILTIN_LED_PIN, OUTPUT);
+  String message;
+
+  if (action == "blink") {
+    for (int i = 0; i < 5; ++i) {
+      digitalWrite(BUILTIN_LED_PIN, HIGH);
+      delay(200);
+      digitalWrite(BUILTIN_LED_PIN, LOW);
+      delay(200);
+    }
+    message = "Clignotement OK";
+  } else if (action == "fade") {
+    for (int i = 0; i <= 255; i += 5) {
+      analogWrite(BUILTIN_LED_PIN, i);
+      delay(10);
+    }
+    for (int i = 255; i >= 0; i -= 5) {
+      analogWrite(BUILTIN_LED_PIN, i);
+      delay(10);
+    }
+    digitalWrite(BUILTIN_LED_PIN, LOW);
+    message = "Fade OK";
+  } else if (action == "off") {
+    digitalWrite(BUILTIN_LED_PIN, LOW);
+    builtinLedTested = false;
+    message = "LED eteinte";
+  } else {
+    server.send(400, "application/json", "{\"success\":false}");
+    return;
+  }
+
+  String json = "{\"success\":true,\"message\":\"" + jsonEscape(message) + "\"}";
+  server.send(200, "application/json", json);
+}
+
+void handleNeoPixelConfig() {
+  if (server.hasArg("gpio") && server.hasArg("count")) {
+    int newGPIO = server.arg("gpio").toInt();
+    int newCount = server.arg("count").toInt();
+
+    if (newGPIO >= 0 && newGPIO <= 48 && newCount > 0 && newCount <= 100) {
+      LED_PIN = newGPIO;
+      LED_COUNT = newCount;
+      if (strip) delete strip;
+      strip = new Adafruit_NeoPixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+      resetNeoPixelTest();
+      String json = "{\"success\":true,\"message\":\"" + jsonEscape("Config GPIO " + String(LED_PIN)) + "\"}";
+      server.send(200, "application/json", json);
+      return;
+    }
+  }
+
+  server.send(400, "application/json", "{\"success\":false}");
+}
+
+void handleNeoPixelTest() {
+  resetNeoPixelTest();
+  testNeoPixel();
+  String json = "{\"success\":" + String(neopixelAvailable ? "true" : "false") + ",\"result\":\"" + jsonEscape(neopixelTestResult) + "\"}";
+  server.send(200, "application/json", json);
+}
+
+void handleNeoPixelPattern() {
+  if (!server.hasArg("pattern")) {
+    server.send(400, "application/json", "{\"success\":false}");
+    return;
+  }
+
+  if (!strip) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"NeoPixel non init\"}");
+    return;
+  }
+
+  String pattern = server.arg("pattern");
+  String message;
+
+  if (pattern == "rainbow") {
+    neopixelRainbow();
+    message = "Arc-en-ciel OK";
+  } else if (pattern == "blink") {
+    neopixelBlink(strip->Color(255, 0, 0), 5);
+    message = "Blink OK";
+  } else if (pattern == "fade") {
+    neopixelFade(strip->Color(0, 0, 255));
+    message = "Fade OK";
+  } else if (pattern == "off") {
+    strip->clear();
+    strip->show();
+    neopixelTested = false;
+    message = "Off";
+  } else {
+    server.send(400, "application/json", "{\"success\":false}");
+    return;
+  }
+
+  String json = "{\"success\":true,\"message\":\"" + jsonEscape(message) + "\"}";
+  server.send(200, "application/json", json);
+}
+
+void handleNeoPixelColor() {
+  if (!strip || !server.hasArg("r") || !server.hasArg("g") || !server.hasArg("b")) {
+    server.send(400, "application/json", "{\"success\":false}");
+    return;
+  }
+
+  int r = server.arg("r").toInt();
+  int g = server.arg("g").toInt();
+  int b = server.arg("b").toInt();
+
+  strip->fill(strip->Color(r, g, b));
+  strip->show();
+  neopixelTested = false;
+
+  String json = "{\"success\":true,\"message\":\"" + jsonEscape("RGB(" + String(r) + "," + String(g) + "," + String(b) + ")") + "\"}";
+  server.send(200, "application/json", json);
+}
+
+void handleOLEDConfig() {
+  if (server.hasArg("sda") && server.hasArg("scl")) {
+    int newSDA = server.arg("sda").toInt();
+    int newSCL = server.arg("scl").toInt();
+
+    if (newSDA >= 0 && newSDA <= 48 && newSCL >= 0 && newSCL <= 48) {
+      I2C_SDA = newSDA;
+      I2C_SCL = newSCL;
+      resetOLEDTest();
+      Wire.end();
+      detectOLED();
+      String json = "{\"success\":true,\"message\":\"" + jsonEscape("I2C reconfigure: SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL)) + "\"}";
+      server.send(200, "application/json", json);
+      return;
+    }
+  }
+
+  server.send(400, "application/json", "{\"success\":false,\"message\":\"Pins invalides\"}");
+}
+
+void handleOLEDTest() {
+  resetOLEDTest();
+  testOLED();
+  String json = "{\"success\":" + String(oledAvailable ? "true" : "false") + ",\"result\":\"" + jsonEscape(oledTestResult) + "\"}";
+  server.send(200, "application/json", json);
+}
+
+void handleOLEDStep() {
+  if (!server.hasArg("step")) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().oled_step_unknown) + "\"}");
+    return;
+  }
+
+  if (!oledAvailable) {
+    server.send(200, "application/json", "{\"success\":false,\"message\":\"" + String(T().oled_step_unavailable) + "\"}");
+    return;
+  }
+
+  String stepId = server.arg("step");
+  bool ok = performOLEDStep(stepId);
+  if (!ok) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().oled_step_unknown) + "\"}");
+    return;
+  }
+
+  String label = getOLEDStepLabel(stepId);
+  String json = "{\"success\":true,\"message\":\"" + jsonEscape(String(T().oled_step_executed_prefix) + " " + label) + "\"}";
+  server.send(200, "application/json", json);
+}
+
+void handleOLEDMessage() {
+  if (!server.hasArg("message")) {
+    server.send(400, "application/json", "{\"success\":false}");
+    return;
+  }
+
+  String message = server.arg("message");
+  oledShowMessage(message);
+  server.send(200, "application/json", "{\"success\":true,\"message\":\"Message affiche\"}");
+}
+
+void handleADCTest() {
+  testADC();
+
+  String json = "{\"readings\":[";
+  for (size_t i = 0; i < adcReadings.size(); ++i) {
+    if (i > 0) json += ",";
+    json += "{\"pin\":" + String(adcReadings[i].pin) + ",\"raw\":" + String(adcReadings[i].rawValue) + ",\"voltage\":" + String(adcReadings[i].voltage, 2) + "}";
+  }
+  json += "],\"result\":\"" + jsonEscape(adcTestResult) + "\"}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleTouchTest() {
+  testTouchPads();
+
+  String json = "{\"readings\":[";
+  for (size_t i = 0; i < touchReadings.size(); ++i) {
+    if (i > 0) json += ",";
+    json += "{\"pin\":" + String(touchReadings[i].pin) + ",\"value\":" + String(touchReadings[i].value) + "}";
+  }
+  json += "],\"result\":\"" + jsonEscape(touchTestResult) + "\"}";
+
+  server.send(200, "application/json", json);
+}
+
+void handlePWMTest() {
+  testPWM();
+  String json = "{\"result\":\"" + jsonEscape(pwmTestResult) + "\"}";
+  server.send(200, "application/json", json);
+}
+
+void handleSPIScan() {
+  scanSPI();
+  server.send(200, "application/json", "{\"info\":\"" + jsonEscape(spiInfo) + "\"}");
+}
+
+void handlePartitionsList() {
+  listPartitions();
+  server.send(200, "application/json", "{\"partitions\":\"" + jsonEscape(partitionsInfo) + "\"}");
+}
+
+void handleStressTest() {
+  memoryStressTest();
+  server.send(200, "application/json", "{\"result\":\"" + jsonEscape(stressTestResult) + "\"}");
+}
+
+void handleBenchmark() {
+  unsigned long cpuTime = benchmarkCPU();
+  unsigned long memTime = benchmarkMemory();
+
+  diagnosticData.cpuBenchmark = cpuTime;
+  diagnosticData.memBenchmark = memTime;
+
+  String json = "{\"cpu\":" + String(cpuTime) + ",\"memory\":" + String(memTime);
+  if (cpuTime > 0) {
+    json += ",\"cpuPerf\":" + String(100000.0 / cpuTime, 2);
+  } else {
+    json += ",\"cpuPerf\":0";
+  }
+  if (memTime > 0) {
+    json += ",\"memSpeed\":" + String((10000 * sizeof(int) * 2) / (float)memTime, 2);
+  } else {
+    json += ",\"memSpeed\":0";
+  }
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleMemoryDetails() {
+  collectDetailedMemory();
+
+  String json = "{\"flash\":{\"real\":" + String(detailedMemory.flashSizeReal) + ",\"chip\":" + String(detailedMemory.flashSizeChip) + "},";
+  json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") + ",";
+  json += "\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") + ",";
+  json += "\"supported\":" + String(detailedMemory.psramBoardSupported ? "true" : "false") + ",";
+  json += "\"type\":\"" + jsonEscape(String(detailedMemory.psramType ? detailedMemory.psramType : "Inconnu")) + "\",";
+  json += "\"total\":" + String(detailedMemory.psramTotal) + ",\"free\":" + String(detailedMemory.psramFree) + "},";
+  json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) + ",\"free\":" + String(detailedMemory.sramFree) + "},";
+  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",\"status\":\"" + jsonEscape(detailedMemory.memoryStatus) + "\"}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleBluetoothTest() {
+  bool success = false;
+  String message;
+
+#if HAS_NATIVE_BLUETOOTH
+  esp_bt_controller_status_t status = esp_bt_controller_get_status();
+  esp_err_t err = ESP_OK;
+
+  if (status == ESP_BT_CONTROLLER_STATUS_UNINITIALIZED) {
+    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    err = esp_bt_controller_init(&bt_cfg);
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+      message = String(T().bluetooth_init_failed) + " (" + String(esp_err_to_name(err)) + ")";
+    }
+    status = esp_bt_controller_get_status();
+  }
+
+  if (!message.length() && status != ESP_BT_CONTROLLER_STATUS_ENABLED) {
+    err = esp_bt_controller_enable(ESP_BT_MODE_BTDM);
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+      message = String(T().bluetooth_enable_failed) + " (" + String(esp_err_to_name(err)) + ")";
+    }
+    status = esp_bt_controller_get_status();
+  }
+
+  if (!message.length()) {
+    success = (status == ESP_BT_CONTROLLER_STATUS_ENABLED);
+    message = success ? String(T().bluetooth_test_success) : describeBluetoothControllerStatus(status);
+  }
+#else
+  message = String(T().bluetooth_test_not_compiled);
+#endif
+
+  bluetoothInfo.lastTestSuccess = success;
+  bluetoothInfo.lastTestMessage = message;
+  updateBluetoothDerivedState();
+  collectDiagnosticInfo();
+
+  String json = "{\"success\":" + String(success ? "true" : "false") + ",\"message\":\"" + jsonEscape(message) + "\"}";
+  server.send(200, "application/json", json);
+}
+
 void handleExportTXT() {
   collectDiagnosticInfo();
   collectDetailedMemory();
@@ -1826,6 +2193,17 @@ void handleExportJSON() {
   json += "\"gpio\":{";
   json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
   json += "\"list\":\"" + jsonEscape(diagnosticData.gpioList) + "\"";
+  json += "},";
+  json += "\"bluetooth\":{";
+  json += "\"compile_enabled\":" + String(bluetoothInfo.compileEnabled ? "true" : "false") + ",";
+  json += "\"classic\":" + String(bluetoothInfo.hardwareClassic ? "true" : "false") + ",";
+  json += "\"ble\":" + String(bluetoothInfo.hardwareBLE ? "true" : "false") + ",";
+  json += "\"controller\":\"" + jsonEscape(bluetoothInfo.controllerStatus) + "\",";
+  json += "\"controller_enabled\":" + String(bluetoothInfo.controllerEnabled ? "true" : "false") + ",";
+  json += "\"controller_initialized\":" + String(bluetoothInfo.controllerInitialized ? "true" : "false") + ",";
+  json += "\"last_test_success\":" + String(bluetoothInfo.lastTestSuccess ? "true" : "false") + ",";
+  json += "\"last_test_message\":\"" + jsonEscape(bluetoothInfo.lastTestMessage) + "\",";
+  json += "\"hint\":\"" + jsonEscape(bluetoothInfo.availabilityHint) + "\"";
   json += "},";
 
   json += "\"peripherals\":{";

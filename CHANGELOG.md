@@ -5,6 +5,21 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.3] - 2025-10-29
+
+### Fixed
+- Correction de l'échappement du script `/js/app.js` afin d'éliminer les erreurs `stray '\'` lors de la compilation sous Arduino Core 3.3.2.
+- Restauration des handlers REST (WiFi, I2C, LED intégrée, NeoPixel, OLED, tests matériels, exports) supprimés par inadvertance.
+
+### Added
+- Intégration de l'état Bluetooth (capacités, dernier test, message d'aide) dans la réponse `/api/wireless-info`.
+- Test Bluetooth renforcé essayant d'initialiser/activer automatiquement le contrôleur quand il est disponible.
+
+### Changed
+- Échappement systématique des réponses JSON retournées par les endpoints de test pour éviter les caractères problématiques.
+
+---
+
 ## [2.8.2] - 2025-10-28
 
 ### Added
