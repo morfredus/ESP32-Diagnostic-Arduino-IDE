@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.6.0
+# ESP32 Complete Diagnostic v2.8.8
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.6.0**: Removed TFT screen handling, expanded OLED tooling with per-step controls, and streamlined I2C reconfiguration for the display.
+**What's new in v2.8.8**: Wireless banner LEDs now distinguish STA/AP modes, flag disabled Bluetooth stacks as *Indisponible*, refresh stale WiFi metrics automatically, and the documentation gains a full French README plus bilingual setup guides (`MODE_D_EMPLOI*.md`).
 
 ## ✨ Features
 
@@ -23,13 +23,13 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **French** (default language)
 - **English**
 - **Dynamic switching**: FR/EN buttons in interface
-- **Real-time update**: No reload required
+- **Automatic refresh**: Immediate reload triggered after switching language
 - **Complete translations**: All texts, labels, messages and status
 
 ### Hardware Tests
-- **Built-in LED** - Configuration and testing with patterns (blink, fade)
-- **NeoPixel/WS2812B** - Multi-LED support with RGB effects
-- **OLED 0.96" I2C Screen** - 10 display tests including animations + manual step triggers
+- **Built-in LED** - Configuration and testing with patterns (auto-applies the selected GPIO on test launch, blink, fade)
+- **NeoPixel/WS2812B** - Multi-LED support with RGB effects (auto-applies GPIO/count before tests or animations)
+- **OLED 0.96" I2C Screen** - 10 display tests including animations + manual step triggers (auto reapplies SDA/SCL before tests/messages)
 - **GPIO** - Automatic testing of all available GPIO
 - **ADC** - Reading all analog channels
 - **Touch Pads** - Capacitive touch sensor testing
@@ -51,11 +51,19 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **Real-time** - Data refresh without reload
 - **Responsive** - Mobile/tablet/desktop compatible
 - **Complete exports** - TXT, JSON, CSV, printable PDF version
+- **Wireless status banner** (since v2.8.6, refined in v2.8.8) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness and inline reminders for LED/NeoPixel/OLED tests
+- **Inline status feedback** (since v2.8.7, refined in v2.8.8) - Unified ⏳/✅/❌ messages for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth actions with automatic config acknowledgements and accurate completion states
 
 ### Network Access
 - **mDNS** - Access via http://ESP32-Diagnostic.local
 - **Multi-WiFi** - Automatic connection with failover
 - **REST API** - JSON endpoints for integration
+
+## 📚 Documentation
+
+- [`README.fr.md`](README.fr.md) – guide complet en français avec les mêmes sections que la version anglaise.
+- [`MODE_D_EMPLOI.md`](MODE_D_EMPLOI.md) – checklist d'installation et de compilation (EN) pour Arduino IDE 2.x.
+- [`MODE_D_EMPLOI.fr.md`](MODE_D_EMPLOI.fr.md) – mode d'emploi détaillé en français couvrant prérequis et outils.
 
 ## 🎯 Compatible Boards
 
@@ -75,7 +83,7 @@ Tested and optimized for:
 
 ### Software
 - **Arduino IDE** 2.x or higher
-- **ESP32 Arduino Core** 3.1.3 or higher
+- **ESP32 Arduino Core** 3.3.2 or higher
 
 ### Required Arduino Libraries
 
@@ -106,7 +114,7 @@ Download or clone this project to your Arduino folder.
 ESP32-Diagnostic/
 ├── ESP32-Diagnostic.ino              (main file)
 ├── languages.h                       (NEW - translations)
-├── config.h.example                  (configuration template)
+├── exemple-config.h                  (configuration template)
 ├── config.h                          (your credentials - to create)
 └── README.md
 ```
@@ -334,7 +342,7 @@ If some texts remain in French:
 
 - **Startup time**: ~5s
 - **Web page generation**: ~200ms
-- **Language switching**: <100ms (no reload)
+- **Language switching**: <1s (auto reload to apply translations)
 - **Heap memory used**: ~250KB
 - **Multilingual overhead**: ~15KB Flash
 
@@ -344,25 +352,53 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.6.0
+## 📁 Project Structure v2.8.8
 
 ```
 ESP32-Diagnostic/
 ├── ESP32-Diagnostic.ino              (main code)
+├── app_script.h                      (client-side JS generator - auto-config helpers, wireless banner & refined indicator logic in v2.8.8)
 ├── languages.h                       (translation system - NEW)
-├── config.h.example                  (template)
+├── exemple-config.h                  (template)
 ├── config.h                          (your credentials - gitignore)
 ├── README.md                         (this file)
 ├── README.fr.md                      (French version of README)
+├── MODE_D_EMPLOI.md                  (Setup & compilation guide - English)
+├── MODE_D_EMPLOI.fr.md               (Guide d'installation et compilation - Français)
 └── .gitignore                        (excludes config.h)
 ```
 
 ## 🔄 Changelog
 
-### v2.6.0 (2025) - OLED CONTROLS REFRESH
-- Removed TFT SPI screen support from firmware, UI and documentation
-- Added individual OLED test buttons alongside the full test workflow
-- Simplified OLED I2C reconfiguration from the web interface
+### v2.8.8 (2025-10-20) - WIRELESS INDICATORS & GUIDES
+- WiFi/Bluetooth banner now differentiates STA/AP usage, reports disabled Bluetooth stacks as *Indisponible* and clears outdated metrics automatically.
+- Added bilingual setup guides (`MODE_D_EMPLOI*.md`) and a dedicated French README to streamline onboarding.
+- Normalised release dates to reflect the 20 October 2025 publication timeline.
+
+### v2.8.7 (2025) - INLINE STATUS CLARITY
+- Added consistent ⏳/✅/❌ status formatting for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth actions.
+- Ensured "Test en cours..." messages persist until completion and reconfiguration feedback is aligned across automatic Config flows.
+
+### v2.8.6 (2025) - WIRELESS STATUS & AUTO CONFIG
+- Added a fixed header banner that displays WiFi/Bluetooth connectivity without relying on modal alerts.
+- LED, NeoPixel and OLED tests now auto-apply the entered configuration before their first run while keeping the Config buttons for manual adjustments.
+
+### v2.8.5 (2025) - CLIENT SCRIPT REWRITE
+- Rebuilt the generated `/js/app.js` template to export all handlers, fix the FR/EN toggle and restore working tab navigation.
+- Updated documentation banners and UI headers to advertise version 2.8.5 and the restored UI behaviour.
+
+### v2.8.3 (2025) - API RESTORATION & BLUETOOTH FEEDBACK
+- Fixed the escaped JavaScript bundle and reinstated all REST handlers (WiFi, LEDs, NeoPixel, OLED, tests, exports).
+- Wireless diagnostics JSON now exposes Bluetooth availability/status with contextual hints in both languages.
+
+### v2.8.1 (2025) - ESP32 ARDUINO CORE 3.3.2 & WIFI AVANCÉ
+- Compatibilité validée avec l'Arduino Core ESP32 3.3.2 et affichage de la version du core dans l'interface, les exports et l'API.
+- Nouvelles métriques WiFi (mode, veille, bande, plan de bande, puissance TX, hostname) visibles sur l'onglet Sans fil, la vue d'ensemble et tous les formats d'export.
+
+### v2.6.3 (2025) - CHANGEMENT DE LANGUE IMMÉDIAT
+- Replaced blocking popups with inline status banners on every test panel
+- Reserved fixed-height feedback areas to prevent layout jumps during updates
+- Highlighted that a ❌ on GPIO tests can signal a reserved or unconnected pin
 
 ### v2.5.1 (2025) - PSRAM GUIDANCE
 - ✅ **Clearer PSRAM hardware status** when the board supports external RAM but it is disabled in the Arduino IDE
@@ -402,7 +438,7 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
-**v2.6.0 - OLED controls refresh & TFT removal**
+**v2.6.3 - Changement de langue immédiat**
 **v2.5.1 - Clearer PSRAM status guidance**
 **v2.5 - Translation of export files**
 **v2.4 - Multilingual system**
@@ -410,10 +446,10 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.6.0 Multilingual + OLED tooling refresh
-**Last update**: October 2025  
+**Current version**: 2.8.8 ESP32 Arduino Core 3.3.2 + STA/AP aware wireless banner & bilingual setup guides
+**Last update**: November 2025
 **Available languages**: French (default), English  
-**Support**: ESP32 Arduino Core 3.1.3+
+**Support**: ESP32 Arduino Core 3.3.2+
 
 🌐 **Access**: http://ESP32-Diagnostic.local  
 🇫🇷🇬🇧 **Language switching**: FR/EN buttons in interface

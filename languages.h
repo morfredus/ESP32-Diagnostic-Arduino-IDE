@@ -38,6 +38,7 @@ struct Translations {
   const char* chip_features;
   const char* sdk_version;
   const char* idf_version;
+  const char* arduino_core_version;
   const char* uptime;
   const char* cpu_temp;
   
@@ -90,6 +91,44 @@ struct Translations {
   const char* gateway;
   const char* dns;
   const char* wifi_channel;
+  const char* wifi_mode;
+  const char* wifi_sleep;
+  const char* wifi_band;
+  const char* wifi_band_mode;
+  const char* wifi_tx_power;
+  const char* wifi_hostname;
+  const char* wifi_mode_sta;
+  const char* wifi_mode_ap;
+  const char* wifi_mode_apsta;
+  const char* wifi_mode_null;
+  const char* wifi_sleep_none;
+  const char* wifi_sleep_min_modem;
+  const char* wifi_sleep_max_modem;
+  const char* wifi_band_2g;
+  const char* wifi_band_5g;
+  const char* wifi_band_mode_auto;
+  const char* wifi_band_mode_2g;
+  const char* wifi_band_mode_5g;
+
+  // Bluetooth
+  const char* bluetooth_section;
+  const char* bluetooth_state;
+  const char* bluetooth_capabilities;
+  const char* bluetooth_last_test;
+  const char* bluetooth_enable_hint;
+  const char* bluetooth_not_available;
+  const char* bluetooth_test_button;
+  const char* bluetooth_test_not_compiled;
+  const char* bluetooth_init_failed;
+  const char* bluetooth_enable_failed;
+  const char* bluetooth_test_success;
+  const char* bluetooth_status_idle;
+  const char* bluetooth_status_inited;
+  const char* bluetooth_status_enabled;
+  const char* bluetooth_status_enabling;
+  const char* bluetooth_status_disabling;
+  const char* bluetooth_status_uninitialized;
+  const char* bluetooth_disabled_build;
   
   // GPIO et périphériques
   const char* gpio_interfaces;
@@ -112,7 +151,9 @@ struct Translations {
   const char* neopixel;
   const char* rainbow;
   const char* color;
-  
+  const char* led_auto_hint;
+  const char* neopixel_auto_hint;
+
   // Écrans
   const char* full_test;
   const char* oled_screen;
@@ -139,7 +180,8 @@ struct Translations {
   const char* oled_step_executed_prefix;
   const char* oled_step_unavailable;
   const char* oled_step_unknown;
-  
+  const char* oled_auto_hint;
+
   // Tests avancés
   const char* adc_test;
   const char* touch_test;
@@ -217,10 +259,20 @@ struct Translations {
   const char* very_weak;
   const char* none;
   const char* unknown;
+  const char* disconnected;
+  const char* indicator_unavailable;
+  const char* indicator_wifi;
+  const char* indicator_bluetooth;
+  const char* indicator_ap;
   const char* testing;
+  const char* testing_oled;
   const char* completed;
   const char* scan;
   const char* scanning;
+  const char* reconfiguring;
+  const char* config_updated;
+  const char* config_error;
+  const char* error_prefix;
   
   // Unités
   const char* cores;
@@ -252,7 +304,7 @@ const Translations LANG_FR_TEXTS = {
   "Écrans",
   "Tests Avancés",
   "GPIO",
-  "WiFi",
+  "Sans fil",
   "Performance",
   "Export",
   
@@ -265,6 +317,7 @@ const Translations LANG_FR_TEXTS = {
   "Fonctionnalités Chip",
   "Version SDK",
   "Version ESP-IDF",
+  "Version Arduino Core",
   "Uptime",
   "Température CPU",
   
@@ -317,6 +370,44 @@ const Translations LANG_FR_TEXTS = {
   "Passerelle",
   "DNS",
   "Canal WiFi",
+  "Mode WiFi",
+  "Veille WiFi",
+  "Bande WiFi",
+  "Plan de bande",
+  "Puissance TX",
+  "Nom d'hôte WiFi",
+  "Station (STA)",
+  "Point d'accès (AP)",
+  "Mixte (AP+STA)",
+  "Inactif",
+  "Pas d'économie",
+  "Modem (min)",
+  "Modem (max)",
+  "Bande 2.4 GHz",
+  "Bande 5 GHz",
+  "Auto (2.4/5 GHz)",
+  "Forcé 2.4 GHz",
+  "Forcé 5 GHz",
+
+  // Bluetooth
+  "Bluetooth",
+  "Statut du contrôleur",
+  "Capacités détectées",
+  "Dernier test",
+  "Le Bluetooth est présent mais désactivé dans la compilation. Activez-le dans l'IDE puis retéléversez.",
+  "Bluetooth non disponible sur cette carte.",
+  "🧪 Tester le Bluetooth",
+  "Bluetooth désactivé dans la compilation. Activez les options Bluetooth puis recommencez.",
+  "Échec d'initialisation du contrôleur Bluetooth",
+  "Échec d'activation du contrôleur Bluetooth",
+  "Contrôleur Bluetooth testé avec succès",
+  "Prêt (idle)",
+  "Initialisé",
+  "Activé",
+  "Activation en cours",
+  "Désactivation en cours",
+  "Non initialisé",
+  "Bluetooth désactivé à la compilation",
   
   // GPIO
   "GPIO et Interfaces",
@@ -333,13 +424,15 @@ const Translations LANG_FR_TEXTS = {
   "Statut",
   "Config",
   "Test",
-  "Blink",
-  "Fade",
-  "Off",
+  "Clignoter",
+  "Fondu",
+  "Éteindre",
   "NeoPixel",
-  "Rainbow",
+  "Arc-en-ciel",
   "Couleur",
-  
+  "La broche indiquée est appliquée automatiquement au lancement du premier test ; utilisez « Config » après toute modification.",
+  "Les réglages GPIO et nombre de LED sont appliqués automatiquement avant chaque test ou animation ; cliquez sur « Config » pour valider un changement.",
+
   // Écrans
   "Test Complet",
   "Écran OLED 0.96\" I2C",
@@ -366,7 +459,8 @@ const Translations LANG_FR_TEXTS = {
   "Étape exécutée :",
   "OLED non disponible",
   "Étape inconnue",
-  
+  "Les pins SDA/SCL saisis sont réappliqués automatiquement avant chaque test ou message ; utilisez « Reconfigurer » pour relancer manuellement la détection.",
+
   // Tests
   "Test ADC",
   "Test Touch Pads",
@@ -444,10 +538,20 @@ const Translations LANG_FR_TEXTS = {
   "Très faible",
   "Aucune",
   "Inconnu",
-  "Test...",
+  "Déconnecté",
+  "Indisponible",
+  "WiFi",
+  "Bluetooth",
+  "Point d'accès actif",
+  "Test en cours...",
+  "Test complet en cours (~25s)...",
   "Terminé",
-  "Scan...",
-  "Scan...",
+  "Scanner",
+  "Scan en cours...",
+  "Reconfiguration...",
+  "Configuration mise à jour",
+  "Erreur de configuration",
+  "Erreur : ",
   
   // Unités
   "coeurs",
@@ -479,7 +583,7 @@ const Translations LANG_EN_TEXTS = {
   "Screens",
   "Advanced Tests",
   "GPIO",
-  "WiFi",
+  "Wireless",
   "Performance",
   "Export",
   
@@ -492,6 +596,7 @@ const Translations LANG_EN_TEXTS = {
   "Chip Features",
   "SDK Version",
   "ESP-IDF Version",
+  "Arduino Core Version",
   "Uptime",
   "CPU Temperature",
   
@@ -544,6 +649,44 @@ const Translations LANG_EN_TEXTS = {
   "Gateway",
   "DNS",
   "WiFi Channel",
+  "WiFi Mode",
+  "WiFi Sleep",
+  "WiFi Band",
+  "Band Plan",
+  "TX Power",
+  "WiFi Hostname",
+  "Station (STA)",
+  "Access Point (AP)",
+  "AP + STA",
+  "Inactive",
+  "No power save",
+  "Modem (min)",
+  "Modem (max)",
+  "2.4 GHz Band",
+  "5 GHz Band",
+  "Auto (2.4/5 GHz)",
+  "Forced 2.4 GHz",
+  "Forced 5 GHz",
+
+  // Bluetooth
+  "Bluetooth",
+  "Controller status",
+  "Detected capabilities",
+  "Last test",
+  "Bluetooth hardware detected but disabled in the firmware build. Enable it in the IDE then upload again.",
+  "Bluetooth not available on this board.",
+  "🧪 Run Bluetooth test",
+  "Bluetooth disabled at build time. Enable Bluetooth options and try again.",
+  "Failed to initialise Bluetooth controller",
+  "Failed to enable Bluetooth controller",
+  "Bluetooth controller tested successfully",
+  "Idle",
+  "Initialised",
+  "Enabled",
+  "Enabling",
+  "Disabling",
+  "Uninitialised",
+  "Bluetooth disabled in build",
   
   // GPIO
   "GPIO and Interfaces",
@@ -566,7 +709,9 @@ const Translations LANG_EN_TEXTS = {
   "NeoPixel",
   "Rainbow",
   "Color",
-  
+  "The selected pin is applied automatically when launching the first test; click “Config” after changing it.",
+  "GPIO and LED count are applied automatically before each test or animation; use “Config” to store new values.",
+
   // Screens
   "Full Test",
   "OLED Screen 0.96\" I2C",
@@ -593,7 +738,8 @@ const Translations LANG_EN_TEXTS = {
   "Step executed:",
   "OLED not available",
   "Unknown step",
-  
+  "The SDA/SCL pins are automatically reapplied before each test or message; use “Apply and Re-detect” to trigger a manual refresh.",
+
   // Tests
   "ADC Test",
   "Touch Pads Test",
@@ -671,10 +817,20 @@ const Translations LANG_EN_TEXTS = {
   "Very weak",
   "None",
   "Unknown",
-  "Testing...",
+  "Disconnected",
+  "Unavailable",
+  "WiFi",
+  "Bluetooth",
+  "Access Point active",
+  "Test in progress...",
+  "Full test running (~25s)...",
   "Completed",
+  "Scan",
   "Scanning...",
-  "Scanning...",
+  "Reconfiguring...",
+  "Configuration updated",
+  "Configuration error",
+  "Error: ",
   
   // Units
   "cores",
