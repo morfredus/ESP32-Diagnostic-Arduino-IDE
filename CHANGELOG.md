@@ -5,6 +5,194 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.11] - 2025-10-20
+
+### Changed
+- Normalisation côté client des champs booléens renvoyés par `/api/wireless-info`, garantissant des voyants WiFi/Bluetooth cohérents même si le firmware renvoie des chaînes.
+- Renommage du guide d'installation français en `USER_GUIDE.fr.md` et mise à jour des liens croisés (README, références, guides).
+
+### Fixed
+- Voyant Bluetooth correctement marqué *Indisponible* lorsque la pile n'est pas compilée (plus de faux positifs "OK").
+
+---
+
+## [2.8.10] - 2025-10-20
+
+### Changed
+- Le gabarit `wifi-config.example.h` inclut désormais une virgule finale par défaut pour simplifier l'ajout ou le décommentage d'un réseau supplémentaire.
+
+### Fixed
+- Détection WiFi renforcée : le bandeau sans fil reste cohérent (voyants verts/rouges corrects) même lorsque les indicateurs matériels ou la pile Bluetooth sont absents.
+
+---
+
+## [2.8.9] - 2025-10-20
+
+### Added
+- Nouvelle référence de configuration (`CONFIG_REFERENCE.md` / `CONFIG_REFERENCE.fr.md`) détaillant les paramètres éditables.
+
+### Changed
+- Refactorisation des fichiers utilisateur : `config.h` devient le point d'entrée matériel et `wifi-config.h` héberge désormais les identifiants (non versionné).
+- Guides renommés en `USER_GUIDE.md` / `GUIDE_UTILISATION.fr.md` et instructions mises à jour pour le renommage automatique de `wifi-config.example.h`.
+
+### Fixed
+- Voyants WiFi/Bluetooth correctement synchronisés (plus d'inversion, remise à zéro des messages Bluetooth quand la pile est désactivée).
+- Actualisation périodique configurée du bandeau sans fil via `WIRELESS_STATUS_REFRESH_MS`.
+
+---
+
+## [2.8.8] - 2025-10-20
+
+### Added
+- Nouveaux documents utilisateur : `README.fr.md` et les guides d'installation bilingues (désormais `USER_GUIDE.md` / `GUIDE_UTILISATION.fr.md`) détaillant prérequis, bibliothèques et procédure de compilation sous Arduino IDE.
+
+### Changed
+- Réalignement des dates de publication pour refléter l'état du projet au 20 octobre 2025.
+
+### Fixed
+- Voyants WiFi/Bluetooth fiabilisés : reconnaissance des modes STA/AP, affichage "Indisponible" lorsque la pile Bluetooth est désactivée et purge des mesures obsolètes.
+
+---
+
+## [2.8.7] - 2025-10-19
+
+### Changed
+- Harmonisation des statuts en ligne avec préfixes ⏳/✅/❌ pour tous les tests LED, NeoPixel, OLED, ADC, GPIO, scans WiFi et Bluetooth, avec rappels de reconfiguration cohérents.
+
+### Fixed
+- Les messages des tests lumineux et OLED affichent désormais "Test en cours..." jusqu'à la fin réelle et ne marquent plus "Terminé" prématurément, y compris pour le test Bluetooth.
+
+---
+
+## [2.8.6] - 2025-10-18
+
+### Added
+- Bannière fixe en haut de page affichant l'état WiFi/Bluetooth en temps réel sans recourir à des pop-ups bloquantes.
+
+### Changed
+- Les tests LED intégrée, NeoPixel et OLED appliquent désormais automatiquement la configuration saisie avant leur première exécution tout en conservant le bouton **Config** pour valider un changement manuel.
+
+---
+
+## [2.8.5] - 2025-10-17
+
+### Fixed
+- Réécriture complète du générateur `/js/app.js` pour supprimer les erreurs JavaScript, rétablir les onglets interactifs et la bascule FR/EN sans dépendre d'un script inline.
+
+### Changed
+- Boutons de navigation et de langue convertis en attributs `data-*` avec initialisation centralisée côté client.
+
+---
+
+## [2.8.4] - 2025-10-16
+
+### Fixed
+- Remplacement des attributs HTML du script `/js/app.js` par des apostrophes échappées pour supprimer les erreurs `operator""info` et `exponent has no digits` rencontrées lors de la compilation Arduino Core 3.3.2.
+
+### Changed
+- Documentation (README, bannière web) actualisée vers la version 2.8.4 pour refléter le correctif de génération du script client.
+
+---
+
+## [2.8.3] - 2025-10-15
+
+### Fixed
+- Correction de l'échappement du script `/js/app.js` afin d'éliminer les erreurs `stray '\'` lors de la compilation sous Arduino Core 3.3.2.
+- Restauration des handlers REST (WiFi, I2C, LED intégrée, NeoPixel, OLED, tests matériels, exports) supprimés par inadvertance.
+
+### Added
+- Intégration de l'état Bluetooth (capacités, dernier test, message d'aide) dans la réponse `/api/wireless-info`.
+- Test Bluetooth renforcé essayant d'initialiser/activer automatiquement le contrôleur quand il est disponible.
+
+### Changed
+- Échappement systématique des réponses JSON retournées par les endpoints de test pour éviter les caractères problématiques.
+
+---
+
+## [2.8.2] - 2025-10-14
+
+### Added
+- Nouveau fichier `app_script.h` contenant la fonction `buildAppScript()` pour garantir la livraison du script client `/js/app.js` sur chaque build.
+
+### Changed
+- Documentation synchronisée (README et bannière) avec la version 2.8.2 et clarification sur le rechargement automatique lors d'un changement de langue.
+
+---
+
+## [2.8.1] - 2025-10-13
+
+### Fixed
+- Rétablissement du chargement du JavaScript client (`/js/app.js`) pour que les onglets et le changement de langue fonctionnent sans erreur sous Arduino Core 3.3.2.
+
+### Changed
+- Externalisation du script de l'interface afin d'éviter les erreurs 404 et de faciliter les mises à jour dynamiques.
+
+---
+
+## [2.8.0] - 2025-10-26
+
+### Added
+- Compatibilité Arduino Core ESP32 3.3.2 avec affichage de la version du core dans l'interface, l'API et les exports.
+- Nouvelles informations WiFi (mode, veille, bande, plan de bande, puissance TX, hostname) disponibles dans l'onglet Sans fil et dans les exports TXT/JSON/CSV.
+
+### Changed
+- Exports TXT/JSON/CSV enrichis et échappés avec `jsonEscape` pour éviter les caractères spéciaux non désirés.
+- Interface Vue d'ensemble et version imprimable mises à jour pour refléter les métriques WiFi avancées.
+
+---
+
+## [2.7.1] - 2025-10-25
+
+### Fixed
+- Préprocesseur renforcé pour ignorer proprement le diagnostic Bluetooth quand les en-têtes `esp_bt*.h` sont absents, supprimant l'erreur de compilation tout en conservant les indications d'activation.
+
+---
+
+## [2.7.0] - 2025-10-24
+
+### Added
+- Nouvel onglet **Sans fil** réunissant les informations WiFi et Bluetooth avec zones d'état réservées.
+- Test automatisé du contrôleur Bluetooth avec messages contextualisés et retour inline.
+- Indication claire pour activer le Bluetooth lorsque le matériel est détecté mais désactivé à la compilation.
+
+### Changed
+- Présentation enrichie du statut WiFi (SSID, RSSI, IP, passerelle, DNS) sans recours aux pop-ups bloquantes.
+
+---
+
+## [2.6.3] - 2025-10-22
+
+### Fixed
+- Le changement de langue se réapplique désormais immédiatement sans rechargement manuel et conserve la sélection active.
+- Harmonisation des libellés de boutons lumineux en français pour éviter les restes de termes anglais.
+
+---
+
+## [2.6.2] - 2025-10-21
+
+### Fixed
+- Le changement de broches OLED met désormais à jour l'interface sans rechargement complet, conservant l'onglet actif et le retour inline.
+- Les scans I2C actualisent les compteurs et adresses détectées sans provoquer de redirection.
+
+### Changed
+- Stabilisation visuelle des zones de message (classes `status-field`/`status-live`) et rappel GPIO directement sous la grille de résultats.
+
+---
+
+## [2.6.1] - 2025-10-20
+
+### Changed
+- Remplacement des fenêtres popup par des messages intégrés aux sections de test.
+- Réservation d'espaces d'information stables pour éviter les décalages de mise en page.
+
+### Added
+- Indication proactive rappelant qu'un GPIO en échec peut être simplement réservé ou non câblé.
+
+### Fixed
+- Harmonisation de la remontée d'erreurs sur les actions OLED et changement de langue via des toasts non bloquants.
+
+---
+
 ## [2.6.0] - 2025-10-15
 
 ### Removed
