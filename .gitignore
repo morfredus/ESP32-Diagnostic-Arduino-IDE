@@ -1,14 +1,12 @@
-# Fichier de configuration WiFi (sensible - ne pas versionner)
+# 🛡️ Fichiers sensibles (ne pas versionner)
 config.h
 wifi-config.h
 
-# Fichiers divers
+# 📄 Fichiers divers
 ESP32-Diagnostic.txt
 resume_modifs.md
 
-# Fichiers et répertoires générés par Arduino IDE ou la compilation
-
-# Fichiers compilés (binaires) pour le téléchargement
+# 🔧 Fichiers compilés (binaires)
 *.hex
 *.elf
 *.bin
@@ -17,8 +15,7 @@ resume_modifs.md
 *.eep
 *.sym
 
-# Dossier de construction (souvent caché par l'IDE)
-# Le dossier de construction varie selon l'IDE ou l'outil, voici les plus courants :
+# 🏗️ Dossiers de construction
 build/
 .build/
 .arduino/
@@ -27,19 +24,44 @@ hardware/
 tmp/
 temp/
 
-# Fichiers de configuration de l'IDE/Plateforme (spécifiques à l'utilisateur)
-.vscode/ # Pour les utilisateurs de VS Code
+# 🧩 Fichiers de configuration IDE / utilisateur
+.vscode/
+*.code-workspace
 .classpath
 .project
 .settings
 *.user
 *.suo
 
-# Fichiers de cache macOS
-.DS_Store
+# 🧠 VS Code spécifiques
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
+.vscode-test/
+.vscode-test-data/
+.vscode-test-logs/
 
-# Fichiers de cache Windows
-Thumbs.db
-
-# Fichiers spécifiques aux outils de compilation (ex: PlatformIO)
+# 🧪 PlatformIO spécifiques
 .pio/
+.pioenvs/
+.piolibdeps/
+.pio/libdeps/
+.pio/build/
+
+# 💾 Caches et sauvegardes
+.DS_Store
+Thumbs.db
+.history/
+*.bak
+*.tmp
+*.log
+*.swp
+*.swo
+*.swn
+*.trace
+*.trace.json
+*.trace.log
+
+# 📚 Librairies locales (si non versionnées)
+lib/
