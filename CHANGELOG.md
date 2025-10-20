@@ -5,6 +5,13 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] - 2025-10-25
+
+### Fixed
+- Préprocesseur renforcé pour ignorer proprement le diagnostic Bluetooth quand les en-têtes `esp_bt*.h` sont absents, supprimant l'erreur de compilation tout en conservant les indications d'activation.
+
+---
+
 ## [2.7.0] - 2025-10-24
 
 ### Added

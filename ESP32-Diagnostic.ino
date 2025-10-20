@@ -1,9 +1,13 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.7.0
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.7.1
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.1.3
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v2.7.1:
+ * - Détection automatique de la disponibilité des en-têtes Bluetooth pour éviter les erreurs de compilation.
+ * - Messages Bluetooth conservés pour guider l'utilisateur même sans pile logicielle intégrée.
  *
  * Nouveautés v2.7.0:
  * - Ajout d'un onglet "Sans fil" réunissant le WiFi et le Bluetooth
@@ -43,7 +47,22 @@
 #include <esp_partition.h>
 #include <soc/soc.h>
 #include <soc/rtc.h>
-#if defined(CONFIG_BT_ENABLED)
+
+#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_BT_ENABLED)
+  #if defined(__has_include)
+    #if __has_include(<esp_bt.h>) && __has_include(<esp_bt_main.h>)
+      #define HAS_NATIVE_BLUETOOTH 1
+    #else
+      #define HAS_NATIVE_BLUETOOTH 0
+    #endif
+  #else
+    #define HAS_NATIVE_BLUETOOTH 1
+  #endif
+#else
+  #define HAS_NATIVE_BLUETOOTH 0
+#endif
+
+#if HAS_NATIVE_BLUETOOTH
 #include <esp_bt.h>
 #include <esp_bt_main.h>
 #endif
@@ -60,7 +79,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.7.0"
+#define DIAGNOSTIC_VERSION "2.7.1"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -148,7 +167,7 @@ String jsonEscape(const String& input) {
   return output;
 }
 
-#if defined(CONFIG_BT_ENABLED)
+#if HAS_NATIVE_BLUETOOTH
 String describeBluetoothControllerStatus(esp_bt_controller_status_t status) {
   switch (status) {
     case ESP_BT_CONTROLLER_STATUS_IDLE:
@@ -1354,7 +1373,7 @@ void collectDiagnosticInfo() {
 
   bluetoothInfo.hardwareClassic = diagnosticData.hasBT;
   bluetoothInfo.hardwareBLE = diagnosticData.hasBLE;
-#if defined(CONFIG_BT_ENABLED)
+#if HAS_NATIVE_BLUETOOTH
   bluetoothInfo.compileEnabled = true;
   esp_bt_controller_status_t btStatus = esp_bt_controller_get_status();
   bluetoothInfo.controllerStatus = describeBluetoothControllerStatus(btStatus);
@@ -1456,7 +1475,7 @@ void handleWirelessInfo() {
 }
 
 void handleBluetoothTest() {
-#if !defined(CONFIG_BT_ENABLED)
+#if !HAS_NATIVE_BLUETOOTH
   bluetoothInfo.lastTestSuccess = false;
   bluetoothInfo.lastTestMessage = String(T().bluetooth_test_not_compiled);
   bluetoothInfo.controllerStatus = describeBluetoothControllerStatus(0);

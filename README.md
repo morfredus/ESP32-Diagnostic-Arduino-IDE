@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.7.0
+# ESP32 Complete Diagnostic v2.7.1
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.7.0**: A consolidated **Wireless** tab now groups WiFi and Bluetooth diagnostics, adds a one-click Bluetooth controller self-test with helpful guidance, and surfaces enriched WiFi status information without intrusive pop-ups.
+**What's new in v2.7.1**: The Bluetooth diagnostic now auto-detects toolchain support and gracefully keeps inline guidance when the ESP-IDF headers are missing, avoiding compilation failures on targets sans pile Bluetooth.
 
 ## ✨ Features
 
