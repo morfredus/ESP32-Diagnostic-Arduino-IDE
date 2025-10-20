@@ -5,6 +5,28 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.1] - 2025-10-27
+
+### Fixed
+- Rétablissement du chargement du JavaScript client (`/js/app.js`) pour que les onglets et le changement de langue fonctionnent sans erreur sous Arduino Core 3.3.2.
+
+### Changed
+- Externalisation du script de l'interface afin d'éviter les erreurs 404 et de faciliter les mises à jour dynamiques.
+
+---
+
+## [2.8.0] - 2025-10-26
+
+### Added
+- Compatibilité Arduino Core ESP32 3.3.2 avec affichage de la version du core dans l'interface, l'API et les exports.
+- Nouvelles informations WiFi (mode, veille, bande, plan de bande, puissance TX, hostname) disponibles dans l'onglet Sans fil et dans les exports TXT/JSON/CSV.
+
+### Changed
+- Exports TXT/JSON/CSV enrichis et échappés avec `jsonEscape` pour éviter les caractères spéciaux non désirés.
+- Interface Vue d'ensemble et version imprimable mises à jour pour refléter les métriques WiFi avancées.
+
+---
+
 ## [2.7.1] - 2025-10-25
 
 ### Fixed

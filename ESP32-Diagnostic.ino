@@ -1,9 +1,13 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.7.1
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.1
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
- * Optimisé pour ESP32 Arduino Core 3.1.3
+ * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v2.8.1:
+ * - Restauration du script `/js/app.js` pour que les onglets et la bascule FR/EN répondent sans erreur.
+ * - Externalisation du JavaScript de l'interface afin de fiabiliser la navigation avec le core 3.3.2.
  *
  * Nouveautés v2.7.1:
  * - Détection automatique de la disponibilité des en-têtes Bluetooth pour éviter les erreurs de compilation.
@@ -47,16 +51,50 @@
 #include <esp_partition.h>
 #include <soc/soc.h>
 #include <soc/rtc.h>
+#include <soc/soc_caps.h>
+#include <esp_wifi.h>
 
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_BT_ENABLED)
+#if __has_include(<esp_arduino_version.h>)
+#include <esp_arduino_version.h>
+#endif
+
+#if __has_include(<esp_idf_version.h>)
+#include <esp_idf_version.h>
+#endif
+
+#ifndef ESP_IDF_VERSION_VAL
+#define ESP_IDF_VERSION_VAL(major, minor, patch) ((major) * 10000 + (minor) * 100 + (patch))
+#endif
+
+#ifndef ESP_IDF_VERSION
+#define ESP_IDF_VERSION 0
+#endif
+
+#ifndef ESP_ARDUINO_VERSION_STR
+#define ESP_ARDUINO_VERSION_STR "unknown"
+#endif
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 2)
+#define HAS_WIFI_BAND_MODE_API 1
+#else
+#define HAS_WIFI_BAND_MODE_API 0
+#endif
+
+#if defined(ARDUINO_ARCH_ESP32) && defined(SOC_BT_SUPPORTED) && SOC_BT_SUPPORTED
   #if defined(__has_include)
     #if __has_include(<esp_bt.h>) && __has_include(<esp_bt_main.h>)
-      #define HAS_NATIVE_BLUETOOTH 1
+      #define HAS_BLUETOOTH_HEADERS 1
     #else
-      #define HAS_NATIVE_BLUETOOTH 0
+      #define HAS_BLUETOOTH_HEADERS 0
     #endif
   #else
+    #define HAS_BLUETOOTH_HEADERS 1
+  #endif
+
+  #if HAS_BLUETOOTH_HEADERS && (defined(CONFIG_BT_ENABLED) || defined(CONFIG_BT_CONTROLLER_ENABLED) || defined(CONFIG_BT_BLUEDROID_ENABLED) || defined(CONFIG_BT_LE_CONTROLLER_ENABLED) || defined(CONFIG_BT_NIMBLE_ENABLED) || defined(CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE))
     #define HAS_NATIVE_BLUETOOTH 1
+  #else
+    #define HAS_NATIVE_BLUETOOTH 0
   #endif
 #else
   #define HAS_NATIVE_BLUETOOTH 0
@@ -79,7 +117,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.7.1"
+#define DIAGNOSTIC_VERSION "2.8.1"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -231,12 +269,22 @@ struct DiagnosticInfo {
   String wifiSSID;
   int wifiRSSI;
   String ipAddress;
-  
+  String wifiHostname;
+  int wifiChannel;
+  String wifiMode;
+  String wifiSleepMode;
+  String wifiBand;
+  String wifiBandMode;
+  float wifiTxPowerDbm;
+  int wifiTxPowerCode;
+  bool wifiSupports5G;
+
   String gpioList;
   int totalGPIO;
-  
+
   String sdkVersion;
   String idfVersion;
+  String arduinoCoreVersion;
   unsigned long uptime;
   float temperature;
   
@@ -412,6 +460,71 @@ String getWiFiSignalQuality() {
   else if (diagnosticData.wifiRSSI >= -70) return T().good;
   else if (diagnosticData.wifiRSSI >= -80) return T().weak;
   else return T().very_weak;
+}
+
+String describeWiFiModeLabel(wifi_mode_t mode) {
+  switch (mode) {
+    case WIFI_MODE_STA:
+      return String(T().wifi_mode_sta);
+    case WIFI_MODE_AP:
+      return String(T().wifi_mode_ap);
+    case WIFI_MODE_APSTA:
+      return String(T().wifi_mode_apsta);
+    case WIFI_MODE_NULL:
+    default:
+      return String(T().wifi_mode_null);
+  }
+}
+
+String describeWiFiSleepLabel(wifi_ps_type_t sleepMode) {
+  switch (sleepMode) {
+    case WIFI_PS_NONE:
+      return String(T().wifi_sleep_none);
+    case WIFI_PS_MIN_MODEM:
+      return String(T().wifi_sleep_min_modem);
+    case WIFI_PS_MAX_MODEM:
+      return String(T().wifi_sleep_max_modem);
+    default:
+      return String(T().unknown);
+  }
+}
+
+String describeWiFiBandLabel(bool supports5G) {
+#if defined(WIFI_BAND_5G)
+  wifi_band_t band = WiFiGenericClass::getBand();
+  switch (band) {
+    case WIFI_BAND_5G:
+      return String(T().wifi_band_5g);
+    case WIFI_BAND_2G:
+    default:
+      return String(T().wifi_band_2g);
+  }
+#else
+  (void)supports5G;
+  return String(T().wifi_band_2g);
+#endif
+}
+
+String describeWiFiBandModeLabel(bool supports5G) {
+#if HAS_WIFI_BAND_MODE_API
+  wifi_band_mode_t mode = WiFiGenericClass::getBandMode();
+  switch (mode) {
+    case WIFI_BAND_MODE_AUTO:
+      return String(T().wifi_band_mode_auto);
+    case WIFI_BAND_MODE_5G_ONLY:
+      return String(T().wifi_band_mode_5g);
+    case WIFI_BAND_MODE_2G_ONLY:
+    default:
+      return String(T().wifi_band_mode_2g);
+  }
+#else
+  (void)supports5G;
+  return supports5G ? String(T().wifi_band_mode_auto) : String(T().wifi_band_mode_2g);
+#endif
+}
+
+float wifiTxPowerToDbm(wifi_power_t power) {
+  return static_cast<float>(power) / 4.0f;
 }
 
 String getGPIOList() {
@@ -1400,12 +1513,31 @@ void collectDiagnosticInfo() {
     diagnosticData.wifiRSSI = WiFi.RSSI();
     diagnosticData.ipAddress = WiFi.localIP().toString();
   }
-  
+
+  const char* hostnamePtr = WiFi.getHostname();
+  diagnosticData.wifiHostname = hostnamePtr ? String(hostnamePtr) : String();
+  diagnosticData.wifiChannel = WiFi.channel();
+  wifi_mode_t currentMode = WiFiGenericClass::getMode();
+  diagnosticData.wifiMode = describeWiFiModeLabel(currentMode);
+  wifi_ps_type_t sleepMode = WiFi.getSleep();
+  diagnosticData.wifiSleepMode = describeWiFiSleepLabel(sleepMode);
+  wifi_power_t txPower = WiFi.getTxPower();
+  diagnosticData.wifiTxPowerCode = static_cast<int>(txPower);
+  diagnosticData.wifiTxPowerDbm = wifiTxPowerToDbm(txPower);
+#if defined(SOC_WIFI_SUPPORT_5G)
+  diagnosticData.wifiSupports5G = SOC_WIFI_SUPPORT_5G;
+#else
+  diagnosticData.wifiSupports5G = false;
+#endif
+  diagnosticData.wifiBand = describeWiFiBandLabel(diagnosticData.wifiSupports5G);
+  diagnosticData.wifiBandMode = describeWiFiBandModeLabel(diagnosticData.wifiSupports5G);
+
   diagnosticData.gpioList = getGPIOList();
   diagnosticData.totalGPIO = countGPIO();
-  
+
   diagnosticData.sdkVersion = ESP.getSdkVersion();
   diagnosticData.idfVersion = esp_get_idf_version();
+  diagnosticData.arduinoCoreVersion = String(ESP_ARDUINO_VERSION_STR);
   diagnosticData.uptime = millis();
   
   #ifdef SOC_TEMP_SENSOR_SUPPORTED
@@ -1454,532 +1586,17 @@ void handleWirelessInfo() {
   json += "\"ip\":\"" + jsonEscape(diagnosticData.ipAddress) + "\",";
   json += "\"subnet\":\"" + jsonEscape(WiFi.subnetMask().toString()) + "\",";
   json += "\"gateway\":\"" + jsonEscape(WiFi.gatewayIP().toString()) + "\",";
-  json += "\"dns\":\"" + jsonEscape(WiFi.dnsIP().toString()) + "\"";
+  json += "\"dns\":\"" + jsonEscape(WiFi.dnsIP().toString()) + "\",";
+  json += "\"channel\":" + String(diagnosticData.wifiChannel) + ",";
+  json += "\"mode\":\"" + jsonEscape(diagnosticData.wifiMode) + "\",";
+  json += "\"sleep\":\"" + jsonEscape(diagnosticData.wifiSleepMode) + "\",";
+  json += "\"band\":\"" + jsonEscape(diagnosticData.wifiBand) + "\",";
+  json += "\"band_mode\":\"" + jsonEscape(diagnosticData.wifiBandMode) + "\",";
+  json += "\"tx_power_dbm\":" + String(diagnosticData.wifiTxPowerDbm, 2) + ",";
+  json += "\"tx_power_code\":" + String(diagnosticData.wifiTxPowerCode) + ",";
+  json += "\"supports_5g\":" + String(diagnosticData.wifiSupports5G ? "true" : "false") + ",";
+  json += "\"hostname\":\"" + jsonEscape(diagnosticData.wifiHostname) + "\"";
   json += "},";
-
-  json += "\"bluetooth\":{";
-  json += "\"compiled\":" + String(bluetoothInfo.compileEnabled ? "true" : "false") + ",";
-  bool hwPresent = (bluetoothInfo.hardwareClassic || bluetoothInfo.hardwareBLE);
-  json += "\"hardware_present\":" + String(hwPresent ? "true" : "false") + ",";
-  json += "\"classic\":" + String(bluetoothInfo.hardwareClassic ? "true" : "false") + ",";
-  json += "\"ble\":" + String(bluetoothInfo.hardwareBLE ? "true" : "false") + ",";
-  json += "\"controller\":\"" + jsonEscape(bluetoothInfo.controllerStatus) + "\",";
-  json += "\"controller_enabled\":" + String(bluetoothInfo.controllerEnabled ? "true" : "false") + ",";
-  json += "\"last_test_success\":" + String(bluetoothInfo.lastTestSuccess ? "true" : "false") + ",";
-  json += "\"last_test_message\":\"" + jsonEscape(bluetoothInfo.lastTestMessage) + "\",";
-  json += "\"hint\":\"" + jsonEscape(bluetoothInfo.availabilityHint) + "\"";
-  json += "}";
-  json += "}";
-
-  server.send(200, "application/json", json);
-}
-
-void handleBluetoothTest() {
-#if !HAS_NATIVE_BLUETOOTH
-  bluetoothInfo.lastTestSuccess = false;
-  bluetoothInfo.lastTestMessage = String(T().bluetooth_test_not_compiled);
-  bluetoothInfo.controllerStatus = describeBluetoothControllerStatus(0);
-  updateBluetoothDerivedState();
-  server.send(200, "application/json",
-              "{\"success\":false,\"message\":\"" + jsonEscape(bluetoothInfo.lastTestMessage) + "\"}");
-#else
-  collectDiagnosticInfo();
-
-  if (!(bluetoothInfo.hardwareClassic || bluetoothInfo.hardwareBLE)) {
-    bluetoothInfo.lastTestSuccess = false;
-    bluetoothInfo.lastTestMessage = String(T().bluetooth_not_available);
-    updateBluetoothDerivedState();
-    server.send(200, "application/json",
-                "{\"success\":false,\"message\":\"" + jsonEscape(bluetoothInfo.lastTestMessage) + "\"}");
-    return;
-  }
-
-  esp_bt_controller_status_t status = esp_bt_controller_get_status();
-  bool wasInitialized = (status != ESP_BT_CONTROLLER_STATUS_UNINITIALIZED);
-
-  if (!wasInitialized) {
-    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    esp_err_t initErr = esp_bt_controller_init(&bt_cfg);
-    if (initErr != ESP_OK) {
-      bluetoothInfo.lastTestSuccess = false;
-      bluetoothInfo.lastTestMessage = String(T().bluetooth_init_failed) + " (" + String(initErr) + ")";
-      bluetoothInfo.controllerStatus = describeBluetoothControllerStatus(esp_bt_controller_get_status());
-      updateBluetoothDerivedState();
-      server.send(200, "application/json",
-                  "{\"success\":false,\"message\":\"" + jsonEscape(bluetoothInfo.lastTestMessage) + "\"}");
-      return;
-    }
-  }
-
-  status = esp_bt_controller_get_status();
-  esp_bt_mode_t targetMode = ESP_BT_MODE_BLE;
-  if (bluetoothInfo.hardwareClassic && bluetoothInfo.hardwareBLE) {
-    targetMode = ESP_BT_MODE_BTDM;
-  } else if (bluetoothInfo.hardwareClassic) {
-    targetMode = ESP_BT_MODE_CLASSIC_BT;
-  }
-
-  bool enabledDuringTest = false;
-  if (status != ESP_BT_CONTROLLER_STATUS_ENABLED) {
-    esp_err_t enableErr = esp_bt_controller_enable(targetMode);
-    if (enableErr != ESP_OK) {
-      bluetoothInfo.lastTestSuccess = false;
-      bluetoothInfo.lastTestMessage = String(T().bluetooth_enable_failed) + " (" + String(enableErr) + ")";
-      bluetoothInfo.controllerStatus = describeBluetoothControllerStatus(esp_bt_controller_get_status());
-      if (!wasInitialized) {
-        esp_bt_controller_deinit();
-      }
-      updateBluetoothDerivedState();
-      server.send(200, "application/json",
-                  "{\"success\":false,\"message\":\"" + jsonEscape(bluetoothInfo.lastTestMessage) + "\"}");
-      return;
-    }
-    enabledDuringTest = true;
-  }
-
-  bluetoothInfo.lastTestSuccess = true;
-  bluetoothInfo.lastTestMessage = String(T().bluetooth_test_success);
-
-  if (enabledDuringTest) {
-    esp_bt_controller_disable();
-  }
-  if (!wasInitialized) {
-    esp_bt_controller_deinit();
-  }
-
-  bluetoothInfo.controllerStatus = describeBluetoothControllerStatus(esp_bt_controller_get_status());
-  updateBluetoothDerivedState();
-
-  server.send(200, "application/json",
-              "{\"success\":true,\"message\":\"" + jsonEscape(bluetoothInfo.lastTestMessage) + "\"}");
-#endif
-}
-
-
-void handleWiFiScan() {
-  scanWiFiNetworks();
-  String json = "{\"networks\":[";
-  for (size_t i = 0; i < wifiNetworks.size(); i++) {
-    if (i > 0) json += ",";
-    json += "{\"ssid\":\"" + wifiNetworks[i].ssid + "\",\"rssi\":" + String(wifiNetworks[i].rssi) + 
-            ",\"channel\":" + String(wifiNetworks[i].channel) + ",\"encryption\":\"" + wifiNetworks[i].encryption + 
-            "\",\"bssid\":\"" + wifiNetworks[i].bssid + "\"}";
-  }
-  json += "]}";
-  server.send(200, "application/json", json);
-}
-
-void handleI2CScan() {
-  scanI2C();
-  server.send(200, "application/json", "{\"count\":" + String(diagnosticData.i2cCount) + ",\"devices\":\"" + diagnosticData.i2cDevices + "\"}");
-}
-
-void handleBuiltinLEDConfig() {
-  if (server.hasArg("gpio")) {
-    int newGPIO = server.arg("gpio").toInt();
-    if (newGPIO >= 0 && newGPIO <= 48) {
-      BUILTIN_LED_PIN = newGPIO;
-      resetBuiltinLEDTest();
-      server.send(200, "application/json", "{\"success\":true,\"message\":\"LED GPIO " + String(BUILTIN_LED_PIN) + "\"}");
-      return;
-    }
-  }
-  server.send(400, "application/json", "{\"success\":false}");
-}
-
-void handleBuiltinLEDTest() {
-  resetBuiltinLEDTest();
-  testBuiltinLED();
-  server.send(200, "application/json", "{\"success\":" + String(builtinLedAvailable ? "true" : "false") + ",\"result\":\"" + builtinLedTestResult + "\"}");
-}
-
-void handleBuiltinLEDControl() {
-  if (!server.hasArg("action")) {
-    server.send(400, "application/json", "{\"success\":false}");
-    return;
-  }
-  
-  String action = server.arg("action");
-  if (BUILTIN_LED_PIN == -1) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"LED non configuree\"}");
-    return;
-  }
-  
-  pinMode(BUILTIN_LED_PIN, OUTPUT);
-  String message = "";
-  
-  if (action == "blink") {
-    for(int i = 0; i < 5; i++) {
-      digitalWrite(BUILTIN_LED_PIN, HIGH);
-      delay(200);
-      digitalWrite(BUILTIN_LED_PIN, LOW);
-      delay(200);
-    }
-    message = "Clignotement OK";
-  } else if (action == "fade") {
-    for(int i = 0; i <= 255; i += 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
-    }
-    for(int i = 255; i >= 0; i -= 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
-    }
-    digitalWrite(BUILTIN_LED_PIN, LOW);
-    message = "Fade OK";
-  } else if (action == "off") {
-    digitalWrite(BUILTIN_LED_PIN, LOW);
-    builtinLedTested = false;
-    message = "LED eteinte";
-  } else {
-    server.send(400, "application/json", "{\"success\":false}");
-    return;
-  }
-  
-  server.send(200, "application/json", "{\"success\":true,\"message\":\"" + message + "\"}");
-}
-
-void handleNeoPixelConfig() {
-  if (server.hasArg("gpio") && server.hasArg("count")) {
-    int newGPIO = server.arg("gpio").toInt();
-    int newCount = server.arg("count").toInt();
-    
-    if (newGPIO >= 0 && newGPIO <= 48 && newCount > 0 && newCount <= 100) {
-      LED_PIN = newGPIO;
-      LED_COUNT = newCount;
-      if (strip) delete strip;
-      strip = new Adafruit_NeoPixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
-      resetNeoPixelTest();
-      server.send(200, "application/json", "{\"success\":true,\"message\":\"Config GPIO " + String(LED_PIN) + "\"}");
-      return;
-    }
-  }
-  server.send(400, "application/json", "{\"success\":false}");
-}
-
-void handleNeoPixelTest() {
-  resetNeoPixelTest();
-  testNeoPixel();
-  server.send(200, "application/json", "{\"success\":" + String(neopixelAvailable ? "true" : "false") + ",\"result\":\"" + neopixelTestResult + "\"}");
-}
-
-void handleNeoPixelPattern() {
-  if (!server.hasArg("pattern")) {
-    server.send(400, "application/json", "{\"success\":false}");
-    return;
-  }
-  
-  String pattern = server.arg("pattern");
-  if (!strip) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"NeoPixel non init\"}");
-    return;
-  }
-  
-  String message = "";
-  if (pattern == "rainbow") {
-    neopixelRainbow();
-    message = "Arc-en-ciel OK";
-  } else if (pattern == "blink") {
-    neopixelBlink(strip->Color(255, 0, 0), 5);
-    message = "Blink OK";
-  } else if (pattern == "fade") {
-    neopixelFade(strip->Color(0, 0, 255));
-    message = "Fade OK";
-  } else if (pattern == "off") {
-    strip->clear();
-    strip->show();
-    neopixelTested = false;
-    message = "Off";
-  } else {
-    server.send(400, "application/json", "{\"success\":false}");
-    return;
-  }
-  
-  server.send(200, "application/json", "{\"success\":true,\"message\":\"" + message + "\"}");
-}
-
-void handleNeoPixelColor() {
-  if (!server.hasArg("r") || !server.hasArg("g") || !server.hasArg("b") || !strip) {
-    server.send(400, "application/json", "{\"success\":false}");
-    return;
-  }
-  
-  int r = server.arg("r").toInt();
-  int g = server.arg("g").toInt();
-  int b = server.arg("b").toInt();
-  
-  strip->fill(strip->Color(r, g, b));
-  strip->show();
-  neopixelTested = false;
-  
-  server.send(200, "application/json", "{\"success\":true,\"message\":\"RGB(" + String(r) + "," + String(g) + "," + String(b) + ")\"}");
-}
-
-void handleOLEDConfig() {
-  if (server.hasArg("sda") && server.hasArg("scl")) {
-    int newSDA = server.arg("sda").toInt();
-    int newSCL = server.arg("scl").toInt();
-    
-    if (newSDA >= 0 && newSDA <= 48 && newSCL >= 0 && newSCL <= 48) {
-      I2C_SDA = newSDA;
-      I2C_SCL = newSCL;
-      resetOLEDTest();
-      Wire.end();
-      detectOLED();
-      server.send(200, "application/json", "{\"success\":true,\"message\":\"I2C reconfigure: SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "\"}");
-      return;
-    }
-  }
-  server.send(400, "application/json", "{\"success\":false,\"message\":\"Pins invalides\"}");
-}
-
-void handleOLEDTest() {
-  resetOLEDTest();
-  testOLED();
-  server.send(200, "application/json", "{\"success\":" + String(oledAvailable ? "true" : "false") + ",\"result\":\"" + oledTestResult + "\"}");
-}
-
-void handleOLEDStep() {
-  if (!server.hasArg("step")) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().oled_step_unknown) + "\"}");
-    return;
-  }
-
-  String stepId = server.arg("step");
-
-  if (!oledAvailable) {
-    server.send(200, "application/json", "{\"success\":false,\"message\":\"" + String(T().oled_step_unavailable) + "\"}");
-    return;
-  }
-
-  bool ok = performOLEDStep(stepId);
-  if (!ok) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().oled_step_unknown) + "\"}");
-    return;
-  }
-
-  String label = getOLEDStepLabel(stepId);
-  server.send(200, "application/json", "{\"success\":true,\"message\":\"" + String(T().oled_step_executed_prefix) + " " + label + "\"}");
-}
-
-void handleOLEDMessage() {
-  if (!server.hasArg("message")) {
-    server.send(400, "application/json", "{\"success\":false}");
-    return;
-  }
-  
-  String message = server.arg("message");
-  oledShowMessage(message);
-  server.send(200, "application/json", "{\"success\":true,\"message\":\"Message affiche\"}");
-}
-
-void handleADCTest() {
-  testADC();
-  String json = "{\"readings\":[";
-  for (size_t i = 0; i < adcReadings.size(); i++) {
-    if (i > 0) json += ",";
-    json += "{\"pin\":" + String(adcReadings[i].pin) + ",\"raw\":" + String(adcReadings[i].rawValue) + 
-            ",\"voltage\":" + String(adcReadings[i].voltage, 2) + "}";
-  }
-  json += "],\"result\":\"" + adcTestResult + "\"}";
-  server.send(200, "application/json", json);
-}
-
-void handleTouchTest() {
-  testTouchPads();
-  String json = "{\"readings\":[";
-  for (size_t i = 0; i < touchReadings.size(); i++) {
-    if (i > 0) json += ",";
-    json += "{\"pin\":" + String(touchReadings[i].pin) + ",\"value\":" + String(touchReadings[i].value) + "}";
-  }
-  json += "],\"result\":\"" + touchTestResult + "\"}";
-  server.send(200, "application/json", json);
-}
-
-void handlePWMTest() {
-  testPWM();
-  server.send(200, "application/json", "{\"result\":\"" + pwmTestResult + "\"}");
-}
-
-void handleSPIScan() {
-  scanSPI();
-  server.send(200, "application/json", "{\"info\":\"" + spiInfo + "\"}");
-}
-
-void handlePartitionsList() {
-  listPartitions();
-  server.send(200, "application/json", "{\"partitions\":\"" + partitionsInfo + "\"}");
-}
-
-void handleStressTest() {
-  memoryStressTest();
-  server.send(200, "application/json", "{\"result\":\"" + stressTestResult + "\"}");
-}
-
-void handleBenchmark() {
-  unsigned long cpuTime = benchmarkCPU();
-  unsigned long memTime = benchmarkMemory();
-  
-  diagnosticData.cpuBenchmark = cpuTime;
-  diagnosticData.memBenchmark = memTime;
-  
-  server.send(200, "application/json", "{\"cpu\":" + String(cpuTime) + ",\"memory\":" + String(memTime) + 
-              ",\"cpuPerf\":" + String(100000.0 / cpuTime, 2) + ",\"memSpeed\":" + String((10000 * sizeof(int) * 2) / (float)memTime, 2) + "}");
-}
-
-void handleMemoryDetails() {
-  collectDetailedMemory();
-  
-  String json = "{\"flash\":{\"real\":" + String(detailedMemory.flashSizeReal) + ",\"chip\":" + String(detailedMemory.flashSizeChip) + "},";
-  json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") +
-          ",\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") +
-          ",\"supported\":" + String(detailedMemory.psramBoardSupported ? "true" : "false") +
-          ",\"type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : "Inconnu") + "\"" +
-          ",\"total\":" + String(detailedMemory.psramTotal) + ",\"free\":" + String(detailedMemory.psramFree) + "},";
-  json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) + ",\"free\":" + String(detailedMemory.sramFree) + "},";
-  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",\"status\":\"" + detailedMemory.memoryStatus + "\"}";
-  
-  server.send(200, "application/json", json);
-}
-
-// ========== EXPORTS ==========
-void handleExportTXT() {
-  collectDiagnosticInfo();
-  collectDetailedMemory();
-  
-  String txt = "========================================\r\n";
-  txt += String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "\r\n";
-  txt += "========================================\r\n\r\n";
-  
-  txt += "=== CHIP ===\r\n";
-  txt += String(T().model) + ": " + diagnosticData.chipModel + " " + String(T().revision) + diagnosticData.chipRevision + "\r\n";
-  txt += "CPU: " + String(diagnosticData.cpuCores) + " " + String(T().cores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz\r\n";
-  txt += "MAC WiFi: " + diagnosticData.macAddress + "\r\n";
-  txt += "SDK: " + diagnosticData.sdkVersion + "\r\n";
-  txt += "ESP-IDF: " + diagnosticData.idfVersion + "\r\n";
-  if (diagnosticData.temperature != -999) {
-    txt += String(T().cpu_temp) + ": " + String(diagnosticData.temperature, 1) + " °C\r\n";
-  }
-  txt += "\r\n";
-  
-  txt += "=== " + String(T().memory_details) + " ===\r\n";
-  txt += "Flash (" + String(T().board) + "): " + String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB\r\n";
-  txt += "Flash (IDE): " + String(detailedMemory.flashSizeChip / 1048576.0, 2) + " MB\r\n";
-  txt += String(T().flash_type) + ": " + getFlashType() + " @ " + getFlashSpeed() + "\r\n";
-  txt += "PSRAM: " + String(detailedMemory.psramTotal / 1048576.0, 2) + " MB";
-  if (detailedMemory.psramAvailable) {
-    txt += " (" + String(T().free) + ": " + String(detailedMemory.psramFree / 1048576.0, 2) + " MB)\r\n";
-  } else if (detailedMemory.psramBoardSupported) {
-    String psramHint = String(T().enable_psram_hint);
-    psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
-    txt += " (" + String(T().supported_not_enabled) + " - " + psramHint + ")\r\n";
-  } else {
-    txt += " (" + String(T().not_detected) + ")\r\n";
-  }
-  txt += "SRAM: " + String(detailedMemory.sramTotal / 1024.0, 2) + " KB";
-  txt += " (" + String(T().free) + ": " + String(detailedMemory.sramFree / 1024.0, 2) + " KB)\r\n";
-  txt += String(T().memory_fragmentation) + ": " + String(detailedMemory.fragmentationPercent, 1) + "%\r\n";
-  txt += String(T().memory_status) + ": " + detailedMemory.memoryStatus + "\r\n";
-  txt += "\r\n";
-  
-  txt += "=== WIFI ===\r\n";
-  txt += "SSID: " + diagnosticData.wifiSSID + "\r\n";
-  txt += "RSSI: " + String(diagnosticData.wifiRSSI) + " dBm (" + getWiFiSignalQuality() + ")\r\n";
-  txt += "IP: " + diagnosticData.ipAddress + "\r\n";
-  txt += String(T().subnet_mask) + ": " + WiFi.subnetMask().toString() + "\r\n";
-  txt += String(T().gateway) + ": " + WiFi.gatewayIP().toString() + "\r\n";
-  txt += "DNS: " + WiFi.dnsIP().toString() + "\r\n";
-  txt += "\r\n";
-  
-  txt += "=== GPIO ===\r\n";
-  txt += String(T().total_gpio) + ": " + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "\r\n";
-  txt += String(T().gpio_list) + ": " + diagnosticData.gpioList + "\r\n";
-  txt += "\r\n";
-  
-  txt += "=== " + String(T().i2c_peripherals) + " ===\r\n";
-  txt += String(T().device_count) + ": " + String(diagnosticData.i2cCount) + " - " + diagnosticData.i2cDevices + "\r\n";
-  txt += "SPI: " + spiInfo + "\r\n";
-  txt += "\r\n";
-  
-  txt += "=== " + String(T().test) + " ===\r\n";
-  txt += String(T().builtin_led) + ": " + builtinLedTestResult + "\r\n";
-  txt += "NeoPixel: " + neopixelTestResult + "\r\n";
-  txt += "OLED: " + oledTestResult + "\r\n";
-  txt += "ADC: " + adcTestResult + "\r\n";
-  txt += "Touch: " + touchTestResult + "\r\n";
-  txt += "PWM: " + pwmTestResult + "\r\n";
-  txt += "\r\n";
-  
-  txt += "=== " + String(T().performance_bench) + " ===\r\n";
-  if (diagnosticData.cpuBenchmark > 0) {
-    txt += "CPU: " + String(diagnosticData.cpuBenchmark) + " us (" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + " MFLOPS)\r\n";
-    txt += String(T().memory_benchmark) + ": " + String(diagnosticData.memBenchmark) + " us\r\n";
-  } else {
-    txt += String(T().not_tested) + "\r\n";
-  }
-  txt += "Stress test: " + stressTestResult + "\r\n";
-  txt += "\r\n";
-  
-  unsigned long seconds = diagnosticData.uptime / 1000;
-  unsigned long minutes = seconds / 60;
-  unsigned long hours = minutes / 60;
-  unsigned long days = hours / 24;
-  txt += "=== SYSTEM ===\r\n";
-  txt += String(T().uptime) + ": " + String(days) + "d " + String(hours % 24) + "h " + String(minutes % 60) + "m\r\n";
-  txt += String(T().last_reset) + ": " + getResetReason() + "\r\n";
-  txt += "\r\n";
-  txt += "========================================\r\n";
-  txt += String(T().export_generated) + " " + String(millis()/1000) + "s " + String(T().export_after_boot) + "\r\n";
-  txt += "========================================\r\n";
-  
-  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v"+ String(DIAGNOSTIC_VERSION) +".txt");
-  server.send(200, "text/plain; charset=utf-8", txt);
-}
-
-void handleExportJSON() {
-  collectDiagnosticInfo();
-  collectDetailedMemory();
-  
-  String json = "{";
-  json += "\"chip\":{";
-  json += "\"model\":\"" + diagnosticData.chipModel + "\",";
-  json += "\"revision\":\"" + diagnosticData.chipRevision + "\",";
-  json += "\"cores\":" + String(diagnosticData.cpuCores) + ",";
-  json += "\"freq_mhz\":" + String(diagnosticData.cpuFreqMHz) + ",";
-  json += "\"mac\":\"" + diagnosticData.macAddress + "\",";
-  json += "\"sdk\":\"" + diagnosticData.sdkVersion + "\",";
-  json += "\"idf\":\"" + diagnosticData.idfVersion + "\"";
-  if (diagnosticData.temperature != -999) {
-    json += ",\"temperature\":" + String(diagnosticData.temperature, 1);
-  }
-  json += "},";
-  
-  json += "\"memory\":{";
-  json += "\"flash_real_mb\":" + String(detailedMemory.flashSizeReal / 1048576.0, 2) + ",";
-  json += "\"flash_config_mb\":" + String(detailedMemory.flashSizeChip / 1048576.0, 2) + ",";
-  json += "\"flash_type\":\"" + getFlashType() + "\",";
-  json += "\"flash_speed\":\"" + getFlashSpeed() + "\",";
-  json += "\"psram_mb\":" + String(detailedMemory.psramTotal / 1048576.0, 2) + ",";
-  json += "\"psram_free_mb\":" + String(detailedMemory.psramFree / 1048576.0, 2) + ",";
-  json += "\"psram_available\":" + String(detailedMemory.psramAvailable ? "true" : "false") + ",";
-  json += "\"psram_supported\":" + String(detailedMemory.psramBoardSupported ? "true" : "false") + ",";
-  json += "\"psram_type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : "Inconnu") + "\",";
-  json += "\"sram_kb\":" + String(detailedMemory.sramTotal / 1024.0, 2) + ",";
-  json += "\"sram_free_kb\":" + String(detailedMemory.sramFree / 1024.0, 2) + ",";
-  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",";
-  json += "\"status\":\"" + detailedMemory.memoryStatus + "\"";
-  json += "},";
-  
-  json += "\"wifi\":{";
-  json += "\"ssid\":\"" + diagnosticData.wifiSSID + "\",";
-  json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
-  json += "\"quality\":\"" + getWiFiSignalQuality() + "\",";
-  json += "\"ip\":\"" + diagnosticData.ipAddress + "\",";
-  json += "\"subnet\":\"" + WiFi.subnetMask().toString() + "\",";
-  json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",";
-  json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
-  json += "},";
-  
   json += "\"gpio\":{";
   json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
   json += "\"list\":\"" + diagnosticData.gpioList + "\"";
@@ -2023,21 +1640,260 @@ void handleExportJSON() {
   server.send(200, "application/json", json);
 }
 
+void handleExportTXT() {
+  collectDiagnosticInfo();
+  collectDetailedMemory();
+
+  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+  String wifiSSID = wifiConnected ? diagnosticData.wifiSSID : String("-");
+  String wifiRSSI = wifiConnected ? String(diagnosticData.wifiRSSI) + " dBm" : String("-");
+  String wifiQuality = wifiConnected ? getWiFiSignalQuality() : String("-");
+  String wifiIP = wifiConnected ? diagnosticData.ipAddress : String("-");
+  String wifiSubnet = wifiConnected ? WiFi.subnetMask().toString() : String("-");
+  String wifiGateway = wifiConnected ? WiFi.gatewayIP().toString() : String("-");
+  String wifiDNS = wifiConnected ? WiFi.dnsIP().toString() : String("-");
+  String wifiHostname = diagnosticData.wifiHostname.length() ? diagnosticData.wifiHostname : String("-");
+  String wifiChannel = diagnosticData.wifiChannel > 0 ? String(diagnosticData.wifiChannel) : String("-");
+  String wifiMode = diagnosticData.wifiMode.length() ? diagnosticData.wifiMode : String("-");
+  String wifiSleep = diagnosticData.wifiSleepMode.length() ? diagnosticData.wifiSleepMode : String("-");
+  String wifiBand = diagnosticData.wifiBand.length() ? diagnosticData.wifiBand : String("-");
+  String wifiBandMode = diagnosticData.wifiBandMode.length() ? diagnosticData.wifiBandMode : String("-");
+  String wifiTxPower = String(diagnosticData.wifiTxPowerDbm, 1) + " dBm (" + String(diagnosticData.wifiTxPowerCode) + ")";
+
+  String txt = "========================================\r\n";
+  txt += String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "\r\n";
+  txt += "========================================\r\n\r\n";
+
+  txt += "=== CHIP ===\r\n";
+  txt += String(T().model) + ": " + diagnosticData.chipModel + " " + String(T().revision) + diagnosticData.chipRevision + "\r\n";
+  txt += "CPU: " + String(diagnosticData.cpuCores) + " " + String(T().cores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz\r\n";
+  txt += "MAC WiFi: " + diagnosticData.macAddress + "\r\n";
+  txt += String(T().sdk_version) + ": " + diagnosticData.sdkVersion + "\r\n";
+  txt += String(T().idf_version) + ": " + diagnosticData.idfVersion + "\r\n";
+  txt += String(T().arduino_core_version) + ": " + diagnosticData.arduinoCoreVersion + "\r\n";
+  if (diagnosticData.temperature != -999) {
+    txt += String(T().cpu_temp) + ": " + String(diagnosticData.temperature, 1) + " °C\r\n";
+  }
+  txt += "\r\n";
+
+  txt += "=== " + String(T().memory_details) + " ===\r\n";
+  txt += "Flash (" + String(T().board) + "): " + String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB\r\n";
+  txt += "Flash (IDE): " + String(detailedMemory.flashSizeChip / 1048576.0, 2) + " MB\r\n";
+  txt += String(T().flash_type) + ": " + getFlashType() + " @ " + getFlashSpeed() + "\r\n";
+  txt += "PSRAM: " + String(detailedMemory.psramTotal / 1048576.0, 2) + " MB";
+  if (detailedMemory.psramAvailable) {
+    txt += " (" + String(T().free) + ": " + String(detailedMemory.psramFree / 1048576.0, 2) + " MB)\r\n";
+  } else if (detailedMemory.psramBoardSupported) {
+    txt += " - " + String(T().supported_not_enabled) + "\r\n";
+  } else {
+    txt += " - " + String(T().not_detected) + "\r\n";
+  }
+  txt += String(T().memory_fragmentation) + ": " + String(detailedMemory.fragmentationPercent, 1) + "%\r\n";
+  txt += "SRAM: " + String(detailedMemory.sramTotal / 1024.0, 2) + " KB (" + String(T().free) + ": " + String(detailedMemory.sramFree / 1024.0, 2) + " KB)\r\n\r\n";
+
+  txt += "=== WIFI ===\r\n";
+  txt += String(T().connected_ssid) + ": " + wifiSSID + "\r\n";
+  txt += String(T().signal_power) + ": " + wifiRSSI + "\r\n";
+  txt += String(T().signal_quality) + ": " + wifiQuality + "\r\n";
+  txt += String(T().ip_address) + ": " + wifiIP + "\r\n";
+  txt += String(T().subnet_mask) + ": " + wifiSubnet + "\r\n";
+  txt += String(T().gateway) + ": " + wifiGateway + "\r\n";
+  txt += String(T().dns) + ": " + wifiDNS + "\r\n";
+  txt += String(T().wifi_channel) + ": " + wifiChannel + "\r\n";
+  txt += String(T().wifi_mode) + ": " + wifiMode + "\r\n";
+  txt += String(T().wifi_sleep) + ": " + wifiSleep + "\r\n";
+  txt += String(T().wifi_band) + ": " + wifiBand + "\r\n";
+  txt += String(T().wifi_band_mode) + ": " + wifiBandMode + "\r\n";
+  txt += String(T().wifi_tx_power) + ": " + wifiTxPower + "\r\n";
+  txt += String(T().wifi_hostname) + ": " + wifiHostname + "\r\n\r\n";
+
+  txt += "=== GPIO ===\r\n";
+  txt += String(T().total_gpio) + ": " + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "\r\n";
+  txt += String(T().gpio_list) + ": " + diagnosticData.gpioList + "\r\n\r\n";
+
+  txt += "=== " + String(T().i2c_peripherals) + " ===\r\n";
+  txt += String(T().device_count) + ": " + String(diagnosticData.i2cCount) + " - " + diagnosticData.i2cDevices + "\r\n";
+  txt += "SPI: " + spiInfo + "\r\n\r\n";
+
+  txt += "=== " + String(T().test) + " ===\r\n";
+  txt += String(T().builtin_led) + ": " + builtinLedTestResult + "\r\n";
+  txt += "NeoPixel: " + neopixelTestResult + "\r\n";
+  txt += "OLED: " + oledTestResult + "\r\n";
+  txt += "ADC: " + adcTestResult + "\r\n";
+  txt += "Touch: " + touchTestResult + "\r\n";
+  txt += "PWM: " + pwmTestResult + "\r\n\r\n";
+
+  txt += "=== " + String(T().performance_bench) + " ===\r\n";
+  if (diagnosticData.cpuBenchmark > 0) {
+    txt += "CPU: " + String(diagnosticData.cpuBenchmark) + " us (" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + " MFLOPS)\r\n";
+    txt += String(T().memory_benchmark) + ": " + String(diagnosticData.memBenchmark) + " us\r\n";
+  } else {
+    txt += String(T().not_tested) + "\r\n";
+  }
+  txt += "Stress test: " + stressTestResult + "\r\n\r\n";
+
+  unsigned long seconds = diagnosticData.uptime / 1000;
+  unsigned long minutes = seconds / 60;
+  unsigned long hours = minutes / 60;
+  unsigned long days = hours / 24;
+  txt += "=== SYSTEM ===\r\n";
+  txt += String(T().uptime) + ": " + String(days) + "d " + String(hours % 24) + "h " + String(minutes % 60) + "m\r\n";
+  txt += String(T().last_reset) + ": " + getResetReason() + "\r\n";
+  txt += "\r\n";
+  txt += "========================================\r\n";
+  txt += String(T().export_generated) + " " + String(millis()/1000) + "s " + String(T().export_after_boot) + "\r\n";
+  txt += "========================================\r\n";
+
+  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v" + String(DIAGNOSTIC_VERSION) + ".txt");
+  server.send(200, "text/plain; charset=utf-8", txt);
+}
+
+void handleExportJSON() {
+  collectDiagnosticInfo();
+  collectDetailedMemory();
+
+  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+  String wifiSSID = wifiConnected ? diagnosticData.wifiSSID : String("-");
+  String wifiIP = wifiConnected ? diagnosticData.ipAddress : String("-");
+  String wifiSubnet = wifiConnected ? WiFi.subnetMask().toString() : String("-");
+  String wifiGateway = wifiConnected ? WiFi.gatewayIP().toString() : String("-");
+  String wifiDNS = wifiConnected ? WiFi.dnsIP().toString() : String("-");
+  String wifiQuality = wifiConnected ? getWiFiSignalQuality() : String("-");
+  String flashType = getFlashType();
+  String flashSpeed = getFlashSpeed();
+  String psramType = detailedMemory.psramType ? String(detailedMemory.psramType) : String("Inconnu");
+  String resetReason = getResetReason();
+  String wifiHostname = diagnosticData.wifiHostname.length() ? diagnosticData.wifiHostname : String("-");
+
+  String json = "{";
+  json += "\"chip\":{";
+  json += "\"model\":\"" + jsonEscape(diagnosticData.chipModel) + "\",";
+  json += "\"revision\":\"" + jsonEscape(diagnosticData.chipRevision) + "\",";
+  json += "\"cores\":" + String(diagnosticData.cpuCores) + ",";
+  json += "\"freq_mhz\":" + String(diagnosticData.cpuFreqMHz) + ",";
+  json += "\"mac\":\"" + jsonEscape(diagnosticData.macAddress) + "\",";
+  json += "\"sdk\":\"" + jsonEscape(diagnosticData.sdkVersion) + "\",";
+  json += "\"idf\":\"" + jsonEscape(diagnosticData.idfVersion) + "\",";
+  json += "\"arduino_core\":\"" + jsonEscape(diagnosticData.arduinoCoreVersion) + "\"";
+  if (diagnosticData.temperature != -999) {
+    json += ",\"temperature\":" + String(diagnosticData.temperature, 1);
+  }
+  json += "},";
+
+  json += "\"memory\":{";
+  json += "\"flash_real_mb\":" + String(detailedMemory.flashSizeReal / 1048576.0, 2) + ",";
+  json += "\"flash_config_mb\":" + String(detailedMemory.flashSizeChip / 1048576.0, 2) + ",";
+  json += "\"flash_type\":\"" + jsonEscape(flashType) + "\",";
+  json += "\"flash_speed\":\"" + jsonEscape(flashSpeed) + "\",";
+  json += "\"psram_mb\":" + String(detailedMemory.psramTotal / 1048576.0, 2) + ",";
+  json += "\"psram_free_mb\":" + String(detailedMemory.psramFree / 1048576.0, 2) + ",";
+  json += "\"psram_available\":" + String(detailedMemory.psramAvailable ? "true" : "false") + ",";
+  json += "\"psram_supported\":" + String(detailedMemory.psramBoardSupported ? "true" : "false") + ",";
+  json += "\"psram_type\":\"" + jsonEscape(psramType) + "\",";
+  json += "\"sram_kb\":" + String(detailedMemory.sramTotal / 1024.0, 2) + ",";
+  json += "\"sram_free_kb\":" + String(detailedMemory.sramFree / 1024.0, 2) + ",";
+  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",";
+  json += "\"status\":\"" + jsonEscape(detailedMemory.memoryStatus) + "\"";
+  json += "},";
+
+  json += "\"wifi\":{";
+  json += "\"connected\":" + String(wifiConnected ? "true" : "false") + ",";
+  json += "\"ssid\":\"" + jsonEscape(wifiSSID) + "\",";
+  json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
+  json += "\"quality\":\"" + jsonEscape(wifiQuality) + "\",";
+  json += "\"ip\":\"" + jsonEscape(wifiIP) + "\",";
+  json += "\"subnet\":\"" + jsonEscape(wifiSubnet) + "\",";
+  json += "\"gateway\":\"" + jsonEscape(wifiGateway) + "\",";
+  json += "\"dns\":\"" + jsonEscape(wifiDNS) + "\",";
+  json += "\"channel\":" + String(diagnosticData.wifiChannel) + ",";
+  json += "\"mode\":\"" + jsonEscape(diagnosticData.wifiMode) + "\",";
+  json += "\"sleep\":\"" + jsonEscape(diagnosticData.wifiSleepMode) + "\",";
+  json += "\"band\":\"" + jsonEscape(diagnosticData.wifiBand) + "\",";
+  json += "\"band_mode\":\"" + jsonEscape(diagnosticData.wifiBandMode) + "\",";
+  json += "\"tx_power_dbm\":" + String(diagnosticData.wifiTxPowerDbm, 2) + ",";
+  json += "\"tx_power_code\":" + String(diagnosticData.wifiTxPowerCode) + ",";
+  json += "\"supports_5g\":" + String(diagnosticData.wifiSupports5G ? "true" : "false") + ",";
+  json += "\"hostname\":\"" + jsonEscape(wifiHostname) + "\"";
+  json += "},";
+
+  json += "\"gpio\":{";
+  json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
+  json += "\"list\":\"" + jsonEscape(diagnosticData.gpioList) + "\"";
+  json += "},";
+
+  json += "\"peripherals\":{";
+  json += "\"i2c_count\":" + String(diagnosticData.i2cCount) + ",";
+  json += "\"i2c_devices\":\"" + jsonEscape(diagnosticData.i2cDevices) + "\",";
+  json += "\"spi\":\"" + jsonEscape(spiInfo) + "\"";
+  json += "},";
+
+  json += "\"hardware_tests\":{";
+  json += "\"builtin_led\":\"" + jsonEscape(builtinLedTestResult) + "\",";
+  json += "\"neopixel\":\"" + jsonEscape(neopixelTestResult) + "\",";
+  json += "\"oled\":\"" + jsonEscape(oledTestResult) + "\",";
+  json += "\"adc\":\"" + jsonEscape(adcTestResult) + "\",";
+  json += "\"touch\":\"" + jsonEscape(touchTestResult) + "\",";
+  json += "\"pwm\":\"" + jsonEscape(pwmTestResult) + "\"";
+  json += "},";
+
+  json += "\"performance\":{";
+  if (diagnosticData.cpuBenchmark > 0) {
+    json += "\"cpu_us\":" + String(diagnosticData.cpuBenchmark) + ",";
+    json += "\"cpu_mflops\":" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + ",";
+    json += "\"memory_us\":" + String(diagnosticData.memBenchmark) + ",";
+  } else {
+    json += "\"benchmarks\":\"not_run\",";
+  }
+  json += "\"stress_test\":\"" + jsonEscape(stressTestResult) + "\"";
+  json += "},";
+
+  json += "\"system\":{";
+  json += "\"uptime_ms\":" + String(diagnosticData.uptime) + ",";
+  json += "\"reset_reason\":\"" + jsonEscape(resetReason) + "\",";
+  json += "\"language\":\"" + String(currentLanguage == LANG_FR ? "fr" : "en") + "\"";
+  json += "}";
+
+  json += "}";
+
+  server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v" + String(DIAGNOSTIC_VERSION) + ".json");
+  server.send(200, "application/json", json);
+}
+
 void handleExportCSV() {
   collectDiagnosticInfo();
   collectDetailedMemory();
-  
+
+  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+  String wifiSSID = wifiConnected ? diagnosticData.wifiSSID : String("-");
+  String wifiRSSI = wifiConnected ? String(diagnosticData.wifiRSSI) + " dBm" : String("-");
+  String wifiQuality = wifiConnected ? getWiFiSignalQuality() : String("-");
+  String wifiIP = wifiConnected ? diagnosticData.ipAddress : String("-");
+  String wifiSubnet = wifiConnected ? WiFi.subnetMask().toString() : String("-");
+  String wifiGateway = wifiConnected ? WiFi.gatewayIP().toString() : String("-");
+  String wifiDNS = wifiConnected ? WiFi.dnsIP().toString() : String("-");
+  String wifiChannel = diagnosticData.wifiChannel > 0 ? String(diagnosticData.wifiChannel) : String("-");
+  String wifiMode = diagnosticData.wifiMode.length() ? diagnosticData.wifiMode : String("-");
+  String wifiSleep = diagnosticData.wifiSleepMode.length() ? diagnosticData.wifiSleepMode : String("-");
+  String wifiBand = diagnosticData.wifiBand.length() ? diagnosticData.wifiBand : String("-");
+  String wifiBandMode = diagnosticData.wifiBandMode.length() ? diagnosticData.wifiBandMode : String("-");
+  String wifiTxPower = String(diagnosticData.wifiTxPowerDbm, 1) + " dBm (" + String(diagnosticData.wifiTxPowerCode) + ")";
+  String wifiHostname = diagnosticData.wifiHostname.length() ? diagnosticData.wifiHostname : String("-");
+  String resetReason = getResetReason();
+
   String csv = String(T().category) + "," + String(T().parameter) + "," + String(T().value) + "\r\n";
-  
+
   csv += "Chip," + String(T().model) + "," + diagnosticData.chipModel + "\r\n";
   csv += "Chip," + String(T().revision) + "," + diagnosticData.chipRevision + "\r\n";
   csv += "Chip,CPU " + String(T().cores) + "," + String(diagnosticData.cpuCores) + "\r\n";
   csv += "Chip," + String(T().frequency) + " MHz," + String(diagnosticData.cpuFreqMHz) + "\r\n";
   csv += "Chip,MAC," + diagnosticData.macAddress + "\r\n";
+  csv += "Chip," + String(T().sdk_version) + "," + diagnosticData.sdkVersion + "\r\n";
+  csv += "Chip," + String(T().idf_version) + "," + diagnosticData.idfVersion + "\r\n";
+  csv += "Chip," + String(T().arduino_core_version) + "," + diagnosticData.arduinoCoreVersion + "\r\n";
   if (diagnosticData.temperature != -999) {
     csv += "Chip," + String(T().cpu_temp) + " C," + String(diagnosticData.temperature, 1) + "\r\n";
   }
-  
+
   csv += String(T().memory_details) + ",Flash MB (" + String(T().board) + ")," + String(detailedMemory.flashSizeReal / 1048576.0, 2) + "\r\n";
   csv += String(T().memory_details) + ",Flash MB (config)," + String(detailedMemory.flashSizeChip / 1048576.0, 2) + "\r\n";
   csv += String(T().memory_details) + "," + String(T().flash_type) + "," + getFlashType() + "\r\n";
@@ -2056,32 +1912,46 @@ void handleExportCSV() {
   csv += String(T().memory_details) + ",SRAM KB," + String(detailedMemory.sramTotal / 1024.0, 2) + "\r\n";
   csv += String(T().memory_details) + ",SRAM " + String(T().free) + " KB," + String(detailedMemory.sramFree / 1024.0, 2) + "\r\n";
   csv += String(T().memory_details) + "," + String(T().memory_fragmentation) + " %," + String(detailedMemory.fragmentationPercent, 1) + "\r\n";
-  
-  csv += "WiFi,SSID," + diagnosticData.wifiSSID + "\r\n";
-  csv += "WiFi,RSSI dBm," + String(diagnosticData.wifiRSSI) + "\r\n";
-  csv += "WiFi,IP," + diagnosticData.ipAddress + "\r\n";
-  csv += "WiFi," + String(T().gateway) + "," + WiFi.gatewayIP().toString() + "\r\n";
-  
+
+  String ssidEscaped = wifiSSID; ssidEscaped.replace("\"", "'");
+  String hostnameEscaped = wifiHostname; hostnameEscaped.replace("\"", "'");
+  String i2cDevices = diagnosticData.i2cDevices; i2cDevices.replace("\"", "'");
+
+  csv += "WiFi,SSID,\"" + ssidEscaped + "\"\r\n";
+  csv += "WiFi,RSSI," + wifiRSSI + "\r\n";
+  csv += "WiFi," + String(T().signal_quality) + "," + wifiQuality + "\r\n";
+  csv += "WiFi," + String(T().ip_address) + "," + wifiIP + "\r\n";
+  csv += "WiFi," + String(T().subnet_mask) + "," + wifiSubnet + "\r\n";
+  csv += "WiFi," + String(T().gateway) + "," + wifiGateway + "\r\n";
+  csv += "WiFi," + String(T().dns) + "," + wifiDNS + "\r\n";
+  csv += "WiFi," + String(T().wifi_channel) + "," + wifiChannel + "\r\n";
+  csv += "WiFi," + String(T().wifi_mode) + "," + wifiMode + "\r\n";
+  csv += "WiFi," + String(T().wifi_sleep) + "," + wifiSleep + "\r\n";
+  csv += "WiFi," + String(T().wifi_band) + "," + wifiBand + "\r\n";
+  csv += "WiFi," + String(T().wifi_band_mode) + "," + wifiBandMode + "\r\n";
+  csv += "WiFi," + String(T().wifi_tx_power) + "," + wifiTxPower + "\r\n";
+  csv += "WiFi," + String(T().wifi_hostname) + ",\"" + hostnameEscaped + "\"\r\n";
+
   csv += "GPIO," + String(T().total_gpio) + "," + String(diagnosticData.totalGPIO) + "\r\n";
-  
   csv += String(T().i2c_peripherals) + "," + String(T().device_count) + "," + String(diagnosticData.i2cCount) + "\r\n";
-  csv += String(T().i2c_peripherals) + "," + String(T().devices) + "," + diagnosticData.i2cDevices + "\r\n";
-  
+  csv += String(T().i2c_peripherals) + "," + String(T().devices) + ",\"" + i2cDevices + "\"\r\n";
+  csv += "Interfaces,SPI," + spiInfo + "\r\n";
+
   csv += String(T().test) + "," + String(T().builtin_led) + "," + builtinLedTestResult + "\r\n";
   csv += String(T().test) + ",NeoPixel," + neopixelTestResult + "\r\n";
   csv += String(T().test) + ",OLED," + oledTestResult + "\r\n";
   csv += String(T().test) + ",ADC," + adcTestResult + "\r\n";
   csv += String(T().test) + ",Touch," + touchTestResult + "\r\n";
   csv += String(T().test) + ",PWM," + pwmTestResult + "\r\n";
-  
+
   if (diagnosticData.cpuBenchmark > 0) {
     csv += String(T().performance_bench) + ",CPU us," + String(diagnosticData.cpuBenchmark) + "\r\n";
     csv += String(T().performance_bench) + "," + String(T().memory_benchmark) + " us," + String(diagnosticData.memBenchmark) + "\r\n";
   }
-  
+
   csv += "System," + String(T().uptime) + " ms," + String(diagnosticData.uptime) + "\r\n";
-  csv += "System," + String(T().last_reset) + "," + getResetReason() + "\r\n";
-  
+  csv += "System," + String(T().last_reset) + "," + resetReason + "\r\n";
+
   server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v" + String(DIAGNOSTIC_VERSION) + ".csv");
   server.send(200, "text/csv; charset=utf-8", csv);
 }
@@ -2126,6 +1996,7 @@ void handlePrintVersion() {
   html += "<div class='row'><b>MAC WiFi:</b><span>" + diagnosticData.macAddress + "</span></div>";
   html += "<div class='row'><b>SDK:</b><span>" + diagnosticData.sdkVersion + "</span></div>";
   html += "<div class='row'><b>ESP-IDF:</b><span>" + diagnosticData.idfVersion + "</span></div>";
+  html += "<div class='row'><b>" + String(T().arduino_core_version) + ":</b><span>" + diagnosticData.arduinoCoreVersion + "</span></div>";
   if (diagnosticData.temperature != -999) {
     html += "<div class='row'><b>Température:</b><span>" + String(diagnosticData.temperature, 1) + " °C</span></div>";
   }
@@ -2189,6 +2060,13 @@ void handlePrintVersion() {
   html += "<div class='row'><b>Masque:</b><span>" + WiFi.subnetMask().toString() + "</span></div>";
   html += "<div class='row'><b>Passerelle:</b><span>" + WiFi.gatewayIP().toString() + "</span></div>";
   html += "<div class='row'><b>DNS:</b><span>" + WiFi.dnsIP().toString() + "</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_channel) + ":</b><span>" + (diagnosticData.wifiChannel > 0 ? String("Ch ") + String(diagnosticData.wifiChannel) : String("—")) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_mode) + ":</b><span>" + (diagnosticData.wifiMode.length() ? diagnosticData.wifiMode : String("—")) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_sleep) + ":</b><span>" + (diagnosticData.wifiSleepMode.length() ? diagnosticData.wifiSleepMode : String("—")) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_band) + ":</b><span>" + (diagnosticData.wifiBand.length() ? diagnosticData.wifiBand : String("—")) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_band_mode) + ":</b><span>" + (diagnosticData.wifiBandMode.length() ? diagnosticData.wifiBandMode : String("—")) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_tx_power) + ":</b><span>" + String(diagnosticData.wifiTxPowerDbm, 1) + " dBm (" + String(diagnosticData.wifiTxPowerCode) + ")</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_hostname) + ":</b><span>" + (diagnosticData.wifiHostname.length() ? diagnosticData.wifiHostname : String("—")) + "</span></div>";
   html += "</div></div>";
   
   // GPIO et Périphériques
@@ -2262,8 +2140,16 @@ void handleGetTranslations() {
   json += "\"nav_benchmark\":\"" + String(T().nav_benchmark) + "\",";
   json += "\"nav_export\":\"" + String(T().nav_export) + "\",";
   json += "\"chip_info\":\"" + String(T().chip_info) + "\",";
+  json += "\"arduino_core_version\":\"" + String(T().arduino_core_version) + "\",";
   json += "\"memory_details\":\"" + String(T().memory_details) + "\",";
   json += "\"wifi_connection\":\"" + String(T().wifi_connection) + "\",";
+  json += "\"wifi_channel\":\"" + String(T().wifi_channel) + "\",";
+  json += "\"wifi_mode\":\"" + String(T().wifi_mode) + "\",";
+  json += "\"wifi_sleep\":\"" + String(T().wifi_sleep) + "\",";
+  json += "\"wifi_band\":\"" + String(T().wifi_band) + "\",";
+  json += "\"wifi_band_mode\":\"" + String(T().wifi_band_mode) + "\",";
+  json += "\"wifi_tx_power\":\"" + String(T().wifi_tx_power) + "\",";
+  json += "\"wifi_hostname\":\"" + String(T().wifi_hostname) + "\",";
   json += "\"gpio_interfaces\":\"" + String(T().gpio_interfaces) + "\",";
   json += "\"i2c_peripherals\":\"" + String(T().i2c_peripherals) + "\",";
   json += "\"builtin_led\":\"" + String(T().builtin_led) + "\",";
@@ -2282,6 +2168,129 @@ void handleGetTranslations() {
   
   server.send(200, "application/json", json);
 }
+String buildAppScript() {
+  String script;
+  script.reserve(14000);
+  script += "let currentLang='" + String(currentLanguage == LANG_FR ? "fr" : "en") + "';";
+  
+  // Changement de langue
+  script += "function changeLang(lang,evt){";
+  script += "if(evt&&evt.preventDefault)evt.preventDefault();";
+  script += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
+  script += "if(d.success){currentLang=lang;";
+  script += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
+  script += "if(evt&&evt.target){evt.target.classList.add('active');}";
+  script += "window.location.reload();";
+  script += "}else{console.error('Lang switch refused');}";
+  script += "}).catch(e=>console.error('Lang switch error',e));";
+  script += "}";
+  
+  // Navigation onglets
+  script += "function showTab(t,evt){";
+  script += "document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));";
+  script += "document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));";
+  script += "document.getElementById(t).classList.add('active');";
+  script += "if(evt&&evt.target){evt.target.classList.add('active');}";
+  script += "if(t==='wireless'){refreshWirelessInfo();}";
+  script += "}";
+  
+  // LED intégrée
+  script += "function configBuiltinLED(){fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value)";
+  script += ".then(r=>r.json()).then(d=>{document.getElementById('builtin-led-status').innerHTML=d.message})}";
+  script += "function testBuiltinLED(){document.getElementById('builtin-led-status').innerHTML='" + String(T().testing) + "';";
+  script += "fetch('/api/builtin-led-test').then(r=>r.json()).then(d=>{document.getElementById('builtin-led-status').innerHTML=d.result})}";
+  script += "function ledBlink(){fetch('/api/builtin-led-control?action=blink').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
+  script += "function ledFade(){fetch('/api/builtin-led-control?action=fade').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
+  script += "function ledOff(){fetch('/api/builtin-led-control?action=off').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
+  
+  // NeoPixel
+  script += "function configNeoPixel(){fetch('/api/neopixel-config?gpio='+document.getElementById('neoGPIO').value+'&count='+document.getElementById('neoCount').value)";
+  script += ".then(r=>r.json()).then(d=>{document.getElementById('neopixel-status').innerHTML=d.message})}";
+  script += "function testNeoPixel(){fetch('/api/neopixel-test').then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.result)}";
+  script += "function neoPattern(p){fetch('/api/neopixel-pattern?pattern='+p).then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.message)}";
+  script += "function neoCustomColor(){const c=document.getElementById('neoColor').value;";
+  script += "const r=parseInt(c.substr(1,2),16),g=parseInt(c.substr(3,2),16),b=parseInt(c.substr(5,2),16);";
+  script += "fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b).then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.message)}";
+  
+  // OLED
+  script += "function testOLED(){document.getElementById('oled-status').innerHTML='" + String(T().testing) + " (25s)...';";
+  script += "fetch('/api/oled-test').then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.result)}";
+  script += "function oledStep(step){document.getElementById('oled-status').innerHTML='" + String(T().testing) + "';";
+  script += "fetch('/api/oled-step?step='+step).then(r=>r.json()).then(d=>{document.getElementById('oled-status').innerHTML=d.message;if(!d.success){document.getElementById('oled-status').innerHTML='❌ '+d.message}})}";
+  script += "function oledMessage(){fetch('/api/oled-message?message='+encodeURIComponent(document.getElementById('oledMsg').value))";
+  script += ".then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.message)}";
+  script += "function configOLED(){const status=document.getElementById('oled-status');const pins=document.getElementById('oled-pins');";
+  script += "const sda=document.getElementById('oledSDA').value;const scl=document.getElementById('oledSCL').value;";
+  script += "status.innerHTML='" + String(T().reconfiguring) + "';";
+  script += "fetch('/api/oled-config?sda='+sda+'&scl='+scl).then(r=>r.json()).then(d=>{";
+  script += "if(d.success){status.innerHTML='✅ '+(d.message||'" + String(T().config_updated) + "');if(pins){pins.innerHTML='SDA:'+sda+' SCL:'+scl;}}";
+  script += "else{status.innerHTML='❌ '+(d.message||'" + String(T().config_error) + "');}}).catch(e=>{status.innerHTML='❌ " + String(T().error_prefix) + "'+e;})";
+  
+  // Tests avancés
+  script += "function testADC(){document.getElementById('adc-status').innerHTML='" + String(T().testing) + "';";
+  script += "fetch('/api/adc-test').then(r=>r.json()).then(data=>{let h='';";
+  script += "data.readings.forEach(a=>{h+='<div class=\"info-item\"><div class=\"info-label\">GPIO '+a.pin+'</div><div class=\"info-value\">'+a.raw+' ('+a.voltage.toFixed(2)+'V)</div></div>'});";
+  script += "document.getElementById('adc-results').innerHTML=h;document.getElementById('adc-status').innerHTML=data.result})}";
+  
+  script += "function testTouch(){document.getElementById('touch-status').innerHTML='" + String(T().testing) + "';";
+  script += "fetch('/api/touch-test').then(r=>r.json()).then(data=>{let h='';";
+  script += "data.readings.forEach(t=>{h+='<div class=\"info-item\"><div class=\"info-label\">Touch'+t.pin+'</div><div class=\"info-value\">'+t.value+'</div></div>'});";
+  script += "document.getElementById('touch-results').innerHTML=h;document.getElementById('touch-status').innerHTML=data.result})}";
+  
+  script += "function testPWM(){document.getElementById('pwm-status').innerHTML='" + String(T().testing) + "';";
+  script += "fetch('/api/pwm-test').then(r=>r.json()).then(d=>document.getElementById('pwm-status').innerHTML=d.result)}";
+  script += "function scanSPI(){document.getElementById('spi-status').innerHTML='" + String(T().scanning) + "';";
+  script += "fetch('/api/spi-scan').then(r=>r.json()).then(d=>document.getElementById('spi-status').innerHTML=d.info)}";
+  script += "function listPartitions(){document.getElementById('partitions-results').innerHTML='" + String(T().scanning) + "';";
+  script += "fetch('/api/partitions-list').then(r=>r.json()).then(d=>document.getElementById('partitions-results').innerHTML=d.partitions)}";
+  script += "function stressTest(){document.getElementById('stress-status').innerHTML='" + String(T().testing) + "';";
+  script += "fetch('/api/stress-test').then(r=>r.json()).then(d=>document.getElementById('stress-status').innerHTML=d.result)}";
+  
+  // GPIO
+  script += "function testAllGPIO(){document.getElementById('gpio-status').innerHTML='" + String(T().testing) + "';";
+  script += "fetch('/api/test-gpio').then(r=>r.json()).then(data=>{let h='';";
+  script += "data.results.forEach(g=>{h+='<div class=\"gpio-item '+(g.working?'gpio-ok':'gpio-fail')+'\">GPIO '+g.pin+'<br>'+(g.working?'✅ " + String(T().ok) + "':'❌ " + String(T().fail) + "')+'</div>'});";
+  script += "document.getElementById('gpio-results').innerHTML=h;document.getElementById('gpio-status').innerHTML='✅ " + String(T().completed) + " - '+data.results.length+' " + String(T().gpio) + " " + String(T().tested) + "'})}";
+
+  script += "function updateText(id,value,fallback='—'){const el=document.getElementById(id);if(!el)return;if(value===undefined||value===null||value===''){el.textContent=fallback;}else{el.textContent=value;}}";
+  script += "function refreshWirelessInfo(){fetch('/api/wireless-info').then(r=>r.json()).then(data=>updateWirelessInfo(data)).catch(e=>console.error('Wireless info',e));}";
+  script += "function updateWirelessInfo(data){if(!data)return;const w=data.wifi||{};const bt=data.bluetooth||{};const connectedLabel=currentLang==='fr'?'Connecté':'Connected';const disconnectedLabel=currentLang==='fr'?'Déconnecté':'Disconnected';updateText('wifi-connection-state',w.connected?'✅ '+connectedLabel:'❌ '+disconnectedLabel,'—');updateText('wifi-ssid',w.ssid&&w.ssid.length?w.ssid:'—','—');const channelLabel=currentLang==='fr'?'Canal ':'Ch ';const channelValue=(typeof w.channel==='number'&&w.channel>0)?(channelLabel+w.channel):'—';updateText('wifi-channel',channelValue,'—');updateText('wifi-mode',w.mode&&w.mode.length?w.mode:'—','—');updateText('wifi-sleep',w.sleep&&w.sleep.length?w.sleep:'—','—');updateText('wifi-band',w.band&&w.band.length?w.band:'—','—');updateText('wifi-band-mode',w.band_mode&&w.band_mode.length?w.band_mode:'—','—');const txCode=(typeof w.tx_power_code==='number')?w.tx_power_code:'n/a';const txPowerText=(typeof w.tx_power_dbm==='number')?(w.tx_power_dbm.toFixed(1)+' dBm ('+txCode+')'):'—';updateText('wifi-tx-power',txPowerText,'—');updateText('wifi-hostname',w.hostname&&w.hostname.length?w.hostname:'—','—');if(w.connected){updateText('wifi-rssi',w.rssi+' dBm','—');updateText('wifi-quality',w.quality&&w.quality.length?w.quality:'—','—');updateText('wifi-ip',w.ip&&w.ip.length?w.ip:'—','—');updateText('wifi-subnet',w.subnet&&w.subnet.length?w.subnet:'—','—');updateText('wifi-gateway',w.gateway&&w.gateway.length?w.gateway:'—','—');updateText('wifi-dns',w.dns&&w.dns.length?w.dns:'—','—');}else{updateText('wifi-rssi','—','—');updateText('wifi-quality','—','—');updateText('wifi-ip','—','—');updateText('wifi-subnet','—','—');updateText('wifi-gateway','—','—');updateText('wifi-dns','—','—');}const caps=[];if(bt.classic)caps.push(currentLang==='fr'?'Classique':'Classic');if(bt.ble)caps.push('BLE');updateText('bluetooth-capabilities',caps.length?caps.join(', '):'—','—');updateText('bluetooth-controller',bt.controller&&bt.controller.length?bt.controller:'—','—');updateText('bluetooth-last-test',bt.last_test_message&&bt.last_test_message.length?bt.last_test_message:'—','—');const statusEl=document.getElementById('bluetooth-status');if(statusEl&&bt.last_test_message){statusEl.textContent=bt.last_test_message;}const hintEl=document.getElementById('bluetooth-hint');if(hintEl){if(bt.hint&&bt.hint.length){hintEl.textContent=bt.hint;}else{hintEl.textContent=' ';}}}";
+  script += "function testBluetooth(){const status=document.getElementById('bluetooth-status');if(status){status.textContent='" + String(T().testing) + "';}fetch('/api/bluetooth-test').then(r=>r.json()).then(d=>{if(status){status.textContent=d.message||'" + String(T().unknown) + "';}refreshWirelessInfo();}).catch(e=>{if(status){status.textContent='❌ '+e;}});}";
+
+  // WiFi
+  script += "function scanWiFi(){document.getElementById('wifi-status').innerHTML='" + String(T().scanning) + "';";
+  script += "fetch('/api/wifi-scan').then(r=>r.json()).then(data=>{let h='';";
+  script += "data.networks.forEach(n=>{let s=n.rssi>=-60?'🟢':n.rssi>=-70?'🟡':'🔴';";
+  script += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+n.bssid+' | Ch'+n.channel+' | '+n.encryption+'</small></div>';";
+  script += "h+='<div style=\"font-size:1.2em;font-weight:bold\">'+n.rssi+' dBm</div></div></div>'});";
+  script += "document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' " + String(T().networks) + "'})}";
+  script += "refreshWirelessInfo();";
+
+  // I2C
+  script += "function scanI2C(){fetch('/api/i2c-scan').then(r=>r.json()).then(d=>{";
+  script += "const count=document.getElementById('i2c-count');if(count){count.innerHTML=d.count+' " + String(T().devices) + "';}";
+  script += "const devices=document.getElementById('i2c-devices');if(devices){devices.innerHTML=d.devices&&d.devices.length?d.devices:'—';}";
+  script += "console.log('I2C: '+d.count+' périphérique(s)\\n'+d.devices);}).catch(e=>console.error('I2C scan',e))}";
+  
+  // Benchmarks
+  script += "function runBenchmarks(){";
+  script += "document.getElementById('cpu-bench').innerHTML='" + String(T().testing) + "';";
+  script += "document.getElementById('mem-bench').innerHTML='" + String(T().testing) + "';";
+  script += "fetch('/api/benchmark').then(r=>r.json()).then(data=>{";
+  script += "document.getElementById('cpu-bench').innerHTML=data.cpu+' us';";
+  script += "document.getElementById('mem-bench').innerHTML=data.memory+' us';";
+  script += "document.getElementById('cpu-perf').innerHTML=data.cpuPerf.toFixed(2)+' MFLOPS';";
+  script += "document.getElementById('mem-speed').innerHTML=data.memSpeed.toFixed(2)+' MB/s'})}";
+
+  script += "refreshWirelessInfo();";
+
+  return script;
+}
+
+void handleAppScript() {
+  server.send(200, "application/javascript; charset=utf-8", buildAppScript());
+}
+
 
 // ========== INTERFACE WEB PRINCIPALE MULTILINGUE ==========
 void handleRoot() {
@@ -2582,6 +2591,13 @@ void handleRoot() {
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().subnet_mask) + "</div><div class='info-value' id='wifi-subnet'>-</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().gateway) + "</div><div class='info-value' id='wifi-gateway'>-</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().dns) + "</div><div class='info-value' id='wifi-dns'>-</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().wifi_channel) + "</div><div class='info-value' id='wifi-channel'>-</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().wifi_mode) + "</div><div class='info-value' id='wifi-mode'>-</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().wifi_sleep) + "</div><div class='info-value' id='wifi-sleep'>-</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().wifi_band) + "</div><div class='info-value' id='wifi-band'>-</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().wifi_band_mode) + "</div><div class='info-value' id='wifi-band-mode'>-</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().wifi_tx_power) + "</div><div class='info-value' id='wifi-tx-power'>-</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().wifi_hostname) + "</div><div class='info-value' id='wifi-hostname'>-</div></div>";
   chunk += "</div></div>";
 
   chunk += "<div class='section'><h2>" + String(T().wifi_scanner) + "</h2>";
@@ -2639,125 +2655,10 @@ void handleRoot() {
   chunk += "<a href='/print' target='_blank' class='btn btn-primary'>" + String(T().open) + "</a></div>";
   chunk += "</div></div></div>";
   chunk += "</div></div>"; // Fermeture content + container
+  chunk += "<script src='/js/app.js'></script>";
+  chunk += "</body></html>";
   server.sendContent(chunk);
-  // CHUNK 11: JavaScript complet
-  chunk = "<script>";
-  chunk += "let currentLang='" + String(currentLanguage == LANG_FR ? "fr" : "en") + "';";
-  
-  // Changement de langue
-  chunk += "function changeLang(lang,evt){";
-  chunk += "if(evt&&evt.preventDefault)evt.preventDefault();";
-  chunk += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
-  chunk += "if(d.success){currentLang=lang;";
-  chunk += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
-  chunk += "if(evt&&evt.target){evt.target.classList.add('active');}";
-  chunk += "window.location.reload();";
-  chunk += "}else{console.error('Lang switch refused');}";
-  chunk += "}).catch(e=>console.error('Lang switch error',e));";
-  chunk += "}";
-  
-  // Navigation onglets
-  chunk += "function showTab(t,evt){";
-  chunk += "document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));";
-  chunk += "document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));";
-  chunk += "document.getElementById(t).classList.add('active');";
-  chunk += "if(evt&&evt.target){evt.target.classList.add('active');}";
-  chunk += "if(t==='wireless'){refreshWirelessInfo();}";
-  chunk += "}";
-  
-  // LED intégrée
-  chunk += "function configBuiltinLED(){fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value)";
-  chunk += ".then(r=>r.json()).then(d=>{document.getElementById('builtin-led-status').innerHTML=d.message})}";
-  chunk += "function testBuiltinLED(){document.getElementById('builtin-led-status').innerHTML='" + String(T().testing) + "';";
-  chunk += "fetch('/api/builtin-led-test').then(r=>r.json()).then(d=>{document.getElementById('builtin-led-status').innerHTML=d.result})}";
-  chunk += "function ledBlink(){fetch('/api/builtin-led-control?action=blink').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
-  chunk += "function ledFade(){fetch('/api/builtin-led-control?action=fade').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
-  chunk += "function ledOff(){fetch('/api/builtin-led-control?action=off').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
-  
-  // NeoPixel
-  chunk += "function configNeoPixel(){fetch('/api/neopixel-config?gpio='+document.getElementById('neoGPIO').value+'&count='+document.getElementById('neoCount').value)";
-  chunk += ".then(r=>r.json()).then(d=>{document.getElementById('neopixel-status').innerHTML=d.message})}";
-  chunk += "function testNeoPixel(){fetch('/api/neopixel-test').then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.result)}";
-  chunk += "function neoPattern(p){fetch('/api/neopixel-pattern?pattern='+p).then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.message)}";
-  chunk += "function neoCustomColor(){const c=document.getElementById('neoColor').value;";
-  chunk += "const r=parseInt(c.substr(1,2),16),g=parseInt(c.substr(3,2),16),b=parseInt(c.substr(5,2),16);";
-  chunk += "fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b).then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.message)}";
-  
-  // OLED
-  chunk += "function testOLED(){document.getElementById('oled-status').innerHTML='" + String(T().testing) + " (25s)...';";
-  chunk += "fetch('/api/oled-test').then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.result)}";
-  chunk += "function oledStep(step){document.getElementById('oled-status').innerHTML='" + String(T().testing) + "';";
-  chunk += "fetch('/api/oled-step?step='+step).then(r=>r.json()).then(d=>{document.getElementById('oled-status').innerHTML=d.message;if(!d.success){document.getElementById('oled-status').innerHTML='❌ '+d.message}})}";
-  chunk += "function oledMessage(){fetch('/api/oled-message?message='+encodeURIComponent(document.getElementById('oledMsg').value))";
-  chunk += ".then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.message)}";
-  chunk += "function configOLED(){const status=document.getElementById('oled-status');const pins=document.getElementById('oled-pins');";
-  chunk += "const sda=document.getElementById('oledSDA').value;const scl=document.getElementById('oledSCL').value;";
-  chunk += "status.innerHTML='" + String(T().reconfiguring) + "';";
-  chunk += "fetch('/api/oled-config?sda='+sda+'&scl='+scl).then(r=>r.json()).then(d=>{";
-  chunk += "if(d.success){status.innerHTML='✅ '+(d.message||'" + String(T().config_updated) + "');if(pins){pins.innerHTML='SDA:'+sda+' SCL:'+scl;}}";
-  chunk += "else{status.innerHTML='❌ '+(d.message||'" + String(T().config_error) + "');}}).catch(e=>{status.innerHTML='❌ " + String(T().error_prefix) + "'+e;})";
-  
-  // Tests avancés
-  chunk += "function testADC(){document.getElementById('adc-status').innerHTML='" + String(T().testing) + "';";
-  chunk += "fetch('/api/adc-test').then(r=>r.json()).then(data=>{let h='';";
-  chunk += "data.readings.forEach(a=>{h+='<div class=\"info-item\"><div class=\"info-label\">GPIO '+a.pin+'</div><div class=\"info-value\">'+a.raw+' ('+a.voltage.toFixed(2)+'V)</div></div>'});";
-  chunk += "document.getElementById('adc-results').innerHTML=h;document.getElementById('adc-status').innerHTML=data.result})}";
-  
-  chunk += "function testTouch(){document.getElementById('touch-status').innerHTML='" + String(T().testing) + "';";
-  chunk += "fetch('/api/touch-test').then(r=>r.json()).then(data=>{let h='';";
-  chunk += "data.readings.forEach(t=>{h+='<div class=\"info-item\"><div class=\"info-label\">Touch'+t.pin+'</div><div class=\"info-value\">'+t.value+'</div></div>'});";
-  chunk += "document.getElementById('touch-results').innerHTML=h;document.getElementById('touch-status').innerHTML=data.result})}";
-  
-  chunk += "function testPWM(){document.getElementById('pwm-status').innerHTML='" + String(T().testing) + "';";
-  chunk += "fetch('/api/pwm-test').then(r=>r.json()).then(d=>document.getElementById('pwm-status').innerHTML=d.result)}";
-  chunk += "function scanSPI(){document.getElementById('spi-status').innerHTML='" + String(T().scanning) + "';";
-  chunk += "fetch('/api/spi-scan').then(r=>r.json()).then(d=>document.getElementById('spi-status').innerHTML=d.info)}";
-  chunk += "function listPartitions(){document.getElementById('partitions-results').innerHTML='" + String(T().scanning) + "';";
-  chunk += "fetch('/api/partitions-list').then(r=>r.json()).then(d=>document.getElementById('partitions-results').innerHTML=d.partitions)}";
-  chunk += "function stressTest(){document.getElementById('stress-status').innerHTML='" + String(T().testing) + "';";
-  chunk += "fetch('/api/stress-test').then(r=>r.json()).then(d=>document.getElementById('stress-status').innerHTML=d.result)}";
-  
-  // GPIO
-  chunk += "function testAllGPIO(){document.getElementById('gpio-status').innerHTML='" + String(T().testing) + "';";
-  chunk += "fetch('/api/test-gpio').then(r=>r.json()).then(data=>{let h='';";
-  chunk += "data.results.forEach(g=>{h+='<div class=\"gpio-item '+(g.working?'gpio-ok':'gpio-fail')+'\">GPIO '+g.pin+'<br>'+(g.working?'✅ " + String(T().ok) + "':'❌ " + String(T().fail) + "')+'</div>'});";
-  chunk += "document.getElementById('gpio-results').innerHTML=h;document.getElementById('gpio-status').innerHTML='✅ " + String(T().completed) + " - '+data.results.length+' " + String(T().gpio) + " " + String(T().tested) + "'})}";
 
-  chunk += "function updateText(id,value,fallback='—'){const el=document.getElementById(id);if(!el)return;if(value===undefined||value===null||value===''){el.textContent=fallback;}else{el.textContent=value;}}";
-  chunk += "function refreshWirelessInfo(){fetch('/api/wireless-info').then(r=>r.json()).then(data=>updateWirelessInfo(data)).catch(e=>console.error('Wireless info',e));}";
-  chunk += "function updateWirelessInfo(data){if(!data)return;const w=data.wifi||{};const bt=data.bluetooth||{};const connectedLabel=currentLang==='fr'?'Connecté':'Connected';const disconnectedLabel=currentLang==='fr'?'Déconnecté':'Disconnected';updateText('wifi-connection-state',w.connected?'✅ '+connectedLabel:'❌ '+disconnectedLabel,'—');updateText('wifi-ssid',w.ssid&&w.ssid.length?w.ssid:'—','—');if(w.connected){updateText('wifi-rssi',w.rssi+' dBm','—');updateText('wifi-quality',w.quality&&w.quality.length?w.quality:'—','—');updateText('wifi-ip',w.ip&&w.ip.length?w.ip:'—','—');updateText('wifi-subnet',w.subnet&&w.subnet.length?w.subnet:'—','—');updateText('wifi-gateway',w.gateway&&w.gateway.length?w.gateway:'—','—');updateText('wifi-dns',w.dns&&w.dns.length?w.dns:'—','—');}else{updateText('wifi-rssi','—','—');updateText('wifi-quality','—','—');updateText('wifi-ip','—','—');updateText('wifi-subnet','—','—');updateText('wifi-gateway','—','—');updateText('wifi-dns','—','—');}const caps=[];if(bt.classic)caps.push(currentLang==='fr'?'Classique':'Classic');if(bt.ble)caps.push('BLE');updateText('bluetooth-capabilities',caps.length?caps.join(', '):'—','—');updateText('bluetooth-controller',bt.controller&&bt.controller.length?bt.controller:'—','—');updateText('bluetooth-last-test',bt.last_test_message&&bt.last_test_message.length?bt.last_test_message:'—','—');const statusEl=document.getElementById('bluetooth-status');if(statusEl&&bt.last_test_message){statusEl.textContent=bt.last_test_message;}const hintEl=document.getElementById('bluetooth-hint');if(hintEl){if(bt.hint&&bt.hint.length){hintEl.textContent=bt.hint;}else{hintEl.textContent=' ';}}}";
-  chunk += "function testBluetooth(){const status=document.getElementById('bluetooth-status');if(status){status.textContent='" + String(T().testing) + "';}fetch('/api/bluetooth-test').then(r=>r.json()).then(d=>{if(status){status.textContent=d.message||'" + String(T().unknown) + "';}refreshWirelessInfo();}).catch(e=>{if(status){status.textContent='❌ '+e;}});}";
-
-  // WiFi
-  chunk += "function scanWiFi(){document.getElementById('wifi-status').innerHTML='" + String(T().scanning) + "';";
-  chunk += "fetch('/api/wifi-scan').then(r=>r.json()).then(data=>{let h='';";
-  chunk += "data.networks.forEach(n=>{let s=n.rssi>=-60?'🟢':n.rssi>=-70?'🟡':'🔴';";
-  chunk += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+n.bssid+' | Ch'+n.channel+' | '+n.encryption+'</small></div>';";
-  chunk += "h+='<div style=\"font-size:1.2em;font-weight:bold\">'+n.rssi+' dBm</div></div></div>'});";
-  chunk += "document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' " + String(T().networks) + "'})}";
-  chunk += "refreshWirelessInfo();";
-
-  // I2C
-  chunk += "function scanI2C(){fetch('/api/i2c-scan').then(r=>r.json()).then(d=>{";
-  chunk += "const count=document.getElementById('i2c-count');if(count){count.innerHTML=d.count+' " + String(T().devices) + "';}";
-  chunk += "const devices=document.getElementById('i2c-devices');if(devices){devices.innerHTML=d.devices&&d.devices.length?d.devices:'—';}";
-  chunk += "console.log('I2C: '+d.count+' périphérique(s)\\n'+d.devices);}).catch(e=>console.error('I2C scan',e))}";
-  
-  // Benchmarks
-  chunk += "function runBenchmarks(){";
-  chunk += "document.getElementById('cpu-bench').innerHTML='" + String(T().testing) + "';";
-  chunk += "document.getElementById('mem-bench').innerHTML='" + String(T().testing) + "';";
-  chunk += "fetch('/api/benchmark').then(r=>r.json()).then(data=>{";
-  chunk += "document.getElementById('cpu-bench').innerHTML=data.cpu+' us';";
-  chunk += "document.getElementById('mem-bench').innerHTML=data.memory+' us';";
-  chunk += "document.getElementById('cpu-perf').innerHTML=data.cpuPerf.toFixed(2)+' MFLOPS';";
-  chunk += "document.getElementById('mem-speed').innerHTML=data.memSpeed.toFixed(2)+' MB/s'})}";
-
-  chunk += "refreshWirelessInfo();";
-
-  chunk += "</script></body></html>";
-  server.sendContent(chunk);
-  
   // Signal de fin
   server.sendContent("");
 }
@@ -2831,6 +2732,7 @@ void setup() {
   
   // ========== ROUTES SERVEUR ==========
   server.on("/", handleRoot);
+  server.on("/js/app.js", handleAppScript);
   
   // **NOUVELLES ROUTES MULTILINGUES**
   server.on("/api/set-language", handleSetLanguage);

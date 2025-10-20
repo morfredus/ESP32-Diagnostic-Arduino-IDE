@@ -38,6 +38,7 @@ struct Translations {
   const char* chip_features;
   const char* sdk_version;
   const char* idf_version;
+  const char* arduino_core_version;
   const char* uptime;
   const char* cpu_temp;
   
@@ -90,6 +91,24 @@ struct Translations {
   const char* gateway;
   const char* dns;
   const char* wifi_channel;
+  const char* wifi_mode;
+  const char* wifi_sleep;
+  const char* wifi_band;
+  const char* wifi_band_mode;
+  const char* wifi_tx_power;
+  const char* wifi_hostname;
+  const char* wifi_mode_sta;
+  const char* wifi_mode_ap;
+  const char* wifi_mode_apsta;
+  const char* wifi_mode_null;
+  const char* wifi_sleep_none;
+  const char* wifi_sleep_min_modem;
+  const char* wifi_sleep_max_modem;
+  const char* wifi_band_2g;
+  const char* wifi_band_5g;
+  const char* wifi_band_mode_auto;
+  const char* wifi_band_mode_2g;
+  const char* wifi_band_mode_5g;
 
   // Bluetooth
   const char* bluetooth_section;
@@ -289,6 +308,7 @@ const Translations LANG_FR_TEXTS = {
   "Fonctionnalités Chip",
   "Version SDK",
   "Version ESP-IDF",
+  "Version Arduino Core",
   "Uptime",
   "Température CPU",
   
@@ -341,6 +361,24 @@ const Translations LANG_FR_TEXTS = {
   "Passerelle",
   "DNS",
   "Canal WiFi",
+  "Mode WiFi",
+  "Veille WiFi",
+  "Bande WiFi",
+  "Plan de bande",
+  "Puissance TX",
+  "Nom d'hôte WiFi",
+  "Station (STA)",
+  "Point d'accès (AP)",
+  "Mixte (AP+STA)",
+  "Inactif",
+  "Pas d'économie",
+  "Modem (min)",
+  "Modem (max)",
+  "Bande 2.4 GHz",
+  "Bande 5 GHz",
+  "Auto (2.4/5 GHz)",
+  "Forcé 2.4 GHz",
+  "Forcé 5 GHz",
 
   // Bluetooth
   "Bluetooth",
@@ -540,6 +578,7 @@ const Translations LANG_EN_TEXTS = {
   "Chip Features",
   "SDK Version",
   "ESP-IDF Version",
+  "Arduino Core Version",
   "Uptime",
   "CPU Temperature",
   
@@ -592,6 +631,24 @@ const Translations LANG_EN_TEXTS = {
   "Gateway",
   "DNS",
   "WiFi Channel",
+  "WiFi Mode",
+  "WiFi Sleep",
+  "WiFi Band",
+  "Band Plan",
+  "TX Power",
+  "WiFi Hostname",
+  "Station (STA)",
+  "Access Point (AP)",
+  "AP + STA",
+  "Inactive",
+  "No power save",
+  "Modem (min)",
+  "Modem (max)",
+  "2.4 GHz Band",
+  "5 GHz Band",
+  "Auto (2.4/5 GHz)",
+  "Forced 2.4 GHz",
+  "Forced 5 GHz",
 
   // Bluetooth
   "Bluetooth",

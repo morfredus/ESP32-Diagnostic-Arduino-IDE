@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.7.1
+# ESP32 Complete Diagnostic v2.8.1
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.7.1**: The Bluetooth diagnostic now auto-detects toolchain support and gracefully keeps inline guidance when the ESP-IDF headers are missing, avoiding compilation failures on targets sans pile Bluetooth.
+**What's new in v2.8.1**: Restored the `/js/app.js` delivery so tabs and FR/EN switching work instantly again on Arduino Core 3.3.2, preventing blank pages when the client script was missing.
 
 ## ✨ Features
 
@@ -75,7 +75,7 @@ Tested and optimized for:
 
 ### Software
 - **Arduino IDE** 2.x or higher
-- **ESP32 Arduino Core** 3.1.3 or higher
+- **ESP32 Arduino Core** 3.3.2 or higher
 
 ### Required Arduino Libraries
 
@@ -344,7 +344,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.6.3
+## 📁 Project Structure v2.8.1
 
 ```
 ESP32-Diagnostic/
@@ -358,6 +358,10 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v2.8.1 (2025) - ESP32 ARDUINO CORE 3.3.2 & WIFI AVANCÉ
+- Compatibilité validée avec l'Arduino Core ESP32 3.3.2 et affichage de la version du core dans l'interface, les exports et l'API.
+- Nouvelles métriques WiFi (mode, veille, bande, plan de bande, puissance TX, hostname) visibles sur l'onglet Sans fil, la vue d'ensemble et tous les formats d'export.
 
 ### v2.6.3 (2025) - CHANGEMENT DE LANGUE IMMÉDIAT
 - Replaced blocking popups with inline status banners on every test panel
@@ -410,10 +414,10 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.6.3 Multilingual + instant language switching
+**Current version**: 2.8.1 ESP32 Arduino Core 3.3.2 + WiFi avancé
 **Last update**: October 2025  
 **Available languages**: French (default), English  
-**Support**: ESP32 Arduino Core 3.1.3+
+**Support**: ESP32 Arduino Core 3.3.2+
 
 🌐 **Access**: http://ESP32-Diagnostic.local  
 🇫🇷🇬🇧 **Language switching**: FR/EN buttons in interface
