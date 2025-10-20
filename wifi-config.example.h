@@ -13,7 +13,7 @@ struct WiFiCredential {
 };
 
 static const WiFiCredential WIFI_NETWORKS[] = {
-  {"YourNetwork", "YourPassword"}
+  {"YourNetwork", "YourPassword"},
   // {"BackupNetwork", "BackupPassword"},
 };
 

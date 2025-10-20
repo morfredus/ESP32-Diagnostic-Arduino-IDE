@@ -1,9 +1,13 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.9
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.10
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v2.8.10:
+ * - Correction du modèle `wifi-config.h` pour éviter les erreurs de syntaxe lors de l'ajout d'un second réseau.
+ * - Détection WiFi renforcée : les voyants de la bannière reflètent désormais correctement l'état connecté même si les indicateurs matériels sont absents.
  *
  * Nouveautés v2.8.9:
  * - Refactorisation de la configuration : nouveau `config.h` pour les paramètres matériels et `wifi-config.h` pour les identifiants.
@@ -163,7 +167,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.9"
+#define DIAGNOSTIC_VERSION "2.8.10"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -1530,9 +1534,18 @@ void collectDiagnosticInfo() {
   diagnosticData.minFreeHeap = ESP.getMinFreeHeap();
   diagnosticData.maxAllocHeap = ESP.getMaxAllocHeap();
   
-  diagnosticData.hasWiFi = (chip_info.features & CHIP_FEATURE_WIFI_BGN);
-  diagnosticData.hasBT = (chip_info.features & CHIP_FEATURE_BT);
-  diagnosticData.hasBLE = (chip_info.features & CHIP_FEATURE_BLE);
+  bool hasWiFiHardware = (chip_info.features & CHIP_FEATURE_WIFI_BGN);
+  bool hasBTHardware = (chip_info.features & CHIP_FEATURE_BT);
+  bool hasBLEHardware = (chip_info.features & CHIP_FEATURE_BLE);
+
+  wifi_mode_t currentMode = WiFiGenericClass::getMode();
+  bool wifiStationConnected = (WiFi.status() == WL_CONNECTED);
+  bool wifiApActive = (currentMode == WIFI_MODE_AP || currentMode == WIFI_MODE_APSTA);
+  bool wifiModeActive = (currentMode != WIFI_MODE_NULL);
+
+  diagnosticData.hasWiFi = hasWiFiHardware || wifiModeActive || wifiStationConnected || wifiApActive;
+  diagnosticData.hasBT = hasBTHardware;
+  diagnosticData.hasBLE = hasBLEHardware;
 
   bluetoothInfo.hardwareClassic = diagnosticData.hasBT;
   bluetoothInfo.hardwareBLE = diagnosticData.hasBLE;
@@ -1557,10 +1570,6 @@ void collectDiagnosticInfo() {
   bluetoothInfo.controllerInitialized = false;
 #endif
   updateBluetoothDerivedState();
-
-  wifi_mode_t currentMode = WiFiGenericClass::getMode();
-  bool wifiStationConnected = (WiFi.status() == WL_CONNECTED);
-  bool wifiApActive = (currentMode == WIFI_MODE_AP || currentMode == WIFI_MODE_APSTA);
 
   diagnosticData.wifiStationConnected = wifiStationConnected;
   diagnosticData.wifiApActive = wifiApActive;

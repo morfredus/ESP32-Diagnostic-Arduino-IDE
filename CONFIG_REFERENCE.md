@@ -1,4 +1,4 @@
-# ESP32-Diagnostic Configuration Reference (v2.8.9)
+# ESP32-Diagnostic Configuration Reference (v2.8.10)
 
 This document centralises every tunable option exposed by the firmware. Review it before compiling a customised build.
 
@@ -36,6 +36,8 @@ static const WiFiCredential WIFI_NETWORKS[] = {
   {"LabBackup", "FallbackPass"}
 };
 ```
+
+> ✅ Leave the trailing comma at the end of every line (including the last) so uncommenting additional networks never triggers a compilation error.
 
 > `wifi-config.h` is listed in `.gitignore`. Never commit this file.
 

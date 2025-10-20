@@ -5,6 +5,16 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.10] - 2025-10-20
+
+### Changed
+- Le gabarit `wifi-config.example.h` inclut désormais une virgule finale par défaut pour simplifier l'ajout ou le décommentage d'un réseau supplémentaire.
+
+### Fixed
+- Détection WiFi renforcée : le bandeau sans fil reste cohérent (voyants verts/rouges corrects) même lorsque les indicateurs matériels ou la pile Bluetooth sont absents.
+
+---
+
 ## [2.8.9] - 2025-10-20
 
 ### Added

@@ -1,6 +1,6 @@
 # ESP32 Diagnostic – Setup & Compilation Guide (EN)
 
-This checklist describes everything required to build and run **ESP32-Diagnostic v2.8.9** with the Arduino IDE 2.x toolchain.
+This checklist describes everything required to build and run **ESP32-Diagnostic v2.8.10** with the Arduino IDE 2.x toolchain.
 
 ## 1. Prerequisites
 
@@ -63,7 +63,7 @@ The ESP32 core already ships with `WiFi`, `WebServer`, `ESPmDNS`, `Wire`, `SPI`,
 | Issue | Suggested fix |
 | --- | --- |
 | `esp_bt_main.h: No such file or directory` | Enable Bluetooth in *Tools → Bluetooth* or ignore the test (banner will show “Indisponible”). |
-| Web page shows stale WiFi data | Trigger “Actualiser l’onglet Sans fil” or reload; v2.8.9 refreshes the banner automatically every few seconds. |
+| Web page shows stale WiFi data | Trigger “Actualiser l’onglet Sans fil” or reload; v2.8.10 refreshes the banner automatically and keeps the WiFi dot green while connected. |
 | SoftAP only but WiFi dot stays red | Verify SSID/password in `wifi-config.h` or rely on SoftAP (orange dot indicates AP-only mode). |
 | Translations missing | Ensure `languages.h` is present beside the `.ino` and re-upload. |
 

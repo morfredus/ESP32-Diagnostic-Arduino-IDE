@@ -3,7 +3,7 @@ Disponible en plusieurs langues :
 - Français : README.fr.md
 - English: README.md
 -->
-# Diagnostic Complet ESP32 v2.8.9
+# Diagnostic Complet ESP32 v2.8.10
 
 [🇬🇧 English version](README.md) | 🇫🇷 Version française
 
@@ -15,7 +15,7 @@ Disponible en plusieurs langues :
 
 Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via une interface web moderne. Il automatise les tests matériels (LED, NeoPixel, OLED, GPIO, ADC, Touch, PWM), dresse l'inventaire mémoire, scanne les bus I2C/SPI et génère des rapports détaillés.
 
-**Nouveautés de la v2.8.9** : refonte de la configuration avec un `config.h` versionné (paramètres matériels) et un `wifi-config.h` privé, voyants WiFi/Bluetooth corrigés (plus d'inversion) avec rafraîchissement paramétrable, et documentation complétée par des guides renommés ainsi qu'une référence de configuration FR/EN.
+**Nouveautés de la v2.8.10** : le modèle `wifi-config.h` inclut désormais une virgule de fin pour éviter toute erreur de compilation lors de l'ajout d'un deuxième réseau, et le bandeau sans fil détecte mieux l'état WiFi afin d'éviter l'inversion WiFi/Bluetooth quand la pile Bluetooth est désactivée à la compilation.
 
 ## ✨ Fonctionnalités principales
 
@@ -42,7 +42,7 @@ Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via
 
 ### Interface web
 - **8 onglets** : Vue d'ensemble, LEDs, Écrans, Tests avancés, GPIO, Sans fil, Performance, Export
-- **Bandeau sans fil** (v2.8.6, affiné en v2.8.9) – indicateurs WiFi/Bluetooth temps réel, conscience STA/AP
+- **Bandeau sans fil** (v2.8.6, affiné en v2.8.10) – indicateurs WiFi/Bluetooth temps réel, conscience STA/AP et rappels si le Bluetooth est désactivé à la compilation
 - **Statuts uniformes** (v2.8.7 affiné en v2.8.8) – préfixes ⏳/✅/❌ cohérents jusqu'à la fin des actions
 - **Responsive & sans pop-up** – compatible mobile/tablette/desktop
 - **API REST** – endpoints JSON pour intégration externe
@@ -96,6 +96,7 @@ Bibliothèques incluses avec le core : `WiFi`, `WebServer`, `ESPmDNS`, `Wire`, `
      {"Secours", "MotDePasse2"}
    };
    ```
+   - ✅ Conservez la virgule de fin sur chaque ligne (y compris la dernière) afin que l'ajout ou le décommentage d'un réseau n'entraîne jamais d'erreur de compilation.
 3. **Adapter** `config.h` : broches (`CUSTOM_LED_PIN`, `DEFAULT_I2C_SDA/SCL`), nom mDNS (`MDNS_HOSTNAME`), activation de l'auto-test Bluetooth et intervalle `WIRELESS_STATUS_REFRESH_MS`.
 4. **Ouvrir** `ESP32-Diagnostic.ino` dans Arduino IDE, sélectionner votre carte ESP32 et le port série.
 5. **Vérifier** dans *Outils → Bluetooth* que la pile est activée si vous souhaitez tester le Bluetooth.
@@ -117,6 +118,7 @@ ESP32-Diagnostic/
 
 ## 🔄 Historique des versions récentes
 
+- **v2.8.10 – 20/10/2025** : modèle `wifi-config.h` sécurisé (virgule finale par défaut) et détection WiFi du bandeau renforcée lorsque le Bluetooth est désactivé.
 - **v2.8.9 – 20/10/2025** : refonte de la configuration (`config.h`, `wifi-config.h`), nouvelle référence FR/EN et bannière sans fil corrigée (rafraîchissement paramétrable).
 - **v2.8.8 – 20/10/2025** : correction des voyants WiFi/Bluetooth (STA/AP, Bluetooth désactivé, purge des valeurs périmées) et publication des guides renommés (`USER_GUIDE` / `GUIDE_UTILISATION`).
 - **v2.8.7 – 19/10/2025** : statuts inline harmonisés avec préfixes ⏳/✅/❌ et messages « Test en cours... » jusqu'à la fin réelle.

@@ -690,12 +690,13 @@ inline String buildAppScript() {
     const bt = data.bluetooth || {};
     const wifiDot = document.getElementById('wifi-status-dot');
     const wifiLabel = document.getElementById('wifi-status-label');
-    const wifiAvailable = Object.prototype.hasOwnProperty.call(wifi, 'available') ? !!wifi.available : true;
+    const wifiFlag = Object.prototype.hasOwnProperty.call(wifi, 'available') ? !!wifi.available : true;
     const wifiStation = !!wifi.station_connected;
     const wifiAP = !!wifi.ap_active;
     const wifiConnected = Object.prototype.hasOwnProperty.call(wifi, 'connected')
       ? !!wifi.connected
       : (wifiStation || wifiAP);
+    const wifiAvailable = wifiFlag || wifiStation || wifiAP || wifiConnected;
 
     let wifiStateClass = 'offline';
     let wifiStateText = indicator.offline;
@@ -711,8 +712,9 @@ inline String buildAppScript() {
       wifiStateText = indicator.offline;
     }
 
+    const wifiIcon = wifiStateClass === 'online' ? '✅' : (wifiStateClass === 'offline' ? '❌' : '⏳');
     if (wifiLabel) {
-      wifiLabel.textContent = `${indicator.wifiLabel} · ${wifiStateText}`;
+      wifiLabel.textContent = `${wifiIcon} ${indicator.wifiLabel} · ${wifiStateText}`;
     }
     updateDotState(wifiDot, wifiStateClass);
 
@@ -833,8 +835,9 @@ inline String buildAppScript() {
       btStateText = bt.hint;
     }
 
+    const btIcon = btStateClass === 'online' ? '✅' : (btStateClass === 'offline' ? '❌' : '⏳');
     if (btLabel) {
-      btLabel.textContent = `${indicator.bluetoothLabel} · ${btStateText}`;
+      btLabel.textContent = `${btIcon} ${indicator.bluetoothLabel} · ${btStateText}`;
     }
     updateDotState(btDot, btStateClass);
   }

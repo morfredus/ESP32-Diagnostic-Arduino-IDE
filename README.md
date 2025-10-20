@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.8.9
+# ESP32 Complete Diagnostic v2.8.10
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.8.9**: Configuration has been refactored with a versioned `config.h` (hardware defaults) and a private `wifi-config.h`, wireless indicators no longer swap WiFi/Bluetooth states, periodic refresh is configurable, and the documentation now includes renamed user guides plus a dedicated configuration reference (EN/FR).
+**What's new in v2.8.10**: The `wifi-config.h` template now prevents missing commas when you add extra networks, and the wireless banner detects WiFi connectivity more reliably so the WiFi/Bluetooth dots no longer show inverted states on boards compiled without Bluetooth.
 
 ## ✨ Features
 
@@ -51,7 +51,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **Real-time** - Data refresh without reload
 - **Responsive** - Mobile/tablet/desktop compatible
 - **Complete exports** - TXT, JSON, CSV, printable PDF version
-- **Wireless status banner** (since v2.8.6, refined in v2.8.9) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness and inline reminders for LED/NeoPixel/OLED tests
+- **Wireless status banner** (since v2.8.6, refined in v2.8.10) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness, compile-time Bluetooth hints and inline reminders for LED/NeoPixel/OLED tests
 - **Inline status feedback** (since v2.8.7, refined in v2.8.8) - Unified ⏳/✅/❌ messages for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth actions with automatic config acknowledgements and accurate completion states
 
 ### Network Access
@@ -139,6 +139,7 @@ static const WiFiCredential WIFI_NETWORKS[] = {
 ```
 
    - You can add or remove entries; empty SSIDs are ignored automatically at runtime.
+   - ✅ Keep the trailing comma at the end of each line (including the last one) so that uncommenting or duplicating entries never breaks the compilation.
 
 2. **Hardware defaults (`config.h`)**
    - Review pin assignments (`CUSTOM_LED_PIN`, `DEFAULT_I2C_SDA/SCL`), NeoPixel count, `MDNS_HOSTNAME`, Bluetooth auto-test flag, and the wireless refresh interval `WIRELESS_STATUS_REFRESH_MS`.
@@ -338,7 +339,7 @@ If some texts remain in French:
 
 **Never share `wifi-config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.8.9
+## 📁 Project Structure v2.8.10
 
 ```
 ESP32-Diagnostic/
@@ -354,6 +355,10 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v2.8.10 (2025-10-20) - WIRELESS POLISH & TEMPLATE SAFEGUARD
+- Improved WiFi detection so the wireless banner stays green when STA/AP are active even if hardware feature flags are missing.
+- Added a trailing comma to `wifi-config.example.h` and documented the change to avoid compilation errors when duplicating entries.
 
 ### v2.8.9 (2025-10-20) - CONFIG REFACTOR & INDICATORS
 - Reworked configuration files (`config.h`, `wifi-config.h`) and added bilingual configuration references.

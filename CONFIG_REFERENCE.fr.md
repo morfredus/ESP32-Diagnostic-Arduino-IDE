@@ -1,4 +1,4 @@
-# Référence de configuration ESP32-Diagnostic (v2.8.9)
+# Référence de configuration ESP32-Diagnostic (v2.8.10)
 
 Ce document récapitule l'ensemble des paramètres modifiables. Consultez-le avant toute compilation personnalisée.
 
@@ -34,6 +34,8 @@ static const WiFiCredential WIFI_NETWORKS[] = {
   {"ReseauSecours", "Mot2"}
 };
 ```
+
+> ✅ Conservez la virgule finale sur chaque ligne (même la dernière) pour éviter toute erreur de compilation lorsque vous décommentez ou ajoutez un réseau supplémentaire.
 
 > `wifi-config.h` figure dans `.gitignore`. Ne le publiez jamais.
 
