@@ -1,5 +1,4 @@
-# 🛡️ Fichiers sensibles (ne pas versionner)
-config.h
+# Fichier de configuration WiFi (sensible - ne pas versionner)
 wifi-config.h
 
 # 📄 Fichiers divers

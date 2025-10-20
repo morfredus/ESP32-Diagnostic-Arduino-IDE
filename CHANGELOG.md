@@ -5,10 +5,25 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.9] - 2025-10-20
+
+### Added
+- Nouvelle référence de configuration (`CONFIG_REFERENCE.md` / `CONFIG_REFERENCE.fr.md`) détaillant les paramètres éditables.
+
+### Changed
+- Refactorisation des fichiers utilisateur : `config.h` devient le point d'entrée matériel et `wifi-config.h` héberge désormais les identifiants (non versionné).
+- Guides renommés en `USER_GUIDE.md` / `GUIDE_UTILISATION.fr.md` et instructions mises à jour pour le renommage automatique de `wifi-config.example.h`.
+
+### Fixed
+- Voyants WiFi/Bluetooth correctement synchronisés (plus d'inversion, remise à zéro des messages Bluetooth quand la pile est désactivée).
+- Actualisation périodique configurée du bandeau sans fil via `WIRELESS_STATUS_REFRESH_MS`.
+
+---
+
 ## [2.8.8] - 2025-10-20
 
 ### Added
-- Nouveaux documents utilisateur : `README.fr.md`, `MODE_D_EMPLOI.md` et `MODE_D_EMPLOI.fr.md` détaillant prérequis, bibliothèques et procédure de compilation sous Arduino IDE.
+- Nouveaux documents utilisateur : `README.fr.md` et les guides d'installation bilingues (désormais `USER_GUIDE.md` / `GUIDE_UTILISATION.fr.md`) détaillant prérequis, bibliothèques et procédure de compilation sous Arduino IDE.
 
 ### Changed
 - Réalignement des dates de publication pour refléter l'état du projet au 20 octobre 2025.

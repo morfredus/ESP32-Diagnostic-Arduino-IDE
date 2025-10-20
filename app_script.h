@@ -693,6 +693,9 @@ inline String buildAppScript() {
     const wifiAvailable = Object.prototype.hasOwnProperty.call(wifi, 'available') ? !!wifi.available : true;
     const wifiStation = !!wifi.station_connected;
     const wifiAP = !!wifi.ap_active;
+    const wifiConnected = Object.prototype.hasOwnProperty.call(wifi, 'connected')
+      ? !!wifi.connected
+      : (wifiStation || wifiAP);
 
     let wifiStateClass = 'offline';
     let wifiStateText = indicator.offline;
@@ -700,12 +703,12 @@ inline String buildAppScript() {
     if (!wifiAvailable) {
       wifiStateClass = 'pending';
       wifiStateText = indicator.unavailable;
-    } else if (wifiStation) {
+    } else if (wifiConnected) {
       wifiStateClass = 'online';
-      wifiStateText = labels.connected;
-    } else if (wifiAP) {
-      wifiStateClass = 'online';
-      wifiStateText = indicator.ap;
+      wifiStateText = wifiStation ? labels.connected : indicator.ap;
+    } else {
+      wifiStateClass = 'offline';
+      wifiStateText = indicator.offline;
     }
 
     if (wifiLabel) {
@@ -716,10 +719,8 @@ inline String buildAppScript() {
     let connectionText;
     if (!wifiAvailable) {
       connectionText = `❌ ${indicator.unavailable}`;
-    } else if (wifiStation) {
-      connectionText = `✅ ${labels.connected}`;
-    } else if (wifiAP) {
-      connectionText = `✅ ${indicator.ap}`;
+    } else if (wifiConnected) {
+      connectionText = wifiStation ? `✅ ${labels.connected}` : `✅ ${indicator.ap}`;
     } else {
       connectionText = `❌ ${labels.disconnected}`;
     }
@@ -818,9 +819,14 @@ inline String buildAppScript() {
     }
 
     if (bt.last_test_message && bt.last_test_message.length) {
-      const success = bt.last_test_success === true;
-      btStateText = bt.last_test_message;
-      btStateClass = success ? 'online' : 'offline';
+      if (bt.compile_enabled === false) {
+        btStateText = bt.hint && bt.hint.length ? bt.hint : bt.last_test_message;
+        btStateClass = 'offline';
+      } else {
+        const success = bt.last_test_success === true;
+        btStateText = bt.last_test_message;
+        btStateClass = success ? 'online' : 'offline';
+      }
     }
 
     if (!bt.compile_enabled && bt.hint && bt.hint.length) {
@@ -922,6 +928,7 @@ inline String buildAppScript() {
       showTab(activeTab.id);
     }
     refreshWirelessInfo();
+    setInterval(refreshWirelessInfo, {{WIRELESS_REFRESH}});
     scanI2C();
   });
 
@@ -991,6 +998,7 @@ inline String buildAppScript() {
   script.replace(F("{{UNKNOWN}}"), escapeForJS(String(T().unknown)));
   script.replace(F("{{NETWORKS}}"), escapeForJS(String(T().networks)));
   script.replace(F("{{DEVICES}}"), escapeForJS(String(T().devices)));
+  script.replace(F("{{WIRELESS_REFRESH}}"), String(WIRELESS_STATUS_REFRESH_MS));
 
   return script;
 }

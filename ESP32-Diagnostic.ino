@@ -1,10 +1,15 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.8
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.9
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v2.8.9:
+ * - Refactorisation de la configuration : nouveau `config.h` pour les paramètres matériels et `wifi-config.h` pour les identifiants.
+ * - Voyants WiFi/Bluetooth corrigés (inversion supprimée, remise à zéro des statuts Bluetooth lorsque la pile est désactivée).
+ * - Documentation renommée (`USER_GUIDE*.md`) et ajout d'une référence complète de configuration en FR/EN datée du 20 octobre 2025.
+
  * Nouveautés v2.8.8:
  * - Correctifs des voyants WiFi/Bluetooth : distinction STA/AP, état indisponible cohérent et effacement des valeurs obsolètes.
  * - Documentation enrichie (README français, modes d'emploi FR/EN) et dates/version réalignées au 20 octobre 2025.
@@ -138,9 +143,18 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <vector>
+#include <cstddef>
+#include <cstring>
 
-// Configuration WiFi
+// Configuration principale
 #include "config.h"
+
+// Identifiants WiFi (fichier ignoré par Git)
+#if __has_include("wifi-config.h")
+#include "wifi-config.h"
+#else
+#include "wifi-config.example.h"
+#endif
 
 // Système de traduction
 #include "languages.h"
@@ -149,21 +163,14 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.8"
-#define CUSTOM_LED_PIN -1
-#define CUSTOM_LED_COUNT 1
-#define ENABLE_I2C_SCAN true
-#define MDNS_HOSTNAME "esp32-diagnostic"
+#define DIAGNOSTIC_VERSION "2.8.9"
+
+const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
+const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
 
 // Pins I2C pour OLED (modifiables via web)
-int I2C_SCL = 20;
-int I2C_SDA = 21;
-
-// OLED 0.96" I2C
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-#define SCREEN_ADDRESS 0x3C
+int I2C_SCL = DEFAULT_I2C_SCL;
+int I2C_SDA = DEFAULT_I2C_SDA;
 
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
@@ -265,6 +272,7 @@ String describeBluetoothControllerStatus(int) {
 void updateBluetoothDerivedState() {
   if (!bluetoothInfo.lastTestMessage.length()) {
     bluetoothInfo.lastTestMessage = String(T().not_tested);
+    bluetoothInfo.lastTestSuccess = false;
   }
 
   if (!bluetoothInfo.compileEnabled) {
@@ -273,8 +281,14 @@ void updateBluetoothDerivedState() {
     } else {
       bluetoothInfo.availabilityHint = String(T().bluetooth_not_available);
     }
+    bluetoothInfo.lastTestSuccess = false;
+    if (bluetoothInfo.availabilityHint.length()) {
+      bluetoothInfo.lastTestMessage = bluetoothInfo.availabilityHint;
+    }
   } else if (!(bluetoothInfo.hardwareClassic || bluetoothInfo.hardwareBLE)) {
     bluetoothInfo.availabilityHint = String(T().bluetooth_not_available);
+    bluetoothInfo.lastTestSuccess = false;
+    bluetoothInfo.lastTestMessage = bluetoothInfo.availabilityHint;
   } else {
     bluetoothInfo.availabilityHint = "";
   }
@@ -1669,7 +1683,19 @@ void handleWirelessInfo() {
   json += "\"i2c_devices\":\"" + diagnosticData.i2cDevices + "\",";
   json += "\"spi\":\"" + spiInfo + "\"";
   json += "},";
-  
+
+  json += "\"bluetooth\":{";
+  json += "\"compile_enabled\":" + String(bluetoothInfo.compileEnabled ? "true" : "false") + ",";
+  json += "\"classic\":" + String(bluetoothInfo.hardwareClassic ? "true" : "false") + ",";
+  json += "\"ble\":" + String(bluetoothInfo.hardwareBLE ? "true" : "false") + ",";
+  json += "\"controller\":\"" + jsonEscape(bluetoothInfo.controllerStatus) + "\",";
+  json += "\"controller_enabled\":" + String(bluetoothInfo.controllerEnabled ? "true" : "false") + ",";
+  json += "\"controller_initialized\":" + String(bluetoothInfo.controllerInitialized ? "true" : "false") + ",";
+  json += "\"last_test_success\":" + String(bluetoothInfo.lastTestSuccess ? "true" : "false") + ",";
+  json += "\"last_test_message\":\"" + jsonEscape(bluetoothInfo.lastTestMessage) + "\",";
+  json += "\"hint\":\"" + jsonEscape(bluetoothInfo.availabilityHint) + "\"";
+  json += "},";
+
   json += "\"hardware_tests\":{";
   json += "\"builtin_led\":\"" + builtinLedTestResult + "\",";
   json += "\"neopixel\":\"" + neopixelTestResult + "\",";
@@ -2952,8 +2978,12 @@ void handleRoot() {
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_last_test) + "</div><div class='info-value' id='bluetooth-last-test'>" + String(T().not_tested) + "</div></div>";
   chunk += "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
+#if ENABLE_BLUETOOTH_AUTOTEST
   chunk += "<button class='btn btn-primary' onclick='testBluetooth()'>" + String(T().bluetooth_test_button) + "</button>";
   chunk += "<div id='bluetooth-status' class='status-live'>" + String(T().not_tested) + "</div>";
+#else
+  chunk += "<div id='bluetooth-status' class='status-live'>" + String(T().bluetooth_test_not_compiled) + "</div>";
+#endif
   chunk += "</div>";
   chunk += "<p id='bluetooth-hint' class='gpio-hint'></p>";
   chunk += "</div></div>";
@@ -3009,19 +3039,32 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 2.4 - FR/EN");
-  Serial.println("     Optimise Arduino Core 3.1.3");
+  Serial.print("     Version ");
+  Serial.print(DIAGNOSTIC_VERSION);
+  Serial.println(" - FR/EN");
+  Serial.println("     Compatible Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
   
   printPSRAMDiagnostic();
   
   // WiFi
-  wifiMulti.addAP(WIFI_SSID_1, WIFI_PASS_1);
-  wifiMulti.addAP(WIFI_SSID_2, WIFI_PASS_2);
-  
+  size_t addedNetworks = 0;
+#if defined(WIFI_NETWORK_COUNT) && WIFI_NETWORK_COUNT > 0
+  for (size_t i = 0; i < WIFI_NETWORK_COUNT; ++i) {
+    const WiFiCredential& cred = WIFI_NETWORKS[i];
+    if (cred.ssid && cred.ssid[0]) {
+      wifiMulti.addAP(cred.ssid, cred.password ? cred.password : "");
+      ++addedNetworks;
+    }
+  }
+#endif
   Serial.println("Connexion WiFi...");
+  if (addedNetworks == 0) {
+    Serial.println("Aucun réseau WiFi valide défini dans wifi-config.h ; SoftAP uniquement.");
+  }
+
   int attempt = 0;
-  while (wifiMulti.run() != WL_CONNECTED && attempt < 40) {
+  while (addedNetworks > 0 && wifiMulti.run() != WL_CONNECTED && attempt < 40) {
     delay(500);
     Serial.print(".");
     attempt++;

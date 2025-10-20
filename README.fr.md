@@ -3,7 +3,7 @@ Disponible en plusieurs langues :
 - Français : README.fr.md
 - English: README.md
 -->
-# Diagnostic Complet ESP32 v2.8.8
+# Diagnostic Complet ESP32 v2.8.9
 
 [🇬🇧 English version](README.md) | 🇫🇷 Version française
 
@@ -15,7 +15,7 @@ Disponible en plusieurs langues :
 
 Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via une interface web moderne. Il automatise les tests matériels (LED, NeoPixel, OLED, GPIO, ADC, Touch, PWM), dresse l'inventaire mémoire, scanne les bus I2C/SPI et génère des rapports détaillés.
 
-**Nouveautés de la v2.8.8** : les voyants du bandeau WiFi/Bluetooth distinguent désormais les modes STA/AP, signalent clairement les piles Bluetooth désactivées (*Indisponible*), purgent les mesures obsolètes et la documentation s'enrichit d'un README français ainsi que de modes d'emploi bilingues (`MODE_D_EMPLOI*.md`).
+**Nouveautés de la v2.8.9** : refonte de la configuration avec un `config.h` versionné (paramètres matériels) et un `wifi-config.h` privé, voyants WiFi/Bluetooth corrigés (plus d'inversion) avec rafraîchissement paramétrable, et documentation complétée par des guides renommés ainsi qu'une référence de configuration FR/EN.
 
 ## ✨ Fonctionnalités principales
 
@@ -42,7 +42,7 @@ Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via
 
 ### Interface web
 - **8 onglets** : Vue d'ensemble, LEDs, Écrans, Tests avancés, GPIO, Sans fil, Performance, Export
-- **Bandeau sans fil** (v2.8.6, affiné en v2.8.8) – indicateurs WiFi/Bluetooth temps réel, conscience STA/AP
+- **Bandeau sans fil** (v2.8.6, affiné en v2.8.9) – indicateurs WiFi/Bluetooth temps réel, conscience STA/AP
 - **Statuts uniformes** (v2.8.7 affiné en v2.8.8) – préfixes ⏳/✅/❌ cohérents jusqu'à la fin des actions
 - **Responsive & sans pop-up** – compatible mobile/tablette/desktop
 - **API REST** – endpoints JSON pour intégration externe
@@ -50,8 +50,10 @@ Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via
 ## 📚 Documentation
 
 - [`README.md`](README.md) – version anglaise complète.
-- [`MODE_D_EMPLOI.md`](MODE_D_EMPLOI.md) – checklist d'installation et de compilation (anglais).
-- [`MODE_D_EMPLOI.fr.md`](MODE_D_EMPLOI.fr.md) – mode d'emploi détaillé en français (pré-requis, bibliothèques, compilation Arduino IDE).
+- [`USER_GUIDE.md`](USER_GUIDE.md) – checklist d'installation et de compilation (anglais).
+- [`GUIDE_UTILISATION.fr.md`](GUIDE_UTILISATION.fr.md) – mode d'emploi détaillé en français (pré-requis, bibliothèques, compilation Arduino IDE).
+- [`CONFIG_REFERENCE.md`](CONFIG_REFERENCE.md) – référence (EN) des paramètres personnalisables (`config.h`, `wifi-config.h`).
+- [`CONFIG_REFERENCE.fr.md`](CONFIG_REFERENCE.fr.md) – version française de la référence de configuration.
 
 ## 🎯 Cartes compatibles
 
@@ -87,29 +89,36 @@ Bibliothèques incluses avec le core : `WiFi`, `WebServer`, `ESPmDNS`, `Wire`, `
 ## 🚀 Installation rapide
 
 1. **Cloner ou télécharger** le dossier `ESP32-Diagnostic/` dans votre espace Arduino.
-2. **Copier** `exemple-config.h` en `config.h` puis compléter vos identifiants WiFi (réseau principal + secondaires si besoin).
-3. **Ouvrir** `ESP32-Diagnostic.ino` dans Arduino IDE, sélectionner votre carte ESP32 et le port série.
-4. **Vérifier** dans *Outils → Bluetooth* que la pile est activée si vous souhaitez tester le Bluetooth.
-5. **Téléverser** le sketch.
+2. **Dupliquer** `wifi-config.example.h` en `wifi-config.h` (fichier ignoré par Git) puis renseigner vos réseaux WiFi :
+   ```cpp
+   static const WiFiCredential WIFI_NETWORKS[] = {
+     {"MonRéseau", "MotDePasse"},
+     {"Secours", "MotDePasse2"}
+   };
+   ```
+3. **Adapter** `config.h` : broches (`CUSTOM_LED_PIN`, `DEFAULT_I2C_SDA/SCL`), nom mDNS (`MDNS_HOSTNAME`), activation de l'auto-test Bluetooth et intervalle `WIRELESS_STATUS_REFRESH_MS`.
+4. **Ouvrir** `ESP32-Diagnostic.ino` dans Arduino IDE, sélectionner votre carte ESP32 et le port série.
+5. **Vérifier** dans *Outils → Bluetooth* que la pile est activée si vous souhaitez tester le Bluetooth.
+6. **Téléverser** le sketch.
 
 ### Structure du projet
 ```
 ESP32-Diagnostic/
 ├── ESP32-Diagnostic.ino      (programme principal)
-├── app_script.h              (générateur JS – logique de bandeau affinée en v2.8.8)
+├── app_script.h              (générateur JS – bandeau sans fil, aides auto-config)
 ├── languages.h               (système de traduction)
-├── exemple-config.h          (modèle WiFi)
-├── config.h                  (vos identifiants – non versionné)
-├── README.md                 (documentation anglaise)
-├── README.fr.md              (ce document)
-├── MODE_D_EMPLOI.md          (mode d'emploi EN)
-├── MODE_D_EMPLOI.fr.md       (mode d'emploi FR)
-└── .gitignore                (ignore config.h)
+├── config.h                  (paramètres matériels personnalisables)
+├── wifi-config.example.h     (modèle WiFi → copier en wifi-config.h)
+├── README.md / README.fr.md  (documentation principale)
+├── USER_GUIDE.md / GUIDE_UTILISATION.fr.md
+├── CONFIG_REFERENCE.md / CONFIG_REFERENCE.fr.md
+└── .gitignore                (ignore wifi-config.h)
 ```
 
 ## 🔄 Historique des versions récentes
 
-- **v2.8.8 – 20/10/2025** : correction des voyants WiFi/Bluetooth (STA/AP, Bluetooth désactivé, purge des valeurs périmées) et publication des guides bilingues.
+- **v2.8.9 – 20/10/2025** : refonte de la configuration (`config.h`, `wifi-config.h`), nouvelle référence FR/EN et bannière sans fil corrigée (rafraîchissement paramétrable).
+- **v2.8.8 – 20/10/2025** : correction des voyants WiFi/Bluetooth (STA/AP, Bluetooth désactivé, purge des valeurs périmées) et publication des guides renommés (`USER_GUIDE` / `GUIDE_UTILISATION`).
 - **v2.8.7 – 19/10/2025** : statuts inline harmonisés avec préfixes ⏳/✅/❌ et messages « Test en cours... » jusqu'à la fin réelle.
 - **v2.8.6 – 18/10/2025** : bandeau sans fil fixé en haut de page et auto-application des configurations LED/NeoPixel/OLED.
 

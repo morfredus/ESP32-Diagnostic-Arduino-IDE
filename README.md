@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.8.8
+# ESP32 Complete Diagnostic v2.8.9
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.8.8**: Wireless banner LEDs now distinguish STA/AP modes, flag disabled Bluetooth stacks as *Indisponible*, refresh stale WiFi metrics automatically, and the documentation gains a full French README plus bilingual setup guides (`MODE_D_EMPLOI*.md`).
+**What's new in v2.8.9**: Configuration has been refactored with a versioned `config.h` (hardware defaults) and a private `wifi-config.h`, wireless indicators no longer swap WiFi/Bluetooth states, periodic refresh is configurable, and the documentation now includes renamed user guides plus a dedicated configuration reference (EN/FR).
 
 ## ✨ Features
 
@@ -51,7 +51,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **Real-time** - Data refresh without reload
 - **Responsive** - Mobile/tablet/desktop compatible
 - **Complete exports** - TXT, JSON, CSV, printable PDF version
-- **Wireless status banner** (since v2.8.6, refined in v2.8.8) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness and inline reminders for LED/NeoPixel/OLED tests
+- **Wireless status banner** (since v2.8.6, refined in v2.8.9) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness and inline reminders for LED/NeoPixel/OLED tests
 - **Inline status feedback** (since v2.8.7, refined in v2.8.8) - Unified ⏳/✅/❌ messages for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth actions with automatic config acknowledgements and accurate completion states
 
 ### Network Access
@@ -62,8 +62,10 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 ## 📚 Documentation
 
 - [`README.fr.md`](README.fr.md) – guide complet en français avec les mêmes sections que la version anglaise.
-- [`MODE_D_EMPLOI.md`](MODE_D_EMPLOI.md) – checklist d'installation et de compilation (EN) pour Arduino IDE 2.x.
-- [`MODE_D_EMPLOI.fr.md`](MODE_D_EMPLOI.fr.md) – mode d'emploi détaillé en français couvrant prérequis et outils.
+- [`USER_GUIDE.md`](USER_GUIDE.md) – setup & compilation checklist (EN) for Arduino IDE 2.x.
+- [`GUIDE_UTILISATION.fr.md`](GUIDE_UTILISATION.fr.md) – mode d'emploi détaillé en français (pré-requis, bibliothèques, compilation Arduino IDE).
+- [`CONFIG_REFERENCE.md`](CONFIG_REFERENCE.md) – English reference for every configurable parameter (`config.h`, `wifi-config.h`).
+- [`CONFIG_REFERENCE.fr.md`](CONFIG_REFERENCE.fr.md) – référence française des paramètres personnalisables.
 
 ## 🎯 Compatible Boards
 
@@ -109,54 +111,38 @@ Download or clone this project to your Arduino folder.
 
 ### 2. Required Files
 
-**Project structure:**
+**Project structure (short view):**
 ```
 ESP32-Diagnostic/
-├── ESP32-Diagnostic.ino              (main file)
-├── languages.h                       (NEW - translations)
-├── exemple-config.h                  (configuration template)
-├── config.h                          (your credentials - to create)
-└── README.md
+├── ESP32-Diagnostic.ino              (main firmware)
+├── config.h                          (user-tunable hardware defaults – versioned)
+├── wifi-config.example.h             (WiFi credentials template)
+├── app_script.h                      (client-side JS generator)
+├── languages.h                       (translations)
+├── README.md / README.fr.md          (project overview)
+├── USER_GUIDE.md / GUIDE_UTILISATION.fr.md
+├── CONFIG_REFERENCE.md / CONFIG_REFERENCE.fr.md
+└── .gitignore                        (ignores wifi-config.h)
 ```
 
-### 3. WiFi Configuration
+### 3. Configure the project
 
-**IMPORTANT:** Create a `config.h` file in the same folder as the `.ino`
-
-**Option A - Rename the example file:**
-Rename the file `example-config.h` to `config.h`
-Edit the file and add your WiFi network(s) by filling in the values
+1. **WiFi credentials (`wifi-config.h`)**
+   - Copy `wifi-config.example.h` to `wifi-config.h` (kept out of Git).
+   - Edit the list of networks:
 
 ```cpp
-const char* WIFI_SSID_1 = "SSID1";
-const char* WIFI_PASS_1 = "Password1";
-
-// Add as many networks as needed
-// const char* WIFI_SSID_2 = "SSID2";
-// const char* WIFI_PASS_2 = "Password2";
-
-// const char* WIFI_SSID_3 = "SSID3";
-// const char* WIFI_PASS_3 = "Password3";
+static const WiFiCredential WIFI_NETWORKS[] = {
+  {"YourNetwork", "YourPassword"},
+  {"BackupNetwork", "BackupPassword"}
+};
 ```
 
-**Option B - Create `config.h` manually:**
-```cpp
-#ifndef CONFIG_H
-#define CONFIG_H
+   - You can add or remove entries; empty SSIDs are ignored automatically at runtime.
 
-// ========== WIFI CONFIGURATION ==========
-const char* WIFI_SSID_1 = "SSID1";
-const char* WIFI_PASS_1 = "Password1";
-
-// Add as many networks as needed
-// const char* WIFI_SSID_2 = "SSID2";
-// const char* WIFI_PASS_2 = "Password2";
-
-// const char* WIFI_SSID_3 = "SSID3";
-// const char* WIFI_PASS_3 = "Password3";
-
-#endif
-```
+2. **Hardware defaults (`config.h`)**
+   - Review pin assignments (`CUSTOM_LED_PIN`, `DEFAULT_I2C_SDA/SCL`), NeoPixel count, `MDNS_HOSTNAME`, Bluetooth auto-test flag, and the wireless refresh interval `WIRELESS_STATUS_REFRESH_MS`.
+   - Adjust the values to match your board before compiling.
 
 Replace `YourSSID` and `YourPassword` with your actual WiFi credentials.
 
@@ -350,29 +336,33 @@ If some texts remain in French:
 
 ⚠️ Local/development use only.
 
-**Never share `config.h` with your WiFi credentials.**
+**Never share `wifi-config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.8.8
+## 📁 Project Structure v2.8.9
 
 ```
 ESP32-Diagnostic/
 ├── ESP32-Diagnostic.ino              (main code)
-├── app_script.h                      (client-side JS generator - auto-config helpers, wireless banner & refined indicator logic in v2.8.8)
-├── languages.h                       (translation system - NEW)
-├── exemple-config.h                  (template)
-├── config.h                          (your credentials - gitignore)
-├── README.md                         (this file)
-├── README.fr.md                      (French version of README)
-├── MODE_D_EMPLOI.md                  (Setup & compilation guide - English)
-├── MODE_D_EMPLOI.fr.md               (Guide d'installation et compilation - Français)
-└── .gitignore                        (excludes config.h)
+├── config.h                          (hardware defaults & tunable options)
+├── wifi-config.example.h             (WiFi template → copy to wifi-config.h)
+├── app_script.h                      (client-side JS generator – wireless banner, auto-config helpers)
+├── languages.h                       (translation system)
+├── README.md / README.fr.md          (project overview)
+├── USER_GUIDE.md / GUIDE_UTILISATION.fr.md
+├── CONFIG_REFERENCE.md / CONFIG_REFERENCE.fr.md
+└── .gitignore                        (excludes wifi-config.h)
 ```
 
 ## 🔄 Changelog
 
+### v2.8.9 (2025-10-20) - CONFIG REFACTOR & INDICATORS
+- Reworked configuration files (`config.h`, `wifi-config.h`) and added bilingual configuration references.
+- Corrected the wireless banner (no more WiFi/Bluetooth inversion) and introduced a configurable refresh interval.
+- Renamed setup guides to `USER_GUIDE` / `GUIDE_UTILISATION` for consistency.
+
 ### v2.8.8 (2025-10-20) - WIRELESS INDICATORS & GUIDES
 - WiFi/Bluetooth banner now differentiates STA/AP usage, reports disabled Bluetooth stacks as *Indisponible* and clears outdated metrics automatically.
-- Added bilingual setup guides (`MODE_D_EMPLOI*.md`) and a dedicated French README to streamline onboarding.
+- Added bilingual setup guides (`USER_GUIDE` / `GUIDE_UTILISATION`) and a dedicated French README to streamline onboarding.
 - Normalised release dates to reflect the 20 October 2025 publication timeline.
 
 ### v2.8.7 (2025) - INLINE STATUS CLARITY
@@ -420,7 +410,7 @@ ESP32-Diagnostic/
 - Dynamic I2C pin configuration
 - TXT/JSON/CSV/Print exports
 - `server.sendContent()` support
-- WiFi externalized to `config.h`
+- WiFi externalized to `wifi-config.h`
 
 ## 📝 License
 
