@@ -1,14 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.1
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.1.3
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v2.6.0:
- * - Suppression complète du support des écrans TFT SPI
- * - Ajout de commandes individuelles pour chaque étape du test OLED
- * - Amélioration de l'interface web OLED avec reconfiguration I2C simplifiée
+ * Nouveautés v2.6.1:
+ * - Suppression des popups bloquantes sur l'interface web
+ * - Ajout de zones de statut persistantes pour tous les tests interactifs
+ * - Avertissement spécifique lors des campagnes de test GPIO
  *
  * Nouveautés v2.5:
  * - Traduction des exports (Français/Anglais)
@@ -43,7 +43,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.6.0"
+#define DIAGNOSTIC_VERSION "2.6.1"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2389,16 +2389,16 @@ void handleRoot() {
   
   // LED intégrée
   chunk += "function configBuiltinLED(){fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value)";
-  chunk += ".then(r=>r.json()).then(d=>{document.getElementById('builtin-led-status').innerHTML=d.message;alert(d.message)})}";
+  chunk += ".then(r=>r.json()).then(d=>{document.getElementById('builtin-led-status').innerHTML=d.message})}";
   chunk += "function testBuiltinLED(){document.getElementById('builtin-led-status').innerHTML='Test...';";
-  chunk += "fetch('/api/builtin-led-test').then(r=>r.json()).then(d=>{document.getElementById('builtin-led-status').innerHTML=d.result;alert(d.result)})}";
+  chunk += "fetch('/api/builtin-led-test').then(r=>r.json()).then(d=>{document.getElementById('builtin-led-status').innerHTML=d.result})}";
   chunk += "function ledBlink(){fetch('/api/builtin-led-control?action=blink').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
   chunk += "function ledFade(){fetch('/api/builtin-led-control?action=fade').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
   chunk += "function ledOff(){fetch('/api/builtin-led-control?action=off').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
   
   // NeoPixel
   chunk += "function configNeoPixel(){fetch('/api/neopixel-config?gpio='+document.getElementById('neoGPIO').value+'&count='+document.getElementById('neoCount').value)";
-  chunk += ".then(r=>r.json()).then(d=>{document.getElementById('neopixel-status').innerHTML=d.message;alert(d.message)})}";
+  chunk += ".then(r=>r.json()).then(d=>{document.getElementById('neopixel-status').innerHTML=d.message})}";
   chunk += "function testNeoPixel(){fetch('/api/neopixel-test').then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.result)}";
   chunk += "function neoPattern(p){fetch('/api/neopixel-pattern?pattern='+p).then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.message)}";
   chunk += "function neoCustomColor(){const c=document.getElementById('neoColor').value;";
@@ -2409,12 +2409,12 @@ void handleRoot() {
   chunk += "function testOLED(){document.getElementById('oled-status').innerHTML='Test en cours (25s)...';";
   chunk += "fetch('/api/oled-test').then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.result)}";
   chunk += "function oledStep(step){document.getElementById('oled-status').innerHTML='" + String(T().testing) + "';";
-  chunk += "fetch('/api/oled-step?step='+step).then(r=>r.json()).then(d=>{document.getElementById('oled-status').innerHTML=d.message;if(!d.success){alert(d.message)}})}";
+  chunk += "fetch('/api/oled-step?step='+step).then(r=>r.json()).then(d=>{document.getElementById('oled-status').innerHTML=d.message;if(!d.success){document.getElementById('oled-status').innerHTML='❌ '+d.message}})}";
   chunk += "function oledMessage(){fetch('/api/oled-message?message='+encodeURIComponent(document.getElementById('oledMsg').value))";
   chunk += ".then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.message)}";
   chunk += "function configOLED(){document.getElementById('oled-status').innerHTML='Reconfiguration...';";
   chunk += "fetch('/api/oled-config?sda='+document.getElementById('oledSDA').value+'&scl='+document.getElementById('oledSCL').value)";
-  chunk += ".then(r=>r.json()).then(d=>{if(d.success){alert(d.message);location.reload()}else{alert('Erreur: '+d.message)}})}";
+  chunk += ".then(r=>r.json()).then(d=>{if(d.success){document.getElementById('oled-status').innerHTML=d.message;setTimeout(()=>location.reload(),800)}else{document.getElementById('oled-status').innerHTML='Erreur: '+d.message}})}";
   
   // Tests avancés
   chunk += "function testADC(){document.getElementById('adc-status').innerHTML='Test...';";
@@ -2451,7 +2451,7 @@ void handleRoot() {
   chunk += "document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' reseaux detectes'})}";
   
   // I2C
-  chunk += "function scanI2C(){fetch('/api/i2c-scan').then(r=>r.json()).then(d=>{alert('I2C: '+d.count+' peripherique(s)\\n'+d.devices);location.reload()})}";
+  chunk += "function scanI2C(){fetch('/api/i2c-scan').then(r=>r.json()).then(d=>{console.log('I2C: '+d.count+' peripherique(s)\\n'+d.devices);location.reload()})}";
   
   // Benchmarks
   chunk += "function runBenchmarks(){";
