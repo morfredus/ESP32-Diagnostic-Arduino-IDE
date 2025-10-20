@@ -5,6 +5,26 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2025-10-24
+
+### Added
+- Nouvel onglet **Sans fil** réunissant les informations WiFi et Bluetooth avec zones d'état réservées.
+- Test automatisé du contrôleur Bluetooth avec messages contextualisés et retour inline.
+- Indication claire pour activer le Bluetooth lorsque le matériel est détecté mais désactivé à la compilation.
+
+### Changed
+- Présentation enrichie du statut WiFi (SSID, RSSI, IP, passerelle, DNS) sans recours aux pop-ups bloquantes.
+
+---
+
+## [2.6.3] - 2025-10-22
+
+### Fixed
+- Le changement de langue se réapplique désormais immédiatement sans rechargement manuel et conserve la sélection active.
+- Harmonisation des libellés de boutons lumineux en français pour éviter les restes de termes anglais.
+
+---
+
 ## [2.6.2] - 2025-10-21
 
 ### Fixed

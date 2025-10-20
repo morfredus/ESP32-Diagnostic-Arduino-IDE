@@ -90,6 +90,26 @@ struct Translations {
   const char* gateway;
   const char* dns;
   const char* wifi_channel;
+
+  // Bluetooth
+  const char* bluetooth_section;
+  const char* bluetooth_state;
+  const char* bluetooth_capabilities;
+  const char* bluetooth_last_test;
+  const char* bluetooth_enable_hint;
+  const char* bluetooth_not_available;
+  const char* bluetooth_test_button;
+  const char* bluetooth_test_not_compiled;
+  const char* bluetooth_init_failed;
+  const char* bluetooth_enable_failed;
+  const char* bluetooth_test_success;
+  const char* bluetooth_status_idle;
+  const char* bluetooth_status_inited;
+  const char* bluetooth_status_enabled;
+  const char* bluetooth_status_enabling;
+  const char* bluetooth_status_disabling;
+  const char* bluetooth_status_uninitialized;
+  const char* bluetooth_disabled_build;
   
   // GPIO et périphériques
   const char* gpio_interfaces;
@@ -221,6 +241,10 @@ struct Translations {
   const char* completed;
   const char* scan;
   const char* scanning;
+  const char* reconfiguring;
+  const char* config_updated;
+  const char* config_error;
+  const char* error_prefix;
   
   // Unités
   const char* cores;
@@ -252,7 +276,7 @@ const Translations LANG_FR_TEXTS = {
   "Écrans",
   "Tests Avancés",
   "GPIO",
-  "WiFi",
+  "Sans fil",
   "Performance",
   "Export",
   
@@ -317,6 +341,26 @@ const Translations LANG_FR_TEXTS = {
   "Passerelle",
   "DNS",
   "Canal WiFi",
+
+  // Bluetooth
+  "Bluetooth",
+  "Statut du contrôleur",
+  "Capacités détectées",
+  "Dernier test",
+  "Le Bluetooth est présent mais désactivé dans la compilation. Activez-le dans l'IDE puis retéléversez.",
+  "Bluetooth non disponible sur cette carte.",
+  "🧪 Tester le Bluetooth",
+  "Bluetooth désactivé dans la compilation. Activez les options Bluetooth puis recommencez.",
+  "Échec d'initialisation du contrôleur Bluetooth",
+  "Échec d'activation du contrôleur Bluetooth",
+  "Contrôleur Bluetooth testé avec succès",
+  "Prêt (idle)",
+  "Initialisé",
+  "Activé",
+  "Activation en cours",
+  "Désactivation en cours",
+  "Non initialisé",
+  "Bluetooth désactivé à la compilation",
   
   // GPIO
   "GPIO et Interfaces",
@@ -333,11 +377,11 @@ const Translations LANG_FR_TEXTS = {
   "Statut",
   "Config",
   "Test",
-  "Blink",
-  "Fade",
-  "Off",
+  "Clignoter",
+  "Fondu",
+  "Éteindre",
   "NeoPixel",
-  "Rainbow",
+  "Arc-en-ciel",
   "Couleur",
   
   // Écrans
@@ -448,6 +492,10 @@ const Translations LANG_FR_TEXTS = {
   "Terminé",
   "Scan...",
   "Scan...",
+  "Reconfiguration...",
+  "Configuration mise à jour",
+  "Erreur de configuration",
+  "Erreur : ",
   
   // Unités
   "coeurs",
@@ -479,7 +527,7 @@ const Translations LANG_EN_TEXTS = {
   "Screens",
   "Advanced Tests",
   "GPIO",
-  "WiFi",
+  "Wireless",
   "Performance",
   "Export",
   
@@ -544,6 +592,26 @@ const Translations LANG_EN_TEXTS = {
   "Gateway",
   "DNS",
   "WiFi Channel",
+
+  // Bluetooth
+  "Bluetooth",
+  "Controller status",
+  "Detected capabilities",
+  "Last test",
+  "Bluetooth hardware detected but disabled in the firmware build. Enable it in the IDE then upload again.",
+  "Bluetooth not available on this board.",
+  "🧪 Run Bluetooth test",
+  "Bluetooth disabled at build time. Enable Bluetooth options and try again.",
+  "Failed to initialise Bluetooth controller",
+  "Failed to enable Bluetooth controller",
+  "Bluetooth controller tested successfully",
+  "Idle",
+  "Initialised",
+  "Enabled",
+  "Enabling",
+  "Disabling",
+  "Uninitialised",
+  "Bluetooth disabled in build",
   
   // GPIO
   "GPIO and Interfaces",
@@ -675,6 +743,10 @@ const Translations LANG_EN_TEXTS = {
   "Completed",
   "Scanning...",
   "Scanning...",
+  "Reconfiguring...",
+  "Configuration updated",
+  "Configuration error",
+  "Error: ",
   
   // Units
   "cores",
