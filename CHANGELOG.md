@@ -5,6 +5,16 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.2] - 2025-10-28
+
+### Added
+- Nouveau fichier `app_script.h` contenant la fonction `buildAppScript()` pour garantir la livraison du script client `/js/app.js` sur chaque build.
+
+### Changed
+- Documentation synchronisée (README et bannière) avec la version 2.8.2 et clarification sur le rechargement automatique lors d'un changement de langue.
+
+---
+
 ## [2.8.1] - 2025-10-27
 
 ### Fixed

@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.8.1
+# ESP32 Complete Diagnostic v2.8.2
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.8.1**: Restored the `/js/app.js` delivery so tabs and FR/EN switching work instantly again on Arduino Core 3.3.2, preventing blank pages when the client script was missing.
+**What's new in v2.8.2**: Ships the `app_script.h` helper so the `/js/app.js` endpoint is always generated (no more "buildAppScript missing" errors on fresh checkouts).
 
 ## ✨ Features
 
@@ -334,7 +334,7 @@ If some texts remain in French:
 
 - **Startup time**: ~5s
 - **Web page generation**: ~200ms
-- **Language switching**: <100ms (no reload)
+- **Language switching**: <1s (auto reload to apply translations)
 - **Heap memory used**: ~250KB
 - **Multilingual overhead**: ~15KB Flash
 
@@ -344,11 +344,12 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.8.1
+## 📁 Project Structure v2.8.2
 
 ```
 ESP32-Diagnostic/
 ├── ESP32-Diagnostic.ino              (main code)
+├── app_script.h                      (client-side JS generator - NEW v2.8.2)
 ├── languages.h                       (translation system - NEW)
 ├── config.h.example                  (template)
 ├── config.h                          (your credentials - gitignore)
@@ -358,6 +359,10 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v2.8.2 (2025) - APP SCRIPT PACKAGING
+- Added the dedicated `app_script.h` helper so firmware builds always embed the `/js/app.js` logic.
+- Documentation updated to reflect version 2.8.2 and the new project file layout.
 
 ### v2.8.1 (2025) - ESP32 ARDUINO CORE 3.3.2 & WIFI AVANCÉ
 - Compatibilité validée avec l'Arduino Core ESP32 3.3.2 et affichage de la version du core dans l'interface, les exports et l'API.
@@ -414,7 +419,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.8.1 ESP32 Arduino Core 3.3.2 + WiFi avancé
+**Current version**: 2.8.2 ESP32 Arduino Core 3.3.2 + WiFi avancé
 **Last update**: October 2025  
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.3.2+
