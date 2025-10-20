@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.6.1
+# ESP32 Complete Diagnostic v2.6.2
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.6.1**: Inline feedback replaces blocking popups, message areas are reserved to avoid layout jumps, and GPIO campaigns now remind you that failures can come from reserved or unconnected pins.
+**What's new in v2.6.2**: Inline feedback now stays visible when reconfiguring OLED pins, I2C scans refresh their data without a full reload, and the GPIO warning remains highlighted beside the results grid.
 
 ## ✨ Features
 
@@ -344,7 +344,7 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.6.1
+## 📁 Project Structure v2.6.2
 
 ```
 ESP32-Diagnostic/
@@ -359,7 +359,7 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v2.6.1 (2025) - INLINE FEEDBACK & GPIO GUIDANCE
+### v2.6.2 (2025) - INLINE FEEDBACK STABILISATION
 - Replaced blocking popups with inline status banners on every test panel
 - Reserved fixed-height feedback areas to prevent layout jumps during updates
 - Highlighted that a ❌ on GPIO tests can signal a reserved or unconnected pin
@@ -402,7 +402,7 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
-**v2.6.1 - Inline feedback & GPIO guidance**
+**v2.6.2 - Inline feedback stabilisation**
 **v2.5.1 - Clearer PSRAM status guidance**
 **v2.5 - Translation of export files**
 **v2.4 - Multilingual system**
@@ -410,7 +410,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.6.1 Multilingual + inline feedback UX refresh
+**Current version**: 2.6.2 Multilingual + inline feedback stabilisation
 **Last update**: October 2025  
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.1.3+

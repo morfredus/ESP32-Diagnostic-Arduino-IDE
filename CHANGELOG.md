@@ -5,6 +5,17 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.2] - 2025-10-21
+
+### Fixed
+- Le changement de broches OLED met désormais à jour l'interface sans rechargement complet, conservant l'onglet actif et le retour inline.
+- Les scans I2C actualisent les compteurs et adresses détectées sans provoquer de redirection.
+
+### Changed
+- Stabilisation visuelle des zones de message (classes `status-field`/`status-live`) et rappel GPIO directement sous la grille de résultats.
+
+---
+
 ## [2.6.1] - 2025-10-20
 
 ### Changed
