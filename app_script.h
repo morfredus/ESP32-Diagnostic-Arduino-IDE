@@ -63,6 +63,18 @@ inline String buildAppScript() {
     devices: "{{DEVICES}}"
   };
 
+  const indicator = {
+    wifiLabel: "{{WIFI_LABEL}}",
+    bluetoothLabel: "{{BT_LABEL}}",
+    offline: "{{OFFLINE}}",
+    unavailable: "{{UNAVAILABLE}}"
+  };
+
+  let lastBuiltinGPIO = null;
+  let lastNeoGPIO = null;
+  let lastNeoCount = null;
+  let lastOledConfig = { sda: null, scl: null };
+
   const setHTML = (id, text) => {
     const el = document.getElementById(id);
     if (el) {
@@ -131,66 +143,275 @@ inline String buildAppScript() {
     return false;
   }
 
-  function configBuiltinLED() {
-    const gpio = document.getElementById('ledGPIO');
-    if (!gpio) return;
-    fetch('/api/builtin-led-config?gpio=' + encodeURIComponent(gpio.value))
+  function updateDotState(dotEl, state) {
+    if (!dotEl) return;
+    dotEl.classList.remove('online', 'offline', 'pending');
+    dotEl.classList.add(state);
+  }
+
+  function applyBuiltinConfig(manual = true) {
+    const gpioField = document.getElementById('ledGPIO');
+    if (!gpioField) {
+      return Promise.resolve();
+    }
+    const value = (gpioField.value || '').trim();
+    if (!value.length) {
+      return Promise.resolve();
+    }
+    if (!manual && value === lastBuiltinGPIO) {
+      return Promise.resolve();
+    }
+    if (manual) {
+      setText('builtin-led-status', messages.reconfiguring);
+    }
+    return fetch('/api/builtin-led-config?gpio=' + encodeURIComponent(value))
       .then(r => r.json())
-      .then(d => setHTML('builtin-led-status', d.message || ''))
-      .catch(err => console.error('LED config', err));
+      .then(d => {
+        if (d && d.success) {
+          lastBuiltinGPIO = value;
+          if (d.message) {
+            setHTML('builtin-led-status', d.message);
+          } else if (manual) {
+            setText('builtin-led-status', messages.configUpdated);
+          }
+          return true;
+        }
+        const errMessage = d && d.message ? d.message : messages.configError;
+        if (manual) {
+          setHTML('builtin-led-status', '❌ ' + errMessage);
+        }
+        throw new Error(errMessage);
+      });
+  }
+
+  function ensureBuiltinConfigured() {
+    const gpioField = document.getElementById('ledGPIO');
+    if (!gpioField) {
+      return Promise.resolve();
+    }
+    const value = (gpioField.value || '').trim();
+    if (!value.length || value === lastBuiltinGPIO) {
+      return Promise.resolve();
+    }
+    setText('builtin-led-status', messages.reconfiguring);
+    return applyBuiltinConfig(false).catch(err => {
+      setHTML('builtin-led-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      throw err;
+    });
+  }
+
+  function applyNeoPixelConfig(manual = true) {
+    const gpioField = document.getElementById('neoGPIO');
+    const countField = document.getElementById('neoCount');
+    if (!gpioField || !countField) {
+      return Promise.resolve();
+    }
+    const gpioValue = (gpioField.value || '').trim();
+    const countValue = (countField.value || '').trim();
+    if (!gpioValue.length || !countValue.length) {
+      return Promise.resolve();
+    }
+    if (!manual && gpioValue === lastNeoGPIO && countValue === lastNeoCount) {
+      return Promise.resolve();
+    }
+    if (manual) {
+      setText('neopixel-status', messages.reconfiguring);
+    }
+    const url = `/api/neopixel-config?gpio=${encodeURIComponent(gpioValue)}&count=${encodeURIComponent(countValue)}`;
+    return fetch(url)
+      .then(r => r.json())
+      .then(d => {
+        if (d && d.success) {
+          lastNeoGPIO = gpioValue;
+          lastNeoCount = countValue;
+          if (d.message) {
+            setHTML('neopixel-status', d.message);
+          } else if (manual) {
+            setText('neopixel-status', messages.configUpdated);
+          }
+          return true;
+        }
+        const msg = d && d.message ? d.message : messages.configError;
+        if (manual) {
+          setHTML('neopixel-status', '❌ ' + msg);
+        }
+        throw new Error(msg);
+      });
+  }
+
+  function ensureNeoPixelConfigured() {
+    const gpioField = document.getElementById('neoGPIO');
+    const countField = document.getElementById('neoCount');
+    if (!gpioField || !countField) {
+      return Promise.resolve();
+    }
+    const gpioValue = (gpioField.value || '').trim();
+    const countValue = (countField.value || '').trim();
+    if (!gpioValue.length || !countValue.length) {
+      return Promise.resolve();
+    }
+    if (gpioValue === lastNeoGPIO && countValue === lastNeoCount) {
+      return Promise.resolve();
+    }
+    setText('neopixel-status', messages.reconfiguring);
+    return applyNeoPixelConfig(false).catch(err => {
+      setHTML('neopixel-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      throw err;
+    });
+  }
+
+  function applyOLEDConfig(manual = true) {
+    const status = document.getElementById('oled-status');
+    const sdaEl = document.getElementById('oledSDA');
+    const sclEl = document.getElementById('oledSCL');
+    if (!sdaEl || !sclEl) {
+      return Promise.resolve();
+    }
+    const sda = (sdaEl.value || '').trim();
+    const scl = (sclEl.value || '').trim();
+    if (!sda.length || !scl.length) {
+      return Promise.resolve();
+    }
+    if (!manual && lastOledConfig.sda === sda && lastOledConfig.scl === scl) {
+      return Promise.resolve();
+    }
+    if (status && manual) {
+      status.textContent = messages.reconfiguring;
+    }
+    const url = `/api/oled-config?sda=${encodeURIComponent(sda)}&scl=${encodeURIComponent(scl)}`;
+    return fetch(url)
+      .then(r => r.json())
+      .then(d => {
+        if (d && d.success) {
+          lastOledConfig = { sda, scl };
+          if (status) {
+            const msg = d.message || messages.configUpdated;
+            status.innerHTML = '✅ ' + msg;
+          }
+          const pins = document.getElementById('oled-pins');
+          if (pins) {
+            pins.textContent = `SDA:${sda} SCL:${scl}`;
+          }
+          return true;
+        }
+        const msg = d && d.message ? d.message : messages.configError;
+        if (status) {
+          status.innerHTML = '❌ ' + msg;
+        }
+        throw new Error(msg);
+      });
+  }
+
+  function ensureOLEDConfigured() {
+    const sdaEl = document.getElementById('oledSDA');
+    const sclEl = document.getElementById('oledSCL');
+    const status = document.getElementById('oled-status');
+    if (!sdaEl || !sclEl) {
+      return Promise.resolve();
+    }
+    const sda = (sdaEl.value || '').trim();
+    const scl = (sclEl.value || '').trim();
+    if (!sda.length || !scl.length) {
+      return Promise.resolve();
+    }
+    if (lastOledConfig.sda === sda && lastOledConfig.scl === scl) {
+      return Promise.resolve();
+    }
+    if (status) {
+      status.textContent = messages.reconfiguring;
+    }
+    return applyOLEDConfig(false).catch(err => {
+      if (status) {
+        status.innerHTML = '❌ ' + (err && err.message ? err.message : messages.configError);
+      }
+      throw err;
+    });
+  }
+
+  function configBuiltinLED() {
+    applyBuiltinConfig(true).catch(err => {
+      console.error('LED config', err);
+      setHTML('builtin-led-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+    });
   }
 
   function testBuiltinLED() {
-    setText('builtin-led-status', messages.testing);
-    fetch('/api/builtin-led-test')
+    ensureBuiltinConfigured()
+      .then(() => {
+        setText('builtin-led-status', messages.testing);
+        return fetch('/api/builtin-led-test');
+      })
       .then(r => r.json())
       .then(d => setHTML('builtin-led-status', d.result || ''))
-      .catch(err => console.error('LED test', err));
+      .catch(err => {
+        console.error('LED test', err);
+        setHTML('builtin-led-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      });
   }
 
   function ledBlink() {
-    fetch('/api/builtin-led-control?action=blink')
+    ensureBuiltinConfigured()
+      .then(() => fetch('/api/builtin-led-control?action=blink'))
       .then(r => r.json())
       .then(d => setHTML('builtin-led-status', d.message || ''))
-      .catch(err => console.error('LED blink', err));
+      .catch(err => {
+        console.error('LED blink', err);
+        setHTML('builtin-led-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      });
   }
 
   function ledFade() {
-    fetch('/api/builtin-led-control?action=fade')
+    ensureBuiltinConfigured()
+      .then(() => fetch('/api/builtin-led-control?action=fade'))
       .then(r => r.json())
       .then(d => setHTML('builtin-led-status', d.message || ''))
-      .catch(err => console.error('LED fade', err));
+      .catch(err => {
+        console.error('LED fade', err);
+        setHTML('builtin-led-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      });
   }
 
   function ledOff() {
-    fetch('/api/builtin-led-control?action=off')
+    ensureBuiltinConfigured()
+      .then(() => fetch('/api/builtin-led-control?action=off'))
       .then(r => r.json())
       .then(d => setHTML('builtin-led-status', d.message || ''))
-      .catch(err => console.error('LED off', err));
+      .catch(err => {
+        console.error('LED off', err);
+        setHTML('builtin-led-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      });
   }
 
   function configNeoPixel() {
-    const gpio = document.getElementById('neoGPIO');
-    const count = document.getElementById('neoCount');
-    if (!gpio || !count) return;
-    fetch('/api/neopixel-config?gpio=' + encodeURIComponent(gpio.value) + '&count=' + encodeURIComponent(count.value))
-      .then(r => r.json())
-      .then(d => setHTML('neopixel-status', d.message || ''))
-      .catch(err => console.error('NeoPixel config', err));
+    applyNeoPixelConfig(true).catch(err => {
+      console.error('NeoPixel config', err);
+      setHTML('neopixel-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+    });
   }
 
   function testNeoPixel() {
-    fetch('/api/neopixel-test')
+    ensureNeoPixelConfigured()
+      .then(() => {
+        setText('neopixel-status', messages.testing);
+        return fetch('/api/neopixel-test');
+      })
       .then(r => r.json())
       .then(d => setHTML('neopixel-status', d.result || ''))
-      .catch(err => console.error('NeoPixel test', err));
+      .catch(err => {
+        console.error('NeoPixel test', err);
+        setHTML('neopixel-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      });
   }
 
   function neoPattern(pattern) {
-    fetch('/api/neopixel-pattern?pattern=' + encodeURIComponent(pattern))
+    ensureNeoPixelConfigured()
+      .then(() => fetch('/api/neopixel-pattern?pattern=' + encodeURIComponent(pattern)))
       .then(r => r.json())
       .then(d => setHTML('neopixel-status', d.message || ''))
-      .catch(err => console.error('NeoPixel pattern', err));
+      .catch(err => {
+        console.error('NeoPixel pattern', err);
+        setHTML('neopixel-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      });
   }
 
   function neoCustomColor() {
@@ -200,23 +421,36 @@ inline String buildAppScript() {
     const r = parseInt(value.substring(1, 3), 16) || 0;
     const g = parseInt(value.substring(3, 5), 16) || 0;
     const b = parseInt(value.substring(5, 7), 16) || 0;
-    fetch(`/api/neopixel-color?r=${r}&g=${g}&b=${b}`)
+    ensureNeoPixelConfigured()
+      .then(() => fetch(`/api/neopixel-color?r=${r}&g=${g}&b=${b}`))
       .then(r => r.json())
       .then(d => setHTML('neopixel-status', d.message || ''))
-      .catch(err => console.error('NeoPixel color', err));
+      .catch(err => {
+        console.error('NeoPixel color', err);
+        setHTML('neopixel-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      });
   }
 
   function testOLED() {
-    setText('oled-status', messages.testingOled);
-    fetch('/api/oled-test')
+    ensureOLEDConfigured()
+      .then(() => {
+        setText('oled-status', messages.testingOled);
+        return fetch('/api/oled-test');
+      })
       .then(r => r.json())
       .then(d => setHTML('oled-status', d.result || ''))
-      .catch(err => console.error('OLED test', err));
+      .catch(err => {
+        console.error('OLED test', err);
+        setHTML('oled-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      });
   }
 
   function oledStep(step) {
-    setText('oled-status', messages.testing);
-    fetch('/api/oled-step?step=' + encodeURIComponent(step))
+    ensureOLEDConfigured()
+      .then(() => {
+        setText('oled-status', messages.testing);
+        return fetch('/api/oled-step?step=' + encodeURIComponent(step));
+      })
       .then(r => r.json())
       .then(d => {
         if (!d) return;
@@ -226,44 +460,30 @@ inline String buildAppScript() {
           setHTML('oled-status', '❌ ' + (d.message || messages.configError));
         }
       })
-      .catch(err => setHTML('oled-status', '❌ ' + err));
+      .catch(err => setHTML('oled-status', '❌ ' + (err && err.message ? err.message : err)));
   }
 
   function oledMessage() {
     const input = document.getElementById('oledMsg');
     if (!input) return;
-    fetch('/api/oled-message?message=' + encodeURIComponent(input.value || ''))
+    ensureOLEDConfigured()
+      .then(() => fetch('/api/oled-message?message=' + encodeURIComponent(input.value || '')))
       .then(r => r.json())
       .then(d => setHTML('oled-status', d.message || ''))
-      .catch(err => console.error('OLED message', err));
+      .catch(err => {
+        console.error('OLED message', err);
+        setHTML('oled-status', '❌ ' + (err && err.message ? err.message : messages.configError));
+      });
   }
 
   function configOLED() {
-    const status = document.getElementById('oled-status');
-    if (!status) return;
-    const pins = document.getElementById('oled-pins');
-    const sdaEl = document.getElementById('oledSDA');
-    const sclEl = document.getElementById('oledSCL');
-    const sda = sdaEl ? sdaEl.value : '';
-    const scl = sclEl ? sclEl.value : '';
-    status.textContent = messages.reconfiguring;
-    fetch('/api/oled-config?sda=' + encodeURIComponent(sda) + '&scl=' + encodeURIComponent(scl))
-      .then(r => r.json())
-      .then(d => {
-        if (d && d.success) {
-          const msg = d.message || messages.configUpdated;
-          status.innerHTML = '✅ ' + msg;
-          if (pins) {
-            pins.textContent = 'SDA:' + sda + ' SCL:' + scl;
-          }
-        } else {
-          const msg = d && d.message ? d.message : messages.configError;
-          status.innerHTML = '❌ ' + msg;
-        }
-      })
-      .catch(err => {
-        status.innerHTML = '❌ ' + messages.errorPrefix + err;
-      });
+    applyOLEDConfig(true).catch(err => {
+      console.error('OLED config', err);
+      const status = document.getElementById('oled-status');
+      if (status) {
+        status.innerHTML = '❌ ' + messages.errorPrefix + (err && err.message ? err.message : messages.configError);
+      }
+    });
   }
 
   function testADC() {
@@ -366,6 +586,14 @@ inline String buildAppScript() {
     if (!data) return;
     const wifi = data.wifi || {};
     const bt = data.bluetooth || {};
+    const wifiDot = document.getElementById('wifi-status-dot');
+    const wifiLabel = document.getElementById('wifi-status-label');
+    const wifiConnected = !!wifi.connected;
+    const wifiStateText = wifiConnected ? labels.connected : indicator.offline;
+    if (wifiLabel) {
+      wifiLabel.textContent = `${indicator.wifiLabel} · ${wifiStateText}`;
+    }
+    updateDotState(wifiDot, wifiConnected ? 'online' : 'offline');
     updateText('wifi-connection-state', wifi.connected ? `✅ ${labels.connected}` : `❌ ${labels.disconnected}`);
     updateText('wifi-ssid', wifi.ssid && wifi.ssid.length ? wifi.ssid : fallbackChar);
     const channel = typeof wifi.channel === 'number' && wifi.channel > 0 ? labels.channelPrefix + wifi.channel : fallbackChar;
@@ -408,6 +636,38 @@ inline String buildAppScript() {
     }
     const hint = bt.hint && bt.hint.length ? bt.hint : '\u00A0';
     setText('bluetooth-hint', hint);
+    const btDot = document.getElementById('bt-status-dot');
+    const btLabel = document.getElementById('bt-status-label');
+    const hasBluetoothHardware = !!(bt.classic || bt.ble);
+    let btStateClass = 'pending';
+    let btStateText = indicator.unavailable;
+    if (hasBluetoothHardware) {
+      if (!bt.compile_enabled) {
+        btStateClass = 'offline';
+        btStateText = indicator.unavailable;
+      } else if (bt.controller_enabled || bt.last_test_success) {
+        btStateClass = 'online';
+        btStateText = bt.last_test_message || labels.connected;
+      } else if (bt.controller_initialized) {
+        btStateClass = 'pending';
+        btStateText = bt.controller || indicator.offline;
+      } else {
+        btStateClass = 'offline';
+        btStateText = bt.controller || indicator.offline;
+      }
+    }
+    if (bt.last_test_message) {
+      btStateText = bt.last_test_message;
+      btStateClass = bt.last_test_success ? 'online' : btStateClass;
+    }
+    if (!hasBluetoothHardware) {
+      btStateClass = 'pending';
+      btStateText = indicator.unavailable;
+    }
+    if (btLabel) {
+      btLabel.textContent = `${indicator.bluetoothLabel} · ${btStateText}`;
+    }
+    updateDotState(btDot, btStateClass);
   }
 
   function testBluetooth() {
@@ -537,8 +797,12 @@ inline String buildAppScript() {
   script.replace(F("{{FALLBACK}}"), escapeForJS(fallbackValue));
   String connectedLabel = String(T().connected);
   script.replace(F("{{CONNECTED}}"), escapeForJS(connectedLabel));
-  String disconnectedLabel = (currentLanguage == LANG_FR) ? String("Déconnecté") : String("Disconnected");
+  String disconnectedLabel = String(T().disconnected);
   script.replace(F("{{DISCONNECTED}}"), escapeForJS(disconnectedLabel));
+  script.replace(F("{{WIFI_LABEL}}"), escapeForJS(String(T().indicator_wifi)));
+  script.replace(F("{{BT_LABEL}}"), escapeForJS(String(T().indicator_bluetooth)));
+  script.replace(F("{{OFFLINE}}"), escapeForJS(String(T().disconnected)));
+  script.replace(F("{{UNAVAILABLE}}"), escapeForJS(String(T().indicator_unavailable)));
   String channelPrefix = (currentLanguage == LANG_FR) ? String("Canal ") : String("Ch ");
   script.replace(F("{{CHANNEL_PREFIX}}"), escapeForJS(channelPrefix));
   script.replace(F("{{TESTING}}"), escapeForJS(String(T().testing)));

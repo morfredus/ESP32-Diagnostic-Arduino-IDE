@@ -5,6 +5,16 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.6] - 2025-11-01
+
+### Added
+- Bannière fixe en haut de page affichant l'état WiFi/Bluetooth en temps réel sans recourir à des pop-ups bloquantes.
+
+### Changed
+- Les tests LED intégrée, NeoPixel et OLED appliquent désormais automatiquement la configuration saisie avant leur première exécution tout en conservant le bouton **Config** pour valider un changement manuel.
+
+---
+
 ## [2.8.5] - 2025-10-31
 
 ### Fixed

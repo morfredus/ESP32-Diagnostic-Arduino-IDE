@@ -151,7 +151,9 @@ struct Translations {
   const char* neopixel;
   const char* rainbow;
   const char* color;
-  
+  const char* led_auto_hint;
+  const char* neopixel_auto_hint;
+
   // Écrans
   const char* full_test;
   const char* oled_screen;
@@ -178,7 +180,8 @@ struct Translations {
   const char* oled_step_executed_prefix;
   const char* oled_step_unavailable;
   const char* oled_step_unknown;
-  
+  const char* oled_auto_hint;
+
   // Tests avancés
   const char* adc_test;
   const char* touch_test;
@@ -256,6 +259,10 @@ struct Translations {
   const char* very_weak;
   const char* none;
   const char* unknown;
+  const char* disconnected;
+  const char* indicator_unavailable;
+  const char* indicator_wifi;
+  const char* indicator_bluetooth;
   const char* testing;
   const char* completed;
   const char* scan;
@@ -421,7 +428,9 @@ const Translations LANG_FR_TEXTS = {
   "NeoPixel",
   "Arc-en-ciel",
   "Couleur",
-  
+  "La broche indiquée est appliquée automatiquement au lancement du premier test ; utilisez « Config » après toute modification.",
+  "Les réglages GPIO et nombre de LED sont appliqués automatiquement avant chaque test ou animation ; cliquez sur « Config » pour valider un changement.",
+
   // Écrans
   "Test Complet",
   "Écran OLED 0.96\" I2C",
@@ -448,7 +457,8 @@ const Translations LANG_FR_TEXTS = {
   "Étape exécutée :",
   "OLED non disponible",
   "Étape inconnue",
-  
+  "Les pins SDA/SCL saisis sont réappliqués automatiquement avant chaque test ou message ; utilisez « Reconfigurer » pour relancer manuellement la détection.",
+
   // Tests
   "Test ADC",
   "Test Touch Pads",
@@ -526,6 +536,10 @@ const Translations LANG_FR_TEXTS = {
   "Très faible",
   "Aucune",
   "Inconnu",
+  "Déconnecté",
+  "Indisponible",
+  "WiFi",
+  "Bluetooth",
   "Test...",
   "Terminé",
   "Scan...",
@@ -691,7 +705,9 @@ const Translations LANG_EN_TEXTS = {
   "NeoPixel",
   "Rainbow",
   "Color",
-  
+  "The selected pin is applied automatically when launching the first test; click “Config” after changing it.",
+  "GPIO and LED count are applied automatically before each test or animation; use “Config” to store new values.",
+
   // Screens
   "Full Test",
   "OLED Screen 0.96\" I2C",
@@ -718,7 +734,8 @@ const Translations LANG_EN_TEXTS = {
   "Step executed:",
   "OLED not available",
   "Unknown step",
-  
+  "The SDA/SCL pins are automatically reapplied before each test or message; use “Apply and Re-detect” to trigger a manual refresh.",
+
   // Tests
   "ADC Test",
   "Touch Pads Test",
@@ -796,6 +813,10 @@ const Translations LANG_EN_TEXTS = {
   "Very weak",
   "None",
   "Unknown",
+  "Disconnected",
+  "Unavailable",
+  "WiFi",
+  "Bluetooth",
   "Testing...",
   "Completed",
   "Scanning...",

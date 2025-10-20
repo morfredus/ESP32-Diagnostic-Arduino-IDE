@@ -1,10 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.5
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.6
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v2.8.6:
+ * - Ajout d'une bannière fixe indiquant en direct l'état WiFi/Bluetooth sans bloquer l'interface.
+ * - Les tests LED, NeoPixel et OLED appliquent automatiquement la configuration saisie avant leur première exécution tout en conservant le bouton Config pour des modifications ultérieures.
+
  * Nouveautés v2.8.5:
  * - Réécriture du script client pour lever toutes les erreurs JavaScript, restaurer la navigation par onglets et la bascule de langue.
  * - Ajout d'un gabarit JS avec export global automatique des fonctions et initialisation centralisée des événements.
@@ -137,7 +141,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.5"
+#define DIAGNOSTIC_VERSION "2.8.6"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2582,7 +2586,7 @@ void handleRoot() {
   chunk += "<title>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</title>";
   chunk += "<style>";
   chunk += "*{margin:0;padding:0;box-sizing:border-box}";
-  chunk += "body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:20px}";
+  chunk += "body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:100px 20px 20px}";
   chunk += ".container{max-width:1400px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}";
   chunk += ".header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:30px;text-align:center;position:relative}";
   chunk += ".header h1{font-size:2.5em;margin-bottom:10px}";
@@ -2590,6 +2594,14 @@ void handleRoot() {
   chunk += ".lang-btn{padding:8px 15px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
   chunk += ".lang-btn:hover{background:rgba(255,255,255,.3)}";
   chunk += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
+  chunk += ".status-bar{position:fixed;top:0;left:0;right:0;display:flex;gap:12px;justify-content:center;align-items:center;padding:12px 24px;background:rgba(17,24,39,.85);backdrop-filter:blur(8px);z-index:2500;color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.35)}";
+  chunk += ".status-pill{display:flex;align-items:center;gap:10px;padding:6px 18px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);font-weight:600;font-size:.95em}";
+  chunk += ".status-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.4)}";
+  chunk += ".status-dot.online{background:#22c55e;animation:statusBlink 1.4s ease-in-out infinite;box-shadow:0 0 14px rgba(34,197,94,.9)}";
+  chunk += ".status-dot.offline{background:#ef4444;box-shadow:0 0 14px rgba(239,68,68,.85)}";
+  chunk += ".status-dot.pending{background:#f97316;animation:statusPulse 2s ease-in-out infinite;box-shadow:0 0 14px rgba(249,115,22,.8)}";
+  chunk += "@keyframes statusBlink{0%,100%{opacity:1}50%{opacity:.35}}";
+  chunk += "@keyframes statusPulse{0%,100%{opacity:.6}50%{opacity:1}}";
   chunk += ".nav{display:flex;justify-content:center;gap:10px;margin-top:20px;flex-wrap:wrap}";
   chunk += ".nav-btn{padding:10px 20px;background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;cursor:pointer;font-weight:bold}";
   chunk += ".nav-btn:hover{background:rgba(255,255,255,.3)}";
@@ -2629,8 +2641,15 @@ void handleRoot() {
   chunk += "@media print{.nav,.btn,.lang-switcher{display:none}}";
   chunk += "</style></head><body>";
   server.sendContent(chunk);
-  
-  // CHUNK 2: HEADER + NAV
+
+  // CHUNK 2: STATUS BAR
+  chunk = "<div class='status-bar'>";
+  chunk += "<div class='status-pill' id='wifi-status-pill'><span class='status-dot offline' id='wifi-status-dot'></span><span id='wifi-status-label'>" + String(T().indicator_wifi) + " · " + String(T().disconnected) + "</span></div>";
+  chunk += "<div class='status-pill' id='bt-status-pill'><span class='status-dot pending' id='bt-status-dot'></span><span id='bt-status-label'>" + String(T().indicator_bluetooth) + " · " + String(T().indicator_unavailable) + "</span></div>";
+  chunk += "</div>";
+  server.sendContent(chunk);
+
+  // CHUNK 3: HEADER + NAV
   chunk = "<div class='container'><div class='header'>";
   chunk += "<div class='lang-switcher'>";
   chunk += "<button class='lang-btn" + String(currentLanguage == LANG_FR ? " active" : "") + "' data-lang='fr'>FR</button>";
@@ -2652,8 +2671,8 @@ void handleRoot() {
   chunk += "<button type='button' class='nav-btn' data-nav='export' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
   chunk += "</div></div><div class='content'>";
   server.sendContent(chunk);
-  
-// CHUNK 3: OVERVIEW TAB - VERSION UNIQUE COMPLÈTE
+
+// CHUNK 4: OVERVIEW TAB - VERSION UNIQUE COMPLÈTE
   chunk = "<div id='overview' class='tab-content active'>";
   
   // Chip Info
@@ -2743,7 +2762,7 @@ void handleRoot() {
   chunk += "</div>"; // Fermeture div overview
   server.sendContent(chunk);
 
-  // CHUNK 4: TAB LEDs
+  // CHUNK 5: TAB LEDs
   chunk = "<div id='leds' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().builtin_led) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().gpio) + "</div><div class='info-value'>GPIO " + String(BUILTIN_LED_PIN) + "</div></div>";
@@ -2755,8 +2774,10 @@ void handleRoot() {
   chunk += "<button class='btn btn-success' onclick='ledBlink()'>" + String(T().blink) + "</button>";
   chunk += "<button class='btn btn-info' onclick='ledFade()'>" + String(T().fade) + "</button>";
   chunk += "<button class='btn btn-danger' onclick='ledOff()'>" + String(T().off) + "</button>";
-  chunk += "</div></div></div>";
-  
+  chunk += "</div></div>";
+  chunk += "<div class='gpio-hint'>" + String(T().led_auto_hint) + "</div>";
+  chunk += "</div>";
+
   chunk += "<div class='section'><h2>" + String(T().neopixel) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().gpio) + "</div><div class='info-value'>GPIO " + String(LED_PIN) + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value status-field' id='neopixel-status'>" + neopixelTestResult + "</div></div>";
@@ -2769,10 +2790,12 @@ void handleRoot() {
   chunk += "<input type='color' id='neoColor' value='#ff0000' style='height:48px'>";
   chunk += "<button class='btn btn-primary' onclick='neoCustomColor()'>" + String(T().color) + "</button>";
   chunk += "<button class='btn btn-danger' onclick='neoPattern(\"off\")'>" + String(T().off) + "</button>";
-  chunk += "</div></div></div></div>";
+  chunk += "</div></div>";
+  chunk += "<div class='gpio-hint'>" + String(T().neopixel_auto_hint) + "</div>";
+  chunk += "</div></div>";
   server.sendContent(chunk);
   
-  // CHUNK 5: TAB Screens
+  // CHUNK 6: TAB Screens
   chunk = "<div id='screens' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().oled_screen) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value status-field' id='oled-status'>" + oledTestResult + "</div></div>";
@@ -2802,10 +2825,12 @@ void handleRoot() {
     chunk += "<button class='btn btn-success' onclick='oledMessage()'>" + String(T().show_message) + "</button>";
     chunk += "</div>";
   }
-  chunk += "</div></div></div></div>";
+  chunk += "</div>";
+  chunk += "<div class='gpio-hint'>" + String(T().oled_auto_hint) + "</div>";
+  chunk += "</div></div></div>";
   server.sendContent(chunk);
   
-  // CHUNK 6: TAB Tests
+  // CHUNK 7: TAB Tests
   chunk = "<div id='tests' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().adc_test) + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
@@ -2845,7 +2870,7 @@ void handleRoot() {
   chunk += "</div></div></div>";
   server.sendContent(chunk);
   
-  // CHUNK 7: TAB GPIO
+  // CHUNK 8: TAB GPIO
   chunk = "<div id='gpio' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().gpio_test) + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
@@ -2854,7 +2879,7 @@ void handleRoot() {
   chunk += "</div><p class='gpio-hint'>ℹ️ Un GPIO indiqué comme ❌ FAIL peut simplement être réservé ou non câblé. Vérifiez le schéma matériel avant de conclure à une défaillance.</p><div id='gpio-results' class='gpio-grid'></div></div></div>";
   server.sendContent(chunk);
   
-  // CHUNK 8: TAB Wireless
+  // CHUNK 9: TAB Wireless
   chunk = "<div id='wireless' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().wifi_connection) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='wifi-connection-state'>-</div></div>";
@@ -2894,7 +2919,7 @@ void handleRoot() {
   chunk += "</div></div>";
   server.sendContent(chunk);
   
-  // CHUNK 9: TAB Benchmark
+  // CHUNK 10: TAB Benchmark
   chunk = "<div id='benchmark' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().performance_bench) + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
@@ -2907,7 +2932,7 @@ void handleRoot() {
   chunk += "</div></div></div>";
   server.sendContent(chunk);
   
-  // CHUNK 10: TAB Export
+  // CHUNK 11: TAB Export
   chunk = "<div id='export' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().data_export) + "</h2>";
   chunk += "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-top:20px'>";
