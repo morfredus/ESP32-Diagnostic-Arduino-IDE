@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.8.4
+# ESP32 Complete Diagnostic v2.8.5
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.8.4**: Hardens the generated `/js/app.js` script by swapping HTML attributes to escaped apostrophes, preventing `operator""info` and `exponent has no digits` compilation errors on Arduino Core 3.3.2 while keeping inline test results intact.
+**What's new in v2.8.5**: Rewrites the generated `/js/app.js` to eliminate runtime errors, restore working tab navigation & language toggles, and export every UI handler from a single initialization module.
 
 ## ✨ Features
 
@@ -23,7 +23,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **French** (default language)
 - **English**
 - **Dynamic switching**: FR/EN buttons in interface
-- **Real-time update**: No reload required
+- **Automatic refresh**: Immediate reload triggered after switching language
 - **Complete translations**: All texts, labels, messages and status
 
 ### Hardware Tests
@@ -344,12 +344,12 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.8.4
+## 📁 Project Structure v2.8.5
 
 ```
 ESP32-Diagnostic/
 ├── ESP32-Diagnostic.ino              (main code)
-├── app_script.h                      (client-side JS generator - NEW v2.8.2, quoting hardened in v2.8.4)
+├── app_script.h                      (client-side JS generator - NEW v2.8.2, refactored template + exports in v2.8.5)
 ├── languages.h                       (translation system - NEW)
 ├── config.h.example                  (template)
 ├── config.h                          (your credentials - gitignore)
@@ -360,9 +360,9 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v2.8.4 (2025) - INLINE SCRIPT QUOTE FIX
-- Reworked the generated `/js/app.js` to rely on escaped apostrophes, eliminating Arduino Core 3.3.2 compilation errors while preserving inline test panels.
-- Updated documentation banners and UI headers to advertise version 2.8.4 alongside the quoting fix.
+### v2.8.5 (2025) - CLIENT SCRIPT REWRITE
+- Rebuilt the generated `/js/app.js` template to export all handlers, fix the FR/EN toggle and restore working tab navigation.
+- Updated documentation banners and UI headers to advertise version 2.8.5 and the restored UI behaviour.
 
 ### v2.8.3 (2025) - API RESTORATION & BLUETOOTH FEEDBACK
 - Fixed the escaped JavaScript bundle and reinstated all REST handlers (WiFi, LEDs, NeoPixel, OLED, tests, exports).
@@ -423,7 +423,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.8.4 ESP32 Arduino Core 3.3.2 + inline JS quoting fix
+**Current version**: 2.8.5 ESP32 Arduino Core 3.3.2 + client JS rewrite / tab & language fix
 **Last update**: October 2025  
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.3.2+

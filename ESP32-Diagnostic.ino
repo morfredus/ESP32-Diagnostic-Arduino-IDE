@@ -1,10 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.4
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.5
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v2.8.5:
+ * - Réécriture du script client pour lever toutes les erreurs JavaScript, restaurer la navigation par onglets et la bascule de langue.
+ * - Ajout d'un gabarit JS avec export global automatique des fonctions et initialisation centralisée des événements.
+
  * Nouveautés v2.8.4:
  * - Ajustement des guillemets HTML générés par `app_script.h` pour éliminer les erreurs `operator""info` et `exponent has no digits` sous Arduino Core 3.3.2.
  * - Stabilisation des blocs de résultats ADC/GPIO/WiFi en conservant l'affichage inline sans conflit de compilation.
@@ -133,7 +137,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.4"
+#define DIAGNOSTIC_VERSION "2.8.5"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2629,8 +2633,8 @@ void handleRoot() {
   // CHUNK 2: HEADER + NAV
   chunk = "<div class='container'><div class='header'>";
   chunk += "<div class='lang-switcher'>";
-  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_FR ? "active" : "") + "' onclick='changeLang(\"fr\", event)'>FR</button>";
-  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_EN ? "active" : "") + "' onclick='changeLang(\"en\", event)'>EN</button>";
+  chunk += "<button class='lang-btn" + String(currentLanguage == LANG_FR ? " active" : "") + "' data-lang='fr'>FR</button>";
+  chunk += "<button class='lang-btn" + String(currentLanguage == LANG_EN ? " active" : "") + "' data-lang='en'>EN</button>";
   chunk += "</div>";
   chunk += "<h1 id='main-title'>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1>";
   chunk += "<div style='font-size:1.2em;margin:10px 0'>" + diagnosticData.chipModel + "</div>";
@@ -2638,14 +2642,14 @@ void handleRoot() {
   chunk += String(T().access) + ": <a href='http://" + String(MDNS_HOSTNAME) + ".local' style='color:#fff;text-decoration:underline'><strong>http://" + String(MDNS_HOSTNAME) + ".local</strong></a> " + String(T().or_text) + " <strong>" + diagnosticData.ipAddress + "</strong>";
   chunk += "</div>";
   chunk += "<div class='nav'>";
-  chunk += "<button class='nav-btn active' onclick='showTab(\"overview\", event)' data-i18n='nav_overview'>" + String(T().nav_overview) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"leds\", event)' data-i18n='nav_leds'>" + String(T().nav_leds) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"screens\", event)' data-i18n='nav_screens'>" + String(T().nav_screens) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"tests\", event)' data-i18n='nav_tests'>" + String(T().nav_tests) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"gpio\", event)' data-i18n='nav_gpio'>" + String(T().nav_gpio) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"wireless\", event)' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"benchmark\", event)' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"export\", event)' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
+  chunk += "<button type='button' class='nav-btn active' data-nav='overview' data-i18n='nav_overview'>" + String(T().nav_overview) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-nav='leds' data-i18n='nav_leds'>" + String(T().nav_leds) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-nav='screens' data-i18n='nav_screens'>" + String(T().nav_screens) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-nav='tests' data-i18n='nav_tests'>" + String(T().nav_tests) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-nav='gpio' data-i18n='nav_gpio'>" + String(T().nav_gpio) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-nav='wireless' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-nav='benchmark' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-nav='export' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
   chunk += "</div></div><div class='content'>";
   server.sendContent(chunk);
   

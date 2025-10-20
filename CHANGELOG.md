@@ -5,6 +5,16 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.5] - 2025-10-31
+
+### Fixed
+- Réécriture complète du générateur `/js/app.js` pour supprimer les erreurs JavaScript, rétablir les onglets interactifs et la bascule FR/EN sans dépendre d'un script inline.
+
+### Changed
+- Boutons de navigation et de langue convertis en attributs `data-*` avec initialisation centralisée côté client.
+
+---
+
 ## [2.8.4] - 2025-10-30
 
 ### Fixed
