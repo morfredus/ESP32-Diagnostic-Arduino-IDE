@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v2.8.7
+ * WEB_INTERFACE.H - Interface Web Dynamique v2.8.8
  */
 
 #ifndef WEB_INTERFACE_H

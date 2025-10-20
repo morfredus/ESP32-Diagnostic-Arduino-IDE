@@ -5,7 +5,20 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.8.7] - 2025-11-02
+## [2.8.8] - 2025-10-20
+
+### Added
+- Nouveaux documents utilisateur : `README.fr.md`, `MODE_D_EMPLOI.md` et `MODE_D_EMPLOI.fr.md` détaillant prérequis, bibliothèques et procédure de compilation sous Arduino IDE.
+
+### Changed
+- Réalignement des dates de publication pour refléter l'état du projet au 20 octobre 2025.
+
+### Fixed
+- Voyants WiFi/Bluetooth fiabilisés : reconnaissance des modes STA/AP, affichage "Indisponible" lorsque la pile Bluetooth est désactivée et purge des mesures obsolètes.
+
+---
+
+## [2.8.7] - 2025-10-19
 
 ### Changed
 - Harmonisation des statuts en ligne avec préfixes ⏳/✅/❌ pour tous les tests LED, NeoPixel, OLED, ADC, GPIO, scans WiFi et Bluetooth, avec rappels de reconfiguration cohérents.
@@ -15,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.8.6] - 2025-11-01
+## [2.8.6] - 2025-10-18
 
 ### Added
 - Bannière fixe en haut de page affichant l'état WiFi/Bluetooth en temps réel sans recourir à des pop-ups bloquantes.
@@ -25,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.8.5] - 2025-10-31
+## [2.8.5] - 2025-10-17
 
 ### Fixed
 - Réécriture complète du générateur `/js/app.js` pour supprimer les erreurs JavaScript, rétablir les onglets interactifs et la bascule FR/EN sans dépendre d'un script inline.
@@ -35,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.8.4] - 2025-10-30
+## [2.8.4] - 2025-10-16
 
 ### Fixed
 - Remplacement des attributs HTML du script `/js/app.js` par des apostrophes échappées pour supprimer les erreurs `operator""info` et `exponent has no digits` rencontrées lors de la compilation Arduino Core 3.3.2.
@@ -45,7 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.8.3] - 2025-10-29
+## [2.8.3] - 2025-10-15
 
 ### Fixed
 - Correction de l'échappement du script `/js/app.js` afin d'éliminer les erreurs `stray '\'` lors de la compilation sous Arduino Core 3.3.2.
@@ -60,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.8.2] - 2025-10-28
+## [2.8.2] - 2025-10-14
 
 ### Added
 - Nouveau fichier `app_script.h` contenant la fonction `buildAppScript()` pour garantir la livraison du script client `/js/app.js` sur chaque build.
@@ -70,7 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.8.1] - 2025-10-27
+## [2.8.1] - 2025-10-13
 
 ### Fixed
 - Rétablissement du chargement du JavaScript client (`/js/app.js`) pour que les onglets et le changement de langue fonctionnent sans erreur sous Arduino Core 3.3.2.

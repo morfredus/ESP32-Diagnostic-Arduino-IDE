@@ -67,7 +67,8 @@ inline String buildAppScript() {
     wifiLabel: "{{WIFI_LABEL}}",
     bluetoothLabel: "{{BT_LABEL}}",
     offline: "{{OFFLINE}}",
-    unavailable: "{{UNAVAILABLE}}"
+    unavailable: "{{UNAVAILABLE}}",
+    ap: "{{AP_STATE}}"
   };
 
   let lastBuiltinGPIO = null;
@@ -158,8 +159,10 @@ inline String buildAppScript() {
 
   function updateDotState(dotEl, state) {
     if (!dotEl) return;
+    const validStates = ['online', 'offline', 'pending'];
+    const resolved = validStates.includes(state) ? state : 'pending';
     dotEl.classList.remove('online', 'offline', 'pending');
-    dotEl.classList.add(state);
+    dotEl.classList.add(resolved);
   }
 
   function applyBuiltinConfig(manual = true) {
@@ -687,31 +690,83 @@ inline String buildAppScript() {
     const bt = data.bluetooth || {};
     const wifiDot = document.getElementById('wifi-status-dot');
     const wifiLabel = document.getElementById('wifi-status-label');
-    const wifiConnected = !!wifi.connected;
-    const wifiStateText = wifiConnected ? labels.connected : indicator.offline;
+    const wifiAvailable = Object.prototype.hasOwnProperty.call(wifi, 'available') ? !!wifi.available : true;
+    const wifiStation = !!wifi.station_connected;
+    const wifiAP = !!wifi.ap_active;
+
+    let wifiStateClass = 'offline';
+    let wifiStateText = indicator.offline;
+
+    if (!wifiAvailable) {
+      wifiStateClass = 'pending';
+      wifiStateText = indicator.unavailable;
+    } else if (wifiStation) {
+      wifiStateClass = 'online';
+      wifiStateText = labels.connected;
+    } else if (wifiAP) {
+      wifiStateClass = 'online';
+      wifiStateText = indicator.ap;
+    }
+
     if (wifiLabel) {
       wifiLabel.textContent = `${indicator.wifiLabel} · ${wifiStateText}`;
     }
-    updateDotState(wifiDot, wifiConnected ? 'online' : 'offline');
-    updateText('wifi-connection-state', wifi.connected ? `✅ ${labels.connected}` : `❌ ${labels.disconnected}`);
-    updateText('wifi-ssid', wifi.ssid && wifi.ssid.length ? wifi.ssid : fallbackChar);
-    const channel = typeof wifi.channel === 'number' && wifi.channel > 0 ? labels.channelPrefix + wifi.channel : fallbackChar;
-    updateText('wifi-channel', channel);
-    updateText('wifi-mode', wifi.mode || fallbackChar);
-    updateText('wifi-sleep', wifi.sleep || fallbackChar);
-    updateText('wifi-band', wifi.band || fallbackChar);
-    updateText('wifi-band-mode', wifi.band_mode || fallbackChar);
-    const txCode = typeof wifi.tx_power_code === 'number' ? wifi.tx_power_code : 'n/a';
-    const txPower = typeof wifi.tx_power_dbm === 'number' ? `${Number(wifi.tx_power_dbm).toFixed(1)} dBm (${txCode})` : fallbackChar;
-    updateText('wifi-tx-power', txPower);
-    updateText('wifi-hostname', wifi.hostname || fallbackChar);
-    if (wifi.connected) {
+    updateDotState(wifiDot, wifiStateClass);
+
+    let connectionText;
+    if (!wifiAvailable) {
+      connectionText = `❌ ${indicator.unavailable}`;
+    } else if (wifiStation) {
+      connectionText = `✅ ${labels.connected}`;
+    } else if (wifiAP) {
+      connectionText = `✅ ${indicator.ap}`;
+    } else {
+      connectionText = `❌ ${labels.disconnected}`;
+    }
+    updateText('wifi-connection-state', connectionText);
+
+    let ssidValue = '';
+    if (wifiStation && wifi.ssid && wifi.ssid.length) {
+      ssidValue = wifi.ssid;
+    } else if (wifiAP && wifi.ap_ssid && wifi.ap_ssid.length) {
+      ssidValue = wifi.ap_ssid;
+    }
+    updateText('wifi-ssid', ssidValue || fallbackChar);
+
+    const channel = typeof wifi.channel === 'number' && wifi.channel > 0 ? labels.channelPrefix + wifi.channel : '';
+    updateText('wifi-channel', wifiStation ? channel : fallbackChar);
+    updateText('wifi-mode', wifiAvailable && wifi.mode ? wifi.mode : fallbackChar);
+    updateText('wifi-sleep', wifiAvailable && wifi.sleep ? wifi.sleep : fallbackChar);
+    updateText('wifi-band', wifiAvailable && wifi.band ? wifi.band : fallbackChar);
+    updateText('wifi-band-mode', wifiAvailable && wifi.band_mode ? wifi.band_mode : fallbackChar);
+    const txCode = typeof wifi.tx_power_code === 'number' ? wifi.tx_power_code : null;
+    const txPower = typeof wifi.tx_power_dbm === 'number'
+      ? `${Number(wifi.tx_power_dbm).toFixed(1)} dBm (${txCode !== null ? txCode : 'n/a'})`
+      : '';
+    updateText('wifi-tx-power', wifiAvailable && txPower.length ? txPower : fallbackChar);
+    updateText('wifi-hostname', wifi.hostname && wifi.hostname.length ? wifi.hostname : fallbackChar);
+
+    if (!wifiAvailable) {
+      updateText('wifi-rssi', fallbackChar);
+      updateText('wifi-quality', fallbackChar);
+      updateText('wifi-ip', fallbackChar);
+      updateText('wifi-subnet', fallbackChar);
+      updateText('wifi-gateway', fallbackChar);
+      updateText('wifi-dns', fallbackChar);
+    } else if (wifiStation) {
       updateText('wifi-rssi', `${wifi.rssi} dBm`);
       updateText('wifi-quality', wifi.quality || fallbackChar);
       updateText('wifi-ip', wifi.ip || fallbackChar);
       updateText('wifi-subnet', wifi.subnet || fallbackChar);
       updateText('wifi-gateway', wifi.gateway || fallbackChar);
       updateText('wifi-dns', wifi.dns || fallbackChar);
+    } else if (wifiAP) {
+      updateText('wifi-rssi', fallbackChar);
+      updateText('wifi-quality', fallbackChar);
+      updateText('wifi-ip', wifi.ap_ip && wifi.ap_ip.length ? wifi.ap_ip : fallbackChar);
+      updateText('wifi-subnet', fallbackChar);
+      updateText('wifi-gateway', fallbackChar);
+      updateText('wifi-dns', fallbackChar);
     } else {
       updateText('wifi-rssi', fallbackChar);
       updateText('wifi-quality', fallbackChar);
@@ -744,29 +799,34 @@ inline String buildAppScript() {
     const hasBluetoothHardware = !!(bt.classic || bt.ble);
     let btStateClass = 'pending';
     let btStateText = indicator.unavailable;
-    if (hasBluetoothHardware) {
-      if (!bt.compile_enabled) {
-        btStateClass = 'offline';
-        btStateText = indicator.unavailable;
-      } else if (bt.controller_enabled || bt.last_test_success) {
-        btStateClass = 'online';
-        btStateText = bt.last_test_message || labels.connected;
-      } else if (bt.controller_initialized) {
-        btStateClass = 'pending';
-        btStateText = bt.controller || indicator.offline;
-      } else {
-        btStateClass = 'offline';
-        btStateText = bt.controller || indicator.offline;
-      }
-    }
-    if (bt.last_test_message) {
-      btStateText = bt.last_test_message;
-      btStateClass = bt.last_test_success ? 'online' : btStateClass;
-    }
+
     if (!hasBluetoothHardware) {
       btStateClass = 'pending';
-      btStateText = indicator.unavailable;
+      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
+    } else if (!bt.compile_enabled) {
+      btStateClass = 'offline';
+      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
+    } else if (bt.controller_enabled) {
+      btStateClass = 'online';
+      btStateText = bt.controller || labels.connected;
+    } else if (bt.controller_initialized) {
+      btStateClass = 'pending';
+      btStateText = bt.controller || indicator.offline;
+    } else {
+      btStateClass = 'offline';
+      btStateText = bt.controller || indicator.offline;
     }
+
+    if (bt.last_test_message && bt.last_test_message.length) {
+      const success = bt.last_test_success === true;
+      btStateText = bt.last_test_message;
+      btStateClass = success ? 'online' : 'offline';
+    }
+
+    if (!bt.compile_enabled && bt.hint && bt.hint.length) {
+      btStateText = bt.hint;
+    }
+
     if (btLabel) {
       btLabel.textContent = `${indicator.bluetoothLabel} · ${btStateText}`;
     }
@@ -911,6 +971,7 @@ inline String buildAppScript() {
   script.replace(F("{{DISCONNECTED}}"), escapeForJS(disconnectedLabel));
   script.replace(F("{{WIFI_LABEL}}"), escapeForJS(String(T().indicator_wifi)));
   script.replace(F("{{BT_LABEL}}"), escapeForJS(String(T().indicator_bluetooth)));
+  script.replace(F("{{AP_STATE}}"), escapeForJS(String(T().indicator_ap)));
   script.replace(F("{{OFFLINE}}"), escapeForJS(String(T().disconnected)));
   script.replace(F("{{UNAVAILABLE}}"), escapeForJS(String(T().indicator_unavailable)));
   String channelPrefix = (currentLanguage == LANG_FR) ? String("Canal ") : String("Ch ");

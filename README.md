@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.8.7
+# ESP32 Complete Diagnostic v2.8.8
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.8.7**: Uniform ⏳/✅/❌ inline statuses for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth tests, with "Test en cours..." messaging maintained until completion and automatic configuration feedback aligned across the UI.
+**What's new in v2.8.8**: Wireless banner LEDs now distinguish STA/AP modes, flag disabled Bluetooth stacks as *Indisponible*, refresh stale WiFi metrics automatically, and the documentation gains a full French README plus bilingual setup guides (`MODE_D_EMPLOI*.md`).
 
 ## ✨ Features
 
@@ -51,13 +51,19 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **Real-time** - Data refresh without reload
 - **Responsive** - Mobile/tablet/desktop compatible
 - **Complete exports** - TXT, JSON, CSV, printable PDF version
-- **Wireless status banner** (since v2.8.6) - Fixed header with live WiFi/Bluetooth indicators and inline reminders for LED/NeoPixel/OLED tests
-- **Inline status feedback** (NEW in v2.8.7) - Unified ⏳/✅/❌ messages for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth actions with automatic config acknowledgements
+- **Wireless status banner** (since v2.8.6, refined in v2.8.8) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness and inline reminders for LED/NeoPixel/OLED tests
+- **Inline status feedback** (since v2.8.7, refined in v2.8.8) - Unified ⏳/✅/❌ messages for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth actions with automatic config acknowledgements and accurate completion states
 
 ### Network Access
 - **mDNS** - Access via http://ESP32-Diagnostic.local
 - **Multi-WiFi** - Automatic connection with failover
 - **REST API** - JSON endpoints for integration
+
+## 📚 Documentation
+
+- [`README.fr.md`](README.fr.md) – guide complet en français avec les mêmes sections que la version anglaise.
+- [`MODE_D_EMPLOI.md`](MODE_D_EMPLOI.md) – checklist d'installation et de compilation (EN) pour Arduino IDE 2.x.
+- [`MODE_D_EMPLOI.fr.md`](MODE_D_EMPLOI.fr.md) – mode d'emploi détaillé en français couvrant prérequis et outils.
 
 ## 🎯 Compatible Boards
 
@@ -108,7 +114,7 @@ Download or clone this project to your Arduino folder.
 ESP32-Diagnostic/
 ├── ESP32-Diagnostic.ino              (main file)
 ├── languages.h                       (NEW - translations)
-├── config.h.example                  (configuration template)
+├── exemple-config.h                  (configuration template)
 ├── config.h                          (your credentials - to create)
 └── README.md
 ```
@@ -346,21 +352,28 @@ If some texts remain in French:
 
 **Never share `config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.8.7
+## 📁 Project Structure v2.8.8
 
 ```
 ESP32-Diagnostic/
 ├── ESP32-Diagnostic.ino              (main code)
-├── app_script.h                      (client-side JS generator - auto-config helpers, wireless banner & unified status logic in v2.8.7)
+├── app_script.h                      (client-side JS generator - auto-config helpers, wireless banner & refined indicator logic in v2.8.8)
 ├── languages.h                       (translation system - NEW)
-├── config.h.example                  (template)
+├── exemple-config.h                  (template)
 ├── config.h                          (your credentials - gitignore)
 ├── README.md                         (this file)
 ├── README.fr.md                      (French version of README)
+├── MODE_D_EMPLOI.md                  (Setup & compilation guide - English)
+├── MODE_D_EMPLOI.fr.md               (Guide d'installation et compilation - Français)
 └── .gitignore                        (excludes config.h)
 ```
 
 ## 🔄 Changelog
+
+### v2.8.8 (2025-10-20) - WIRELESS INDICATORS & GUIDES
+- WiFi/Bluetooth banner now differentiates STA/AP usage, reports disabled Bluetooth stacks as *Indisponible* and clears outdated metrics automatically.
+- Added bilingual setup guides (`MODE_D_EMPLOI*.md`) and a dedicated French README to streamline onboarding.
+- Normalised release dates to reflect the 20 October 2025 publication timeline.
 
 ### v2.8.7 (2025) - INLINE STATUS CLARITY
 - Added consistent ⏳/✅/❌ status formatting for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth actions.
@@ -433,7 +446,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.8.7 ESP32 Arduino Core 3.3.2 + wireless status banner & unified inline status feedback
+**Current version**: 2.8.8 ESP32 Arduino Core 3.3.2 + STA/AP aware wireless banner & bilingual setup guides
 **Last update**: November 2025
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.3.2+

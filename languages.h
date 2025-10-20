@@ -263,6 +263,7 @@ struct Translations {
   const char* indicator_unavailable;
   const char* indicator_wifi;
   const char* indicator_bluetooth;
+  const char* indicator_ap;
   const char* testing;
   const char* testing_oled;
   const char* completed;
@@ -541,6 +542,7 @@ const Translations LANG_FR_TEXTS = {
   "Indisponible",
   "WiFi",
   "Bluetooth",
+  "Point d'accès actif",
   "Test en cours...",
   "Test complet en cours (~25s)...",
   "Terminé",
@@ -819,6 +821,7 @@ const Translations LANG_EN_TEXTS = {
   "Unavailable",
   "WiFi",
   "Bluetooth",
+  "Access Point active",
   "Test in progress...",
   "Full test running (~25s)...",
   "Completed",

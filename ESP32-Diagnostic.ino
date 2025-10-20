@@ -1,10 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.7
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.8
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v2.8.8:
+ * - Correctifs des voyants WiFi/Bluetooth : distinction STA/AP, état indisponible cohérent et effacement des valeurs obsolètes.
+ * - Documentation enrichie (README français, modes d'emploi FR/EN) et dates/version réalignées au 20 octobre 2025.
+
  * Nouveautés v2.8.7:
  * - Statuts de tests harmonisés avec indicateurs ⏳/✅/❌ et messages "Test en cours..." jusqu'à la fin effective des actions LED, NeoPixel, OLED, ADC, GPIO, WiFi et Bluetooth.
  * - Messages de reconfiguration et de tests lumineux ajustés pour refléter l'application automatique des configurations et les retours Bluetooth.
@@ -145,7 +149,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.7"
+#define DIAGNOSTIC_VERSION "2.8.8"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -295,8 +299,10 @@ struct DiagnosticInfo {
   bool hasBT;
   bool hasBLE;
   String wifiSSID;
+  String wifiApSSID;
   int wifiRSSI;
   String ipAddress;
+  String wifiApIP;
   String wifiHostname;
   int wifiChannel;
   String wifiMode;
@@ -306,6 +312,8 @@ struct DiagnosticInfo {
   float wifiTxPowerDbm;
   int wifiTxPowerCode;
   bool wifiSupports5G;
+  bool wifiStationConnected;
+  bool wifiApActive;
 
   String gpioList;
   int totalGPIO;
@@ -1536,16 +1544,37 @@ void collectDiagnosticInfo() {
 #endif
   updateBluetoothDerivedState();
 
-  if (WiFi.status() == WL_CONNECTED) {
+  wifi_mode_t currentMode = WiFiGenericClass::getMode();
+  bool wifiStationConnected = (WiFi.status() == WL_CONNECTED);
+  bool wifiApActive = (currentMode == WIFI_MODE_AP || currentMode == WIFI_MODE_APSTA);
+
+  diagnosticData.wifiStationConnected = wifiStationConnected;
+  diagnosticData.wifiApActive = wifiApActive;
+
+  if (wifiStationConnected) {
     diagnosticData.wifiSSID = WiFi.SSID();
     diagnosticData.wifiRSSI = WiFi.RSSI();
     diagnosticData.ipAddress = WiFi.localIP().toString();
+  } else {
+    diagnosticData.wifiSSID = String();
+    diagnosticData.wifiRSSI = -127;
+    diagnosticData.ipAddress = String();
+  }
+
+  if (wifiApActive) {
+    diagnosticData.wifiApSSID = WiFi.softAPSSID();
+    diagnosticData.wifiApIP = WiFi.softAPIP().toString();
+    if (!wifiStationConnected) {
+      diagnosticData.ipAddress = diagnosticData.wifiApIP;
+    }
+  } else {
+    diagnosticData.wifiApSSID = String();
+    diagnosticData.wifiApIP = String();
   }
 
   const char* hostnamePtr = WiFi.getHostname();
   diagnosticData.wifiHostname = hostnamePtr ? String(hostnamePtr) : String();
   diagnosticData.wifiChannel = WiFi.channel();
-  wifi_mode_t currentMode = WiFiGenericClass::getMode();
   diagnosticData.wifiMode = describeWiFiModeLabel(currentMode);
   wifi_ps_type_t sleepMode = WiFi.getSleep();
   diagnosticData.wifiSleepMode = describeWiFiSleepLabel(sleepMode);
@@ -1604,14 +1633,19 @@ void handleTestGPIO() {
 void handleWirelessInfo() {
   collectDiagnosticInfo();
 
-  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+  bool wifiConnected = (diagnosticData.wifiStationConnected || diagnosticData.wifiApActive);
   String json = "{";
   json += "\"wifi\":{";
+  json += "\"available\":" + String(diagnosticData.hasWiFi ? "true" : "false") + ",";
   json += "\"connected\":" + String(wifiConnected ? "true" : "false") + ",";
+  json += "\"station_connected\":" + String(diagnosticData.wifiStationConnected ? "true" : "false") + ",";
+  json += "\"ap_active\":" + String(diagnosticData.wifiApActive ? "true" : "false") + ",";
   json += "\"ssid\":\"" + jsonEscape(diagnosticData.wifiSSID) + "\",";
+  json += "\"ap_ssid\":\"" + jsonEscape(diagnosticData.wifiApSSID) + "\",";
   json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
   json += "\"quality\":\"" + jsonEscape(getWiFiSignalQuality()) + "\",";
   json += "\"ip\":\"" + jsonEscape(diagnosticData.ipAddress) + "\",";
+  json += "\"ap_ip\":\"" + jsonEscape(diagnosticData.wifiApIP) + "\",";
   json += "\"subnet\":\"" + jsonEscape(WiFi.subnetMask().toString()) + "\",";
   json += "\"gateway\":\"" + jsonEscape(WiFi.gatewayIP().toString()) + "\",";
   json += "\"dns\":\"" + jsonEscape(WiFi.dnsIP().toString()) + "\",";
@@ -2034,14 +2068,16 @@ void handleExportTXT() {
   collectDiagnosticInfo();
   collectDetailedMemory();
 
-  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
-  String wifiSSID = wifiConnected ? diagnosticData.wifiSSID : String("-");
-  String wifiRSSI = wifiConnected ? String(diagnosticData.wifiRSSI) + " dBm" : String("-");
-  String wifiQuality = wifiConnected ? getWiFiSignalQuality() : String("-");
-  String wifiIP = wifiConnected ? diagnosticData.ipAddress : String("-");
-  String wifiSubnet = wifiConnected ? WiFi.subnetMask().toString() : String("-");
-  String wifiGateway = wifiConnected ? WiFi.gatewayIP().toString() : String("-");
-  String wifiDNS = wifiConnected ? WiFi.dnsIP().toString() : String("-");
+  bool wifiStationConnected = diagnosticData.wifiStationConnected;
+  bool wifiApActive = diagnosticData.wifiApActive;
+  bool wifiConnected = (wifiStationConnected || wifiApActive);
+  String wifiSSID = wifiStationConnected ? diagnosticData.wifiSSID : (wifiApActive ? diagnosticData.wifiApSSID : String("-"));
+  String wifiRSSI = wifiStationConnected ? String(diagnosticData.wifiRSSI) + " dBm" : String("-");
+  String wifiQuality = wifiStationConnected ? getWiFiSignalQuality() : String("-");
+  String wifiIP = wifiStationConnected ? diagnosticData.ipAddress : (wifiApActive ? diagnosticData.wifiApIP : String("-"));
+  String wifiSubnet = wifiStationConnected ? WiFi.subnetMask().toString() : String("-");
+  String wifiGateway = wifiStationConnected ? WiFi.gatewayIP().toString() : String("-");
+  String wifiDNS = wifiStationConnected ? WiFi.dnsIP().toString() : String("-");
   String wifiHostname = diagnosticData.wifiHostname.length() ? diagnosticData.wifiHostname : String("-");
   String wifiChannel = diagnosticData.wifiChannel > 0 ? String(diagnosticData.wifiChannel) : String("-");
   String wifiMode = diagnosticData.wifiMode.length() ? diagnosticData.wifiMode : String("-");
