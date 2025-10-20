@@ -1,9 +1,13 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.3
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.4
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v2.8.4:
+ * - Ajustement des guillemets HTML générés par `app_script.h` pour éliminer les erreurs `operator""info` et `exponent has no digits` sous Arduino Core 3.3.2.
+ * - Stabilisation des blocs de résultats ADC/GPIO/WiFi en conservant l'affichage inline sans conflit de compilation.
  *
  * Nouveautés v2.8.3:
  * - Correction de l'échappement du script embarqué pour supprimer les erreurs `stray '\'` à la compilation.
@@ -129,7 +133,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.3"
+#define DIAGNOSTIC_VERSION "2.8.4"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true

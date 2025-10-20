@@ -65,12 +65,12 @@ inline String buildAppScript() {
   // Tests avancés
   script += "function testADC(){document.getElementById('adc-status').innerHTML='" + String(T().testing) + "';";
   script += "fetch('/api/adc-test').then(r=>r.json()).then(data=>{let h='';";
-  script += "data.readings.forEach(a=>{h+='<div class="info-item"><div class="info-label">GPIO '+a.pin+'</div><div class="info-value">'+a.raw+' ('+a.voltage.toFixed(2)+'V)</div></div>'});";
+  script += "data.readings.forEach(a=>{h+='<div class=\'info-item\'><div class=\'info-label\'>GPIO '+a.pin+'</div><div class=\'info-value\'>'+a.raw+' ('+a.voltage.toFixed(2)+'V)</div></div>'});";
   script += "document.getElementById('adc-results').innerHTML=h;document.getElementById('adc-status').innerHTML=data.result})}";
 
   script += "function testTouch(){document.getElementById('touch-status').innerHTML='" + String(T().testing) + "';";
   script += "fetch('/api/touch-test').then(r=>r.json()).then(data=>{let h='';";
-  script += "data.readings.forEach(t=>{h+='<div class="info-item"><div class="info-label">Touch'+t.pin+'</div><div class="info-value">'+t.value+'</div></div>'});";
+  script += "data.readings.forEach(t=>{h+='<div class=\'info-item\'><div class=\'info-label\'>Touch'+t.pin+'</div><div class=\'info-value\'>'+t.value+'</div></div>'});";
   script += "document.getElementById('touch-results').innerHTML=h;document.getElementById('touch-status').innerHTML=data.result})}";
 
   script += "function testPWM(){document.getElementById('pwm-status').innerHTML='" + String(T().testing) + "';";
@@ -85,7 +85,7 @@ inline String buildAppScript() {
   // GPIO
   script += "function testAllGPIO(){document.getElementById('gpio-status').innerHTML='" + String(T().testing) + "';";
   script += "fetch('/api/test-gpio').then(r=>r.json()).then(data=>{let h='';";
-  script += "data.results.forEach(g=>{h+='<div class="gpio-item '+(g.working?'gpio-ok':'gpio-fail')+'">GPIO '+g.pin+'<br>'+(g.working?'✅ " + String(T().ok) + "':'❌ " + String(T().fail) + "')+'</div>'});";
+  script += "data.results.forEach(g=>{h+='<div class=\'gpio-item '+(g.working?'gpio-ok':'gpio-fail')+'\'>GPIO '+g.pin+'<br>'+(g.working?'✅ " + String(T().ok) + "':'❌ " + String(T().fail) + "')+'</div>'});";
   script += "document.getElementById('gpio-results').innerHTML=h;document.getElementById('gpio-status').innerHTML='✅ " + String(T().completed) + " - '+data.results.length+' " + String(T().gpio) + " " + String(T().tested) + "'})}";
 
   script += "function updateText(id,value,fallback='—'){const el=document.getElementById(id);if(!el)return;if(value===undefined||value===null||value===''){el.textContent=fallback;}else{el.textContent=value;}}";
@@ -97,8 +97,8 @@ inline String buildAppScript() {
   script += "function scanWiFi(){document.getElementById('wifi-status').innerHTML='" + String(T().scanning) + "';";
   script += "fetch('/api/wifi-scan').then(r=>r.json()).then(data=>{let h='';";
   script += "data.networks.forEach(n=>{let s=n.rssi>=-60?'🟢':n.rssi>=-70?'🟡':'🔴';";
-  script += "h+='<div class="wifi-item"><div style="display:flex;justify-content:space-between"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+n.bssid+' | Ch'+n.channel+' | '+n.encryption+'</small></div>';";
-  script += "h+='<div style="font-size:1.2em;font-weight:bold">'+n.rssi+' dBm</div></div></div>'});";
+  script += "h+='<div class=\'wifi-item\'><div style=\'display:flex;justify-content:space-between\'><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+n.bssid+' | Ch'+n.channel+' | '+n.encryption+'</small></div>';";
+  script += "h+='<div style=\'font-size:1.2em;font-weight:bold\'>'+n.rssi+' dBm</div></div></div>'});";
   script += "document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' " + String(T().networks) + "'})}";
   script += "refreshWirelessInfo();";
 

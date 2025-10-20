@@ -5,6 +5,16 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.4] - 2025-10-30
+
+### Fixed
+- Remplacement des attributs HTML du script `/js/app.js` par des apostrophes échappées pour supprimer les erreurs `operator""info` et `exponent has no digits` rencontrées lors de la compilation Arduino Core 3.3.2.
+
+### Changed
+- Documentation (README, bannière web) actualisée vers la version 2.8.4 pour refléter le correctif de génération du script client.
+
+---
+
 ## [2.8.3] - 2025-10-29
 
 ### Fixed
