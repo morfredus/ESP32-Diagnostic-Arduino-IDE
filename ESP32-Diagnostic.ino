@@ -1,9 +1,12 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.14
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.15
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v2.8.15:
+ * - Consolidation de la temporisation WiFi via un unique `constexpr` dans `config.h`, supprimant tout conflit de macro à la compilation.
  *
  * Nouveautés v2.8.14:
  * - Simplification de la temporisation WiFi : une unique définition configurable évite tout doublon lors de la compilation.
@@ -178,7 +181,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.14"
+#define DIAGNOSTIC_VERSION "2.8.15"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;

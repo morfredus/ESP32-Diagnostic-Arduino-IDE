@@ -1,4 +1,4 @@
-# Référence de configuration ESP32-Diagnostic (v2.8.14)
+# Référence de configuration ESP32-Diagnostic (v2.8.15)
 
 Ce document récapitule l'ensemble des paramètres modifiables. Consultez-le avant toute compilation personnalisée.
 
@@ -20,6 +20,7 @@ Ce document récapitule l'ensemble des paramètres modifiables. Consultez-le ava
 | `SCREEN_ADDRESS` | `0x3C` | Adresse I2C par défaut de l'écran OLED. |
 | `ENABLE_BLUETOOTH_AUTOTEST` | `true` | Affiche le bouton d'auto-test Bluetooth lorsque la pile est compilée. |
 | `WIRELESS_STATUS_REFRESH_MS` | `3000` | Intervalle (ms) entre deux rafraîchissements du bandeau sans fil. |
+| `WIFI_CONNECT_TIMEOUT_MS` | `12000` | Temps d'attente maximal (ms) par SSID avant de passer au réseau suivant. |
 
 > Astuce : `config.h` est versionné. Vos ajustements restent donc en place après un `git pull`.
 
@@ -36,7 +37,7 @@ Ce document récapitule l'ensemble des paramètres modifiables. Consultez-le ava
 
 > Commentez les réseaux inutilisés : le gabarit gère automatiquement les virgules et accolades.
 
-> Depuis la v2.8.12, le firmware parcourt automatiquement chaque entrée `WIFI_CREDENTIAL` valide jusqu'à établir la connexion (sinon, le repli SoftAP est proposé si activé). La mise à jour 2.8.14 conserve ce fonctionnement tout en garantissant une unique définition de la temporisation WiFi dans `config.h` pour éviter toute redéclaration.
+> Depuis la v2.8.12, le firmware parcourt automatiquement chaque entrée `WIFI_CREDENTIAL` valide jusqu'à établir la connexion (sinon, le repli SoftAP est proposé si activé). La mise à jour 2.8.15 conserve ce fonctionnement tout en exposant la temporisation WiFi via un unique `constexpr` dans `config.h`, évitant toute collision de définitions lors de la compilation.
 
 > `wifi-config.h` figure dans `.gitignore`. Ne le publiez jamais.
 

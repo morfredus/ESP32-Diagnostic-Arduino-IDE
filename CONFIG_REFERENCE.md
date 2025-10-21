@@ -1,4 +1,4 @@
-# ESP32-Diagnostic Configuration Reference (v2.8.14)
+# ESP32-Diagnostic Configuration Reference (v2.8.15)
 
 This document centralises every tunable option exposed by the firmware. Review it before compiling a customised build.
 
@@ -20,6 +20,7 @@ This document centralises every tunable option exposed by the firmware. Review i
 | `SCREEN_ADDRESS` | `0x3C` | Default I2C address for the OLED screen. |
 | `ENABLE_BLUETOOTH_AUTOTEST` | `true` | Displays the Bluetooth self-test button when the stack is enabled in the build. |
 | `WIRELESS_STATUS_REFRESH_MS` | `3000` | Interval (ms) between automatic refreshes of the wireless banner. |
+| `WIFI_CONNECT_TIMEOUT_MS` | `12000` | Maximum time (ms) spent waiting for each configured SSID before trying the next one. |
 
 > Tip: `config.h` is versioned. Keep your custom values in place; they will be preserved when pulling updates.
 
@@ -38,7 +39,7 @@ WiFi credentials are stored separately to avoid leaking secrets:
 
 > Comment out unused lines—the macro-based template manages braces and commas for you.
 
-> Since v2.8.12 the firmware automatically iterates over every valid `WIFI_CREDENTIAL` entry until one connects (otherwise it falls back to SoftAP if enabled). The v2.8.14 update keeps this flow while ensuring the WiFi timeout is defined once in `config.h` to avoid duplicate declarations.
+> Since v2.8.12 the firmware automatically iterates over every valid `WIFI_CREDENTIAL` entry until one connects (otherwise it falls back to SoftAP if enabled). The v2.8.15 update keeps this flow while exposing the WiFi timeout as a single `constexpr` in `config.h`, preventing duplicate macro definitions during compilation.
 
 > `wifi-config.h` is listed in `.gitignore`. Never commit this file.
 
