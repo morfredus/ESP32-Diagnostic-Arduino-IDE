@@ -1,5 +1,5 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.15
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.15-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -181,7 +181,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.14-dev"
+#define DIAGNOSTIC_VERSION "2.8.15-dev"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -2588,7 +2588,8 @@ void handleExportCSV() {
   String wifiHostname = diagnosticData.wifiHostname.length() ? diagnosticData.wifiHostname : String("-");
   String resetReason = getResetReason();
 
-  String csv = String(T().category) + "," + String(T().parameter) + "," + String(T().value) + "\r\n";
+  String csv = "\xEF\xBB\xBF";
+  csv += String(T().category) + "," + String(T().parameter) + "," + String(T().value) + "\r\n";
 
   csv += "Chip," + String(T().model) + "," + diagnosticData.chipModel + "\r\n";
   csv += "Chip," + String(T().revision) + "," + diagnosticData.chipRevision + "\r\n";
