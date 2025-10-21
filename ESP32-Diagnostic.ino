@@ -453,6 +453,8 @@ void updateBluetoothDerivedState() {
 }
 
 // ========== STRUCTURES ==========
+constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 12000;
+
 struct DiagnosticInfo {
   String chipModel;
   String chipRevision;
