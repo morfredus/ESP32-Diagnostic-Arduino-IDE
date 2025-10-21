@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.8.11
+# ESP32 Complete Diagnostic v2.8.12
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.8.11**: Fixes the WiFi runtime initialisation so the firmware compiles cleanly (no more `wifiRuntime` errors) and keeps the documentation in sync with the updated version.
+**What's new in v2.8.12**: Restores the WiFi connection sequence so every credential declared in `wifi-config.h` is tried automatically (no more false “no WiFi network” message) and refreshes the documentation to match the new behaviour.
 
 ## ✨ Features
 
@@ -339,7 +339,7 @@ If some texts remain in French:
 
 **Never share `wifi-config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.8.11
+## 📁 Project Structure v2.8.12
 
 ```
 ESP32-Diagnostic/
@@ -356,10 +356,10 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v2.8.11 (2025-10-20) - WIFI RUNTIME COMPILE FIX
+### v2.8.12 (2025-10-20) - WIFI CREDENTIALS LOOP FIX
 
-- Fixes the WiFi runtime structure declaration so Arduino builds no longer fail with `wifiRuntime` scope errors.
-- Keeps all documentation (README, guides, configuration references) aligned with version 2.8.11 and the corrected header information.
+- Restores the WiFi connection loop so every entry defined in `wifi-config.h` is attempted in order (the firmware no longer reports “no WiFi network” when credentials exist).
+- Keeps the bilingual documentation (README, guides, configuration references) aligned with version 2.8.12 and the updated setup instructions.
 
 ### v2.8.10 (2025-10-20) - STICKY NAVIGATION & IP BANNER
 
@@ -446,8 +446,8 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.8.11 ESP32 Arduino Core 3.3.2 + WiFi runtime compile fix and sticky wireless banner
-**Last update**: November 2025
+**Current version**: 2.8.12 ESP32 Arduino Core 3.3.2 + WiFi credentials loop fix and sticky wireless banner
+**Last update**: 20 October 2025
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.3.2+
 

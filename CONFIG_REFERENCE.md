@@ -1,4 +1,4 @@
-# ESP32-Diagnostic Configuration Reference (v2.8.11)
+# ESP32-Diagnostic Configuration Reference (v2.8.12)
 
 This document centralises every tunable option exposed by the firmware. Review it before compiling a customised build.
 
@@ -37,6 +37,8 @@ WiFi credentials are stored separately to avoid leaking secrets:
 ```
 
 > Comment out unused lines—the macro-based template manages braces and commas for you.
+
+> Since v2.8.12 the firmware automatically iterates over every valid `WIFI_CREDENTIAL` entry until one connects (otherwise it falls back to SoftAP if enabled).
 
 > `wifi-config.h` is listed in `.gitignore`. Never commit this file.
 

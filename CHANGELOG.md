@@ -5,6 +5,14 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.12] - 2025-10-20
+
+### Fixed
+- Restauration de la boucle de connexion WiFi : toutes les entrées déclarées dans `wifi-config.h` sont désormais essayées en séquence, supprimant les messages « Pas de WiFi » alors que des identifiants sont fournis.
+- Documentation FR/EN mise à jour (README, guides, références) pour refléter la version 2.8.12 et rappeler la procédure de configuration.
+
+---
+
 ## [2.8.11] - 2025-10-20
 
 ### Fixed

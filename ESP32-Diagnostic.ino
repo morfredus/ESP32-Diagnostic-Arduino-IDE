@@ -1,9 +1,13 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.11
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.12
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v2.8.12:
+ * - Correction de la détection des réseaux WiFi configurés : la séquence de connexion parcourt désormais systématiquement les entrées de `wifi-config.h`.
+ * - Documentation FR/EN synchronisée pour détailler ce correctif et la procédure de configuration actualisée.
  *
  * Nouveautés v2.8.11:
  * - Correction de la compilation (initialisation WiFi) : la structure d'état est définie avant utilisation pour éviter les erreurs « wifiRuntime not declared ».
@@ -171,7 +175,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.11"
+#define DIAGNOSTIC_VERSION "2.8.12"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -267,13 +271,11 @@ bool wifiCredentialValid(const WiFiCredential& cred) {
 
 size_t countConfiguredWiFiNetworks() {
   size_t count = 0;
-#if defined(WIFI_NETWORK_COUNT)
-  for (size_t i = 0; i < WIFI_NETWORK_COUNT; ++i) {
-    if (wifiCredentialValid(WIFI_NETWORKS[i])) {
+  for (const auto& cred : WIFI_NETWORKS) {
+    if (wifiCredentialValid(cred)) {
       ++count;
     }
   }
-#endif
   return count;
 }
 
@@ -334,9 +336,10 @@ bool startSoftAPFallback() {
 bool connectToConfiguredNetworks() {
   bool connected = false;
 
-#if defined(WIFI_NETWORK_COUNT)
-  for (size_t i = 0; i < WIFI_NETWORK_COUNT && !connected; ++i) {
-    const WiFiCredential& cred = WIFI_NETWORKS[i];
+  for (const auto& cred : WIFI_NETWORKS) {
+    if (connected) {
+      break;
+    }
     if (!wifiCredentialValid(cred)) {
       continue;
     }
@@ -358,7 +361,6 @@ bool connectToConfiguredNetworks() {
       WiFi.disconnect(true, false);
     }
   }
-#endif
 
   return connected;
 }

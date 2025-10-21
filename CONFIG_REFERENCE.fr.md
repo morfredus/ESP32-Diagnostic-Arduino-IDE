@@ -1,4 +1,4 @@
-# Référence de configuration ESP32-Diagnostic (v2.8.11)
+# Référence de configuration ESP32-Diagnostic (v2.8.12)
 
 Ce document récapitule l'ensemble des paramètres modifiables. Consultez-le avant toute compilation personnalisée.
 
@@ -35,6 +35,8 @@ Ce document récapitule l'ensemble des paramètres modifiables. Consultez-le ava
 ```
 
 > Commentez les réseaux inutilisés : le gabarit gère automatiquement les virgules et accolades.
+
+> Depuis la v2.8.12, le firmware parcourt automatiquement chaque entrée `WIFI_CREDENTIAL` valide jusqu'à établir la connexion (sinon, le repli SoftAP est proposé si activé).
 
 > `wifi-config.h` figure dans `.gitignore`. Ne le publiez jamais.
 
