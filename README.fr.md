@@ -3,7 +3,7 @@ Disponible en plusieurs langues :
 - Français : README.fr.md
 - English: README.md
 -->
-# Diagnostic Complet ESP32 v2.8.12
+# Diagnostic Complet ESP32 v2.8.13
 
 [🇬🇧 English version](README.md) | 🇫🇷 Version française
 
@@ -15,7 +15,7 @@ Disponible en plusieurs langues :
 
 Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via une interface web moderne. Il automatise les tests matériels (LED, NeoPixel, OLED, GPIO, ADC, Touch, PWM), dresse l'inventaire mémoire, scanne les bus I2C/SPI et génère des rapports détaillés.
 
-**Nouveautés de la v2.8.12** : démarrage sécurisé même sans identifiants WiFi (les appels aux API patientent jusqu'à l'initialisation du pilote, supprimant l'assertion `xQueueSemaphoreTake`) et exports/onglets Sans fil harmonisés avec des valeurs « — »/`null` lorsque les informations réseau sont absentes.
+**Nouveautés de la v2.8.13** : compatibilité de compilation renforcée pour le core Arduino 3.3.2 – la détection du pilote WiFi s'appuie désormais sur `esp_wifi_get_mode`, disponible sur toutes les cibles supportées, supprimant l'appel manquant à `esp_wifi_is_initialized`.
 
 ## ✨ Fonctionnalités principales
 
@@ -42,7 +42,7 @@ Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via
 
 ### Interface web
 - **8 onglets** : Vue d'ensemble, LEDs, Écrans, Tests avancés, GPIO, Sans fil, Performance, Export
-- **Bandeau sans fil** (v2.8.6, affiné en v2.8.12) – indicateurs WiFi/Bluetooth temps réel, conscience STA/AP, détection du pilote et rappels si le Bluetooth est désactivé à la compilation
+- **Bandeau sans fil** (v2.8.6, affiné en v2.8.13) – indicateurs WiFi/Bluetooth temps réel, conscience STA/AP, détection du pilote et rappels si le Bluetooth est désactivé à la compilation
 - **Statuts uniformes** (v2.8.7 affiné en v2.8.8) – préfixes ⏳/✅/❌ cohérents jusqu'à la fin des actions
 - **Responsive & sans pop-up** – compatible mobile/tablette/desktop
 - **API REST** – endpoints JSON pour intégration externe
@@ -118,6 +118,7 @@ ESP32-Diagnostic/
 
 ## 🔄 Historique des versions récentes
 
+- **v2.8.13 – 20/10/2025** : compatibilité de compilation restaurée pour le core 3.3.2 en utilisant `esp_wifi_get_mode` afin d'éviter l'appel manquant à `esp_wifi_is_initialized`.
 - **v2.8.12 – 20/10/2025** : démarrage WiFi sécurisé (attente du pilote, plus d'assertion `queue.c:1709`) et exports/onglets Sans fil affichant « — »/`null` lorsque les informations réseau sont indisponibles.
 - **v2.8.11 – 20/10/2025** : normalisation des booléens du bandeau sans fil (voyants WiFi/Bluetooth cohérents) et renommage du guide français en `USER_GUIDE.fr.md`.
 - **v2.8.10 – 20/10/2025** : modèle `wifi-config.h` sécurisé (virgule finale par défaut) et détection WiFi du bandeau renforcée lorsque le Bluetooth est désactivé.

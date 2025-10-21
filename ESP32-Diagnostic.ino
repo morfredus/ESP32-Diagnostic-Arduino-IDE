@@ -1,9 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.12
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.13
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v2.8.13:
+ * - Compatibilité renforcée avec l'Arduino Core 3.3.2 : la détection du pilote WiFi utilise
+ *   désormais `esp_wifi_get_mode`, disponible sur toutes les configurations ciblées, ce qui
+ *   évite l'erreur de compilation liée à `esp_wifi_is_initialized`.
  *
  * Nouveautés v2.8.12:
  * - Stabilisation du démarrage : toutes les lectures WiFi attendent désormais l'initialisation du pilote, évitant l'assertion `xQueueSemaphoreTake` quand aucun réseau n'est configuré.
@@ -175,7 +180,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.12"
+#define DIAGNOSTIC_VERSION "2.8.13"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -258,7 +263,12 @@ String jsonEscape(const String& input) {
 
 bool isWiFiDriverInitialized() {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 1, 0)
-  return esp_wifi_is_initialized();
+  wifi_mode_t currentMode;
+  esp_err_t status = esp_wifi_get_mode(&currentMode);
+  if (status == ESP_ERR_WIFI_NOT_INIT) {
+    return false;
+  }
+  return true;
 #else
   return true;
 #endif

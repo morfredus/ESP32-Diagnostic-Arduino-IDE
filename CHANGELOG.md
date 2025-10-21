@@ -5,6 +5,15 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.13] - 2025-10-20
+
+### Fixed
+- Restaure la compatibilité de compilation avec l'Arduino Core 3.3.2 en remplaçant l'appel à
+  `esp_wifi_is_initialized` par une vérification via `esp_wifi_get_mode`, disponible sur toutes
+  les cibles supportées.
+
+---
+
 ## [2.8.12] - 2025-10-20
 
 ### Fixed
