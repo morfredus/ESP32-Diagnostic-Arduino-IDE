@@ -1,5 +1,4 @@
 # Fichier de configuration WiFi (sensible - ne pas versionner)
-config.h
 wifi-config.h
 
 # Fichiers divers
