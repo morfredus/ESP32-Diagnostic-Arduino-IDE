@@ -1,9 +1,13 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.15-dev
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.17-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v2.8.17:
+ * - Zones de statut dédiées par test/action avec routage centralisé des messages dans l'onglet correspondant.
+ * - Harmonisation des libellés d'état (LED, NeoPixel, OLED, Wi-Fi, Bluetooth, Benchmarks, Export) et affichage multi-cartes des benchmarks.
  *
  * Nouveautés v2.8.15:
  * - Consolidation de la temporisation WiFi via un unique `constexpr` dans `config.h`, supprimant tout conflit de macro à la compilation.
@@ -181,7 +185,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.15-dev"
+#define DIAGNOSTIC_VERSION "2.8.17-dev"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -2977,8 +2981,8 @@ void handleRoot() {
   chunk += ".gpio-fail{border-color:#dc3545;background:#f8d7da}";
   chunk += ".wifi-list{max-height:400px;overflow-y:auto}";
   chunk += ".wifi-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;border-left:4px solid #667eea}";
-  chunk += ".status-live{padding:10px;background:#f0f0f0;border-radius:5px;text-align:center;font-weight:bold;margin:10px 0;min-height:1.6em;display:flex;align-items:center;justify-content:center;gap:8px;}";
-  chunk += ".status-field{gap:8px;}";
+  chunk += ".status-line{padding:10px 14px;background:#f5f7ff;border-left:4px solid #667eea;border-radius:8px;margin:12px 0;min-height:1.6em;color:#3f3d56;font-weight:500;}";
+  chunk += ".status-line:empty{display:none;}";
   chunk += ".gpio-hint{margin-top:12px;padding:12px;border-radius:10px;background:#eef2ff;color:#4c51bf;font-size:0.9em;min-height:1.6em;}";
   chunk += "input[type='number'],input[type='color'],input[type='text']{padding:10px;border:2px solid #ddd;border-radius:5px;font-size:1em}";
   chunk += ".status-row-bottom{width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:12px}";
@@ -3172,9 +3176,11 @@ void handleRoot() {
 
   // CHUNK 5: TAB LEDs
   chunk = "<div id='leds' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().builtin_led) + "</h2><div class='info-grid'>";
+  chunk += "<div class='section'><h2>" + String(T().builtin_led) + "</h2>";
+  chunk += "<div id='status-led' class='status-line'>" + builtinLedTestResult + "</div>";
+  chunk += "<div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().gpio) + "</div><div class='info-value'>GPIO " + String(BUILTIN_LED_PIN) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value status-field' id='builtin-led-status'>" + builtinLedTestResult + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='led-summary'>" + builtinLedTestResult + "</div></div>";
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "<input type='number' id='ledGPIO' value='" + String(BUILTIN_LED_PIN) + "' min='0' max='48' style='width:80px'>";
   chunk += "<button class='btn btn-info' onclick='configBuiltinLED()'>" + String(T().config) + "</button>";
@@ -3186,9 +3192,11 @@ void handleRoot() {
   chunk += "<div class='gpio-hint'>" + String(T().led_auto_hint) + "</div>";
   chunk += "</div>";
 
-  chunk += "<div class='section'><h2>" + String(T().neopixel) + "</h2><div class='info-grid'>";
+  chunk += "<div class='section'><h2>" + String(T().neopixel) + "</h2>";
+  chunk += "<div id='status-neopixel' class='status-line'>" + neopixelTestResult + "</div>";
+  chunk += "<div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().gpio) + "</div><div class='info-value'>GPIO " + String(LED_PIN) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value status-field' id='neopixel-status'>" + neopixelTestResult + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='neopixel-summary'>" + neopixelTestResult + "</div></div>";
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "<input type='number' id='neoGPIO' value='" + String(LED_PIN) + "' min='0' max='48' style='width:80px'>";
   chunk += "<input type='number' id='neoCount' value='" + String(LED_COUNT) + "' min='1' max='100' style='width:80px'>";
@@ -3205,8 +3213,10 @@ void handleRoot() {
   
   // CHUNK 6: TAB Screens
   chunk = "<div id='screens' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().oled_screen) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value status-field' id='oled-status'>" + oledTestResult + "</div></div>";
+  chunk += "<div class='section'><h2>" + String(T().oled_screen) + "</h2>";
+  chunk += "<div id='status-oled' class='status-line'>" + oledTestResult + "</div>";
+  chunk += "<div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='oled-summary'>" + oledTestResult + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().i2c_pins) + "</div><div class='info-value' id='oled-pins'>SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "</div></div>";
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "SDA: <input type='number' id='oledSDA' value='" + String(I2C_SDA) + "' min='0' max='48' style='width:70px'> ";
@@ -3241,49 +3251,50 @@ void handleRoot() {
   // CHUNK 7: TAB Tests
   chunk = "<div id='tests' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().adc_test) + "</h2>";
+  chunk += "<div id='status-adc' class='status-line'>" + adcTestResult + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testADC()'>" + String(T().test) + "</button>";
-  chunk += "<div id='adc-status' class='status-live'>" + adcTestResult + "</div>";
   chunk += "</div><div id='adc-results' class='info-grid'></div></div>";
-  
+
   chunk += "<div class='section'><h2>" + String(T().touch_test) + "</h2>";
+  chunk += "<div id='status-touch' class='status-line'>" + touchTestResult + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testTouch()'>" + String(T().test) + "</button>";
-  chunk += "<div id='touch-status' class='status-live'>" + touchTestResult + "</div>";
   chunk += "</div><div id='touch-results' class='info-grid'></div></div>";
-  
+
   chunk += "<div class='section'><h2>" + String(T().pwm_test) + "</h2>";
+  chunk += "<div id='status-pwm' class='status-line'>" + pwmTestResult + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testPWM()'>" + String(T().test) + "</button>";
-  chunk += "<div id='pwm-status' class='status-live'>" + pwmTestResult + "</div>";
   chunk += "</div></div>";
-  
+
   chunk += "<div class='section'><h2>" + String(T().spi_bus) + "</h2>";
+  chunk += "<div id='status-spi' class='status-line'>" + (spiInfo.length() > 0 ? spiInfo : String(T().click_button)) + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='scanSPI()'>" + String(T().scan) + "</button>";
-  chunk += "<div id='spi-status' class='status-live'>" + (spiInfo.length() > 0 ? spiInfo : String(T().click_button)) + "</div>";
   chunk += "</div></div>";
-  
+
   chunk += "<div class='section'><h2>" + String(T().flash_partitions) + "</h2>";
+  chunk += "<div id='status-partitions' class='status-line'>" + (partitionsInfo.length() > 0 ? String(T().completed) : String(T().click_button)) + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='listPartitions()'>" + String(T().list_partitions) + "</button>";
   chunk += "</div><div id='partitions-results' style='background:#fff;padding:15px;border-radius:10px;font-family:monospace;white-space:pre-wrap;font-size:0.85em'>";
   chunk += partitionsInfo.length() > 0 ? partitionsInfo : String(T().click_button);
   chunk += "</div></div>";
-  
+
   chunk += "<div class='section'><h2>" + String(T().memory_stress) + "</h2>";
+  chunk += "<div id='status-stress' class='status-line'>" + stressTestResult + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-danger' onclick='stressTest()'>" + String(T().start_stress) + "</button>";
-  chunk += "<div id='stress-status' class='status-live'>" + stressTestResult + "</div>";
   chunk += "</div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 8: TAB GPIO
   chunk = "<div id='gpio' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().gpio_test) + "</h2>";
+  chunk += "<div id='status-gpio' class='status-line'>" + String(T().click_to_test) + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testAllGPIO()'>" + String(T().test_all_gpio) + "</button>";
-  chunk += "<div id='gpio-status' class='status-live'>" + String(T().click_to_test) + "</div>";
   chunk += "</div><p class='gpio-hint'>ℹ️ Un GPIO indiqué comme ❌ FAIL peut simplement être réservé ou non câblé. Vérifiez le schéma matériel avant de conclure à une défaillance.</p><div id='gpio-results' class='gpio-grid'></div></div></div>";
   server.sendContent(chunk);
   
@@ -3308,12 +3319,17 @@ void handleRoot() {
   chunk += "</div></div>";
 
   chunk += "<div class='section'><h2>" + String(T().wifi_scanner) + "</h2>";
+  chunk += "<div id='status-wifi' class='status-line'>" + String(T().click_to_test) + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='scanWiFi()'>" + String(T().scan_networks) + "</button>";
-  chunk += "<div id='wifi-status' class='status-live'>" + String(T().click_to_test) + "</div>";
   chunk += "</div><div id='wifi-results' class='wifi-list'></div></div>";
 
   chunk += "<div class='section'><h2>" + String(T().bluetooth_section) + "</h2>";
+#if ENABLE_BLUETOOTH_AUTOTEST
+  chunk += "<div id='status-bt' class='status-line'>" + String(T().not_tested) + "</div>";
+#else
+  chunk += "<div id='status-bt' class='status-line'>" + String(T().bluetooth_test_not_compiled) + "</div>";
+#endif
   chunk += "<div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_state) + "</div><div class='info-value' id='bluetooth-controller'>-</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_capabilities) + "</div><div class='info-value' id='bluetooth-capabilities'>-</div></div>";
@@ -3322,9 +3338,6 @@ void handleRoot() {
   chunk += "<div style='text-align:center;margin:20px 0'>";
 #if ENABLE_BLUETOOTH_AUTOTEST
   chunk += "<button class='btn btn-primary' onclick='testBluetooth()'>" + String(T().bluetooth_test_button) + "</button>";
-  chunk += "<div id='bluetooth-status' class='status-live'>" + String(T().not_tested) + "</div>";
-#else
-  chunk += "<div id='bluetooth-status' class='status-live'>" + String(T().bluetooth_test_not_compiled) + "</div>";
 #endif
   chunk += "</div>";
   chunk += "<p id='bluetooth-hint' class='gpio-hint'></p>";
@@ -3337,16 +3350,17 @@ void handleRoot() {
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='runBenchmarks()'>" + String(T().run_benchmarks) + "</button>";
   chunk += "</div><div id='benchmark-results' class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_benchmark) + "</div><div class='info-value' id='cpu-bench'>" + String(T().not_tested) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_benchmark) + "</div><div class='info-value' id='mem-bench'>" + String(T().not_tested) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_performance) + "</div><div class='info-value' id='cpu-perf'>-</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_speed) + "</div><div class='info-value' id='mem-speed'>-</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_benchmark) + "</div><div class='info-value' id='cpu-bench'>" + String(T().not_tested) + "</div><div id='status-perf-cpu' class='status-line'></div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_benchmark) + "</div><div class='info-value' id='mem-bench'>" + String(T().not_tested) + "</div><div id='status-perf-mem' class='status-line'></div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_performance) + "</div><div class='info-value' id='cpu-perf'>-</div><div id='status-perf-panel-cpu' class='status-line'></div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_speed) + "</div><div class='info-value' id='mem-speed'>-</div><div id='status-perf-panel-mem' class='status-line'></div></div>";
   chunk += "</div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 11: TAB Export
   chunk = "<div id='export' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().data_export) + "</h2>";
+  chunk += "<div id='status-export' class='status-line'></div>";
   chunk += "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-top:20px'>";
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #667eea'>";
   chunk += "<h3 style='color:#667eea;margin-bottom:15px'>" + String(T().txt_file) + "</h3>";
@@ -3359,7 +3373,7 @@ void handleRoot() {
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #56ab2f'>";
   chunk += "<h3 style='color:#56ab2f;margin-bottom:15px'>" + String(T().csv_file) + "</h3>";
   chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String(T().for_excel) + "</p>";
-  chunk += "<a href='/export/csv' class='btn btn-success'>" + String(T().download_csv) + "</a></div>";
+  chunk += "<button type='button' class='btn btn-success' onclick='exportExcel()'>" + String(T().download_csv) + "</button></div>";
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #667eea'>";
   chunk += "<h3 style='color:#667eea;margin-bottom:15px'>" + String(T().printable_version) + "</h3>";
   chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String(T().pdf_format) + "</p>";

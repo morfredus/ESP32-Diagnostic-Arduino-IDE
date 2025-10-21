@@ -590,7 +590,7 @@ const Translations LANG_FR_TEXTS = {
   "Stress test GPIO en cours...",
   "Test GPIO en cours...",
   "Test Bluetooth en cours...",
-  "Benchmark CPU et mémoire en cours...",
+  "Benchmark CPU et mémoire en cours (~25 s)...",
   "En attente de configuration WiFi...",
   
   // Unités
@@ -889,7 +889,7 @@ const Translations LANG_EN_TEXTS = {
   "GPIO stress test running...",
   "GPIO test running...",
   "Bluetooth test running...",
-  "CPU and memory benchmark running...",
+  "CPU and memory benchmark running (~25 s)...",
   "Waiting for Wi-Fi configuration...",
   
   // Units
