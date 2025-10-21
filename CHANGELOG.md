@@ -5,6 +5,17 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.17] - 2025-10-20
+
+### Changed
+- Ajout de zones de statut dédiées par onglet (LEDs, écran, tests avancés, GPIO, Sans fil, Performance, Export) avec API `showStatus`/`clearStatus` pour afficher les libellés validés.
+- Harmonisation des messages de progression/fin des benchmarks CPU/mémoire et de l'export Excel, désormais déclenchés simultanément sur chaque carte.
+
+### Fixed
+- Le test OLED affiche explicitement « Test OLED terminé » une fois la séquence achevée et conserve le dernier compte-rendu matériel dans la fiche récapitulative.
+
+---
+
 ## [2.8.15] - 2025-10-20
 
 ### Fixed
