@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.6.0
+# ESP32 Complete Diagnostic v2.8.10
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.6.0**: Removed TFT screen handling, expanded OLED tooling with per-step controls, and streamlined I2C reconfiguration for the display.
+**What's new in v2.8.10**: A slimmer wireless banner now keeps the IP address visible alongside WiFi/Bluetooth indicators and the tab menu sticks to the top of the screen, so navigation and connectivity states remain accessible while scrolling.
 
 ## ✨ Features
 
@@ -23,13 +23,13 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **French** (default language)
 - **English**
 - **Dynamic switching**: FR/EN buttons in interface
-- **Real-time update**: No reload required
+- **Automatic refresh**: Immediate reload triggered after switching language
 - **Complete translations**: All texts, labels, messages and status
 
 ### Hardware Tests
-- **Built-in LED** - Configuration and testing with patterns (blink, fade)
-- **NeoPixel/WS2812B** - Multi-LED support with RGB effects
-- **OLED 0.96" I2C Screen** - 10 display tests including animations + manual step triggers
+- **Built-in LED** - Configuration and testing with patterns (auto-applies the selected GPIO on test launch, blink, fade)
+- **NeoPixel/WS2812B** - Multi-LED support with RGB effects (auto-applies GPIO/count before tests or animations)
+- **OLED 0.96" I2C Screen** - 10 display tests including animations + manual step triggers (auto reapplies SDA/SCL before tests/messages)
 - **GPIO** - Automatic testing of all available GPIO
 - **ADC** - Reading all analog channels
 - **Touch Pads** - Capacitive touch sensor testing
@@ -51,11 +51,21 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **Real-time** - Data refresh without reload
 - **Responsive** - Mobile/tablet/desktop compatible
 - **Complete exports** - TXT, JSON, CSV, printable PDF version
+- **Wireless status banner** (since v2.8.6, refined in v2.8.10) - Slim fixed header with live WiFi/Bluetooth indicators, always-visible IP address, STA/AP awareness, compile-time Bluetooth hints, safe driver detection and inline reminders for LED/NeoPixel/OLED tests
+- **Inline status feedback** (since v2.8.7, refined in v2.8.9) - Contextual ⏳/✅/❌ messages for each action (LED effects, NeoPixel animations, OLED steps/messages, ADC, Touch, PWM, SPI, GPIO, WiFi scan, Bluetooth) with automatic config acknowledgements and accurate completion states
 
 ### Network Access
 - **mDNS** - Access via http://ESP32-Diagnostic.local
 - **Multi-WiFi** - Automatic connection with failover
 - **REST API** - JSON endpoints for integration
+
+## 📚 Documentation
+
+- [`README.fr.md`](README.fr.md) – guide complet en français avec les mêmes sections que la version anglaise.
+- [`USER_GUIDE.md`](USER_GUIDE.md) – setup & compilation checklist (EN) for Arduino IDE 2.x.
+- [`USER_GUIDE.fr.md`](USER_GUIDE.fr.md) – mode d'emploi détaillé en français (pré-requis, bibliothèques, compilation Arduino IDE).
+- [`CONFIG_REFERENCE.md`](CONFIG_REFERENCE.md) – English reference for every configurable parameter (`config.h`, `wifi-config.h`).
+- [`CONFIG_REFERENCE.fr.md`](CONFIG_REFERENCE.fr.md) – référence française des paramètres personnalisables.
 
 ## 🎯 Compatible Boards
 
@@ -75,7 +85,7 @@ Tested and optimized for:
 
 ### Software
 - **Arduino IDE** 2.x or higher
-- **ESP32 Arduino Core** 3.1.3 or higher
+- **ESP32 Arduino Core** 3.3.2 or higher
 
 ### Required Arduino Libraries
 
@@ -101,54 +111,39 @@ Download or clone this project to your Arduino folder.
 
 ### 2. Required Files
 
-**Project structure:**
+**Project structure (short view):**
 ```
 ESP32-Diagnostic/
-├── ESP32-Diagnostic.ino              (main file)
-├── languages.h                       (NEW - translations)
-├── config.h.example                  (configuration template)
-├── config.h                          (your credentials - to create)
-└── README.md
+├── ESP32-Diagnostic.ino              (main firmware)
+├── config.h                          (user-tunable hardware defaults – versioned)
+├── wifi-config.example.h             (WiFi credentials template)
+├── app_script.h                      (client-side JS generator)
+├── languages.h                       (translations)
+├── README.md / README.fr.md          (project overview)
+├── USER_GUIDE.md / USER_GUIDE.fr.md
+├── CONFIG_REFERENCE.md / CONFIG_REFERENCE.fr.md
+└── .gitignore                        (ignores wifi-config.h)
 ```
 
-### 3. WiFi Configuration
+### 3. Configure the project
 
-**IMPORTANT:** Create a `config.h` file in the same folder as the `.ino`
-
-**Option A - Rename the example file:**
-Rename the file `example-config.h` to `config.h`
-Edit the file and add your WiFi network(s) by filling in the values
+1. **WiFi credentials (`wifi-config.h`)**
+   - Copy `wifi-config.example.h` to `wifi-config.h` (kept out of Git).
+   - Edit the list of networks:
 
 ```cpp
-const char* WIFI_SSID_1 = "SSID1";
-const char* WIFI_PASS_1 = "Password1";
-
-// Add as many networks as needed
-// const char* WIFI_SSID_2 = "SSID2";
-// const char* WIFI_PASS_2 = "Password2";
-
-// const char* WIFI_SSID_3 = "SSID3";
-// const char* WIFI_PASS_3 = "Password3";
+static const WiFiCredential WIFI_NETWORKS[] = {
+  {"YourNetwork", "YourPassword"},
+  {"BackupNetwork", "BackupPassword"}
+};
 ```
 
-**Option B - Create `config.h` manually:**
-```cpp
-#ifndef CONFIG_H
-#define CONFIG_H
+   - You can add or remove entries; empty SSIDs are ignored automatically at runtime.
+   - ✅ Keep the trailing comma at the end of each line (including the last one) so that uncommenting or duplicating entries never breaks the compilation.
 
-// ========== WIFI CONFIGURATION ==========
-const char* WIFI_SSID_1 = "SSID1";
-const char* WIFI_PASS_1 = "Password1";
-
-// Add as many networks as needed
-// const char* WIFI_SSID_2 = "SSID2";
-// const char* WIFI_PASS_2 = "Password2";
-
-// const char* WIFI_SSID_3 = "SSID3";
-// const char* WIFI_PASS_3 = "Password3";
-
-#endif
-```
+2. **Hardware defaults (`config.h`)**
+   - Review pin assignments (`CUSTOM_LED_PIN`, `DEFAULT_I2C_SDA/SCL`), NeoPixel count, `MDNS_HOSTNAME`, Bluetooth auto-test flag, and the wireless refresh interval `WIRELESS_STATUS_REFRESH_MS`.
+   - Adjust the values to match your board before compiling.
 
 Replace `YourSSID` and `YourPassword` with your actual WiFi credentials.
 
@@ -334,7 +329,7 @@ If some texts remain in French:
 
 - **Startup time**: ~5s
 - **Web page generation**: ~200ms
-- **Language switching**: <100ms (no reload)
+- **Language switching**: <1s (auto reload to apply translations)
 - **Heap memory used**: ~250KB
 - **Multilingual overhead**: ~15KB Flash
 
@@ -342,27 +337,67 @@ If some texts remain in French:
 
 ⚠️ Local/development use only.
 
-**Never share `config.h` with your WiFi credentials.**
+**Never share `wifi-config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.6.0
+## 📁 Project Structure v2.8.10
 
 ```
 ESP32-Diagnostic/
 ├── ESP32-Diagnostic.ino              (main code)
-├── languages.h                       (translation system - NEW)
-├── config.h.example                  (template)
-├── config.h                          (your credentials - gitignore)
-├── README.md                         (this file)
-├── README.fr.md                      (French version of README)
-└── .gitignore                        (excludes config.h)
+├── config.h                          (hardware defaults & tunable options)
+├── wifi-config.example.h             (WiFi template → copy to wifi-config.h)
+├── app_script.h                      (client-side JS generator – wireless banner, auto-config helpers)
+├── languages.h                       (translation system)
+├── README.md / README.fr.md          (project overview)
+├── USER_GUIDE.md / USER_GUIDE.fr.md
+├── CONFIG_REFERENCE.md / CONFIG_REFERENCE.fr.md
+└── .gitignore                        (excludes wifi-config.h)
 ```
 
 ## 🔄 Changelog
 
-### v2.6.0 (2025) - OLED CONTROLS REFRESH
-- Removed TFT SPI screen support from firmware, UI and documentation
-- Added individual OLED test buttons alongside the full test workflow
-- Simplified OLED I2C reconfiguration from the web interface
+### v2.8.10 (2025-10-20) - STICKY NAVIGATION & IP BANNER
+
+- Top banner keeps WiFi/Bluetooth indicators and the current IP address in sight while scrolling thanks to a compact, responsive layout.
+- Tab navigation and language selector remain accessible at all times with the new fixed menu.
+- Updated bilingual documentation (README, guides, references) reflects the streamlined header and version 2.8.10.
+
+### v2.8.9 (2025-10-20) - CONTEXTUAL STATUS & RELIABLE BANNER
+
+- Contextual status messages for every hardware action (LED/NeoPixel/OLED/ADC/Touch/PWM/SPI/GPIO/Bluetooth) and an explicit “Scanning…” message during WiFi surveys.
+- Wireless banner fixes: STA/AP recognition, Bluetooth disabled-at-build detection and no more inverted indicators.
+- `/api/wireless-info` now returns normalized states consumed by the web UI and documentation (README, guides) has been updated accordingly.
+
+### v2.8.8 (2025-10-20) - WIRELESS INDICATORS & SAFE STARTUP
+- Hardened WiFi boot sequence with optional SoftAP fallback to avoid queue assertions when no credentials are provided.
+- Macro-driven `wifi-config.example.h` template simplifies adding multiple networks without syntax errors.
+- Wireless banner retains STA/AP awareness, marks disabled Bluetooth stacks as “Indisponible” and clears stale metrics automatically.
+- Updated bilingual documentation (README + user guides) reflecting the 20 Oct 2025 release.
+
+### v2.8.7 (2025) - INLINE STATUS CLARITY
+- Added consistent ⏳/✅/❌ status formatting for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth actions.
+- Ensured "Test en cours..." messages persist until completion and reconfiguration feedback is aligned across automatic Config flows.
+
+### v2.8.6 (2025) - WIRELESS STATUS & AUTO CONFIG
+- Added a fixed header banner that displays WiFi/Bluetooth connectivity without relying on modal alerts.
+- LED, NeoPixel and OLED tests now auto-apply the entered configuration before their first run while keeping the Config buttons for manual adjustments.
+
+### v2.8.5 (2025) - CLIENT SCRIPT REWRITE
+- Rebuilt the generated `/js/app.js` template to export all handlers, fix the FR/EN toggle and restore working tab navigation.
+- Updated documentation banners and UI headers to advertise version 2.8.5 and the restored UI behaviour.
+
+### v2.8.3 (2025) - API RESTORATION & BLUETOOTH FEEDBACK
+- Fixed the escaped JavaScript bundle and reinstated all REST handlers (WiFi, LEDs, NeoPixel, OLED, tests, exports).
+- Wireless diagnostics JSON now exposes Bluetooth availability/status with contextual hints in both languages.
+
+### v2.8.1 (2025) - ESP32 ARDUINO CORE 3.3.2 & WIFI AVANCÉ
+- Compatibilité validée avec l'Arduino Core ESP32 3.3.2 et affichage de la version du core dans l'interface, les exports et l'API.
+- Nouvelles métriques WiFi (mode, veille, bande, plan de bande, puissance TX, hostname) visibles sur l'onglet Sans fil, la vue d'ensemble et tous les formats d'export.
+
+### v2.6.3 (2025) - CHANGEMENT DE LANGUE IMMÉDIAT
+- Replaced blocking popups with inline status banners on every test panel
+- Reserved fixed-height feedback areas to prevent layout jumps during updates
+- Highlighted that a ❌ on GPIO tests can signal a reserved or unconnected pin
 
 ### v2.5.1 (2025) - PSRAM GUIDANCE
 - ✅ **Clearer PSRAM hardware status** when the board supports external RAM but it is disabled in the Arduino IDE
@@ -384,7 +419,7 @@ ESP32-Diagnostic/
 - Dynamic I2C pin configuration
 - TXT/JSON/CSV/Print exports
 - `server.sendContent()` support
-- WiFi externalized to `config.h`
+- WiFi externalized to `wifi-config.h`
 
 ## 📝 License
 
@@ -402,7 +437,7 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
-**v2.6.0 - OLED controls refresh & TFT removal**
+**v2.6.3 - Changement de langue immédiat**
 **v2.5.1 - Clearer PSRAM status guidance**
 **v2.5 - Translation of export files**
 **v2.4 - Multilingual system**
@@ -410,10 +445,10 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.6.0 Multilingual + OLED tooling refresh
-**Last update**: October 2025  
+**Current version**: 2.8.10 ESP32 Arduino Core 3.3.2 + sticky wireless banner with always-visible IP and tabs
+**Last update**: November 2025
 **Available languages**: French (default), English  
-**Support**: ESP32 Arduino Core 3.1.3+
+**Support**: ESP32 Arduino Core 3.3.2+
 
 🌐 **Access**: http://ESP32-Diagnostic.local  
 🇫🇷🇬🇧 **Language switching**: FR/EN buttons in interface
