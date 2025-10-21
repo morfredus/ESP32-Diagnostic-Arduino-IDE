@@ -1,9 +1,13 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.10
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.11
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v2.8.11:
+ * - Correction de la compilation (initialisation WiFi) : la structure d'état est définie avant utilisation pour éviter les erreurs « wifiRuntime not declared ».
+ * - Documentation FR/EN révisée pour signaler la version 2.8.11 et le correctif associé.
  *
  * Nouveautés v2.8.10:
  * - Bandeau supérieur affiné affichant en permanence l'adresse IP aux côtés des voyants WiFi/Bluetooth avec une mise en page adaptative.
@@ -167,7 +171,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.10"
+#define DIAGNOSTIC_VERSION "2.8.11"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -221,7 +225,17 @@ struct BluetoothDiagnostics {
   String availabilityHint;
 };
 
+struct WiFiRuntimeState {
+  bool driverStarted = false;
+  bool stationConnected = false;
+  bool apActive = false;
+  bool softApFallback = false;
+  wl_status_t status = WL_NO_SHIELD;
+  wifi_mode_t mode = WIFI_MODE_NULL;
+};
+
 BluetoothDiagnostics bluetoothInfo = {false, false, false, false, false, String(), false, String(), String()};
+WiFiRuntimeState wifiRuntime;
 
 String jsonEscape(const String& input) {
   String output;
@@ -432,17 +446,6 @@ void updateBluetoothDerivedState() {
 }
 
 // ========== STRUCTURES ==========
-struct WiFiRuntimeState {
-  bool driverStarted = false;
-  bool stationConnected = false;
-  bool apActive = false;
-  bool softApFallback = false;
-  wl_status_t status = WL_NO_SHIELD;
-  wifi_mode_t mode = WIFI_MODE_NULL;
-};
-
-WiFiRuntimeState wifiRuntime;
-
 constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 12000;
 
 struct DiagnosticInfo {

@@ -5,6 +5,14 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.11] - 2025-10-20
+
+### Fixed
+- Correction de la compilation du firmware : la structure d'état WiFi est désormais définie avant utilisation, supprimant les erreurs `wifiRuntime` non déclaré.
+- Documentation FR/EN mise à jour pour refléter la version 2.8.11 et ce correctif.
+
+---
+
 ## [2.8.10] - 2025-10-20
 
 ### Added

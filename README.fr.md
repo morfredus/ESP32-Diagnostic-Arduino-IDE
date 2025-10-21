@@ -3,7 +3,7 @@ Disponible en plusieurs langues :
 - Français : README.fr.md
 - English: README.md
 -->
-# Diagnostic Complet ESP32 v2.8.10
+# Diagnostic Complet ESP32 v2.8.11
 
 [🇬🇧 English version](README.md) | 🇫🇷 Version française
 
@@ -15,7 +15,7 @@ Disponible en plusieurs langues :
 
 Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via une interface web moderne. Il automatise les tests matériels (LED, NeoPixel, OLED, GPIO, ADC, Touch, PWM), dresse l'inventaire mémoire, scanne les bus I2C/SPI et génère des rapports détaillés.
 
-**Nouveautés de la v2.8.10** : un bandeau allégé conserve en permanence l'adresse IP aux côtés des voyants WiFi/Bluetooth et le menu d'onglets reste collé en haut de l'écran pour garder la navigation et l'état réseau accessibles même en faisant défiler la page.
+**Nouveautés de la v2.8.11** : correction de la compilation (initialisation WiFi) – la structure d'état est déclarée avant usage, éliminant l'erreur `wifiRuntime` non défini, et la documentation FR/EN est synchronisée avec cette version.
 
 ## ✨ Fonctionnalités principales
 
@@ -118,6 +118,7 @@ ESP32-Diagnostic/
 
 ## 🔄 Historique des versions récentes
 
+- **v2.8.11 – 20/10/2025** : correctif de compilation (structure WiFi déclarée avant usage) pour supprimer l'erreur `wifiRuntime` et documentation alignée sur la version.
 - **v2.8.10 – 20/10/2025** : bandeau supérieur affiné avec adresse IP permanente, voyants WiFi/Bluetooth réactifs et menu d'onglets/langues collé pour rester visible lors du défilement.
 - **v2.8.9 – 20/10/2025** : statuts contextualisés pour chaque test (LED/NeoPixel/OLED/ADC/Touch/PWM/SPI/GPIO/Bluetooth), message « Scan en cours... » lors des balayages WiFi et bannière sans fil sans inversion des indicateurs Bluetooth/WiFi.
 - **v2.8.8 – 20/10/2025** : séquence WiFi sécurisée (repli SoftAP), nouveau modèle `wifi-config.example.h` à macros et bannière STA/AP fiabilisée avec signalement « Indisponible ».

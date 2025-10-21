@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.8.10
+# ESP32 Complete Diagnostic v2.8.11
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.8.10**: A slimmer wireless banner now keeps the IP address visible alongside WiFi/Bluetooth indicators and the tab menu sticks to the top of the screen, so navigation and connectivity states remain accessible while scrolling.
+**What's new in v2.8.11**: Fixes the WiFi runtime initialisation so the firmware compiles cleanly (no more `wifiRuntime` errors) and keeps the documentation in sync with the updated version.
 
 ## ✨ Features
 
@@ -339,7 +339,7 @@ If some texts remain in French:
 
 **Never share `wifi-config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.8.10
+## 📁 Project Structure v2.8.11
 
 ```
 ESP32-Diagnostic/
@@ -356,11 +356,12 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v2.8.10 (2025-10-20) - STICKY NAVIGATION & IP BANNER
+### v2.8.11 (2025-10-20) - WIFI RUNTIME COMPILE FIX
 
-- Top banner keeps WiFi/Bluetooth indicators and the current IP address in sight while scrolling thanks to a compact, responsive layout.
-- Tab navigation and language selector remain accessible at all times with the new fixed menu.
-- Updated bilingual documentation (README, guides, references) reflects the streamlined header and version 2.8.10.
+- Fixes the WiFi runtime structure declaration so Arduino builds no longer fail with `wifiRuntime` scope errors.
+- Keeps all documentation (README, guides, configuration references) aligned with version 2.8.11 and the corrected header information.
+
+### v2.8.10 (2025-10-20) - STICKY NAVIGATION & IP BANNER
 
 ### v2.8.9 (2025-10-20) - CONTEXTUAL STATUS & RELIABLE BANNER
 
@@ -445,7 +446,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.8.10 ESP32 Arduino Core 3.3.2 + sticky wireless banner with always-visible IP and tabs
+**Current version**: 2.8.11 ESP32 Arduino Core 3.3.2 + WiFi runtime compile fix and sticky wireless banner
 **Last update**: November 2025
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.3.2+
