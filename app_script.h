@@ -725,6 +725,7 @@ inline String buildAppScript() {
     const bt = data.bluetooth || {};
     const wifiDot = document.getElementById('wifi-status-dot');
     const wifiLabel = document.getElementById('wifi-status-label');
+    const wifiPill = document.getElementById('wifi-status-pill');
     const wifiFlag = Object.prototype.hasOwnProperty.call(wifi, 'available') ? toBool(wifi.available) : true;
     const wifiStation = toBool(wifi.station_connected);
     const wifiAP = toBool(wifi.ap_active);
@@ -779,11 +780,14 @@ inline String buildAppScript() {
         break;
     }
 
-    const wifiIcon = wifiStateClass === 'online' ? '✅' : (wifiStateClass === 'offline' ? '❌' : '⏳');
     if (wifiLabel) {
-      wifiLabel.textContent = `${wifiIcon} ${indicator.wifiLabel} · ${wifiStateText}`;
+      wifiLabel.textContent = wifiStateText;
     }
     updateDotState(wifiDot, wifiStateClass);
+    if (wifiPill) {
+      wifiPill.classList.remove('state-online', 'state-offline', 'state-pending');
+      wifiPill.classList.add('state-' + (['online', 'offline', 'pending'].includes(wifiStateClass) ? wifiStateClass : 'pending'));
+    }
 
     let connectionText;
     if (!wifiAvailable && wifiStateRaw === 'unavailable') {
@@ -890,6 +894,7 @@ inline String buildAppScript() {
     setText('bluetooth-hint', hint);
     const btDot = document.getElementById('bt-status-dot');
     const btLabel = document.getElementById('bt-status-label');
+    const btPill = document.getElementById('bt-status-pill');
     const hasBluetoothHardware = btClassic || btBle;
     const btStateRaw = typeof bt.state === 'string' ? bt.state.toLowerCase() : '';
     let btStateClass = 'pending';
@@ -941,11 +946,14 @@ inline String buildAppScript() {
       btStateText = bt.hint;
     }
 
-    const btIcon = btStateClass === 'online' ? '✅' : (btStateClass === 'offline' ? '❌' : '⏳');
     if (btLabel) {
-      btLabel.textContent = `${btIcon} ${indicator.bluetoothLabel} · ${btStateText}`;
+      btLabel.textContent = btStateText;
     }
     updateDotState(btDot, btStateClass);
+    if (btPill) {
+      btPill.classList.remove('state-online', 'state-offline', 'state-pending');
+      btPill.classList.add('state-' + (['online', 'offline', 'pending'].includes(btStateClass) ? btStateClass : 'pending'));
+    }
   }
 
   function testBluetooth() {
