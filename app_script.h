@@ -52,6 +52,22 @@ inline String buildAppScript() {
     configUpdated: "{{CONFIG_UPDATED}}",
     configError: "{{CONFIG_ERROR}}",
     errorPrefix: "{{ERROR_PREFIX}}",
+    testingLed: "{{TESTING_LED}}",
+    testingLedEffect: "{{TESTING_LED_EFFECT}}",
+    testingLedOff: "{{TESTING_LED_OFF}}",
+    testingNeopixel: "{{TESTING_NEOPIXEL}}",
+    testingNeopixelEffect: "{{TESTING_NEOPIXEL_EFFECT}}",
+    testingNeopixelColor: "{{TESTING_NEOPIXEL_COLOR}}",
+    testingOledStep: "{{TESTING_OLED_STEP}}",
+    testingOledMessage: "{{TESTING_OLED_MESSAGE}}",
+    testingAdc: "{{TESTING_ADC}}",
+    testingTouch: "{{TESTING_TOUCH}}",
+    testingPwm: "{{TESTING_PWM}}",
+    testingSpi: "{{TESTING_SPI}}",
+    testingStress: "{{TESTING_STRESS}}",
+    testingGpio: "{{TESTING_GPIO}}",
+    testingBluetooth: "{{TESTING_BLUETOOTH}}",
+    wifiWaiting: "{{WIFI_WAITING}}",
     scanning: "{{SCANNING}}",
     ok: "{{OK}}",
     fail: "{{FAIL}}",
@@ -359,7 +375,7 @@ inline String buildAppScript() {
   function testBuiltinLED() {
     ensureBuiltinConfigured()
       .then(() => {
-        setStatusRunning('builtin-led-status');
+        setStatusRunning('builtin-led-status', messages.testingLed);
         return fetch('/api/builtin-led-test');
       })
       .then(r => r.json())
@@ -380,7 +396,7 @@ inline String buildAppScript() {
   function ledBlink() {
     ensureBuiltinConfigured()
       .then(() => {
-        setStatusRunning('builtin-led-status', messages.testing);
+        setStatusRunning('builtin-led-status', messages.testingLedEffect);
         return fetch('/api/builtin-led-control?action=blink');
       })
       .then(r => r.json())
@@ -400,7 +416,7 @@ inline String buildAppScript() {
   function ledFade() {
     ensureBuiltinConfigured()
       .then(() => {
-        setStatusRunning('builtin-led-status', messages.testing);
+        setStatusRunning('builtin-led-status', messages.testingLedEffect);
         return fetch('/api/builtin-led-control?action=fade');
       })
       .then(r => r.json())
@@ -420,7 +436,7 @@ inline String buildAppScript() {
   function ledOff() {
     ensureBuiltinConfigured()
       .then(() => {
-        setStatusRunning('builtin-led-status', messages.testing);
+        setStatusRunning('builtin-led-status', messages.testingLedOff);
         return fetch('/api/builtin-led-control?action=off');
       })
       .then(r => r.json())
@@ -447,7 +463,7 @@ inline String buildAppScript() {
   function testNeoPixel() {
     ensureNeoPixelConfigured()
       .then(() => {
-        setStatusRunning('neopixel-status');
+        setStatusRunning('neopixel-status', messages.testingNeopixel);
         return fetch('/api/neopixel-test');
       })
       .then(r => r.json())
@@ -468,7 +484,7 @@ inline String buildAppScript() {
   function neoPattern(pattern) {
     ensureNeoPixelConfigured()
       .then(() => {
-        setStatusRunning('neopixel-status', messages.testing);
+        setStatusRunning('neopixel-status', messages.testingNeopixelEffect);
         return fetch('/api/neopixel-pattern?pattern=' + encodeURIComponent(pattern));
       })
       .then(r => r.json())
@@ -494,7 +510,7 @@ inline String buildAppScript() {
     const b = parseInt(value.substring(5, 7), 16) || 0;
     ensureNeoPixelConfigured()
       .then(() => {
-        setStatusRunning('neopixel-status', messages.testing);
+        setStatusRunning('neopixel-status', messages.testingNeopixelColor);
         return fetch(`/api/neopixel-color?r=${r}&g=${g}&b=${b}`);
       })
       .then(r => r.json())
@@ -535,7 +551,7 @@ inline String buildAppScript() {
   function oledStep(step) {
     ensureOLEDConfigured()
       .then(() => {
-        setStatusRunning('oled-status');
+        setStatusRunning('oled-status', messages.testingOledStep);
         return fetch('/api/oled-step?step=' + encodeURIComponent(step));
       })
       .then(r => r.json())
@@ -555,7 +571,7 @@ inline String buildAppScript() {
     if (!input) return;
     ensureOLEDConfigured()
       .then(() => {
-        setStatusRunning('oled-status');
+        setStatusRunning('oled-status', messages.testingOledMessage);
         return fetch('/api/oled-message?message=' + encodeURIComponent(input.value || ''));
       })
       .then(r => r.json())
@@ -581,7 +597,7 @@ inline String buildAppScript() {
   }
 
   function testADC() {
-    setStatusRunning('adc-status');
+    setStatusRunning('adc-status', messages.testingAdc);
     fetch('/api/adc-test')
       .then(r => r.json())
       .then(data => {
@@ -603,7 +619,7 @@ inline String buildAppScript() {
   }
 
   function testTouch() {
-    setStatusRunning('touch-status');
+    setStatusRunning('touch-status', messages.testingTouch);
     fetch('/api/touch-test')
       .then(r => r.json())
       .then(data => {
@@ -624,7 +640,7 @@ inline String buildAppScript() {
   }
 
   function testPWM() {
-    setStatusRunning('pwm-status');
+    setStatusRunning('pwm-status', messages.testingPwm);
     fetch('/api/pwm-test')
       .then(r => r.json())
       .then(d => {
@@ -638,7 +654,7 @@ inline String buildAppScript() {
   }
 
   function scanSPI() {
-    setStatusRunning('spi-status', messages.scanning);
+    setStatusRunning('spi-status', messages.testingSpi);
     fetch('/api/spi-scan')
       .then(r => r.json())
       .then(d => {
@@ -660,7 +676,7 @@ inline String buildAppScript() {
   }
 
   function stressTest() {
-    setStatusRunning('stress-status');
+    setStatusRunning('stress-status', messages.testingStress);
     fetch('/api/stress-test')
       .then(r => r.json())
       .then(d => {
@@ -674,7 +690,7 @@ inline String buildAppScript() {
   }
 
   function testAllGPIO() {
-    setStatusRunning('gpio-status');
+    setStatusRunning('gpio-status', messages.testingGpio);
     fetch('/api/test-gpio')
       .then(r => r.json())
       .then(data => {
@@ -712,23 +728,55 @@ inline String buildAppScript() {
     const wifiFlag = Object.prototype.hasOwnProperty.call(wifi, 'available') ? toBool(wifi.available) : true;
     const wifiStation = toBool(wifi.station_connected);
     const wifiAP = toBool(wifi.ap_active);
+    const wifiDriverInitialized = toBool(wifi.driver_initialized);
+    const wifiStateRaw = typeof wifi.state === 'string' ? wifi.state.toLowerCase() : '';
     const wifiConnected = Object.prototype.hasOwnProperty.call(wifi, 'connected')
       ? toBool(wifi.connected)
       : (wifiStation || wifiAP);
-    const wifiAvailable = wifiFlag || wifiStation || wifiAP || wifiConnected;
+    const wifiAvailable = wifiFlag || wifiStation || wifiAP || wifiDriverInitialized;
 
-    let wifiStateClass = 'offline';
-    let wifiStateText = indicator.offline;
+    let wifiStateClass = 'pending';
+    let wifiStateText = indicator.unavailable;
 
-    if (!wifiAvailable) {
-      wifiStateClass = 'pending';
-      wifiStateText = indicator.unavailable;
-    } else if (wifiConnected) {
-      wifiStateClass = 'online';
-      wifiStateText = wifiStation ? labels.connected : indicator.ap;
-    } else {
-      wifiStateClass = 'offline';
-      wifiStateText = indicator.offline;
+    switch (wifiStateRaw) {
+      case 'connected':
+        wifiStateClass = 'online';
+        wifiStateText = labels.connected;
+        break;
+      case 'ap':
+        wifiStateClass = 'online';
+        wifiStateText = indicator.ap;
+        break;
+      case 'idle':
+        wifiStateClass = 'offline';
+        wifiStateText = indicator.offline;
+        break;
+      case 'waiting':
+        wifiStateClass = 'pending';
+        wifiStateText = messages.wifiWaiting;
+        break;
+      case 'unavailable':
+        wifiStateClass = 'pending';
+        wifiStateText = indicator.unavailable;
+        break;
+      default:
+        if (!wifiAvailable) {
+          wifiStateClass = 'pending';
+          wifiStateText = indicator.unavailable;
+        } else if (wifiStation || wifiConnected) {
+          wifiStateClass = 'online';
+          wifiStateText = labels.connected;
+        } else if (wifiAP) {
+          wifiStateClass = 'online';
+          wifiStateText = indicator.ap;
+        } else if (wifiDriverInitialized) {
+          wifiStateClass = 'offline';
+          wifiStateText = indicator.offline;
+        } else {
+          wifiStateClass = 'pending';
+          wifiStateText = messages.wifiWaiting;
+        }
+        break;
     }
 
     const wifiIcon = wifiStateClass === 'online' ? '✅' : (wifiStateClass === 'offline' ? '❌' : '⏳');
@@ -738,10 +786,14 @@ inline String buildAppScript() {
     updateDotState(wifiDot, wifiStateClass);
 
     let connectionText;
-    if (!wifiAvailable) {
+    if (!wifiAvailable && wifiStateRaw === 'unavailable') {
       connectionText = `❌ ${indicator.unavailable}`;
-    } else if (wifiConnected) {
+    } else if (wifiStateRaw === 'waiting') {
+      connectionText = `⏳ ${messages.wifiWaiting}`;
+    } else if (wifiStation || wifiStateRaw === 'connected') {
       connectionText = wifiStation ? `✅ ${labels.connected}` : `✅ ${indicator.ap}`;
+    } else if (wifiAP || wifiStateRaw === 'ap') {
+      connectionText = `✅ ${indicator.ap}`;
     } else {
       connectionText = `❌ ${labels.disconnected}`;
     }
@@ -832,10 +884,26 @@ inline String buildAppScript() {
     const btDot = document.getElementById('bt-status-dot');
     const btLabel = document.getElementById('bt-status-label');
     const hasBluetoothHardware = btClassic || btBle;
+    const btStateRaw = typeof bt.state === 'string' ? bt.state.toLowerCase() : '';
     let btStateClass = 'pending';
     let btStateText = indicator.unavailable;
 
     if (!hasBluetoothHardware) {
+      btStateClass = 'pending';
+      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
+    } else if (btStateRaw === 'enabled') {
+      btStateClass = 'online';
+      btStateText = bt.controller && bt.controller.length ? bt.controller : labels.connected;
+    } else if (btStateRaw === 'initialised') {
+      btStateClass = 'pending';
+      btStateText = bt.controller && bt.controller.length ? bt.controller : indicator.offline;
+    } else if (btStateRaw === 'disabled') {
+      btStateClass = 'offline';
+      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
+    } else if (btStateRaw === 'off') {
+      btStateClass = 'offline';
+      btStateText = bt.controller && bt.controller.length ? bt.controller : indicator.offline;
+    } else if (btStateRaw === 'unavailable') {
       btStateClass = 'pending';
       btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
     } else if (!compileEnabled) {
@@ -874,7 +942,7 @@ inline String buildAppScript() {
   }
 
   function testBluetooth() {
-    setStatusRunning('bluetooth-status');
+    setStatusRunning('bluetooth-status', messages.testingBluetooth);
     fetch('/api/bluetooth-test')
       .then(r => r.json())
       .then(d => {
@@ -1023,6 +1091,22 @@ inline String buildAppScript() {
   script.replace(F("{{CONFIG_UPDATED}}"), escapeForJS(String(T().config_updated)));
   script.replace(F("{{CONFIG_ERROR}}"), escapeForJS(String(T().config_error)));
   script.replace(F("{{ERROR_PREFIX}}"), escapeForJS(String(T().error_prefix)));
+  script.replace(F("{{TESTING_LED}}"), escapeForJS(String(T().testing_led)));
+  script.replace(F("{{TESTING_LED_EFFECT}}"), escapeForJS(String(T().testing_led_effect)));
+  script.replace(F("{{TESTING_LED_OFF}}"), escapeForJS(String(T().testing_led_off)));
+  script.replace(F("{{TESTING_NEOPIXEL}}"), escapeForJS(String(T().testing_neopixel)));
+  script.replace(F("{{TESTING_NEOPIXEL_EFFECT}}"), escapeForJS(String(T().testing_neopixel_effect)));
+  script.replace(F("{{TESTING_NEOPIXEL_COLOR}}"), escapeForJS(String(T().testing_neopixel_color)));
+  script.replace(F("{{TESTING_OLED_STEP}}"), escapeForJS(String(T().testing_oled_step)));
+  script.replace(F("{{TESTING_OLED_MESSAGE}}"), escapeForJS(String(T().testing_oled_message)));
+  script.replace(F("{{TESTING_ADC}}"), escapeForJS(String(T().testing_adc)));
+  script.replace(F("{{TESTING_TOUCH}}"), escapeForJS(String(T().testing_touch)));
+  script.replace(F("{{TESTING_PWM}}"), escapeForJS(String(T().testing_pwm)));
+  script.replace(F("{{TESTING_SPI}}"), escapeForJS(String(T().testing_spi)));
+  script.replace(F("{{TESTING_STRESS}}"), escapeForJS(String(T().testing_stress)));
+  script.replace(F("{{TESTING_GPIO}}"), escapeForJS(String(T().testing_gpio)));
+  script.replace(F("{{TESTING_BLUETOOTH}}"), escapeForJS(String(T().testing_bluetooth)));
+  script.replace(F("{{WIFI_WAITING}}"), escapeForJS(String(T().wifi_waiting)));
   script.replace(F("{{SCANNING}}"), escapeForJS(String(T().scanning)));
   script.replace(F("{{OK}}"), escapeForJS(String(T().ok)));
   script.replace(F("{{FAIL}}"), escapeForJS(String(T().fail)));

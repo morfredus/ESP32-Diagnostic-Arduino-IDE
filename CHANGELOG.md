@@ -5,6 +5,17 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.9] - 2025-10-20
+
+### Changed
+- Statuts contextualisés pour les tests LED, NeoPixel, OLED, ADC, Touch, PWM, SPI, GPIO et Bluetooth avec message « Scan en cours... » lors des balayages WiFi.
+- Documentation FR/EN (README, guides, références) alignée sur la v2.8.9 et sur l'extraction des nouveaux états `/api/wireless-info`.
+
+### Fixed
+- Bannière WiFi/Bluetooth : corrections des inversions d'indicateurs, prise en compte du Bluetooth désactivé à la compilation et état STA/AP fiable.
+
+---
+
 ## [2.8.8] - 2025-10-20
 
 ### Changed

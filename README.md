@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.8.8
+# ESP32 Complete Diagnostic v2.8.9
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.8.8**: WiFi startup is now safe thanks to a single connection sequence with optional SoftAP fallback, and the new macro-based `wifi-config.example.h` template prevents comma/brace mistakes when adding networks.
+**What's new in v2.8.9**: Every test now displays a contextual status (LED, NeoPixel, OLED, ADC, Touch, PWM, SPI, GPIO, Bluetooth) and the WiFi scan explicitly shows “Scanning…”. The wireless banner also reflects STA/AP connectivity correctly and no longer reports Bluetooth as connected when it is disabled at build time.
 
 ## ✨ Features
 
@@ -51,8 +51,8 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **Real-time** - Data refresh without reload
 - **Responsive** - Mobile/tablet/desktop compatible
 - **Complete exports** - TXT, JSON, CSV, printable PDF version
-- **Wireless status banner** (since v2.8.6, refined in v2.8.8) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness, compile-time Bluetooth hints, safe driver detection and inline reminders for LED/NeoPixel/OLED tests
-- **Inline status feedback** (since v2.8.7, refined in v2.8.8) - Unified ⏳/✅/❌ messages for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth actions with automatic config acknowledgements and accurate completion states
+- **Wireless status banner** (since v2.8.6, refined in v2.8.9) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness, compile-time Bluetooth hints, safe driver detection and inline reminders for LED/NeoPixel/OLED tests
+- **Inline status feedback** (since v2.8.7, refined in v2.8.9) - Contextual ⏳/✅/❌ messages for each action (LED effects, NeoPixel animations, OLED steps/messages, ADC, Touch, PWM, SPI, GPIO, WiFi scan, Bluetooth) with automatic config acknowledgements and accurate completion states
 
 ### Network Access
 - **mDNS** - Access via http://ESP32-Diagnostic.local
@@ -339,7 +339,7 @@ If some texts remain in French:
 
 **Never share `wifi-config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.8.8
+## 📁 Project Structure v2.8.9
 
 ```
 ESP32-Diagnostic/
@@ -355,6 +355,12 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v2.8.9 (2025-10-20) - CONTEXTUAL STATUS & RELIABLE BANNER
+
+- Contextual status messages for every hardware action (LED/NeoPixel/OLED/ADC/Touch/PWM/SPI/GPIO/Bluetooth) and an explicit “Scanning…” message during WiFi surveys.
+- Wireless banner fixes: STA/AP recognition, Bluetooth disabled-at-build detection and no more inverted indicators.
+- `/api/wireless-info` now returns normalized states consumed by the web UI and documentation (README, guides) has been updated accordingly.
 
 ### v2.8.8 (2025-10-20) - WIRELESS INDICATORS & SAFE STARTUP
 - Hardened WiFi boot sequence with optional SoftAP fallback to avoid queue assertions when no credentials are provided.
@@ -433,7 +439,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.8.8 ESP32 Arduino Core 3.3.2 + STA/AP aware wireless banner & bilingual setup guides
+**Current version**: 2.8.9 ESP32 Arduino Core 3.3.2 + contextual inline statuses & reliable wireless banner
 **Last update**: November 2025
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.3.2+

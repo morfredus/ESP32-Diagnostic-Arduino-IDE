@@ -1,15 +1,18 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.8
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.9
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v2.8.9:
+ * - Statuts contextualisés pour chaque test (LED, NeoPixel, OLED, ADC, Touch, PWM, SPI, GPIO, Bluetooth) et attente WiFi affichée comme « Scan en cours... » lors d'un balayage.
+ * - Bannière WiFi/Bluetooth corrigée : états STA/AP fiables, Bluetooth désactivé signalé clairement et indicateurs sans inversion.
+ * - API `/api/wireless-info` enrichie d'états normalisés et documentation FR/EN alignée sur la version 2.8.9.
  * Nouveautés v2.8.8:
  * - Voyants WiFi/Bluetooth fiabilisés : distinction STA/AP, état « Indisponible » cohérent et purge des valeurs obsolètes.
  * - Démarrage WiFi sécurisé : séquence de connexion unique avec repli SoftAP optionnel et collecte réseau différée, supprimant les assertions au boot.
  * - Nouveau modèle `wifi-config.example.h` à base de macros `WIFI_CREDENTIAL` pour éviter les erreurs de syntaxe lors de l'ajout de réseaux.
- * - Documentation enrichie (README français, guides d'utilisation FR/EN) et dates/version réalignées au 20 octobre 2025.
  * Nouveautés v2.8.7:
  * - Statuts de tests harmonisés avec indicateurs ⏳/✅/❌ et messages "Test en cours..." jusqu'à la fin effective des actions LED, NeoPixel, OLED, ADC, GPIO, WiFi et Bluetooth.
  * - Messages de reconfiguration et de tests lumineux ajustés pour refléter l'application automatique des configurations et les retours Bluetooth.
@@ -159,7 +162,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.8"
+#define DIAGNOSTIC_VERSION "2.8.9"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -1831,6 +1834,28 @@ void handleWirelessInfo() {
   collectDiagnosticInfo();
 
   bool wifiConnected = (diagnosticData.wifiStationConnected || diagnosticData.wifiApActive);
+  String wifiState = "unavailable";
+  if (diagnosticData.hasWiFi) {
+    wifiState = diagnosticData.wifiDriverInitialized ? "idle" : "waiting";
+    if (diagnosticData.wifiApActive) {
+      wifiState = "ap";
+    }
+    if (diagnosticData.wifiStationConnected) {
+      wifiState = "connected";
+    }
+  }
+
+  String btState = "unavailable";
+  if (bluetoothInfo.hardwareClassic || bluetoothInfo.hardwareBLE) {
+    btState = bluetoothInfo.compileEnabled ? "off" : "disabled";
+    if (bluetoothInfo.controllerInitialized) {
+      btState = "initialised";
+    }
+    if (bluetoothInfo.controllerEnabled) {
+      btState = "enabled";
+    }
+  }
+
   String json = "{";
   json += "\"wifi\":{";
   json += "\"available\":" + String(diagnosticData.hasWiFi ? "true" : "false") + ",";
@@ -1860,7 +1885,8 @@ void handleWirelessInfo() {
   }
   json += "\"supports_5g\":" + String(diagnosticData.wifiSupports5G ? "true" : "false") + ",";
   json += "\"hostname\":\"" + jsonEscape(diagnosticData.wifiHostname) + "\",";
-  json += "\"driver_initialized\":" + String(diagnosticData.wifiDriverInitialized ? "true" : "false");
+  json += "\"driver_initialized\":" + String(diagnosticData.wifiDriverInitialized ? "true" : "false") + ",";
+  json += "\"state\":\"" + wifiState + "\"";
   json += "},";
   json += "\"gpio\":{";
   json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
@@ -1882,6 +1908,7 @@ void handleWirelessInfo() {
   json += "\"controller_initialized\":" + String(bluetoothInfo.controllerInitialized ? "true" : "false") + ",";
   json += "\"last_test_success\":" + String(bluetoothInfo.lastTestSuccess ? "true" : "false") + ",";
   json += "\"last_test_message\":\"" + jsonEscape(bluetoothInfo.lastTestMessage) + "\",";
+  json += "\"state\":\"" + btState + "\",";
   json += "\"hint\":\"" + jsonEscape(bluetoothInfo.availabilityHint) + "\"";
   json += "},";
 

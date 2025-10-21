@@ -1,4 +1,4 @@
-# Référence de configuration ESP32-Diagnostic (v2.8.8)
+# Référence de configuration ESP32-Diagnostic (v2.8.9)
 
 Ce document récapitule l'ensemble des paramètres modifiables. Consultez-le avant toute compilation personnalisée.
 

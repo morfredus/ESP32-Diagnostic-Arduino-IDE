@@ -273,6 +273,22 @@ struct Translations {
   const char* config_updated;
   const char* config_error;
   const char* error_prefix;
+  const char* testing_led;
+  const char* testing_led_effect;
+  const char* testing_led_off;
+  const char* testing_neopixel;
+  const char* testing_neopixel_effect;
+  const char* testing_neopixel_color;
+  const char* testing_oled_step;
+  const char* testing_oled_message;
+  const char* testing_adc;
+  const char* testing_touch;
+  const char* testing_pwm;
+  const char* testing_spi;
+  const char* testing_stress;
+  const char* testing_gpio;
+  const char* testing_bluetooth;
+  const char* wifi_waiting;
   
   // Unités
   const char* cores;
@@ -552,6 +568,22 @@ const Translations LANG_FR_TEXTS = {
   "Configuration mise à jour",
   "Erreur de configuration",
   "Erreur : ",
+  "Test LED intégrée en cours...",
+  "Mode LED en cours...",
+  "Extinction de la LED...",
+  "Test NeoPixel en cours...",
+  "Animation NeoPixel en cours...",
+  "Application de la couleur NeoPixel...",
+  "Séquence OLED étape en cours...",
+  "Affichage du message OLED...",
+  "Mesure ADC en cours...",
+  "Lecture tactile en cours...",
+  "Test PWM en cours...",
+  "Analyse SPI en cours...",
+  "Test de stress en cours...",
+  "Campagne GPIO en cours...",
+  "Test Bluetooth en cours...",
+  "En attente de configuration WiFi...",
   
   // Unités
   "coeurs",
@@ -831,6 +863,22 @@ const Translations LANG_EN_TEXTS = {
   "Configuration updated",
   "Configuration error",
   "Error: ",
+  "Built-in LED test running...",
+  "LED effect in progress...",
+  "Turning LED off...",
+  "NeoPixel test running...",
+  "NeoPixel animation running...",
+  "Applying NeoPixel color...",
+  "OLED step running...",
+  "Sending custom OLED message...",
+  "ADC sampling in progress...",
+  "Touch reading in progress...",
+  "PWM test running...",
+  "SPI scan in progress...",
+  "Stress test running...",
+  "GPIO sweep running...",
+  "Bluetooth test running...",
+  "Waiting for WiFi setup...",
   
   // Units
   "cores",
