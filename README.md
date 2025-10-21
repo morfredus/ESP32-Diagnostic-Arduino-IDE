@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.8.12
+# ESP32 Complete Diagnostic v2.8.13
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.8.12**: Restores the WiFi connection sequence so every credential declared in `wifi-config.h` is tried automatically (no more false “no WiFi network” message) and refreshes the documentation to match the new behaviour.
+**What's new in v2.8.13**: Fixes the Arduino compilation error by declaring the WiFi connection timeout constant before it is used, keeping the multi-network reconnection flow introduced in v2.8.12 fully operational.
 
 ## ✨ Features
 
@@ -339,7 +339,7 @@ If some texts remain in French:
 
 **Never share `wifi-config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.8.12
+## 📁 Project Structure v2.8.13
 
 ```
 ESP32-Diagnostic/
@@ -355,6 +355,11 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v2.8.13 (2025-10-20) - WIFI TIMEOUT DECLARATION FIX
+
+- Declares the WiFi connection timeout constant ahead of its usage so Arduino builds succeed while keeping the sequential credential loop.
+- Maintains the bilingual documentation (README, guides, configuration references) aligned with the corrected build pipeline.
 
 ### v2.8.12 (2025-10-20) - WIFI CREDENTIALS LOOP FIX
 
@@ -446,7 +451,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.8.12 ESP32 Arduino Core 3.3.2 + WiFi credentials loop fix and sticky wireless banner
+**Current version**: 2.8.13 ESP32 Arduino Core 3.3.2 + WiFi timeout declaration fix, multi-network WiFi loop and sticky wireless banner
 **Last update**: 20 October 2025
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.3.2+

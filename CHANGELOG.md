@@ -5,6 +5,14 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.13] - 2025-10-20
+
+### Fixed
+- Déclaration anticipée de la constante `WIFI_CONNECT_TIMEOUT_MS` afin de restaurer la compilation Arduino tout en conservant la boucle de connexion multi-réseaux introduite en 2.8.12.
+- Documentation FR/EN (README, guides, références) synchronisée sur la v2.8.13 pour détailler ce correctif.
+
+---
+
 ## [2.8.12] - 2025-10-20
 
 ### Fixed

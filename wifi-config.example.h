@@ -1,7 +1,7 @@
 #pragma once
 
 // ============================================================================
-// WiFi credentials template for ESP32-Diagnostic (v2.8.12)
+// WiFi credentials template for ESP32-Diagnostic (v2.8.13)
 // ----------------------------------------------------------------------------
 // 1. Copy this file to `wifi-config.h`.
 // 2. Uncomment one or more `WIFI_CREDENTIAL` lines below and fill in your SSID

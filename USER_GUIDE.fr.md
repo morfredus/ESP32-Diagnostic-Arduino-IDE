@@ -1,6 +1,6 @@
 # ESP32 Diagnostic – Mode d'emploi & compilation (FR)
 
-Ce guide pas-à-pas décrit la configuration nécessaire pour compiler et utiliser **ESP32-Diagnostic v2.8.12** avec l'IDE Arduino 2.x.
+Ce guide pas-à-pas décrit la configuration nécessaire pour compiler et utiliser **ESP32-Diagnostic v2.8.13** avec l'IDE Arduino 2.x.
 
 ## 1. Pré-requis
 
@@ -62,7 +62,7 @@ Le core ESP32 fournit déjà `WiFi`, `WebServer`, `ESPmDNS`, `Wire`, `SPI`, `esp
 | Problème | Solution recommandée |
 | --- | --- |
 | `esp_bt_main.h: No such file or directory` | Activez *Outils → Bluetooth*. Sinon, ignorez le test : le bandeau indiquera « Indisponible ». |
-| Voyants WiFi/Bluetooth incohérents | Rechargez l'onglet « Sans fil » ou la page ; la v2.8.12 maintient la cohérence des voyants, réessaie chaque SSID configuré et affiche l'adresse IP ainsi que les indications Bluetooth. |
+| Voyants WiFi/Bluetooth incohérents | Rechargez l'onglet « Sans fil » ou la page ; la v2.8.13 maintient la cohérence des voyants, réessaie chaque SSID configuré et affiche l'adresse IP ainsi que les indications Bluetooth. |
 | SoftAP uniquement mais voyant WiFi rouge | Vérifiez les identifiants dans `wifi-config.h` ou utilisez le SoftAP (voyant orange = mode AP seul). |
 | Textes non traduits | Assurez-vous que `languages.h` est présent à côté du `.ino`, puis re-téléversez. |
 
