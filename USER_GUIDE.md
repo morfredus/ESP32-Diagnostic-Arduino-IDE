@@ -1,6 +1,6 @@
 # ESP32 Diagnostic – Setup & Compilation Guide (EN)
 
-This checklist describes everything required to build and run **ESP32-Diagnostic v2.8.13** with the Arduino IDE 2.x toolchain.
+This checklist describes everything required to build and run **ESP32-Diagnostic v2.8.8** with the Arduino IDE 2.x toolchain.
 
 ## 1. Prerequisites
 
@@ -27,14 +27,13 @@ The ESP32 core already ships with `WiFi`, `WebServer`, `ESPmDNS`, `Wire`, `SPI`,
 
 ## 2. Project Files & WiFi credentials
 1. Copy the folder `ESP32-Diagnostic/` into your Arduino sketches directory.
-2. Duplicate `wifi-config.example.h` to `wifi-config.h` (the latter stays out of Git) and edit the array:
+2. Duplicate `wifi-config.example.h` to `wifi-config.h` (ignored by Git) and uncomment/add `WIFI_CREDENTIAL` lines inside `WIFI_CREDENTIALS_LIST`:
    ```cpp
-   static const WiFiCredential WIFI_NETWORKS[] = {
-     {"MyNetwork", "Password"},
-     {"Backup", "SparePassword"}
-   };
+   #define WIFI_CREDENTIALS_LIST \
+     WIFI_CREDENTIAL("MyNetwork", "Password") \
+     /* WIFI_CREDENTIAL("Backup", "SparePassword") */
    ```
-   Empty SSIDs are ignored automatically.
+   Comment out lines you do not need; the template handles braces/commas for you.
 3. Review `config.h` (versioned) and adjust the defaults for your hardware: `CUSTOM_LED_PIN`, `CUSTOM_LED_COUNT`, `DEFAULT_I2C_SDA/SCL`, `MDNS_HOSTNAME`, `ENABLE_BLUETOOTH_AUTOTEST`, `WIRELESS_STATUS_REFRESH_MS`, etc.
 
 ## 3. IDE configuration
@@ -63,7 +62,7 @@ The ESP32 core already ships with `WiFi`, `WebServer`, `ESPmDNS`, `Wire`, `SPI`,
 | Issue | Suggested fix |
 | --- | --- |
 | `esp_bt_main.h: No such file or directory` | Enable Bluetooth in *Tools → Bluetooth* or ignore the test (banner will show “Indisponible”). |
-| Wireless banner shows the wrong dot colour | Reload the page or click “Sans fil”; v2.8.13 keeps the driver check compatible by relying on `esp_wifi_get_mode`, so indicators stay accurate even on cores lacking `esp_wifi_is_initialized`. |
+| Wireless banner shows the wrong dot colour | Reload the page or click “Sans fil”; v2.8.8 keeps the banner in sync even when the firmware falls back to SoftAP. |
 | SoftAP only but WiFi dot stays red | Verify SSID/password in `wifi-config.h` or rely on SoftAP (orange dot indicates AP-only mode). |
 | Translations missing | Ensure `languages.h` is present beside the `.ino` and re-upload. |
 

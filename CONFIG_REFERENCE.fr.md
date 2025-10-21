@@ -1,4 +1,4 @@
-# Référence de configuration ESP32-Diagnostic (v2.8.13)
+# Référence de configuration ESP32-Diagnostic (v2.8.8)
 
 Ce document récapitule l'ensemble des paramètres modifiables. Consultez-le avant toute compilation personnalisée.
 
@@ -26,22 +26,21 @@ Ce document récapitule l'ensemble des paramètres modifiables. Consultez-le ava
 ## 2. `wifi-config.h` – Identifiants WiFi (ignoré par Git)
 
 1. Copier `wifi-config.example.h` en `wifi-config.h` (même dossier que le sketch).
-2. Renseigner le tableau `WIFI_NETWORKS`. Chaque entrée comporte un SSID et un mot de passe (les SSID vides sont ignorés).
+2. Dans ce fichier, décommentez ou dupliquez les lignes `WIFI_CREDENTIAL` à l'intérieur de `WIFI_CREDENTIALS_LIST`. Les SSID vides sont ignorés.
 
 ```cpp
-static const WiFiCredential WIFI_NETWORKS[] = {
-  {"MonReseau", "MotDePasse"},
-  {"ReseauSecours", "Mot2"}
-};
+#define WIFI_CREDENTIALS_LIST \
+  WIFI_CREDENTIAL("MonReseau", "MotDePasse") \
+  /* WIFI_CREDENTIAL("ReseauSecours", "Mot2") */
 ```
 
-> ✅ Conservez la virgule finale sur chaque ligne (même la dernière) pour éviter toute erreur de compilation lorsque vous décommentez ou ajoutez un réseau supplémentaire.
+> Commentez les réseaux inutilisés : le gabarit gère automatiquement les virgules et accolades.
 
 > `wifi-config.h` figure dans `.gitignore`. Ne le publiez jamais.
 
 ## 3. Contrôle final avant compilation
 
-- [ ] `wifi-config.h` existe avec au moins un couple SSID/mot de passe valide.
+- [ ] `wifi-config.h` existe et la macro `WIFI_CREDENTIALS_LIST` contient au moins une ligne `WIFI_CREDENTIAL`.
 - [ ] `config.h` correspond à votre câblage (SDA/SCL, LED, nombre de NeoPixel).
 - [ ] Optionnel : passer `ENABLE_BLUETOOTH_AUTOTEST` à `false` si la pile Bluetooth n'est pas incluse.
 - [ ] Ajuster `WIRELESS_STATUS_REFRESH_MS` si vous souhaitez un rafraîchissement plus rapide/lent du bandeau.

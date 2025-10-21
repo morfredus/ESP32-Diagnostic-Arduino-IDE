@@ -1,36 +1,15 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.13
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.8
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v2.8.13:
- * - Compatibilité renforcée avec l'Arduino Core 3.3.2 : la détection du pilote WiFi utilise
- *   désormais `esp_wifi_get_mode`, disponible sur toutes les configurations ciblées, ce qui
- *   évite l'erreur de compilation liée à `esp_wifi_is_initialized`.
- *
- * Nouveautés v2.8.12:
- * - Stabilisation du démarrage : toutes les lectures WiFi attendent désormais l'initialisation du pilote, évitant l'assertion `xQueueSemaphoreTake` quand aucun réseau n'est configuré.
- * - Export HTML/JSON/CSV et API harmonisés : les champs IP/masque/passerelle/TX renvoient `—` ou `null` quand l'information n'est pas disponible.
-
- * Nouveautés v2.8.11:
- * - Conversion explicite des booléens renvoyés par `/api/wireless-info` afin de garantir des voyants WiFi/Bluetooth conformes à la réalité (même lorsque le firmware renvoie des chaînes).
- * - Mise à jour de la documentation (README, guides FR/EN, références) et renommage du guide français en `USER_GUIDE.fr.md`.
- *
- * Nouveautés v2.8.10:
- * - Correction du modèle `wifi-config.h` pour éviter les erreurs de syntaxe lors de l'ajout d'un second réseau.
- * - Détection WiFi renforcée : les voyants de la bannière reflètent désormais correctement l'état connecté même si les indicateurs matériels sont absents.
- *
- * Nouveautés v2.8.9:
- * - Refactorisation de la configuration : nouveau `config.h` pour les paramètres matériels et `wifi-config.h` pour les identifiants.
- * - Voyants WiFi/Bluetooth corrigés (inversion supprimée, remise à zéro des statuts Bluetooth lorsque la pile est désactivée).
- * - Documentation renommée (`USER_GUIDE*.md`) et ajout d'une référence complète de configuration en FR/EN datée du 20 octobre 2025.
-
  * Nouveautés v2.8.8:
- * - Correctifs des voyants WiFi/Bluetooth : distinction STA/AP, état indisponible cohérent et effacement des valeurs obsolètes.
- * - Documentation enrichie (README français, modes d'emploi FR/EN) et dates/version réalignées au 20 octobre 2025.
-
+ * - Voyants WiFi/Bluetooth fiabilisés : distinction STA/AP, état « Indisponible » cohérent et purge des valeurs obsolètes.
+ * - Démarrage WiFi sécurisé : séquence de connexion unique avec repli SoftAP optionnel et collecte réseau différée, supprimant les assertions au boot.
+ * - Nouveau modèle `wifi-config.example.h` à base de macros `WIFI_CREDENTIAL` pour éviter les erreurs de syntaxe lors de l'ajout de réseaux.
+ * - Documentation enrichie (README français, guides d'utilisation FR/EN) et dates/version réalignées au 20 octobre 2025.
  * Nouveautés v2.8.7:
  * - Statuts de tests harmonisés avec indicateurs ⏳/✅/❌ et messages "Test en cours..." jusqu'à la fin effective des actions LED, NeoPixel, OLED, ADC, GPIO, WiFi et Bluetooth.
  * - Messages de reconfiguration et de tests lumineux ajustés pour refléter l'application automatique des configurations et les retours Bluetooth.
@@ -180,7 +159,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.13"
+#define DIAGNOSTIC_VERSION "2.8.8"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -191,7 +170,6 @@ int I2C_SDA = DEFAULT_I2C_SDA;
 
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
-WiFiMulti wifiMulti;
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // NeoPixel
@@ -261,17 +239,138 @@ String jsonEscape(const String& input) {
   return output;
 }
 
-bool isWiFiDriverInitialized() {
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 1, 0)
-  wifi_mode_t currentMode;
-  esp_err_t status = esp_wifi_get_mode(&currentMode);
-  if (status == ESP_ERR_WIFI_NOT_INIT) {
-    return false;
+bool wifiCredentialValid(const WiFiCredential& cred) {
+  return cred.ssid != nullptr && cred.ssid[0] != '\0';
+}
+
+size_t countConfiguredWiFiNetworks() {
+  size_t count = 0;
+#if defined(WIFI_NETWORK_COUNT)
+  for (size_t i = 0; i < WIFI_NETWORK_COUNT; ++i) {
+    if (wifiCredentialValid(WIFI_NETWORKS[i])) {
+      ++count;
+    }
   }
-  return true;
-#else
-  return true;
 #endif
+  return count;
+}
+
+void resetWiFiRuntime() {
+  wifiRuntime = WiFiRuntimeState{};
+}
+
+void updateWiFiRuntimeState() {
+  if (!wifiRuntime.driverStarted) {
+    wifiRuntime.status = WL_NO_SHIELD;
+    wifiRuntime.mode = WIFI_MODE_NULL;
+    wifiRuntime.stationConnected = false;
+    wifiRuntime.apActive = false;
+    return;
+  }
+
+  wifiRuntime.status = WiFi.status();
+  wifiRuntime.mode = WiFi.getMode();
+  wifiRuntime.stationConnected = (wifiRuntime.status == WL_CONNECTED);
+  wifiRuntime.apActive = (wifiRuntime.mode == WIFI_MODE_AP || wifiRuntime.mode == WIFI_MODE_APSTA);
+}
+
+bool startSoftAPFallback() {
+#if ARDUINO >= 100
+  String ssid = String(SOFTAP_SSID);
+  String password = String(SOFTAP_PASSWORD);
+  const char* passPtr = nullptr;
+
+  if (password.length() >= 8) {
+    passPtr = password.c_str();
+  } else if (password.length() > 0) {
+    Serial.println("Mot de passe SoftAP trop court (<8). Utilisation d'un point d'accès ouvert.");
+    password = "";
+  }
+
+  WiFi.mode(WIFI_MODE_AP);
+  wifiRuntime.driverStarted = true;
+  bool started = WiFi.softAP(ssid.c_str(), passPtr);
+  wifiRuntime.apActive = started;
+  wifiRuntime.softApFallback = started;
+  wifiRuntime.stationConnected = false;
+  wifiRuntime.status = WL_DISCONNECTED;
+  wifiRuntime.mode = WiFi.getMode();
+
+  if (started) {
+    Serial.println("SoftAP actif");
+    Serial.printf("SSID: %s\r\n", ssid.c_str());
+    Serial.printf("IP AP: %s\r\n\r\n", WiFi.softAPIP().toString().c_str());
+  } else {
+    Serial.println("Impossible de démarrer le SoftAP");
+  }
+  return started;
+#else
+  return false;
+#endif
+}
+
+bool connectToConfiguredNetworks() {
+  bool connected = false;
+
+#if defined(WIFI_NETWORK_COUNT)
+  for (size_t i = 0; i < WIFI_NETWORK_COUNT && !connected; ++i) {
+    const WiFiCredential& cred = WIFI_NETWORKS[i];
+    if (!wifiCredentialValid(cred)) {
+      continue;
+    }
+
+    Serial.printf("Tentative de connexion sur %s\r\n", cred.ssid);
+    WiFi.begin(cred.ssid, cred.password ? cred.password : "");
+
+    unsigned long start = millis();
+    while (millis() - start < WIFI_CONNECT_TIMEOUT_MS) {
+      wl_status_t status = WiFi.status();
+      if (status == WL_CONNECTED) {
+        connected = true;
+        break;
+      }
+      delay(200);
+    }
+
+    if (!connected) {
+      WiFi.disconnect(true, false);
+    }
+  }
+#endif
+
+  return connected;
+}
+
+void initializeWireless() {
+  resetWiFiRuntime();
+
+  Serial.println("Connexion WiFi...");
+  size_t networkCount = countConfiguredWiFiNetworks();
+  if (networkCount == 0) {
+    Serial.println("Aucun réseau WiFi défini dans wifi-config.h ; SoftAP uniquement.");
+    if (ENABLE_SOFTAP_FALLBACK) {
+      startSoftAPFallback();
+    }
+    return;
+  }
+
+  WiFi.mode(WIFI_MODE_STA);
+  wifiRuntime.driverStarted = true;
+  WiFi.setHostname(MDNS_HOSTNAME_STR);
+
+  bool connected = connectToConfiguredNetworks();
+  updateWiFiRuntimeState();
+
+  if (connected && wifiRuntime.stationConnected) {
+    Serial.println("\r\n\r\nWiFi OK!");
+    Serial.printf("SSID: %s\r\n", WiFi.SSID().c_str());
+    Serial.printf("IP: %s\r\n\r\n", WiFi.localIP().toString().c_str());
+  } else {
+    Serial.println("\r\n\r\nPas de WiFi station\r\n");
+    if (ENABLE_SOFTAP_FALLBACK) {
+      startSoftAPFallback();
+    }
+  }
 }
 
 #if HAS_NATIVE_BLUETOOTH
@@ -325,6 +424,19 @@ void updateBluetoothDerivedState() {
 }
 
 // ========== STRUCTURES ==========
+struct WiFiRuntimeState {
+  bool driverStarted = false;
+  bool stationConnected = false;
+  bool apActive = false;
+  bool softApFallback = false;
+  wl_status_t status = WL_NO_SHIELD;
+  wifi_mode_t mode = WIFI_MODE_NULL;
+};
+
+WiFiRuntimeState wifiRuntime;
+
+constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 12000;
+
 struct DiagnosticInfo {
   String chipModel;
   String chipRevision;
@@ -575,7 +687,7 @@ String describeWiFiSleepLabel(wifi_ps_type_t sleepMode) {
 
 String describeWiFiBandLabel(bool supports5G) {
 #if defined(WIFI_BAND_5G)
-  if (!isWiFiDriverInitialized()) {
+  if (!wifiRuntime.driverStarted) {
     return String();
   }
   wifi_band_t band = WiFiGenericClass::getBand();
@@ -594,7 +706,7 @@ String describeWiFiBandLabel(bool supports5G) {
 
 String describeWiFiBandModeLabel(bool supports5G) {
 #if HAS_WIFI_BAND_MODE_API
-  if (!isWiFiDriverInitialized()) {
+  if (!wifiRuntime.driverStarted) {
     return String();
   }
   wifi_band_mode_t mode = WiFi.getBandMode();
@@ -885,7 +997,14 @@ void scanI2C() {
 void scanWiFiNetworks() {
   Serial.println("\r\n=== SCAN WIFI ===");
   wifiNetworks.clear();
-  
+
+  if (!wifiRuntime.driverStarted) {
+    Serial.println("Pilote WiFi non initialisé : scan ignoré.");
+    return;
+  }
+
+  updateWiFiRuntimeState();
+
   int n = WiFi.scanNetworks();
   for (int i = 0; i < n; i++) {
     WiFiNetwork net;
@@ -1574,19 +1693,14 @@ void collectDiagnosticInfo() {
   bool hasBTHardware = (chip_info.features & CHIP_FEATURE_BT);
   bool hasBLEHardware = (chip_info.features & CHIP_FEATURE_BLE);
 
-  bool wifiDriverInitialized = isWiFiDriverInitialized();
-  wifi_mode_t currentMode = WIFI_MODE_NULL;
-  if (wifiDriverInitialized) {
-    currentMode = WiFiGenericClass::getMode();
-  }
+  updateWiFiRuntimeState();
 
-  wl_status_t wifiStatus = WL_NO_SHIELD;
-  if (wifiDriverInitialized) {
-    wifiStatus = WiFi.status();
-  }
+  bool wifiDriverInitialized = wifiRuntime.driverStarted;
+  wifi_mode_t currentMode = wifiDriverInitialized ? wifiRuntime.mode : WIFI_MODE_NULL;
+  wl_status_t wifiStatus = wifiDriverInitialized ? wifiRuntime.status : WL_NO_SHIELD;
 
-  bool wifiStationConnected = wifiDriverInitialized && (wifiStatus == WL_CONNECTED);
-  bool wifiApActive = wifiDriverInitialized && (currentMode == WIFI_MODE_AP || currentMode == WIFI_MODE_APSTA);
+  bool wifiStationConnected = wifiRuntime.stationConnected;
+  bool wifiApActive = wifiRuntime.apActive;
   bool wifiModeActive = wifiDriverInitialized && (currentMode != WIFI_MODE_NULL);
 
   diagnosticData.hasWiFi = hasWiFiHardware || wifiModeActive || wifiStationConnected || wifiApActive;
@@ -3167,39 +3281,9 @@ void setup() {
   
   printPSRAMDiagnostic();
   
-  // WiFi
-  size_t addedNetworks = 0;
-#if defined(WIFI_NETWORK_COUNT) && WIFI_NETWORK_COUNT > 0
-  for (size_t i = 0; i < WIFI_NETWORK_COUNT; ++i) {
-    const WiFiCredential& cred = WIFI_NETWORKS[i];
-    if (cred.ssid && cred.ssid[0]) {
-      wifiMulti.addAP(cred.ssid, cred.password ? cred.password : "");
-      ++addedNetworks;
-    }
-  }
-#endif
-  Serial.println("Connexion WiFi...");
-  if (addedNetworks == 0) {
-    Serial.println("Aucun réseau WiFi valide défini dans wifi-config.h ; SoftAP uniquement.");
-  }
+  initializeWireless();
 
-  int attempt = 0;
-  while (addedNetworks > 0 && wifiMulti.run() != WL_CONNECTED && attempt < 40) {
-    delay(500);
-    Serial.print(".");
-    attempt++;
-  }
-  
-  wl_status_t initialStatus = WL_NO_SHIELD;
-  if (isWiFiDriverInitialized()) {
-    initialStatus = WiFi.status();
-  }
-
-  if (initialStatus == WL_CONNECTED) {
-    Serial.println("\r\n\r\nWiFi OK!");
-    Serial.printf("SSID: %s\r\n", WiFi.SSID().c_str());
-    Serial.printf("IP: %s\r\n\r\n", WiFi.localIP().toString().c_str());
-    
+  if (wifiRuntime.stationConnected) {
     if (MDNS.begin(MDNS_HOSTNAME)) {
       Serial.println("════════════════════════════════════════");
       Serial.printf("   http://%s.local\r\n", MDNS_HOSTNAME);
@@ -3210,8 +3294,6 @@ void setup() {
       Serial.println("mDNS erreur");
       Serial.printf("Utilisez IP: http://%s\r\n\r\n", WiFi.localIP().toString().c_str());
     }
-  } else {
-    Serial.println("\r\n\r\nPas de WiFi\r\n");
   }
   
   // Détections

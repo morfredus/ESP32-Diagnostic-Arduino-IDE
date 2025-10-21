@@ -1,4 +1,4 @@
-# ESP32-Diagnostic Configuration Reference (v2.8.13)
+# ESP32-Diagnostic Configuration Reference (v2.8.8)
 
 This document centralises every tunable option exposed by the firmware. Review it before compiling a customised build.
 
@@ -28,22 +28,21 @@ This document centralises every tunable option exposed by the firmware. Review i
 WiFi credentials are stored separately to avoid leaking secrets:
 
 1. Copy `wifi-config.example.h` to `wifi-config.h` (same folder as the sketch).
-2. Edit the `WIFI_NETWORKS` array. Each entry must provide an SSID and password. Empty SSIDs are ignored.
+2. Inside the file, uncomment or duplicate the `WIFI_CREDENTIAL` lines within `WIFI_CREDENTIALS_LIST`. Empty SSIDs are ignored.
 
 ```cpp
-static const WiFiCredential WIFI_NETWORKS[] = {
-  {"MyNetwork", "SuperSecret"},
-  {"LabBackup", "FallbackPass"}
-};
+#define WIFI_CREDENTIALS_LIST \
+  WIFI_CREDENTIAL("MyNetwork", "SuperSecret") \
+  /* WIFI_CREDENTIAL("LabBackup", "FallbackPass") */
 ```
 
-> ✅ Leave the trailing comma at the end of every line (including the last) so uncommenting additional networks never triggers a compilation error.
+> Comment out unused lines—the macro-based template manages braces and commas for you.
 
 > `wifi-config.h` is listed in `.gitignore`. Never commit this file.
 
 ## 3. Checklist before compiling
 
-- [ ] `wifi-config.h` exists and contains at least one valid SSID/password pair.
+- [ ] `wifi-config.h` exists and `WIFI_CREDENTIALS_LIST` exposes at least one `WIFI_CREDENTIAL` line.
 - [ ] `config.h` values match your wiring (SDA/SCL, custom LED, NeoPixel count).
 - [ ] Optional: disable `ENABLE_BLUETOOTH_AUTOTEST` if the Bluetooth stack is not compiled.
 - [ ] Adjust `WIRELESS_STATUS_REFRESH_MS` if you need faster or slower banner updates.

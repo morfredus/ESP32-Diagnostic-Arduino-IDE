@@ -5,72 +5,15 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.8.13] - 2025-10-20
-
-### Fixed
-- Restaure la compatibilité de compilation avec l'Arduino Core 3.3.2 en remplaçant l'appel à
-  `esp_wifi_is_initialized` par une vérification via `esp_wifi_get_mode`, disponible sur toutes
-  les cibles supportées.
-
----
-
-## [2.8.12] - 2025-10-20
-
-### Fixed
-- Empêche le plantage `xQueueSemaphoreTake` au démarrage lorsque le pilote WiFi n'est pas initialisé en différant toutes les lectures réseau jusqu'à ce que l'API soit prête.
-- Normalise les exports (HTML/JSON/CSV) et l'API `/api/wireless-info` lorsque les informations IP/masque/passerelle ou la puissance TX sont indisponibles.
-
-### Changed
-- Les vues imprimables et l'onglet « Sans fil » affichent désormais « — »/`null` lorsque les métriques WiFi ne sont pas pertinentes (mode AP seul, WiFi non configuré, etc.).
-
----
-
-## [2.8.11] - 2025-10-20
-
-### Changed
-- Normalisation côté client des champs booléens renvoyés par `/api/wireless-info`, garantissant des voyants WiFi/Bluetooth cohérents même si le firmware renvoie des chaînes.
-- Renommage du guide d'installation français en `USER_GUIDE.fr.md` et mise à jour des liens croisés (README, références, guides).
-
-### Fixed
-- Voyant Bluetooth correctement marqué *Indisponible* lorsque la pile n'est pas compilée (plus de faux positifs "OK").
-
----
-
-## [2.8.10] - 2025-10-20
-
-### Changed
-- Le gabarit `wifi-config.example.h` inclut désormais une virgule finale par défaut pour simplifier l'ajout ou le décommentage d'un réseau supplémentaire.
-
-### Fixed
-- Détection WiFi renforcée : le bandeau sans fil reste cohérent (voyants verts/rouges corrects) même lorsque les indicateurs matériels ou la pile Bluetooth sont absents.
-
----
-
-## [2.8.9] - 2025-10-20
-
-### Added
-- Nouvelle référence de configuration (`CONFIG_REFERENCE.md` / `CONFIG_REFERENCE.fr.md`) détaillant les paramètres éditables.
-
-### Changed
-- Refactorisation des fichiers utilisateur : `config.h` devient le point d'entrée matériel et `wifi-config.h` héberge désormais les identifiants (non versionné).
-- Guides renommés en `USER_GUIDE.md` / `GUIDE_UTILISATION.fr.md` et instructions mises à jour pour le renommage automatique de `wifi-config.example.h`.
-
-### Fixed
-- Voyants WiFi/Bluetooth correctement synchronisés (plus d'inversion, remise à zéro des messages Bluetooth quand la pile est désactivée).
-- Actualisation périodique configurée du bandeau sans fil via `WIRELESS_STATUS_REFRESH_MS`.
-
----
-
 ## [2.8.8] - 2025-10-20
 
-### Added
-- Nouveaux documents utilisateur : `README.fr.md` et les guides d'installation bilingues (désormais `USER_GUIDE.md` / `GUIDE_UTILISATION.fr.md`) détaillant prérequis, bibliothèques et procédure de compilation sous Arduino IDE.
-
 ### Changed
-- Réalignement des dates de publication pour refléter l'état du projet au 20 octobre 2025.
+- Voyants WiFi/Bluetooth fiabilisés : distinction STA/AP, état « Indisponible » cohérent et purge des valeurs obsolètes dans le bandeau sans fil.
+- Nouveau modèle `wifi-config.example.h` basé sur des macros `WIFI_CREDENTIAL` pour ajouter des réseaux sans se soucier des virgules ou accolades.
+- Documentation FR/EN (README et guides) réalignée au 20 octobre 2025 avec rappel SoftAP optionnel.
 
 ### Fixed
-- Voyants WiFi/Bluetooth fiabilisés : reconnaissance des modes STA/AP, affichage "Indisponible" lorsque la pile Bluetooth est désactivée et purge des mesures obsolètes.
+- Démarrage WiFi sécurisé : séquence unique de connexion avec repli SoftAP, suppression des assertions `queue.c:1709` quand aucun réseau n'est configuré.
 
 ---
 

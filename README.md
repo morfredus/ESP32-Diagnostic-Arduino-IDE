@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.8.13
+# ESP32 Complete Diagnostic v2.8.8
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.8.13**: Build compatibility is restored for Arduino Core 3.3.2 targets—the WiFi driver detection now relies on `esp_wifi_get_mode`, ensuring the firmware compiles on every supported board without needing `esp_wifi_is_initialized`.
+**What's new in v2.8.8**: WiFi startup is now safe thanks to a single connection sequence with optional SoftAP fallback, and the new macro-based `wifi-config.example.h` template prevents comma/brace mistakes when adding networks.
 
 ## ✨ Features
 
@@ -51,7 +51,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **Real-time** - Data refresh without reload
 - **Responsive** - Mobile/tablet/desktop compatible
 - **Complete exports** - TXT, JSON, CSV, printable PDF version
-- **Wireless status banner** (since v2.8.6, refined in v2.8.13) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness, compile-time Bluetooth hints, safe driver detection and inline reminders for LED/NeoPixel/OLED tests
+- **Wireless status banner** (since v2.8.6, refined in v2.8.8) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness, compile-time Bluetooth hints, safe driver detection and inline reminders for LED/NeoPixel/OLED tests
 - **Inline status feedback** (since v2.8.7, refined in v2.8.8) - Unified ⏳/✅/❌ messages for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth actions with automatic config acknowledgements and accurate completion states
 
 ### Network Access
@@ -339,7 +339,7 @@ If some texts remain in French:
 
 **Never share `wifi-config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.8.13
+## 📁 Project Structure v2.8.8
 
 ```
 ESP32-Diagnostic/
@@ -356,32 +356,11 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v2.8.13 (2025-10-20) - WIFI DRIVER CHECK COMPATIBILITY
-- Replaces the WiFi driver readiness test with `esp_wifi_get_mode`, ensuring the firmware
-  compiles on every ESP32 Arduino Core 3.3.2 setup, including those lacking
-  `esp_wifi_is_initialized`.
-
-### v2.8.12 (2025-10-20) - SAFE WIFI STARTUP & NULL-SAFE EXPORTS
-- Waits for the WiFi driver before querying STA/AP metrics, preventing the `queue.c:1709` assertion on boards with no configured networks.
-- Harmonises the overview/printable views, API and TXT/JSON/CSV exports so missing WiFi details display `—` or `null` consistently.
-
-### v2.8.11 (2025-10-20) - BOOLEAN NORMALISATION & GUIDE RENAME
-- Normalised boolean fields received by the web client so WiFi/Bluetooth indicators reflect real connectivity even when the firmware replies with strings.
-- Renamed the French setup guide to `USER_GUIDE.fr.md` and refreshed cross-links for easier onboarding.
-
-### v2.8.10 (2025-10-20) - WIRELESS POLISH & TEMPLATE SAFEGUARD
-- Improved WiFi detection so the wireless banner stays green when STA/AP are active even if hardware feature flags are missing.
-- Added a trailing comma to `wifi-config.example.h` and documented the change to avoid compilation errors when duplicating entries.
-
-### v2.8.9 (2025-10-20) - CONFIG REFACTOR & INDICATORS
-- Reworked configuration files (`config.h`, `wifi-config.h`) and added bilingual configuration references.
-- Corrected the wireless banner (no more WiFi/Bluetooth inversion) and introduced a configurable refresh interval.
-- Renamed setup guides to `USER_GUIDE` / `GUIDE_UTILISATION` for consistency.
-
-### v2.8.8 (2025-10-20) - WIRELESS INDICATORS & GUIDES
-- WiFi/Bluetooth banner now differentiates STA/AP usage, reports disabled Bluetooth stacks as *Indisponible* and clears outdated metrics automatically.
-- Added bilingual setup guides (`USER_GUIDE` / `GUIDE_UTILISATION`) and a dedicated French README to streamline onboarding.
-- Normalised release dates to reflect the 20 October 2025 publication timeline.
+### v2.8.8 (2025-10-20) - WIRELESS INDICATORS & SAFE STARTUP
+- Hardened WiFi boot sequence with optional SoftAP fallback to avoid queue assertions when no credentials are provided.
+- Macro-driven `wifi-config.example.h` template simplifies adding multiple networks without syntax errors.
+- Wireless banner retains STA/AP awareness, marks disabled Bluetooth stacks as “Indisponible” and clears stale metrics automatically.
+- Updated bilingual documentation (README + user guides) reflecting the 20 Oct 2025 release.
 
 ### v2.8.7 (2025) - INLINE STATUS CLARITY
 - Added consistent ⏳/✅/❌ status formatting for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth actions.

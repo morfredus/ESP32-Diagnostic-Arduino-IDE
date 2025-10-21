@@ -13,6 +13,20 @@
 #define MDNS_HOSTNAME "esp32-diagnostic"
 #endif
 
+#ifndef ENABLE_SOFTAP_FALLBACK
+// When no station network connects, start a SoftAP so the interface remains reachable.
+#define ENABLE_SOFTAP_FALLBACK true
+#endif
+
+#ifndef SOFTAP_SSID
+#define SOFTAP_SSID MDNS_HOSTNAME
+#endif
+
+#ifndef SOFTAP_PASSWORD
+// Leave empty for an open network (minimum 8 characters if you choose a password).
+#define SOFTAP_PASSWORD ""
+#endif
+
 // --- Built-in LED / NeoPixel defaults --------------------------------------
 #ifndef CUSTOM_LED_PIN
 // Set to -1 to let the firmware auto-detect the built-in LED GPIO.
