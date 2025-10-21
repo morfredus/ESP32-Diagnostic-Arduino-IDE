@@ -5,6 +5,17 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.12] - 2025-10-20
+
+### Fixed
+- Empêche le plantage `xQueueSemaphoreTake` au démarrage lorsque le pilote WiFi n'est pas initialisé en différant toutes les lectures réseau jusqu'à ce que l'API soit prête.
+- Normalise les exports (HTML/JSON/CSV) et l'API `/api/wireless-info` lorsque les informations IP/masque/passerelle ou la puissance TX sont indisponibles.
+
+### Changed
+- Les vues imprimables et l'onglet « Sans fil » affichent désormais « — »/`null` lorsque les métriques WiFi ne sont pas pertinentes (mode AP seul, WiFi non configuré, etc.).
+
+---
+
 ## [2.8.11] - 2025-10-20
 
 ### Changed

@@ -1,4 +1,4 @@
-# ESP32-Diagnostic Configuration Reference (v2.8.11)
+# ESP32-Diagnostic Configuration Reference (v2.8.12)
 
 This document centralises every tunable option exposed by the firmware. Review it before compiling a customised build.
 

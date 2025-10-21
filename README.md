@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.8.11
+# ESP32 Complete Diagnostic v2.8.12
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.8.11**: The wireless banner now normalises boolean flags coming from the firmware, so the WiFi/Bluetooth dots always reflect the actual connectivity even when the firmware sends string values. The French setup guide has also been renamed to `USER_GUIDE.fr.md` for easier discovery.
+**What's new in v2.8.12**: Startup is now robust even when no WiFi credentials are provided—the firmware waits for the driver before querying the radio stack, preventing the `xQueueSemaphoreTake` assertion. All wireless exports (web, TXT/JSON/CSV) now render graceful `—`/`null` placeholders whenever IP/subnet/gateway or TX power are unavailable.
 
 ## ✨ Features
 
@@ -51,7 +51,7 @@ Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, acces
 - **Real-time** - Data refresh without reload
 - **Responsive** - Mobile/tablet/desktop compatible
 - **Complete exports** - TXT, JSON, CSV, printable PDF version
-- **Wireless status banner** (since v2.8.6, refined in v2.8.11) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness, compile-time Bluetooth hints and inline reminders for LED/NeoPixel/OLED tests
+- **Wireless status banner** (since v2.8.6, refined in v2.8.12) - Fixed header with live WiFi/Bluetooth indicators, STA/AP awareness, compile-time Bluetooth hints, safe driver detection and inline reminders for LED/NeoPixel/OLED tests
 - **Inline status feedback** (since v2.8.7, refined in v2.8.8) - Unified ⏳/✅/❌ messages for LED, NeoPixel, OLED, ADC, GPIO, WiFi scan and Bluetooth actions with automatic config acknowledgements and accurate completion states
 
 ### Network Access
@@ -339,7 +339,7 @@ If some texts remain in French:
 
 **Never share `wifi-config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.8.11
+## 📁 Project Structure v2.8.12
 
 ```
 ESP32-Diagnostic/
@@ -355,6 +355,10 @@ ESP32-Diagnostic/
 ```
 
 ## 🔄 Changelog
+
+### v2.8.12 (2025-10-20) - SAFE WIFI STARTUP & NULL-SAFE EXPORTS
+- Waits for the WiFi driver before querying STA/AP metrics, preventing the `queue.c:1709` assertion on boards with no configured networks.
+- Harmonises the overview/printable views, API and TXT/JSON/CSV exports so missing WiFi details display `—` or `null` consistently.
 
 ### v2.8.11 (2025-10-20) - BOOLEAN NORMALISATION & GUIDE RENAME
 - Normalised boolean fields received by the web client so WiFi/Bluetooth indicators reflect real connectivity even when the firmware replies with strings.

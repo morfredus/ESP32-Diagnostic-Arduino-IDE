@@ -1,10 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.11
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.12
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
+ * Nouveautés v2.8.12:
+ * - Stabilisation du démarrage : toutes les lectures WiFi attendent désormais l'initialisation du pilote, évitant l'assertion `xQueueSemaphoreTake` quand aucun réseau n'est configuré.
+ * - Export HTML/JSON/CSV et API harmonisés : les champs IP/masque/passerelle/TX renvoient `—` ou `null` quand l'information n'est pas disponible.
+
  * Nouveautés v2.8.11:
  * - Conversion explicite des booléens renvoyés par `/api/wireless-info` afin de garantir des voyants WiFi/Bluetooth conformes à la réalité (même lorsque le firmware renvoie des chaînes).
  * - Mise à jour de la documentation (README, guides FR/EN, références) et renommage du guide français en `USER_GUIDE.fr.md`.
@@ -171,7 +175,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.11"
+#define DIAGNOSTIC_VERSION "2.8.12"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -252,6 +256,14 @@ String jsonEscape(const String& input) {
   return output;
 }
 
+bool isWiFiDriverInitialized() {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 1, 0)
+  return esp_wifi_is_initialized();
+#else
+  return true;
+#endif
+}
+
 #if HAS_NATIVE_BLUETOOTH
 String describeBluetoothControllerStatus(esp_bt_controller_status_t status) {
   switch (status) {
@@ -324,6 +336,9 @@ struct DiagnosticInfo {
   String wifiApSSID;
   int wifiRSSI;
   String ipAddress;
+  String wifiSubnet;
+  String wifiGateway;
+  String wifiDNS;
   String wifiApIP;
   String wifiHostname;
   int wifiChannel;
@@ -336,6 +351,7 @@ struct DiagnosticInfo {
   bool wifiSupports5G;
   bool wifiStationConnected;
   bool wifiApActive;
+  bool wifiDriverInitialized;
 
   String gpioList;
   int totalGPIO;
@@ -549,6 +565,9 @@ String describeWiFiSleepLabel(wifi_ps_type_t sleepMode) {
 
 String describeWiFiBandLabel(bool supports5G) {
 #if defined(WIFI_BAND_5G)
+  if (!isWiFiDriverInitialized()) {
+    return String();
+  }
   wifi_band_t band = WiFiGenericClass::getBand();
   switch (band) {
     case WIFI_BAND_5G:
@@ -565,6 +584,9 @@ String describeWiFiBandLabel(bool supports5G) {
 
 String describeWiFiBandModeLabel(bool supports5G) {
 #if HAS_WIFI_BAND_MODE_API
+  if (!isWiFiDriverInitialized()) {
+    return String();
+  }
   wifi_band_mode_t mode = WiFi.getBandMode();
   switch (mode) {
     case WIFI_BAND_MODE_AUTO:
@@ -1542,14 +1564,25 @@ void collectDiagnosticInfo() {
   bool hasBTHardware = (chip_info.features & CHIP_FEATURE_BT);
   bool hasBLEHardware = (chip_info.features & CHIP_FEATURE_BLE);
 
-  wifi_mode_t currentMode = WiFiGenericClass::getMode();
-  bool wifiStationConnected = (WiFi.status() == WL_CONNECTED);
-  bool wifiApActive = (currentMode == WIFI_MODE_AP || currentMode == WIFI_MODE_APSTA);
-  bool wifiModeActive = (currentMode != WIFI_MODE_NULL);
+  bool wifiDriverInitialized = isWiFiDriverInitialized();
+  wifi_mode_t currentMode = WIFI_MODE_NULL;
+  if (wifiDriverInitialized) {
+    currentMode = WiFiGenericClass::getMode();
+  }
+
+  wl_status_t wifiStatus = WL_NO_SHIELD;
+  if (wifiDriverInitialized) {
+    wifiStatus = WiFi.status();
+  }
+
+  bool wifiStationConnected = wifiDriverInitialized && (wifiStatus == WL_CONNECTED);
+  bool wifiApActive = wifiDriverInitialized && (currentMode == WIFI_MODE_AP || currentMode == WIFI_MODE_APSTA);
+  bool wifiModeActive = wifiDriverInitialized && (currentMode != WIFI_MODE_NULL);
 
   diagnosticData.hasWiFi = hasWiFiHardware || wifiModeActive || wifiStationConnected || wifiApActive;
   diagnosticData.hasBT = hasBTHardware;
   diagnosticData.hasBLE = hasBLEHardware;
+  diagnosticData.wifiDriverInitialized = wifiDriverInitialized;
 
   bluetoothInfo.hardwareClassic = diagnosticData.hasBT;
   bluetoothInfo.hardwareBLE = diagnosticData.hasBLE;
@@ -1582,10 +1615,16 @@ void collectDiagnosticInfo() {
     diagnosticData.wifiSSID = WiFi.SSID();
     diagnosticData.wifiRSSI = WiFi.RSSI();
     diagnosticData.ipAddress = WiFi.localIP().toString();
+    diagnosticData.wifiSubnet = WiFi.subnetMask().toString();
+    diagnosticData.wifiGateway = WiFi.gatewayIP().toString();
+    diagnosticData.wifiDNS = WiFi.dnsIP().toString();
   } else {
     diagnosticData.wifiSSID = String();
     diagnosticData.wifiRSSI = -127;
     diagnosticData.ipAddress = String();
+    diagnosticData.wifiSubnet = String();
+    diagnosticData.wifiGateway = String();
+    diagnosticData.wifiDNS = String();
   }
 
   if (wifiApActive) {
@@ -1599,15 +1638,22 @@ void collectDiagnosticInfo() {
     diagnosticData.wifiApIP = String();
   }
 
-  const char* hostnamePtr = WiFi.getHostname();
+  const char* hostnamePtr = wifiDriverInitialized ? WiFi.getHostname() : nullptr;
   diagnosticData.wifiHostname = hostnamePtr ? String(hostnamePtr) : String();
-  diagnosticData.wifiChannel = WiFi.channel();
+  diagnosticData.wifiChannel = wifiDriverInitialized ? WiFi.channel() : 0;
   diagnosticData.wifiMode = describeWiFiModeLabel(currentMode);
-  wifi_ps_type_t sleepMode = WiFi.getSleep();
-  diagnosticData.wifiSleepMode = describeWiFiSleepLabel(sleepMode);
-  wifi_power_t txPower = WiFi.getTxPower();
-  diagnosticData.wifiTxPowerCode = static_cast<int>(txPower);
-  diagnosticData.wifiTxPowerDbm = wifiTxPowerToDbm(txPower);
+
+  if (wifiDriverInitialized) {
+    wifi_ps_type_t sleepMode = WiFi.getSleep();
+    diagnosticData.wifiSleepMode = describeWiFiSleepLabel(sleepMode);
+    wifi_power_t txPower = WiFi.getTxPower();
+    diagnosticData.wifiTxPowerCode = static_cast<int>(txPower);
+    diagnosticData.wifiTxPowerDbm = wifiTxPowerToDbm(txPower);
+  } else {
+    diagnosticData.wifiSleepMode = String();
+    diagnosticData.wifiTxPowerCode = -1;
+    diagnosticData.wifiTxPowerDbm = 0.0f;
+  }
 #if defined(SOC_WIFI_SUPPORT_5G)
   diagnosticData.wifiSupports5G = SOC_WIFI_SUPPORT_5G;
 #else
@@ -1673,18 +1719,24 @@ void handleWirelessInfo() {
   json += "\"quality\":\"" + jsonEscape(getWiFiSignalQuality()) + "\",";
   json += "\"ip\":\"" + jsonEscape(diagnosticData.ipAddress) + "\",";
   json += "\"ap_ip\":\"" + jsonEscape(diagnosticData.wifiApIP) + "\",";
-  json += "\"subnet\":\"" + jsonEscape(WiFi.subnetMask().toString()) + "\",";
-  json += "\"gateway\":\"" + jsonEscape(WiFi.gatewayIP().toString()) + "\",";
-  json += "\"dns\":\"" + jsonEscape(WiFi.dnsIP().toString()) + "\",";
+  json += "\"subnet\":\"" + jsonEscape(diagnosticData.wifiSubnet) + "\",";
+  json += "\"gateway\":\"" + jsonEscape(diagnosticData.wifiGateway) + "\",";
+  json += "\"dns\":\"" + jsonEscape(diagnosticData.wifiDNS) + "\",";
   json += "\"channel\":" + String(diagnosticData.wifiChannel) + ",";
   json += "\"mode\":\"" + jsonEscape(diagnosticData.wifiMode) + "\",";
   json += "\"sleep\":\"" + jsonEscape(diagnosticData.wifiSleepMode) + "\",";
   json += "\"band\":\"" + jsonEscape(diagnosticData.wifiBand) + "\",";
   json += "\"band_mode\":\"" + jsonEscape(diagnosticData.wifiBandMode) + "\",";
-  json += "\"tx_power_dbm\":" + String(diagnosticData.wifiTxPowerDbm, 2) + ",";
-  json += "\"tx_power_code\":" + String(diagnosticData.wifiTxPowerCode) + ",";
+  if (diagnosticData.wifiTxPowerCode >= 0) {
+    json += "\"tx_power_dbm\":" + String(diagnosticData.wifiTxPowerDbm, 2) + ",";
+    json += "\"tx_power_code\":" + String(diagnosticData.wifiTxPowerCode) + ",";
+  } else {
+    json += "\"tx_power_dbm\":null,";
+    json += "\"tx_power_code\":null,";
+  }
   json += "\"supports_5g\":" + String(diagnosticData.wifiSupports5G ? "true" : "false") + ",";
-  json += "\"hostname\":\"" + jsonEscape(diagnosticData.wifiHostname) + "\"";
+  json += "\"hostname\":\"" + jsonEscape(diagnosticData.wifiHostname) + "\",";
+  json += "\"driver_initialized\":" + String(diagnosticData.wifiDriverInitialized ? "true" : "false");
   json += "},";
   json += "\"gpio\":{";
   json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
@@ -2114,16 +2166,18 @@ void handleExportTXT() {
   String wifiRSSI = wifiStationConnected ? String(diagnosticData.wifiRSSI) + " dBm" : String("-");
   String wifiQuality = wifiStationConnected ? getWiFiSignalQuality() : String("-");
   String wifiIP = wifiStationConnected ? diagnosticData.ipAddress : (wifiApActive ? diagnosticData.wifiApIP : String("-"));
-  String wifiSubnet = wifiStationConnected ? WiFi.subnetMask().toString() : String("-");
-  String wifiGateway = wifiStationConnected ? WiFi.gatewayIP().toString() : String("-");
-  String wifiDNS = wifiStationConnected ? WiFi.dnsIP().toString() : String("-");
+  String wifiSubnet = diagnosticData.wifiSubnet.length() ? diagnosticData.wifiSubnet : String("-");
+  String wifiGateway = diagnosticData.wifiGateway.length() ? diagnosticData.wifiGateway : String("-");
+  String wifiDNS = diagnosticData.wifiDNS.length() ? diagnosticData.wifiDNS : String("-");
   String wifiHostname = diagnosticData.wifiHostname.length() ? diagnosticData.wifiHostname : String("-");
   String wifiChannel = diagnosticData.wifiChannel > 0 ? String(diagnosticData.wifiChannel) : String("-");
   String wifiMode = diagnosticData.wifiMode.length() ? diagnosticData.wifiMode : String("-");
   String wifiSleep = diagnosticData.wifiSleepMode.length() ? diagnosticData.wifiSleepMode : String("-");
   String wifiBand = diagnosticData.wifiBand.length() ? diagnosticData.wifiBand : String("-");
   String wifiBandMode = diagnosticData.wifiBandMode.length() ? diagnosticData.wifiBandMode : String("-");
-  String wifiTxPower = String(diagnosticData.wifiTxPowerDbm, 1) + " dBm (" + String(diagnosticData.wifiTxPowerCode) + ")";
+  String wifiTxPower = diagnosticData.wifiTxPowerCode >= 0
+                        ? String(diagnosticData.wifiTxPowerDbm, 1) + " dBm (" + String(diagnosticData.wifiTxPowerCode) + ")"
+                        : String("-");
 
   String txt = "========================================\r\n";
   txt += String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "\r\n";
@@ -2217,13 +2271,15 @@ void handleExportJSON() {
   collectDiagnosticInfo();
   collectDetailedMemory();
 
-  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
-  String wifiSSID = wifiConnected ? diagnosticData.wifiSSID : String("-");
-  String wifiIP = wifiConnected ? diagnosticData.ipAddress : String("-");
-  String wifiSubnet = wifiConnected ? WiFi.subnetMask().toString() : String("-");
-  String wifiGateway = wifiConnected ? WiFi.gatewayIP().toString() : String("-");
-  String wifiDNS = wifiConnected ? WiFi.dnsIP().toString() : String("-");
-  String wifiQuality = wifiConnected ? getWiFiSignalQuality() : String("-");
+  bool wifiStationConnected = diagnosticData.wifiStationConnected;
+  bool wifiApActive = diagnosticData.wifiApActive;
+  bool wifiConnected = wifiStationConnected || wifiApActive;
+  String wifiSSID = wifiStationConnected ? diagnosticData.wifiSSID : (wifiApActive ? diagnosticData.wifiApSSID : String("-"));
+  String wifiIP = wifiStationConnected ? diagnosticData.ipAddress : (wifiApActive ? diagnosticData.wifiApIP : String("-"));
+  String wifiSubnet = diagnosticData.wifiSubnet.length() ? diagnosticData.wifiSubnet : String("-");
+  String wifiGateway = diagnosticData.wifiGateway.length() ? diagnosticData.wifiGateway : String("-");
+  String wifiDNS = diagnosticData.wifiDNS.length() ? diagnosticData.wifiDNS : String("-");
+  String wifiQuality = wifiStationConnected ? getWiFiSignalQuality() : String("-");
   String flashType = getFlashType();
   String flashSpeed = getFlashSpeed();
   String psramType = detailedMemory.psramType ? String(detailedMemory.psramType) : String("Inconnu");
@@ -2275,10 +2331,16 @@ void handleExportJSON() {
   json += "\"sleep\":\"" + jsonEscape(diagnosticData.wifiSleepMode) + "\",";
   json += "\"band\":\"" + jsonEscape(diagnosticData.wifiBand) + "\",";
   json += "\"band_mode\":\"" + jsonEscape(diagnosticData.wifiBandMode) + "\",";
-  json += "\"tx_power_dbm\":" + String(diagnosticData.wifiTxPowerDbm, 2) + ",";
-  json += "\"tx_power_code\":" + String(diagnosticData.wifiTxPowerCode) + ",";
+  if (diagnosticData.wifiTxPowerCode >= 0) {
+    json += "\"tx_power_dbm\":" + String(diagnosticData.wifiTxPowerDbm, 2) + ",";
+    json += "\"tx_power_code\":" + String(diagnosticData.wifiTxPowerCode) + ",";
+  } else {
+    json += "\"tx_power_dbm\":null,";
+    json += "\"tx_power_code\":null,";
+  }
   json += "\"supports_5g\":" + String(diagnosticData.wifiSupports5G ? "true" : "false") + ",";
-  json += "\"hostname\":\"" + jsonEscape(wifiHostname) + "\"";
+  json += "\"hostname\":\"" + jsonEscape(wifiHostname) + "\",";
+  json += "\"driver_initialized\":" + String(diagnosticData.wifiDriverInitialized ? "true" : "false");
   json += "},";
 
   json += "\"gpio\":{";
@@ -2339,20 +2401,24 @@ void handleExportCSV() {
   collectDiagnosticInfo();
   collectDetailedMemory();
 
-  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
-  String wifiSSID = wifiConnected ? diagnosticData.wifiSSID : String("-");
-  String wifiRSSI = wifiConnected ? String(diagnosticData.wifiRSSI) + " dBm" : String("-");
-  String wifiQuality = wifiConnected ? getWiFiSignalQuality() : String("-");
-  String wifiIP = wifiConnected ? diagnosticData.ipAddress : String("-");
-  String wifiSubnet = wifiConnected ? WiFi.subnetMask().toString() : String("-");
-  String wifiGateway = wifiConnected ? WiFi.gatewayIP().toString() : String("-");
-  String wifiDNS = wifiConnected ? WiFi.dnsIP().toString() : String("-");
+  bool wifiStationConnectedCsv = diagnosticData.wifiStationConnected;
+  bool wifiApActiveCsv = diagnosticData.wifiApActive;
+  bool wifiConnected = wifiStationConnectedCsv || wifiApActiveCsv;
+  String wifiSSID = wifiStationConnectedCsv ? diagnosticData.wifiSSID : (wifiApActiveCsv ? diagnosticData.wifiApSSID : String("-"));
+  String wifiRSSI = wifiStationConnectedCsv ? String(diagnosticData.wifiRSSI) + " dBm" : String("-");
+  String wifiQuality = wifiStationConnectedCsv ? getWiFiSignalQuality() : String("-");
+  String wifiIP = wifiStationConnectedCsv ? diagnosticData.ipAddress : (wifiApActiveCsv ? diagnosticData.wifiApIP : String("-"));
+  String wifiSubnet = diagnosticData.wifiSubnet.length() ? diagnosticData.wifiSubnet : String("-");
+  String wifiGateway = diagnosticData.wifiGateway.length() ? diagnosticData.wifiGateway : String("-");
+  String wifiDNS = diagnosticData.wifiDNS.length() ? diagnosticData.wifiDNS : String("-");
   String wifiChannel = diagnosticData.wifiChannel > 0 ? String(diagnosticData.wifiChannel) : String("-");
   String wifiMode = diagnosticData.wifiMode.length() ? diagnosticData.wifiMode : String("-");
   String wifiSleep = diagnosticData.wifiSleepMode.length() ? diagnosticData.wifiSleepMode : String("-");
   String wifiBand = diagnosticData.wifiBand.length() ? diagnosticData.wifiBand : String("-");
   String wifiBandMode = diagnosticData.wifiBandMode.length() ? diagnosticData.wifiBandMode : String("-");
-  String wifiTxPower = String(diagnosticData.wifiTxPowerDbm, 1) + " dBm (" + String(diagnosticData.wifiTxPowerCode) + ")";
+  String wifiTxPower = diagnosticData.wifiTxPowerCode >= 0
+                        ? String(diagnosticData.wifiTxPowerDbm, 1) + " dBm (" + String(diagnosticData.wifiTxPowerCode) + ")"
+                        : String("-");
   String wifiHostname = diagnosticData.wifiHostname.length() ? diagnosticData.wifiHostname : String("-");
   String resetReason = getResetReason();
 
@@ -2527,22 +2593,42 @@ void handlePrintVersion() {
   html += "</div>";
   
   // WiFi
+  String wifiSsidDisplay = diagnosticData.wifiStationConnected
+                            ? diagnosticData.wifiSSID
+                            : (diagnosticData.wifiApActive ? diagnosticData.wifiApSSID : String("—"));
+  String wifiSignalDisplay = diagnosticData.wifiStationConnected
+                              ? String(diagnosticData.wifiRSSI) + " dBm (" + getWiFiSignalQuality() + ")"
+                              : String("—");
+  String wifiIpDisplay = diagnosticData.ipAddress.length() ? diagnosticData.ipAddress : String("—");
+  String wifiSubnetDisplay = diagnosticData.wifiSubnet.length() ? diagnosticData.wifiSubnet : String("—");
+  String wifiGatewayDisplay = diagnosticData.wifiGateway.length() ? diagnosticData.wifiGateway : String("—");
+  String wifiDnsDisplay = diagnosticData.wifiDNS.length() ? diagnosticData.wifiDNS : String("—");
+  String wifiChannelDisplay = diagnosticData.wifiChannel > 0 ? String("Ch ") + String(diagnosticData.wifiChannel) : String("—");
+  String wifiModeDisplay = diagnosticData.wifiMode.length() ? diagnosticData.wifiMode : String("—");
+  String wifiSleepDisplay = diagnosticData.wifiSleepMode.length() ? diagnosticData.wifiSleepMode : String("—");
+  String wifiBandDisplay = diagnosticData.wifiBand.length() ? diagnosticData.wifiBand : String("—");
+  String wifiBandModeDisplay = diagnosticData.wifiBandMode.length() ? diagnosticData.wifiBandMode : String("—");
+  String wifiTxPowerDisplay = diagnosticData.wifiTxPowerCode >= 0
+                                ? String(diagnosticData.wifiTxPowerDbm, 1) + " dBm (" + String(diagnosticData.wifiTxPowerCode) + ")"
+                                : String("—");
+  String wifiHostnameDisplay = diagnosticData.wifiHostname.length() ? diagnosticData.wifiHostname : String("—");
+
   html += "<div class='section'>";
   html += "<h2>Connexion WiFi</h2>";
   html += "<div class='grid'>";
-  html += "<div class='row'><b>SSID:</b><span>" + diagnosticData.wifiSSID + "</span></div>";
-  html += "<div class='row'><b>Signal:</b><span>" + String(diagnosticData.wifiRSSI) + " dBm (" + getWiFiSignalQuality() + ")</span></div>";
-  html += "<div class='row'><b>Adresse IP:</b><span>" + diagnosticData.ipAddress + "</span></div>";
-  html += "<div class='row'><b>Masque:</b><span>" + WiFi.subnetMask().toString() + "</span></div>";
-  html += "<div class='row'><b>Passerelle:</b><span>" + WiFi.gatewayIP().toString() + "</span></div>";
-  html += "<div class='row'><b>DNS:</b><span>" + WiFi.dnsIP().toString() + "</span></div>";
-  html += "<div class='row'><b>" + String(T().wifi_channel) + ":</b><span>" + (diagnosticData.wifiChannel > 0 ? String("Ch ") + String(diagnosticData.wifiChannel) : String("—")) + "</span></div>";
-  html += "<div class='row'><b>" + String(T().wifi_mode) + ":</b><span>" + (diagnosticData.wifiMode.length() ? diagnosticData.wifiMode : String("—")) + "</span></div>";
-  html += "<div class='row'><b>" + String(T().wifi_sleep) + ":</b><span>" + (diagnosticData.wifiSleepMode.length() ? diagnosticData.wifiSleepMode : String("—")) + "</span></div>";
-  html += "<div class='row'><b>" + String(T().wifi_band) + ":</b><span>" + (diagnosticData.wifiBand.length() ? diagnosticData.wifiBand : String("—")) + "</span></div>";
-  html += "<div class='row'><b>" + String(T().wifi_band_mode) + ":</b><span>" + (diagnosticData.wifiBandMode.length() ? diagnosticData.wifiBandMode : String("—")) + "</span></div>";
-  html += "<div class='row'><b>" + String(T().wifi_tx_power) + ":</b><span>" + String(diagnosticData.wifiTxPowerDbm, 1) + " dBm (" + String(diagnosticData.wifiTxPowerCode) + ")</span></div>";
-  html += "<div class='row'><b>" + String(T().wifi_hostname) + ":</b><span>" + (diagnosticData.wifiHostname.length() ? diagnosticData.wifiHostname : String("—")) + "</span></div>";
+  html += "<div class='row'><b>SSID:</b><span>" + wifiSsidDisplay + "</span></div>";
+  html += "<div class='row'><b>Signal:</b><span>" + wifiSignalDisplay + "</span></div>";
+  html += "<div class='row'><b>Adresse IP:</b><span>" + wifiIpDisplay + "</span></div>";
+  html += "<div class='row'><b>Masque:</b><span>" + wifiSubnetDisplay + "</span></div>";
+  html += "<div class='row'><b>Passerelle:</b><span>" + wifiGatewayDisplay + "</span></div>";
+  html += "<div class='row'><b>DNS:</b><span>" + wifiDnsDisplay + "</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_channel) + ":</b><span>" + wifiChannelDisplay + "</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_mode) + ":</b><span>" + wifiModeDisplay + "</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_sleep) + ":</b><span>" + wifiSleepDisplay + "</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_band) + ":</b><span>" + wifiBandDisplay + "</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_band_mode) + ":</b><span>" + wifiBandModeDisplay + "</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_tx_power) + ":</b><span>" + wifiTxPowerDisplay + "</span></div>";
+  html += "<div class='row'><b>" + String(T().wifi_hostname) + ":</b><span>" + wifiHostnameDisplay + "</span></div>";
   html += "</div></div>";
   
   // GPIO et Périphériques
@@ -2820,13 +2906,24 @@ void handleRoot() {
   server.sendContent(chunk);
   
   // WiFi
+  String wifiSsidOverview = diagnosticData.wifiStationConnected
+                             ? diagnosticData.wifiSSID
+                             : (diagnosticData.wifiApActive ? diagnosticData.wifiApSSID : String("—"));
+  String wifiSignalOverview = diagnosticData.wifiStationConnected
+                               ? String(diagnosticData.wifiRSSI) + " dBm"
+                               : String("—");
+  String wifiQualityOverview = diagnosticData.wifiStationConnected ? getWiFiSignalQuality() : String("—");
+  String wifiIpOverview = diagnosticData.ipAddress.length() ? diagnosticData.ipAddress : String("—");
+  String wifiSubnetOverview = diagnosticData.wifiSubnet.length() ? diagnosticData.wifiSubnet : String("—");
+  String wifiGatewayOverview = diagnosticData.wifiGateway.length() ? diagnosticData.wifiGateway : String("—");
+
   chunk = "<div class='section'><h2>" + String(T().wifi_connection) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().connected_ssid) + "</div><div class='info-value'>" + diagnosticData.wifiSSID + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_power) + "</div><div class='info-value'>" + String(diagnosticData.wifiRSSI) + " dBm</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_quality) + "</div><div class='info-value'>" + getWiFiSignalQuality() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().ip_address) + "</div><div class='info-value'>" + diagnosticData.ipAddress + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().subnet_mask) + "</div><div class='info-value'>" + WiFi.subnetMask().toString() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().gateway) + "</div><div class='info-value'>" + WiFi.gatewayIP().toString() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().connected_ssid) + "</div><div class='info-value'>" + wifiSsidOverview + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_power) + "</div><div class='info-value'>" + wifiSignalOverview + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_quality) + "</div><div class='info-value'>" + wifiQualityOverview + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().ip_address) + "</div><div class='info-value'>" + wifiIpOverview + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().subnet_mask) + "</div><div class='info-value'>" + wifiSubnetOverview + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().gateway) + "</div><div class='info-value'>" + wifiGatewayOverview + "</div></div>";
   chunk += "</div></div>";
   server.sendContent(chunk);
   
@@ -3083,7 +3180,12 @@ void setup() {
     attempt++;
   }
   
-  if (WiFi.status() == WL_CONNECTED) {
+  wl_status_t initialStatus = WL_NO_SHIELD;
+  if (isWiFiDriverInitialized()) {
+    initialStatus = WiFi.status();
+  }
+
+  if (initialStatus == WL_CONNECTED) {
     Serial.println("\r\n\r\nWiFi OK!");
     Serial.printf("SSID: %s\r\n", WiFi.SSID().c_str());
     Serial.printf("IP: %s\r\n\r\n", WiFi.localIP().toString().c_str());
