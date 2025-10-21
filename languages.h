@@ -275,19 +275,23 @@ struct Translations {
   const char* error_prefix;
   const char* testing_led;
   const char* testing_led_effect;
+  const char* testing_led_fade;
   const char* testing_led_off;
   const char* testing_neopixel;
   const char* testing_neopixel_effect;
   const char* testing_neopixel_color;
+  const char* testing_neopixel_off;
   const char* testing_oled_step;
   const char* testing_oled_message;
   const char* testing_adc;
   const char* testing_touch;
   const char* testing_pwm;
   const char* testing_spi;
+  const char* testing_partitions;
   const char* testing_stress;
   const char* testing_gpio;
   const char* testing_bluetooth;
+  const char* testing_benchmarks;
   const char* wifi_waiting;
   
   // Unités
@@ -560,29 +564,33 @@ const Translations LANG_FR_TEXTS = {
   "Bluetooth",
   "Point d'accès actif",
   "Test en cours...",
-  "Test complet en cours (~25s)...",
+  "Test OLED en cours...",
   "Terminé",
   "Scanner",
-  "Scan en cours...",
+  "Analyse des réseaux Wi-Fi en cours...",
   "Reconfiguration...",
   "Configuration mise à jour",
   "Erreur de configuration",
   "Erreur : ",
-  "Test LED intégrée en cours...",
-  "Mode LED en cours...",
+  "Test LED en cours...",
+  "LED en clignotement...",
+  "Effet de fondu LED en cours...",
   "Extinction de la LED...",
   "Test NeoPixel en cours...",
-  "Animation NeoPixel en cours...",
+  "Animation Arc-en-ciel en cours...",
   "Application de la couleur NeoPixel...",
+  "Extinction des LEDs NeoPixel...",
   "Séquence OLED étape en cours...",
   "Affichage du message OLED...",
-  "Mesure ADC en cours...",
-  "Lecture tactile en cours...",
+  "Test ADC en cours...",
+  "Test tactile en cours...",
   "Test PWM en cours...",
-  "Analyse SPI en cours...",
-  "Test de stress en cours...",
-  "Campagne GPIO en cours...",
+  "Test SPI en cours...",
+  "Analyse des partitions en cours...",
+  "Stress test GPIO en cours...",
+  "Test GPIO en cours...",
   "Test Bluetooth en cours...",
+  "Benchmark CPU et mémoire en cours...",
   "En attente de configuration WiFi...",
   
   // Unités
@@ -855,30 +863,34 @@ const Translations LANG_EN_TEXTS = {
   "Bluetooth",
   "Access Point active",
   "Test in progress...",
-  "Full test running (~25s)...",
+  "OLED test running...",
   "Completed",
   "Scan",
-  "Scanning...",
+  "Scanning Wi-Fi networks...",
   "Reconfiguring...",
   "Configuration updated",
   "Configuration error",
   "Error: ",
   "Built-in LED test running...",
-  "LED effect in progress...",
+  "LED blinking...",
+  "LED fade effect running...",
   "Turning LED off...",
   "NeoPixel test running...",
-  "NeoPixel animation running...",
+  "Rainbow animation running...",
   "Applying NeoPixel color...",
+  "Turning NeoPixel LEDs off...",
   "OLED step running...",
   "Sending custom OLED message...",
-  "ADC sampling in progress...",
-  "Touch reading in progress...",
+  "ADC test running...",
+  "Touch test running...",
   "PWM test running...",
-  "SPI scan in progress...",
-  "Stress test running...",
-  "GPIO sweep running...",
+  "SPI test running...",
+  "Partition analysis running...",
+  "GPIO stress test running...",
+  "GPIO test running...",
   "Bluetooth test running...",
-  "Waiting for WiFi setup...",
+  "CPU and memory benchmark running...",
+  "Waiting for Wi-Fi configuration...",
   
   // Units
   "cores",

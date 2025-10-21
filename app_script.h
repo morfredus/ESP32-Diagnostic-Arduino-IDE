@@ -54,19 +54,23 @@ inline String buildAppScript() {
     errorPrefix: "{{ERROR_PREFIX}}",
     testingLed: "{{TESTING_LED}}",
     testingLedEffect: "{{TESTING_LED_EFFECT}}",
+    testingLedFade: "{{TESTING_LED_FADE}}",
     testingLedOff: "{{TESTING_LED_OFF}}",
     testingNeopixel: "{{TESTING_NEOPIXEL}}",
     testingNeopixelEffect: "{{TESTING_NEOPIXEL_EFFECT}}",
     testingNeopixelColor: "{{TESTING_NEOPIXEL_COLOR}}",
+    testingNeopixelOff: "{{TESTING_NEOPIXEL_OFF}}",
     testingOledStep: "{{TESTING_OLED_STEP}}",
     testingOledMessage: "{{TESTING_OLED_MESSAGE}}",
     testingAdc: "{{TESTING_ADC}}",
     testingTouch: "{{TESTING_TOUCH}}",
     testingPwm: "{{TESTING_PWM}}",
     testingSpi: "{{TESTING_SPI}}",
+    testingPartitions: "{{TESTING_PARTITIONS}}",
     testingStress: "{{TESTING_STRESS}}",
     testingGpio: "{{TESTING_GPIO}}",
     testingBluetooth: "{{TESTING_BLUETOOTH}}",
+    testingBenchmarks: "{{TESTING_BENCHMARKS}}",
     wifiWaiting: "{{WIFI_WAITING}}",
     scanning: "{{SCANNING}}",
     ok: "{{OK}}",
@@ -416,7 +420,7 @@ inline String buildAppScript() {
   function ledFade() {
     ensureBuiltinConfigured()
       .then(() => {
-        setStatusRunning('builtin-led-status', messages.testingLedEffect);
+        setStatusRunning('builtin-led-status', messages.testingLedFade);
         return fetch('/api/builtin-led-control?action=fade');
       })
       .then(r => r.json())
@@ -484,7 +488,10 @@ inline String buildAppScript() {
   function neoPattern(pattern) {
     ensureNeoPixelConfigured()
       .then(() => {
-        setStatusRunning('neopixel-status', messages.testingNeopixelEffect);
+        const statusLabel = pattern === 'off'
+          ? messages.testingNeopixelOff
+          : messages.testingNeopixelEffect;
+        setStatusRunning('neopixel-status', statusLabel);
         return fetch('/api/neopixel-pattern?pattern=' + encodeURIComponent(pattern));
       })
       .then(r => r.json())
@@ -668,7 +675,7 @@ inline String buildAppScript() {
   }
 
   function listPartitions() {
-    setText('partitions-results', messages.scanning);
+    setText('partitions-results', messages.testingPartitions);
     fetch('/api/partitions-list')
       .then(r => r.json())
       .then(d => setHTML('partitions-results', d.partitions || ''))
@@ -725,6 +732,7 @@ inline String buildAppScript() {
     const bt = data.bluetooth || {};
     const wifiDot = document.getElementById('wifi-status-dot');
     const wifiLabel = document.getElementById('wifi-status-label');
+    const wifiPill = document.getElementById('wifi-status-pill');
     const wifiFlag = Object.prototype.hasOwnProperty.call(wifi, 'available') ? toBool(wifi.available) : true;
     const wifiStation = toBool(wifi.station_connected);
     const wifiAP = toBool(wifi.ap_active);
@@ -779,11 +787,14 @@ inline String buildAppScript() {
         break;
     }
 
-    const wifiIcon = wifiStateClass === 'online' ? '✅' : (wifiStateClass === 'offline' ? '❌' : '⏳');
     if (wifiLabel) {
-      wifiLabel.textContent = `${wifiIcon} ${indicator.wifiLabel} · ${wifiStateText}`;
+      wifiLabel.textContent = wifiStateText;
     }
     updateDotState(wifiDot, wifiStateClass);
+    if (wifiPill) {
+      wifiPill.classList.remove('state-online', 'state-offline', 'state-pending');
+      wifiPill.classList.add('state-' + (['online', 'offline', 'pending'].includes(wifiStateClass) ? wifiStateClass : 'pending'));
+    }
 
     let connectionText;
     if (!wifiAvailable && wifiStateRaw === 'unavailable') {
@@ -890,6 +901,7 @@ inline String buildAppScript() {
     setText('bluetooth-hint', hint);
     const btDot = document.getElementById('bt-status-dot');
     const btLabel = document.getElementById('bt-status-label');
+    const btPill = document.getElementById('bt-status-pill');
     const hasBluetoothHardware = btClassic || btBle;
     const btStateRaw = typeof bt.state === 'string' ? bt.state.toLowerCase() : '';
     let btStateClass = 'pending';
@@ -941,11 +953,14 @@ inline String buildAppScript() {
       btStateText = bt.hint;
     }
 
-    const btIcon = btStateClass === 'online' ? '✅' : (btStateClass === 'offline' ? '❌' : '⏳');
     if (btLabel) {
-      btLabel.textContent = `${btIcon} ${indicator.bluetoothLabel} · ${btStateText}`;
+      btLabel.textContent = btStateText;
     }
     updateDotState(btDot, btStateClass);
+    if (btPill) {
+      btPill.classList.remove('state-online', 'state-offline', 'state-pending');
+      btPill.classList.add('state-' + (['online', 'offline', 'pending'].includes(btStateClass) ? btStateClass : 'pending'));
+    }
   }
 
   function testBluetooth() {
@@ -1006,8 +1021,10 @@ inline String buildAppScript() {
   }
 
   function runBenchmarks() {
-    setText('cpu-bench', messages.testing);
-    setText('mem-bench', messages.testing);
+    setText('cpu-bench', messages.testingBenchmarks);
+    setText('mem-bench', messages.testingBenchmarks);
+    setText('cpu-perf', messages.testingBenchmarks);
+    setText('mem-speed', messages.testingBenchmarks);
     fetch('/api/benchmark')
       .then(r => r.json())
       .then(data => {
@@ -1100,19 +1117,23 @@ inline String buildAppScript() {
   script.replace(F("{{ERROR_PREFIX}}"), escapeForJS(String(T().error_prefix)));
   script.replace(F("{{TESTING_LED}}"), escapeForJS(String(T().testing_led)));
   script.replace(F("{{TESTING_LED_EFFECT}}"), escapeForJS(String(T().testing_led_effect)));
+  script.replace(F("{{TESTING_LED_FADE}}"), escapeForJS(String(T().testing_led_fade)));
   script.replace(F("{{TESTING_LED_OFF}}"), escapeForJS(String(T().testing_led_off)));
   script.replace(F("{{TESTING_NEOPIXEL}}"), escapeForJS(String(T().testing_neopixel)));
   script.replace(F("{{TESTING_NEOPIXEL_EFFECT}}"), escapeForJS(String(T().testing_neopixel_effect)));
   script.replace(F("{{TESTING_NEOPIXEL_COLOR}}"), escapeForJS(String(T().testing_neopixel_color)));
+  script.replace(F("{{TESTING_NEOPIXEL_OFF}}"), escapeForJS(String(T().testing_neopixel_off)));
   script.replace(F("{{TESTING_OLED_STEP}}"), escapeForJS(String(T().testing_oled_step)));
   script.replace(F("{{TESTING_OLED_MESSAGE}}"), escapeForJS(String(T().testing_oled_message)));
   script.replace(F("{{TESTING_ADC}}"), escapeForJS(String(T().testing_adc)));
   script.replace(F("{{TESTING_TOUCH}}"), escapeForJS(String(T().testing_touch)));
   script.replace(F("{{TESTING_PWM}}"), escapeForJS(String(T().testing_pwm)));
   script.replace(F("{{TESTING_SPI}}"), escapeForJS(String(T().testing_spi)));
+  script.replace(F("{{TESTING_PARTITIONS}}"), escapeForJS(String(T().testing_partitions)));
   script.replace(F("{{TESTING_STRESS}}"), escapeForJS(String(T().testing_stress)));
   script.replace(F("{{TESTING_GPIO}}"), escapeForJS(String(T().testing_gpio)));
   script.replace(F("{{TESTING_BLUETOOTH}}"), escapeForJS(String(T().testing_bluetooth)));
+  script.replace(F("{{TESTING_BENCHMARKS}}"), escapeForJS(String(T().testing_benchmarks)));
   script.replace(F("{{WIFI_WAITING}}"), escapeForJS(String(T().wifi_waiting)));
   script.replace(F("{{SCANNING}}"), escapeForJS(String(T().scanning)));
   script.replace(F("{{OK}}"), escapeForJS(String(T().ok)));

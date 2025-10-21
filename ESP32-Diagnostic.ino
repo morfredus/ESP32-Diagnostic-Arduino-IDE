@@ -1,5 +1,5 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.15
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.15-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -181,7 +181,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.15"
+#define DIAGNOSTIC_VERSION "2.8.15-dev"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -2588,7 +2588,8 @@ void handleExportCSV() {
   String wifiHostname = diagnosticData.wifiHostname.length() ? diagnosticData.wifiHostname : String("-");
   String resetReason = getResetReason();
 
-  String csv = String(T().category) + "," + String(T().parameter) + "," + String(T().value) + "\r\n";
+  String csv = "\xEF\xBB\xBF";
+  csv += String(T().category) + "," + String(T().parameter) + "," + String(T().value) + "\r\n";
 
   csv += "Chip," + String(T().model) + "," + diagnosticData.chipModel + "\r\n";
   csv += "Chip," + String(T().revision) + "," + diagnosticData.chipRevision + "\r\n";
@@ -2917,28 +2918,34 @@ void handleRoot() {
   chunk += "<title>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</title>";
   chunk += "<style>";
   chunk += "*{margin:0;padding:0;box-sizing:border-box}";
-  chunk += "body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:160px 20px 40px}";
+  chunk += "body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:220px 20px 40px}";
   chunk += ".container{max-width:1400px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}";
   chunk += ".header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:30px;text-align:center;position:relative}";
   chunk += ".header h1{font-size:2.5em;margin-bottom:10px}";
-  chunk += ".lang-switcher{position:static;display:flex;gap:8px;align-items:center;flex-wrap:wrap}";
+  chunk += ".lang-switcher{display:flex;gap:8px;align-items:center;flex-wrap:wrap}";
   chunk += ".lang-btn{padding:8px 15px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
   chunk += ".lang-btn:hover{background:rgba(255,255,255,.3)}";
   chunk += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
-  chunk += ".status-bar{position:fixed;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:10px 20px;background:rgba(17,24,39,.9);backdrop-filter:blur(10px);z-index:2500;color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.35)}";
-  chunk += ".status-cluster{display:flex;align-items:center;gap:10px;flex-wrap:wrap}";
-  chunk += ".top-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}";
-  chunk += ".status-pill{display:flex;align-items:center;gap:10px;padding:6px 16px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);font-weight:600;font-size:.9em}";
+  chunk += ".status-bar{position:fixed;top:20px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:1100px;display:flex;flex-direction:column;align-items:center;gap:16px;padding:18px 24px;background:rgba(17,24,39,.92);backdrop-filter:blur(14px);z-index:2500;color:#fff;border-radius:24px;box-shadow:0 16px 40px rgba(0,0,0,.35)}";
+  chunk += ".status-row{width:100%;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px}";
+  chunk += ".status-pill{display:flex;align-items:center;gap:12px;padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);font-weight:600;font-size:.95em}";
+  chunk += ".status-pill.state-online{border-color:rgba(34,197,94,.65)}";
+  chunk += ".status-pill.state-offline{border-color:rgba(239,68,68,.65)}";
+  chunk += ".status-pill.state-pending{border-color:rgba(249,115,22,.65)}";
+  chunk += ".status-text{display:flex;align-items:center;gap:6px}";
+  chunk += ".status-label-name{font-weight:700}";
+  chunk += ".status-separator{opacity:.6}";
+  chunk += ".status-state{font-weight:600;opacity:.9}";
   chunk += ".ip-pill{background:rgba(255,255,255,.08)}";
-  chunk += ".ip-pill .ip-label{opacity:.75;margin-right:4px}";
-  chunk += ".ip-pill .ip-value{font-family:'Roboto Mono',monospace}";
+  chunk += ".ip-pill .status-label-name{opacity:.75}";
+  chunk += ".ip-pill .status-state{font-family:'Roboto Mono',monospace}";
   chunk += ".status-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.4)}";
   chunk += ".status-dot.online{background:#22c55e;animation:statusBlink 1.4s ease-in-out infinite;box-shadow:0 0 14px rgba(34,197,94,.9)}";
   chunk += ".status-dot.offline{background:#ef4444;box-shadow:0 0 14px rgba(239,68,68,.85)}";
   chunk += ".status-dot.pending{background:#f97316;animation:statusPulse 2s ease-in-out infinite;box-shadow:0 0 14px rgba(249,115,22,.8)}";
   chunk += "@keyframes statusBlink{0%,100%{opacity:1}50%{opacity:.35}}";
   chunk += "@keyframes statusPulse{0%,100%{opacity:.6}50%{opacity:1}}";
-  chunk += ".nav{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}";
+  chunk += ".nav{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}";
   chunk += ".nav-btn{padding:8px 16px;background:rgba(255,255,255,.2);border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:600;font-size:.95em}";
   chunk += ".nav-btn:hover{background:rgba(255,255,255,.3)}";
   chunk += ".nav-btn.active{background:rgba(255,255,255,.45)}";
@@ -2974,8 +2981,11 @@ void handleRoot() {
   chunk += ".status-field{gap:8px;}";
   chunk += ".gpio-hint{margin-top:12px;padding:12px;border-radius:10px;background:#eef2ff;color:#4c51bf;font-size:0.9em;min-height:1.6em;}";
   chunk += "input[type='number'],input[type='color'],input[type='text']{padding:10px;border:2px solid #ddd;border-radius:5px;font-size:1em}";
-  chunk += "@media(max-width:1024px){.status-bar{justify-content:center}.top-actions{width:100%;justify-content:center}.nav{justify-content:center}.lang-switcher{justify-content:center}}";
-  chunk += "@media(max-width:640px){body{padding:200px 16px 30px}.status-bar{gap:10px}.nav-btn{flex:1 1 calc(50% - 8px);min-width:140px;text-align:center}}";
+  chunk += ".status-row-bottom{width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:12px}";
+  chunk += ".status-row-bottom .nav{flex:1 1 60%;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}";
+  chunk += ".status-row-bottom .lang-switcher{margin-left:auto}";
+  chunk += "@media(max-width:1024px){.status-bar{top:12px;width:calc(100% - 32px)}.status-row-bottom{flex-direction:column;align-items:center}.status-row-bottom .lang-switcher{margin-left:0;justify-content:center}}";
+  chunk += "@media(max-width:640px){body{padding:220px 16px 30px}.status-bar{width:calc(100% - 20px);padding:16px 18px}.status-row{gap:10px}.status-row-bottom .nav{flex:1 1 100%}.status-row-bottom .lang-switcher{margin-left:0;width:100%;justify-content:center}.nav-btn{flex:1 1 100%;min-width:0;text-align:center}}";
   chunk += "@media print{.nav,.btn,.lang-switcher,.status-bar{display:none}}";
   chunk += "</style></head><body>";
   server.sendContent(chunk);
@@ -2983,16 +2993,12 @@ void handleRoot() {
   // CHUNK 2: STATUS BAR + NAVIGATION FIXE
   String ipBadge = diagnosticData.ipAddress.length() ? diagnosticData.ipAddress : String("—");
   chunk = "<div class='status-bar'>";
-  chunk += "<div class='status-cluster'>";
-  chunk += "<div class='status-pill' id='wifi-status-pill'><span class='status-dot offline' id='wifi-status-dot'></span><span id='wifi-status-label'>" + String(T().indicator_wifi) + " · " + String(T().disconnected) + "</span></div>";
-  chunk += "<div class='status-pill' id='bt-status-pill'><span class='status-dot pending' id='bt-status-dot'></span><span id='bt-status-label'>" + String(T().indicator_bluetooth) + " · " + String(T().indicator_unavailable) + "</span></div>";
-  chunk += "<div class='status-pill ip-pill'><span class='ip-label'>" + String(T().ip_address) + "</span><span class='ip-value' id='status-ip'>" + ipBadge + "</span></div>";
+  chunk += "<div class='status-row status-row-top'>";
+  chunk += "<div class='status-pill' id='wifi-status-pill'><span class='status-dot offline' id='wifi-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_wifi) + "</span><span class='status-separator'>·</span><span class='status-state' id='wifi-status-label'>" + String(T().disconnected) + "</span></span></div>";
+  chunk += "<div class='status-pill' id='bt-status-pill'><span class='status-dot pending' id='bt-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_bluetooth) + "</span><span class='status-separator'>·</span><span class='status-state' id='bt-status-label'>" + String(T().indicator_unavailable) + "</span></span></div>";
+  chunk += "<div class='status-pill ip-pill'><span class='status-label-name'>" + String(T().ip_address) + "</span><span class='status-state' id='status-ip'>" + ipBadge + "</span></div>";
   chunk += "</div>";
-  chunk += "<div class='top-actions'>";
-  chunk += "<div class='lang-switcher'>";
-  chunk += "<button class='lang-btn" + String(currentLanguage == LANG_FR ? " active" : "") + "' data-lang='fr'>FR</button>";
-  chunk += "<button class='lang-btn" + String(currentLanguage == LANG_EN ? " active" : "") + "' data-lang='en'>EN</button>";
-  chunk += "</div>";
+  chunk += "<div class='status-row status-row-bottom'>";
   chunk += "<div class='nav'>";
   chunk += "<button type='button' class='nav-btn active' data-nav='overview' data-i18n='nav_overview'>" + String(T().nav_overview) + "</button>";
   chunk += "<button type='button' class='nav-btn' data-nav='leds' data-i18n='nav_leds'>" + String(T().nav_leds) + "</button>";
@@ -3002,6 +3008,10 @@ void handleRoot() {
   chunk += "<button type='button' class='nav-btn' data-nav='wireless' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</button>";
   chunk += "<button type='button' class='nav-btn' data-nav='benchmark' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</button>";
   chunk += "<button type='button' class='nav-btn' data-nav='export' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
+  chunk += "</div>";
+  chunk += "<div class='lang-switcher'>";
+  chunk += "<button class='lang-btn" + String(currentLanguage == LANG_FR ? " active" : "") + "' data-lang='fr'>FR</button>";
+  chunk += "<button class='lang-btn" + String(currentLanguage == LANG_EN ? " active" : "") + "' data-lang='en'>EN</button>";
   chunk += "</div>";
   chunk += "</div></div>";
   server.sendContent(chunk);
@@ -3096,6 +3106,43 @@ void handleRoot() {
   String wifiSubnetOverview = diagnosticData.wifiSubnet.length() ? diagnosticData.wifiSubnet : String("—");
   String wifiGatewayOverview = diagnosticData.wifiGateway.length() ? diagnosticData.wifiGateway : String("—");
 
+  String fallbackSymbol = String("—");
+  bool bluetoothHasHardware = bluetoothInfo.hardwareClassic || bluetoothInfo.hardwareBLE;
+  String bluetoothStateOverview = bluetoothInfo.controllerStatus.length()
+                                 ? bluetoothInfo.controllerStatus
+                                 : (bluetoothHasHardware ? String(T().bluetooth_status_idle) : String(T().bluetooth_not_available));
+  if (!bluetoothStateOverview.length()) {
+    bluetoothStateOverview = fallbackSymbol;
+  }
+  String bluetoothCapabilitiesOverview = fallbackSymbol;
+  if (bluetoothHasHardware) {
+    if (bluetoothInfo.hardwareClassic && bluetoothInfo.hardwareBLE) {
+      bluetoothCapabilitiesOverview = currentLanguage == LANG_FR ? String("Classique + BLE") : String("Classic + BLE");
+    } else if (bluetoothInfo.hardwareClassic) {
+      bluetoothCapabilitiesOverview = currentLanguage == LANG_FR ? String("Classique") : String("Classic");
+    } else {
+      bluetoothCapabilitiesOverview = String("BLE");
+    }
+  } else {
+    bluetoothCapabilitiesOverview = String(T().bluetooth_not_available);
+  }
+  String bluetoothLastTestOverview = bluetoothInfo.lastTestMessage.length() ? bluetoothInfo.lastTestMessage : String(T().not_tested);
+  String bluetoothStatusSummary;
+  if (!bluetoothHasHardware) {
+    bluetoothStatusSummary = String(T().bluetooth_not_available);
+  } else if (!bluetoothInfo.compileEnabled) {
+    bluetoothStatusSummary = bluetoothInfo.availabilityHint.length() ? bluetoothInfo.availabilityHint : String(T().bluetooth_disabled_build);
+  } else if (bluetoothInfo.controllerEnabled) {
+    bluetoothStatusSummary = String(T().enabled);
+  } else if (bluetoothInfo.controllerInitialized) {
+    bluetoothStatusSummary = String(T().bluetooth_status_inited);
+  } else {
+    bluetoothStatusSummary = String(T().bluetooth_status_idle);
+  }
+  if (!bluetoothStatusSummary.length()) {
+    bluetoothStatusSummary = fallbackSymbol;
+  }
+
   chunk = "<div class='section'><h2>" + String(T().wifi_connection) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().connected_ssid) + "</div><div class='info-value'>" + wifiSsidOverview + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_power) + "</div><div class='info-value'>" + wifiSignalOverview + "</div></div>";
@@ -3103,6 +3150,12 @@ void handleRoot() {
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().ip_address) + "</div><div class='info-value'>" + wifiIpOverview + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().subnet_mask) + "</div><div class='info-value'>" + wifiSubnetOverview + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().gateway) + "</div><div class='info-value'>" + wifiGatewayOverview + "</div></div>";
+  chunk += "</div>";
+  chunk += "<h3>" + String(T().bluetooth_section) + "</h3><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value'>" + bluetoothStatusSummary + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_state) + "</div><div class='info-value'>" + bluetoothStateOverview + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_capabilities) + "</div><div class='info-value'>" + bluetoothCapabilitiesOverview + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_last_test) + "</div><div class='info-value'>" + bluetoothLastTestOverview + "</div></div>";
   chunk += "</div></div>";
   server.sendContent(chunk);
   
