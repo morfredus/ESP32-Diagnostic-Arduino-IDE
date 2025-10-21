@@ -3,7 +3,7 @@ Disponible en plusieurs langues :
 - Français : README.fr.md
 - English: README.md
 -->
-# Diagnostic Complet ESP32 v2.8.13
+# Diagnostic Complet ESP32 v2.8.14
 
 [🇬🇧 English version](README.md) | 🇫🇷 Version française
 
@@ -15,7 +15,7 @@ Disponible en plusieurs langues :
 
 Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via une interface web moderne. Il automatise les tests matériels (LED, NeoPixel, OLED, GPIO, ADC, Touch, PWM), dresse l'inventaire mémoire, scanne les bus I2C/SPI et génère des rapports détaillés.
 
-**Nouveautés de la v2.8.13** : correction de la compilation Arduino grâce à la déclaration anticipée de la constante de temporisation WiFi, tout en conservant la boucle de connexion multi-réseaux introduite en v2.8.12.
+**Nouveautés de la v2.8.14** : la temporisation WiFi est désormais centralisée dans une seule définition configurable, évitant toute redéclaration lors de la compilation.
 
 ## ✨ Fonctionnalités principales
 
@@ -119,6 +119,7 @@ ESP32-Diagnostic/
 ## 🔄 Historique des versions récentes
 
 - **v2.8.13 – 20/10/2025** : correction de la compilation Arduino en déclarant la constante de temporisation WiFi avant son utilisation, tout en conservant la boucle multi-réseaux.
+- **v2.8.14 – 20/10/2025** : centralisation de la temporisation WiFi dans `config.h`, évitant toute redéclaration et facilitant la personnalisation.
 - **v2.8.12 – 20/10/2025** : restauration de la boucle de connexion WiFi – toutes les entrées de `wifi-config.h` sont testées en séquence et la documentation détaille la procédure mise à jour.
 - **v2.8.10 – 20/10/2025** : bandeau supérieur affiné avec adresse IP permanente, voyants WiFi/Bluetooth réactifs et menu d'onglets/langues collé pour rester visible lors du défilement.
 - **v2.8.9 – 20/10/2025** : statuts contextualisés pour chaque test (LED/NeoPixel/OLED/ADC/Touch/PWM/SPI/GPIO/Bluetooth), message « Scan en cours... » lors des balayages WiFi et bannière sans fil sans inversion des indicateurs Bluetooth/WiFi.

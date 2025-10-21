@@ -1,12 +1,12 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.13
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.14
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v2.8.13:
- * - Correction de la compilation Arduino : la constante WIFI_CONNECT_TIMEOUT_MS est désormais déclarée avant son utilisation.
+ * Nouveautés v2.8.14:
+ * - Simplification de la temporisation WiFi : une unique définition configurable évite tout doublon lors de la compilation.
  *
  * Nouveautés v2.8.12:
  * - Correction de la détection des réseaux WiFi configurés : la séquence de connexion parcourt désormais systématiquement les entrées de `wifi-config.h`.
@@ -178,12 +178,10 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.13"
+#define DIAGNOSTIC_VERSION "2.8.14"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
-
-constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = 12000;
 
 // Pins I2C pour OLED (modifiables via web)
 int I2C_SCL = DEFAULT_I2C_SCL;

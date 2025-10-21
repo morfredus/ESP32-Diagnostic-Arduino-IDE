@@ -3,7 +3,7 @@ Available in multiple languages:
 - English: README.md
 - Français: README.fr.md
 -->
-# ESP32 Complete Diagnostic v2.8.13
+# ESP32 Complete Diagnostic v2.8.14
 
 [🇫🇷 Version française](README.fr.md) | 🇬🇧 English Version
 
@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.8.13**: Fixes the Arduino compilation error by declaring the WiFi connection timeout constant before it is used, keeping the multi-network reconnection flow introduced in v2.8.12 fully operational.
+**What's new in v2.8.14**: Streamlines the WiFi connection timeout so it is defined in a single configurable place, preventing duplicate declarations during compilation.
 
 ## ✨ Features
 
@@ -339,7 +339,7 @@ If some texts remain in French:
 
 **Never share `wifi-config.h` with your WiFi credentials.**
 
-## 📁 Project Structure v2.8.13
+## 📁 Project Structure v2.8.14
 
 ```
 ESP32-Diagnostic/
@@ -356,10 +356,10 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v2.8.13 (2025-10-20) - WIFI TIMEOUT DECLARATION FIX
+### v2.8.14 (2025-10-20) - WIFI TIMEOUT CONFIG SIMPLIFICATION
 
-- Declares the WiFi connection timeout constant ahead of its usage so Arduino builds succeed while keeping the sequential credential loop.
-- Maintains the bilingual documentation (README, guides, configuration references) aligned with the corrected build pipeline.
+- Centralises the WiFi connection timeout in `config.h`, preventing duplicate constant declarations while preserving the sequential credential loop.
+- Refreshes the bilingual documentation set (README, guides, configuration references) to describe the new configurable timeout.
 
 ### v2.8.12 (2025-10-20) - WIFI CREDENTIALS LOOP FIX
 
@@ -451,7 +451,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.8.13 ESP32 Arduino Core 3.3.2 + WiFi timeout declaration fix, multi-network WiFi loop and sticky wireless banner
+**Current version**: 2.8.14 ESP32 Arduino Core 3.3.2 + WiFi timeout definition simplification, multi-network WiFi loop and sticky wireless banner
 **Last update**: 20 October 2025
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.3.2+

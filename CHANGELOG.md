@@ -5,6 +5,14 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.14] - 2025-10-20
+
+### Fixed
+- Simplification de la temporisation WiFi : une unique définition configurable élimine toute redéclaration lors de la compilation Arduino.
+- Documentation FR/EN (README, guides, références) synchronisée sur la v2.8.14 pour expliquer la centralisation du paramètre `WIFI_CONNECT_TIMEOUT_MS` dans `config.h`.
+
+---
+
 ## [2.8.13] - 2025-10-20
 
 ### Fixed

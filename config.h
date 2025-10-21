@@ -81,6 +81,11 @@
 #define WIRELESS_STATUS_REFRESH_MS 3000
 #endif
 
+#ifndef WIFI_CONNECT_TIMEOUT_MS
+// Maximum waiting time (ms) for each configured SSID before trying the next one.
+#define WIFI_CONNECT_TIMEOUT_MS 12000UL
+#endif
+
 // Add any project-wide constants you want to expose to the firmware below.
 // They will remain available across updates thanks to this dedicated file.
 
