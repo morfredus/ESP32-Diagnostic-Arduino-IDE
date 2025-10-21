@@ -820,7 +820,9 @@ inline String buildAppScript() {
     updateText('wifi-tx-power', wifiAvailable && txPower.length ? txPower : fallbackChar);
     updateText('wifi-hostname', wifi.hostname && wifi.hostname.length ? wifi.hostname : fallbackChar);
 
+    let ipDisplay = fallbackChar;
     if (!wifiAvailable) {
+      ipDisplay = fallbackChar;
       updateText('wifi-rssi', fallbackChar);
       updateText('wifi-quality', fallbackChar);
       updateText('wifi-ip', fallbackChar);
@@ -830,18 +832,21 @@ inline String buildAppScript() {
     } else if (wifiStation) {
       updateText('wifi-rssi', `${wifi.rssi} dBm`);
       updateText('wifi-quality', wifi.quality || fallbackChar);
-      updateText('wifi-ip', wifi.ip || fallbackChar);
+      ipDisplay = wifi.ip && wifi.ip.length ? wifi.ip : fallbackChar;
+      updateText('wifi-ip', ipDisplay);
       updateText('wifi-subnet', wifi.subnet || fallbackChar);
       updateText('wifi-gateway', wifi.gateway || fallbackChar);
       updateText('wifi-dns', wifi.dns || fallbackChar);
     } else if (wifiAP) {
       updateText('wifi-rssi', fallbackChar);
       updateText('wifi-quality', fallbackChar);
-      updateText('wifi-ip', wifi.ap_ip && wifi.ap_ip.length ? wifi.ap_ip : fallbackChar);
+      ipDisplay = wifi.ap_ip && wifi.ap_ip.length ? wifi.ap_ip : fallbackChar;
+      updateText('wifi-ip', ipDisplay);
       updateText('wifi-subnet', fallbackChar);
       updateText('wifi-gateway', fallbackChar);
       updateText('wifi-dns', fallbackChar);
     } else {
+      ipDisplay = fallbackChar;
       updateText('wifi-rssi', fallbackChar);
       updateText('wifi-quality', fallbackChar);
       updateText('wifi-ip', fallbackChar);
@@ -849,6 +854,8 @@ inline String buildAppScript() {
       updateText('wifi-gateway', fallbackChar);
       updateText('wifi-dns', fallbackChar);
     }
+    updateText('status-ip', ipDisplay);
+    updateText('ipAddress', ipDisplay);
     const btClassic = toBool(bt.classic);
     const btBle = toBool(bt.ble);
     const compileEnabled = toBool(bt.compile_enabled);

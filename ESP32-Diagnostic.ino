@@ -1,9 +1,14 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.9
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.10
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v2.8.10:
+ * - Bandeau supérieur affiné affichant en permanence l'adresse IP aux côtés des voyants WiFi/Bluetooth avec une mise en page adaptative.
+ * - Menu d'onglets compact fixé sous le bandeau pour rester accessible pendant le défilement de la page.
+ * - Documentation FR/EN synchronisée avec la v2.8.10 pour détailler le bandeau enrichi et la navigation persistante.
  *
  * Nouveautés v2.8.9:
  * - Statuts contextualisés pour chaque test (LED, NeoPixel, OLED, ADC, Touch, PWM, SPI, GPIO, Bluetooth) et attente WiFi affichée comme « Scan en cours... » lors d'un balayage.
@@ -162,7 +167,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.9"
+#define DIAGNOSTIC_VERSION "2.8.10"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -2902,26 +2907,31 @@ void handleRoot() {
   chunk += "<title>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</title>";
   chunk += "<style>";
   chunk += "*{margin:0;padding:0;box-sizing:border-box}";
-  chunk += "body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:100px 20px 20px}";
+  chunk += "body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:160px 20px 40px}";
   chunk += ".container{max-width:1400px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}";
   chunk += ".header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:30px;text-align:center;position:relative}";
   chunk += ".header h1{font-size:2.5em;margin-bottom:10px}";
-  chunk += ".lang-switcher{position:absolute;top:20px;right:20px;display:flex;gap:5px}";
+  chunk += ".lang-switcher{position:static;display:flex;gap:8px;align-items:center;flex-wrap:wrap}";
   chunk += ".lang-btn{padding:8px 15px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
   chunk += ".lang-btn:hover{background:rgba(255,255,255,.3)}";
   chunk += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
-  chunk += ".status-bar{position:fixed;top:0;left:0;right:0;display:flex;gap:12px;justify-content:center;align-items:center;padding:12px 24px;background:rgba(17,24,39,.85);backdrop-filter:blur(8px);z-index:2500;color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.35)}";
-  chunk += ".status-pill{display:flex;align-items:center;gap:10px;padding:6px 18px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);font-weight:600;font-size:.95em}";
+  chunk += ".status-bar{position:fixed;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:10px 20px;background:rgba(17,24,39,.9);backdrop-filter:blur(10px);z-index:2500;color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.35)}";
+  chunk += ".status-cluster{display:flex;align-items:center;gap:10px;flex-wrap:wrap}";
+  chunk += ".top-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}";
+  chunk += ".status-pill{display:flex;align-items:center;gap:10px;padding:6px 16px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);font-weight:600;font-size:.9em}";
+  chunk += ".ip-pill{background:rgba(255,255,255,.08)}";
+  chunk += ".ip-pill .ip-label{opacity:.75;margin-right:4px}";
+  chunk += ".ip-pill .ip-value{font-family:'Roboto Mono',monospace}";
   chunk += ".status-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.4)}";
   chunk += ".status-dot.online{background:#22c55e;animation:statusBlink 1.4s ease-in-out infinite;box-shadow:0 0 14px rgba(34,197,94,.9)}";
   chunk += ".status-dot.offline{background:#ef4444;box-shadow:0 0 14px rgba(239,68,68,.85)}";
   chunk += ".status-dot.pending{background:#f97316;animation:statusPulse 2s ease-in-out infinite;box-shadow:0 0 14px rgba(249,115,22,.8)}";
   chunk += "@keyframes statusBlink{0%,100%{opacity:1}50%{opacity:.35}}";
   chunk += "@keyframes statusPulse{0%,100%{opacity:.6}50%{opacity:1}}";
-  chunk += ".nav{display:flex;justify-content:center;gap:10px;margin-top:20px;flex-wrap:wrap}";
-  chunk += ".nav-btn{padding:10px 20px;background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;cursor:pointer;font-weight:bold}";
+  chunk += ".nav{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}";
+  chunk += ".nav-btn{padding:8px 16px;background:rgba(255,255,255,.2);border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:600;font-size:.95em}";
   chunk += ".nav-btn:hover{background:rgba(255,255,255,.3)}";
-  chunk += ".nav-btn.active{background:rgba(255,255,255,.4)}";
+  chunk += ".nav-btn.active{background:rgba(255,255,255,.45)}";
   chunk += ".content{padding:30px}";
   chunk += ".tab-content{display:none}";
   chunk += ".tab-content.active{display:block}";
@@ -2954,27 +2964,24 @@ void handleRoot() {
   chunk += ".status-field{gap:8px;}";
   chunk += ".gpio-hint{margin-top:12px;padding:12px;border-radius:10px;background:#eef2ff;color:#4c51bf;font-size:0.9em;min-height:1.6em;}";
   chunk += "input[type='number'],input[type='color'],input[type='text']{padding:10px;border:2px solid #ddd;border-radius:5px;font-size:1em}";
-  chunk += "@media print{.nav,.btn,.lang-switcher{display:none}}";
+  chunk += "@media(max-width:1024px){.status-bar{justify-content:center}.top-actions{width:100%;justify-content:center}.nav{justify-content:center}.lang-switcher{justify-content:center}}";
+  chunk += "@media(max-width:640px){body{padding:200px 16px 30px}.status-bar{gap:10px}.nav-btn{flex:1 1 calc(50% - 8px);min-width:140px;text-align:center}}";
+  chunk += "@media print{.nav,.btn,.lang-switcher,.status-bar{display:none}}";
   chunk += "</style></head><body>";
   server.sendContent(chunk);
 
-  // CHUNK 2: STATUS BAR
+  // CHUNK 2: STATUS BAR + NAVIGATION FIXE
+  String ipBadge = diagnosticData.ipAddress.length() ? diagnosticData.ipAddress : String("—");
   chunk = "<div class='status-bar'>";
+  chunk += "<div class='status-cluster'>";
   chunk += "<div class='status-pill' id='wifi-status-pill'><span class='status-dot offline' id='wifi-status-dot'></span><span id='wifi-status-label'>" + String(T().indicator_wifi) + " · " + String(T().disconnected) + "</span></div>";
   chunk += "<div class='status-pill' id='bt-status-pill'><span class='status-dot pending' id='bt-status-dot'></span><span id='bt-status-label'>" + String(T().indicator_bluetooth) + " · " + String(T().indicator_unavailable) + "</span></div>";
+  chunk += "<div class='status-pill ip-pill'><span class='ip-label'>" + String(T().ip_address) + "</span><span class='ip-value' id='status-ip'>" + ipBadge + "</span></div>";
   chunk += "</div>";
-  server.sendContent(chunk);
-
-  // CHUNK 3: HEADER + NAV
-  chunk = "<div class='container'><div class='header'>";
+  chunk += "<div class='top-actions'>";
   chunk += "<div class='lang-switcher'>";
   chunk += "<button class='lang-btn" + String(currentLanguage == LANG_FR ? " active" : "") + "' data-lang='fr'>FR</button>";
   chunk += "<button class='lang-btn" + String(currentLanguage == LANG_EN ? " active" : "") + "' data-lang='en'>EN</button>";
-  chunk += "</div>";
-  chunk += "<h1 id='main-title'>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1>";
-  chunk += "<div style='font-size:1.2em;margin:10px 0'>" + diagnosticData.chipModel + "</div>";
-  chunk += "<div style='font-size:.9em;opacity:.9;margin:10px 0'>";
-  chunk += String(T().access) + ": <a href='http://" + String(MDNS_HOSTNAME) + ".local' style='color:#fff;text-decoration:underline'><strong>http://" + String(MDNS_HOSTNAME) + ".local</strong></a> " + String(T().or_text) + " <strong>" + diagnosticData.ipAddress + "</strong>";
   chunk += "</div>";
   chunk += "<div class='nav'>";
   chunk += "<button type='button' class='nav-btn active' data-nav='overview' data-i18n='nav_overview'>" + String(T().nav_overview) + "</button>";
@@ -2985,7 +2992,18 @@ void handleRoot() {
   chunk += "<button type='button' class='nav-btn' data-nav='wireless' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</button>";
   chunk += "<button type='button' class='nav-btn' data-nav='benchmark' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</button>";
   chunk += "<button type='button' class='nav-btn' data-nav='export' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
-  chunk += "</div></div><div class='content'>";
+  chunk += "</div>";
+  chunk += "</div></div>";
+  server.sendContent(chunk);
+
+  // CHUNK 3: HEADER
+  chunk = "<div class='container'><div class='header'>";
+  chunk += "<h1 id='main-title'>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1>";
+  chunk += "<div style='font-size:1.2em;margin:10px 0'>" + diagnosticData.chipModel + "</div>";
+  chunk += "<div style='font-size:.9em;opacity:.9;margin:10px 0'>";
+  chunk += String(T().access) + ": <a href='http://" + String(MDNS_HOSTNAME) + ".local' style='color:#fff;text-decoration:underline'><strong>http://" + String(MDNS_HOSTNAME) + ".local</strong></a> " + String(T().or_text) + " <strong id='ipAddress'>" + diagnosticData.ipAddress + "</strong>";
+  chunk += "</div>";
+  chunk += "</div><div class='content'>";
   server.sendContent(chunk);
 
 // CHUNK 4: OVERVIEW TAB - VERSION UNIQUE COMPLÈTE

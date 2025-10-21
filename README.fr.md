@@ -3,7 +3,7 @@ Disponible en plusieurs langues :
 - Français : README.fr.md
 - English: README.md
 -->
-# Diagnostic Complet ESP32 v2.8.9
+# Diagnostic Complet ESP32 v2.8.10
 
 [🇬🇧 English version](README.md) | 🇫🇷 Version française
 
@@ -15,7 +15,7 @@ Disponible en plusieurs langues :
 
 Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via une interface web moderne. Il automatise les tests matériels (LED, NeoPixel, OLED, GPIO, ADC, Touch, PWM), dresse l'inventaire mémoire, scanne les bus I2C/SPI et génère des rapports détaillés.
 
-**Nouveautés de la v2.8.9** : chaque test affiche désormais un statut contextualisé (LED, NeoPixel, OLED, ADC, Touch, PWM, SPI, GPIO, Bluetooth) et le scan WiFi indique clairement « Scan en cours... ». Le bandeau sans fil reflète correctement l'état STA/AP et n'annonce plus un Bluetooth « connecté » lorsqu'il est désactivé à la compilation.
+**Nouveautés de la v2.8.10** : un bandeau allégé conserve en permanence l'adresse IP aux côtés des voyants WiFi/Bluetooth et le menu d'onglets reste collé en haut de l'écran pour garder la navigation et l'état réseau accessibles même en faisant défiler la page.
 
 ## ✨ Fonctionnalités principales
 
@@ -42,7 +42,7 @@ Outil **multilingue** de diagnostic pour microcontrôleurs ESP32, accessible via
 
 ### Interface web
 - **8 onglets** : Vue d'ensemble, LEDs, Écrans, Tests avancés, GPIO, Sans fil, Performance, Export
-- **Bandeau sans fil** (v2.8.6, affiné en v2.8.9) – indicateurs WiFi/Bluetooth temps réel, conscience STA/AP, détection du pilote et rappels si le Bluetooth est désactivé à la compilation
+- **Bandeau sans fil** (v2.8.6, affiné en v2.8.10) – bandeau fixe compact avec voyants WiFi/Bluetooth, adresse IP toujours visible, conscience STA/AP, détection du pilote et rappels si le Bluetooth est désactivé à la compilation
 - **Statuts uniformes** (v2.8.7 affiné en v2.8.9) – messages contextuels ⏳/✅/❌ pour chaque action (effets LED, animations NeoPixel, étapes/messages OLED, ADC, Touch, PWM, SPI, GPIO, scan WiFi, Bluetooth)
 - **Responsive & sans pop-up** – compatible mobile/tablette/desktop
 - **API REST** – endpoints JSON pour intégration externe
@@ -118,6 +118,7 @@ ESP32-Diagnostic/
 
 ## 🔄 Historique des versions récentes
 
+- **v2.8.10 – 20/10/2025** : bandeau supérieur affiné avec adresse IP permanente, voyants WiFi/Bluetooth réactifs et menu d'onglets/langues collé pour rester visible lors du défilement.
 - **v2.8.9 – 20/10/2025** : statuts contextualisés pour chaque test (LED/NeoPixel/OLED/ADC/Touch/PWM/SPI/GPIO/Bluetooth), message « Scan en cours... » lors des balayages WiFi et bannière sans fil sans inversion des indicateurs Bluetooth/WiFi.
 - **v2.8.8 – 20/10/2025** : séquence WiFi sécurisée (repli SoftAP), nouveau modèle `wifi-config.example.h` à macros et bannière STA/AP fiabilisée avec signalement « Indisponible ».
 - **v2.8.7 – 19/10/2025** : statuts inline harmonisés avec préfixes ⏳/✅/❌ et messages « Test en cours... » jusqu'à la fin réelle.

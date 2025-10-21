@@ -5,6 +5,17 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.10] - 2025-10-20
+
+### Added
+- Affichage permanent de l'adresse IP dans le bandeau supérieur aux côtés des voyants WiFi/Bluetooth.
+
+### Changed
+- Barre d'état affinée avec disposition adaptative (indicateurs à gauche, sélection de langue et onglets à droite) et menu d'onglets désormais collant pendant le défilement.
+- Documentation FR/EN mise à jour pour couvrir la v2.8.10 et présenter la navigation persistante.
+
+---
+
 ## [2.8.9] - 2025-10-20
 
 ### Changed
