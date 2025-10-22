@@ -5,6 +5,29 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.20] - 2025-10-21
+
+### Changed
+- Bandeau supérieur épuré : voyants Wi-Fi/Bluetooth centrés sur deux lignes avec animation orange clignotante pendant les phases de connexion/activation et suppression de la pastille d'adresse IP.
+- Nouvelle logique `updateHeaderStatus()` (appelée au démarrage, sur les transitions réseau et périodiquement) pour synchroniser les textes « Wi-Fi désactivé », « Connexion Wi-Fi... », « Point d’accès Wi-Fi actif », « Connecté au Wi-Fi » et les équivalents Bluetooth.
+
+### Fixed
+- Correction de l’inversion des statuts Wi-Fi/Bluetooth et remplacement définitif du message « Bluetooth désactivé (non compilé) » dans l’UI web et les API.
+- Mises à jour CSS/JS afin de prendre en charge les états `off/mid/on/blink` et router les messages sans fil vers les bonnes zones sans chevauchement.
+
+---
+
+## [2.8.17] - 2025-10-20
+
+### Changed
+- Ajout de zones de statut dédiées par onglet (LEDs, écran, tests avancés, GPIO, Sans fil, Performance, Export) avec API `showStatus`/`clearStatus` pour afficher les libellés validés.
+- Harmonisation des messages de progression/fin des benchmarks CPU/mémoire et de l'export Excel, désormais déclenchés simultanément sur chaque carte.
+
+### Fixed
+- Le test OLED affiche explicitement « Test OLED terminé » une fois la séquence achevée et conserve le dernier compte-rendu matériel dans la fiche récapitulative.
+
+---
+
 ## [2.8.15] - 2025-10-20
 
 ### Fixed

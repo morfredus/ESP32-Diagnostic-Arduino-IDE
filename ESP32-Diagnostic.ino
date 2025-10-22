@@ -1,9 +1,13 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.15
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.20-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
+ *
+ * Nouveautés v2.8.17:
+ * - Zones de statut dédiées par test/action avec routage centralisé des messages dans l'onglet correspondant.
+ * - Harmonisation des libellés d'état (LED, NeoPixel, OLED, Wi-Fi, Bluetooth, Benchmarks, Export) et affichage multi-cartes des benchmarks.
  *
  * Nouveautés v2.8.15:
  * - Consolidation de la temporisation WiFi via un unique `constexpr` dans `config.h`, supprimant tout conflit de macro à la compilation.
@@ -181,7 +185,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.15"
+#define DIAGNOSTIC_VERSION "2.8.20-dev"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -247,6 +251,22 @@ struct WiFiRuntimeState {
 BluetoothDiagnostics bluetoothInfo = {false, false, false, false, false, String(), false, String(), String()};
 WiFiRuntimeState wifiRuntime;
 
+struct HeaderIndicatorStatus {
+  String wifiState;
+  String wifiText;
+  String btState;
+  String btText;
+};
+
+HeaderIndicatorStatus headerStatus = {String("off"), String(), String("off"), String()};
+
+void updateIndicator(const char* id, const char* state);
+void setWifiIndicator(const char* state);
+void setBtIndicator(const char* state);
+void setWifiText(const char* text);
+void setBtText(const char* text);
+void updateHeaderStatus();
+
 String jsonEscape(const String& input) {
   String output;
   output.reserve(input.length() + 4);
@@ -271,6 +291,52 @@ String jsonEscape(const String& input) {
   return output;
 }
 
+String normalizeIndicatorState(const String& state) {
+  String lowered = state;
+  lowered.toLowerCase();
+  if (lowered == "on" || lowered == "mid" || lowered == "blink" || lowered == "off") {
+    return lowered;
+  }
+  return String("off");
+}
+
+String indicatorDotClass(const String& state) {
+  return String("dot-") + normalizeIndicatorState(state);
+}
+
+String indicatorPillClass(const String& state) {
+  return String("state-") + normalizeIndicatorState(state);
+}
+
+void updateIndicator(const char* id, const char* state) {
+  if (!id || !state) {
+    return;
+  }
+
+  String normalized = normalizeIndicatorState(String(state));
+  if (strcmp(id, "wifi") == 0) {
+    headerStatus.wifiState = normalized;
+  } else if (strcmp(id, "bt") == 0) {
+    headerStatus.btState = normalized;
+  }
+}
+
+void setWifiIndicator(const char* state) {
+  updateIndicator("wifi", state);
+}
+
+void setBtIndicator(const char* state) {
+  updateIndicator("bt", state);
+}
+
+void setWifiText(const char* text) {
+  headerStatus.wifiText = text ? String(text) : String();
+}
+
+void setBtText(const char* text) {
+  headerStatus.btText = text ? String(text) : String();
+}
+
 bool wifiCredentialValid(const WiFiCredential& cred) {
   return cred.ssid != nullptr && cred.ssid[0] != '\0';
 }
@@ -290,7 +356,16 @@ void resetWiFiRuntime() {
 }
 
 void updateWiFiRuntimeState() {
-  if (!wifiRuntime.driverStarted) {
+  wifi_mode_t currentMode = WiFi.getMode();
+
+#ifdef WIFI_OFF
+  bool wifiDisabled = (currentMode == WIFI_OFF);
+#else
+  bool wifiDisabled = (currentMode == WIFI_MODE_NULL);
+#endif
+
+  if (wifiDisabled) {
+    wifiRuntime.driverStarted = false;
     wifiRuntime.status = WL_NO_SHIELD;
     wifiRuntime.mode = WIFI_MODE_NULL;
     wifiRuntime.stationConnected = false;
@@ -298,8 +373,9 @@ void updateWiFiRuntimeState() {
     return;
   }
 
+  wifiRuntime.driverStarted = true;
+  wifiRuntime.mode = currentMode;
   wifiRuntime.status = WiFi.status();
-  wifiRuntime.mode = WiFi.getMode();
   wifiRuntime.stationConnected = (wifiRuntime.status == WL_CONNECTED);
   wifiRuntime.apActive = (wifiRuntime.mode == WIFI_MODE_AP || wifiRuntime.mode == WIFI_MODE_APSTA);
 }
@@ -333,6 +409,7 @@ bool startSoftAPFallback() {
   } else {
     Serial.println("Impossible de démarrer le SoftAP");
   }
+  updateHeaderStatus();
   return started;
 #else
   return false;
@@ -401,6 +478,7 @@ void initializeWireless() {
       startSoftAPFallback();
     }
   }
+  updateHeaderStatus();
 }
 
 #if HAS_NATIVE_BLUETOOTH
@@ -450,6 +528,104 @@ void updateBluetoothDerivedState() {
     bluetoothInfo.lastTestMessage = bluetoothInfo.availabilityHint;
   } else {
     bluetoothInfo.availabilityHint = "";
+  }
+}
+
+bool btStarted() {
+#if HAS_NATIVE_BLUETOOTH
+  esp_bt_controller_status_t status = esp_bt_controller_get_status();
+  return status == ESP_BT_CONTROLLER_STATUS_ENABLED ||
+         status == ESP_BT_CONTROLLER_STATUS_ENABLING ||
+         status == ESP_BT_CONTROLLER_STATUS_DISABLING ||
+         status == ESP_BT_CONTROLLER_STATUS_IDLE ||
+         status == ESP_BT_CONTROLLER_STATUS_INITED;
+#else
+  return false;
+#endif
+}
+
+bool btConnected() {
+#if HAS_NATIVE_BLUETOOTH
+  return bluetoothInfo.controllerEnabled && bluetoothInfo.lastTestSuccess;
+#else
+  return false;
+#endif
+}
+
+void updateHeaderStatus() {
+  updateWiFiRuntimeState();
+
+  bool wifiDriverStarted = wifiRuntime.driverStarted;
+  wl_status_t wifiStatus = wifiRuntime.status;
+  bool wifiStation = (wifiStatus == WL_CONNECTED);
+  bool wifiAp = wifiRuntime.apActive && !wifiStation;
+
+  if (!wifiDriverStarted) {
+    setWifiIndicator("off");
+    setWifiText(T().wifi_status_disabled);
+  } else if (wifiStation) {
+    setWifiIndicator("on");
+    setWifiText(T().wifi_status_connected);
+  } else if (wifiAp) {
+    setWifiIndicator("mid");
+    setWifiText(T().wifi_status_ap);
+  } else if (wifiStatus == WL_CONNECT_FAILED ||
+             wifiStatus == WL_DISCONNECTED ||
+             wifiStatus == WL_CONNECTION_LOST ||
+             wifiStatus == WL_IDLE_STATUS ||
+             wifiStatus == WL_NO_SSID_AVAIL) {
+    setWifiIndicator("blink");
+    setWifiText(T().wifi_status_connecting);
+  } else {
+    setWifiIndicator("blink");
+    setWifiText(T().wifi_status_connecting);
+  }
+
+#ifdef CONFIG_BT_ENABLED
+  bool compileEnabled = true;
+#else
+  bool compileEnabled = false;
+#endif
+
+#if HAS_NATIVE_BLUETOOTH
+  esp_bt_controller_status_t runtimeStatus = esp_bt_controller_get_status();
+  bluetoothInfo.controllerEnabled = (runtimeStatus == ESP_BT_CONTROLLER_STATUS_ENABLED);
+  bluetoothInfo.controllerInitialized = (runtimeStatus == ESP_BT_CONTROLLER_STATUS_ENABLED ||
+                                         runtimeStatus == ESP_BT_CONTROLLER_STATUS_IDLE ||
+                                         runtimeStatus == ESP_BT_CONTROLLER_STATUS_INITED ||
+                                         runtimeStatus == ESP_BT_CONTROLLER_STATUS_ENABLING ||
+                                         runtimeStatus == ESP_BT_CONTROLLER_STATUS_DISABLING);
+#endif
+
+  bool controllerStarted = btStarted();
+  bool controllerEnabled = bluetoothInfo.controllerEnabled;
+  bool controllerInitialised = bluetoothInfo.controllerInitialized || controllerStarted;
+  bool controllerConnected = btConnected();
+  bool hasBluetoothHardware = bluetoothInfo.hardwareClassic || bluetoothInfo.hardwareBLE;
+  String btAvailabilityHint = bluetoothInfo.availabilityHint;
+
+  if (!compileEnabled) {
+    setBtIndicator("off");
+    setBtText(T().bluetooth_status_disabled_not_compiled);
+  } else if (!hasBluetoothHardware) {
+    setBtIndicator("off");
+    if (btAvailabilityHint.length()) {
+      setBtText(btAvailabilityHint.c_str());
+    } else {
+      setBtText(T().bluetooth_status_disabled_not_compiled);
+    }
+  } else if (!controllerInitialised) {
+    setBtIndicator("blink");
+    setBtText(T().bluetooth_status_activating);
+  } else if (controllerConnected) {
+    setBtIndicator("on");
+    setBtText(T().bluetooth_status_connected_short);
+  } else if (controllerEnabled) {
+    setBtIndicator("mid");
+    setBtText(T().bluetooth_status_active_short);
+  } else {
+    setBtIndicator("blink");
+    setBtText(T().bluetooth_status_activating);
   }
 }
 
@@ -1831,6 +2007,7 @@ void collectDiagnosticInfo() {
     tempHistory[historyIndex] = diagnosticData.temperature;
   }
   historyIndex = (historyIndex + 1) % HISTORY_SIZE;
+  updateHeaderStatus();
 }
 
 // ========== HANDLERS API ==========
@@ -1901,6 +2078,8 @@ void handleWirelessInfo() {
   json += "\"supports_5g\":" + String(diagnosticData.wifiSupports5G ? "true" : "false") + ",";
   json += "\"hostname\":\"" + jsonEscape(diagnosticData.wifiHostname) + "\",";
   json += "\"driver_initialized\":" + String(diagnosticData.wifiDriverInitialized ? "true" : "false") + ",";
+  json += "\"header_state\":\"" + headerStatus.wifiState + "\",";
+  json += "\"header_text\":\"" + jsonEscape(headerStatus.wifiText) + "\",";
   json += "\"state\":\"" + wifiState + "\"";
   json += "},";
   json += "\"gpio\":{";
@@ -1923,6 +2102,8 @@ void handleWirelessInfo() {
   json += "\"controller_initialized\":" + String(bluetoothInfo.controllerInitialized ? "true" : "false") + ",";
   json += "\"last_test_success\":" + String(bluetoothInfo.lastTestSuccess ? "true" : "false") + ",";
   json += "\"last_test_message\":\"" + jsonEscape(bluetoothInfo.lastTestMessage) + "\",";
+  json += "\"header_state\":\"" + headerStatus.btState + "\",";
+  json += "\"header_text\":\"" + jsonEscape(headerStatus.btText) + "\",";
   json += "\"state\":\"" + btState + "\",";
   json += "\"hint\":\"" + jsonEscape(bluetoothInfo.availabilityHint) + "\"";
   json += "},";
@@ -2588,7 +2769,8 @@ void handleExportCSV() {
   String wifiHostname = diagnosticData.wifiHostname.length() ? diagnosticData.wifiHostname : String("-");
   String resetReason = getResetReason();
 
-  String csv = String(T().category) + "," + String(T().parameter) + "," + String(T().value) + "\r\n";
+  String csv = "\xEF\xBB\xBF";
+  csv += String(T().category) + "," + String(T().parameter) + "," + String(T().value) + "\r\n";
 
   csv += "Chip," + String(T().model) + "," + diagnosticData.chipModel + "\r\n";
   csv += "Chip," + String(T().revision) + "," + diagnosticData.chipRevision + "\r\n";
@@ -2917,28 +3099,33 @@ void handleRoot() {
   chunk += "<title>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</title>";
   chunk += "<style>";
   chunk += "*{margin:0;padding:0;box-sizing:border-box}";
-  chunk += "body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:160px 20px 40px}";
+  chunk += "body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:220px 20px 40px}";
   chunk += ".container{max-width:1400px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}";
   chunk += ".header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:30px;text-align:center;position:relative}";
   chunk += ".header h1{font-size:2.5em;margin-bottom:10px}";
-  chunk += ".lang-switcher{position:static;display:flex;gap:8px;align-items:center;flex-wrap:wrap}";
+  chunk += ".lang-switcher{display:flex;gap:8px;align-items:center;flex-wrap:wrap}";
   chunk += ".lang-btn{padding:8px 15px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
   chunk += ".lang-btn:hover{background:rgba(255,255,255,.3)}";
   chunk += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
-  chunk += ".status-bar{position:fixed;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:10px 20px;background:rgba(17,24,39,.9);backdrop-filter:blur(10px);z-index:2500;color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.35)}";
-  chunk += ".status-cluster{display:flex;align-items:center;gap:10px;flex-wrap:wrap}";
-  chunk += ".top-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}";
-  chunk += ".status-pill{display:flex;align-items:center;gap:10px;padding:6px 16px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);font-weight:600;font-size:.9em}";
-  chunk += ".ip-pill{background:rgba(255,255,255,.08)}";
-  chunk += ".ip-pill .ip-label{opacity:.75;margin-right:4px}";
-  chunk += ".ip-pill .ip-value{font-family:'Roboto Mono',monospace}";
-  chunk += ".status-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.4)}";
-  chunk += ".status-dot.online{background:#22c55e;animation:statusBlink 1.4s ease-in-out infinite;box-shadow:0 0 14px rgba(34,197,94,.9)}";
-  chunk += ".status-dot.offline{background:#ef4444;box-shadow:0 0 14px rgba(239,68,68,.85)}";
-  chunk += ".status-dot.pending{background:#f97316;animation:statusPulse 2s ease-in-out infinite;box-shadow:0 0 14px rgba(249,115,22,.8)}";
-  chunk += "@keyframes statusBlink{0%,100%{opacity:1}50%{opacity:.35}}";
-  chunk += "@keyframes statusPulse{0%,100%{opacity:.6}50%{opacity:1}}";
-  chunk += ".nav{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}";
+  chunk += ".status-bar{position:fixed;top:20px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:1100px;display:flex;flex-direction:column;align-items:center;gap:16px;padding:18px 24px;background:rgba(17,24,39,.92);backdrop-filter:blur(14px);z-index:2500;color:#fff;border-radius:24px;box-shadow:0 16px 40px rgba(0,0,0,.35)}";
+  chunk += ".status-row{width:100%;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px}";
+
+  chunk += ".status-pill{display:flex;align-items:center;gap:12px;padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);font-weight:600;font-size:.95em;transition:border-color .3s,box-shadow .3s}";
+  chunk += ".status-pill.state-on{border-color:rgba(34,197,94,.7);box-shadow:0 0 18px rgba(34,197,94,.25)}";
+  chunk += ".status-pill.state-mid{border-color:rgba(249,115,22,.7);box-shadow:0 0 18px rgba(249,115,22,.2)}";
+  chunk += ".status-pill.state-off{border-color:rgba(239,68,68,.75);box-shadow:0 0 14px rgba(239,68,68,.25)}";
+  chunk += ".status-pill.state-blink{border-color:rgba(249,115,22,.85);box-shadow:0 0 22px rgba(249,115,22,.35)}";
+  chunk += ".status-text{display:flex;align-items:center;gap:6px}";
+  chunk += ".status-label-name{font-weight:700}";
+  chunk += ".status-separator{opacity:.6}";
+  chunk += ".status-state{font-weight:600;opacity:.9}";
+  chunk += ".status-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.35);background:#4b5563;transition:background-color .3s,box-shadow .3s}";
+  chunk += ".status-dot.dot-on{background:#22c55e;box-shadow:0 0 16px rgba(34,197,94,.7)}";
+  chunk += ".status-dot.dot-mid{background:#f97316;box-shadow:0 0 14px rgba(249,115,22,.5)}";
+  chunk += ".status-dot.dot-off{background:#ef4444;box-shadow:0 0 14px rgba(239,68,68,.55)}";
+  chunk += ".status-dot.dot-blink{background:#f97316;box-shadow:0 0 18px rgba(249,115,22,.7);animation:indicatorBlink .5s steps(1) infinite}";
+  chunk += "@keyframes indicatorBlink{0%,100%{background:#f97316;box-shadow:0 0 18px rgba(249,115,22,.7);}50%{background:#111827;box-shadow:0 0 6px rgba(17,24,39,.45);}}";
+  chunk += ".nav{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}";
   chunk += ".nav-btn{padding:8px 16px;background:rgba(255,255,255,.2);border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:600;font-size:.95em}";
   chunk += ".nav-btn:hover{background:rgba(255,255,255,.3)}";
   chunk += ".nav-btn.active{background:rgba(255,255,255,.45)}";
@@ -2970,29 +3157,32 @@ void handleRoot() {
   chunk += ".gpio-fail{border-color:#dc3545;background:#f8d7da}";
   chunk += ".wifi-list{max-height:400px;overflow-y:auto}";
   chunk += ".wifi-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;border-left:4px solid #667eea}";
-  chunk += ".status-live{padding:10px;background:#f0f0f0;border-radius:5px;text-align:center;font-weight:bold;margin:10px 0;min-height:1.6em;display:flex;align-items:center;justify-content:center;gap:8px;}";
-  chunk += ".status-field{gap:8px;}";
+  chunk += ".status-line{padding:10px 14px;background:#f5f7ff;border-left:4px solid #667eea;border-radius:8px;margin:12px 0;min-height:1.6em;color:#3f3d56;font-weight:500;}";
+  chunk += ".status-line:empty{display:none;}";
   chunk += ".gpio-hint{margin-top:12px;padding:12px;border-radius:10px;background:#eef2ff;color:#4c51bf;font-size:0.9em;min-height:1.6em;}";
   chunk += "input[type='number'],input[type='color'],input[type='text']{padding:10px;border:2px solid #ddd;border-radius:5px;font-size:1em}";
-  chunk += "@media(max-width:1024px){.status-bar{justify-content:center}.top-actions{width:100%;justify-content:center}.nav{justify-content:center}.lang-switcher{justify-content:center}}";
-  chunk += "@media(max-width:640px){body{padding:200px 16px 30px}.status-bar{gap:10px}.nav-btn{flex:1 1 calc(50% - 8px);min-width:140px;text-align:center}}";
+  chunk += ".status-row-bottom{width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:12px}";
+  chunk += ".status-row-bottom .nav{flex:1 1 60%;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}";
+  chunk += ".status-row-bottom .lang-switcher{margin-left:auto}";
+  chunk += "@media(max-width:1024px){.status-bar{top:12px;width:calc(100% - 32px)}.status-row-bottom{flex-direction:column;align-items:center}.status-row-bottom .lang-switcher{margin-left:0;justify-content:center}}";
+  chunk += "@media(max-width:640px){body{padding:220px 16px 30px}.status-bar{width:calc(100% - 20px);padding:16px 18px}.status-row{gap:10px}.status-row-bottom .nav{flex:1 1 100%}.status-row-bottom .lang-switcher{margin-left:0;width:100%;justify-content:center}.nav-btn{flex:1 1 100%;min-width:0;text-align:center}}";
   chunk += "@media print{.nav,.btn,.lang-switcher,.status-bar{display:none}}";
   chunk += "</style></head><body>";
   server.sendContent(chunk);
 
   // CHUNK 2: STATUS BAR + NAVIGATION FIXE
-  String ipBadge = diagnosticData.ipAddress.length() ? diagnosticData.ipAddress : String("—");
   chunk = "<div class='status-bar'>";
-  chunk += "<div class='status-cluster'>";
-  chunk += "<div class='status-pill' id='wifi-status-pill'><span class='status-dot offline' id='wifi-status-dot'></span><span id='wifi-status-label'>" + String(T().indicator_wifi) + " · " + String(T().disconnected) + "</span></div>";
-  chunk += "<div class='status-pill' id='bt-status-pill'><span class='status-dot pending' id='bt-status-dot'></span><span id='bt-status-label'>" + String(T().indicator_bluetooth) + " · " + String(T().indicator_unavailable) + "</span></div>";
-  chunk += "<div class='status-pill ip-pill'><span class='ip-label'>" + String(T().ip_address) + "</span><span class='ip-value' id='status-ip'>" + ipBadge + "</span></div>";
+  String wifiHeaderText = headerStatus.wifiText.length() ? headerStatus.wifiText : String(T().wifi_status_connecting);
+  String btHeaderText = headerStatus.btText.length() ? headerStatus.btText : String(T().bluetooth_status_active_short);
+  String wifiPillStateClass = indicatorPillClass(headerStatus.wifiState);
+  String btPillStateClass = indicatorPillClass(headerStatus.btState);
+  String wifiDotClass = indicatorDotClass(headerStatus.wifiState);
+  String btDotClass = indicatorDotClass(headerStatus.btState);
+  chunk += "<div class='status-row status-row-top'>";
+  chunk += "<div class='status-pill " + wifiPillStateClass + "' id='wifi-status-pill'><span class='status-dot " + wifiDotClass + "' id='wifi-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_wifi) + "</span><span class='status-separator'>·</span><span class='status-state' id='wifi-status-label'>" + wifiHeaderText + "</span></span></div>";
+  chunk += "<div class='status-pill " + btPillStateClass + "' id='bt-status-pill'><span class='status-dot " + btDotClass + "' id='bt-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_bluetooth) + "</span><span class='status-separator'>·</span><span class='status-state' id='bt-status-label'>" + btHeaderText + "</span></span></div>";
   chunk += "</div>";
-  chunk += "<div class='top-actions'>";
-  chunk += "<div class='lang-switcher'>";
-  chunk += "<button class='lang-btn" + String(currentLanguage == LANG_FR ? " active" : "") + "' data-lang='fr'>FR</button>";
-  chunk += "<button class='lang-btn" + String(currentLanguage == LANG_EN ? " active" : "") + "' data-lang='en'>EN</button>";
-  chunk += "</div>";
+  chunk += "<div class='status-row status-row-bottom'>";
   chunk += "<div class='nav'>";
   chunk += "<button type='button' class='nav-btn active' data-nav='overview' data-i18n='nav_overview'>" + String(T().nav_overview) + "</button>";
   chunk += "<button type='button' class='nav-btn' data-nav='leds' data-i18n='nav_leds'>" + String(T().nav_leds) + "</button>";
@@ -3002,6 +3192,10 @@ void handleRoot() {
   chunk += "<button type='button' class='nav-btn' data-nav='wireless' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</button>";
   chunk += "<button type='button' class='nav-btn' data-nav='benchmark' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</button>";
   chunk += "<button type='button' class='nav-btn' data-nav='export' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
+  chunk += "</div>";
+  chunk += "<div class='lang-switcher'>";
+  chunk += "<button class='lang-btn" + String(currentLanguage == LANG_FR ? " active" : "") + "' data-lang='fr'>FR</button>";
+  chunk += "<button class='lang-btn" + String(currentLanguage == LANG_EN ? " active" : "") + "' data-lang='en'>EN</button>";
   chunk += "</div>";
   chunk += "</div></div>";
   server.sendContent(chunk);
@@ -3096,6 +3290,43 @@ void handleRoot() {
   String wifiSubnetOverview = diagnosticData.wifiSubnet.length() ? diagnosticData.wifiSubnet : String("—");
   String wifiGatewayOverview = diagnosticData.wifiGateway.length() ? diagnosticData.wifiGateway : String("—");
 
+  String fallbackSymbol = String("—");
+  bool bluetoothHasHardware = bluetoothInfo.hardwareClassic || bluetoothInfo.hardwareBLE;
+  String bluetoothStateOverview = bluetoothInfo.controllerStatus.length()
+                                 ? bluetoothInfo.controllerStatus
+                                 : (bluetoothHasHardware ? String(T().bluetooth_status_idle) : String(T().bluetooth_not_available));
+  if (!bluetoothStateOverview.length()) {
+    bluetoothStateOverview = fallbackSymbol;
+  }
+  String bluetoothCapabilitiesOverview = fallbackSymbol;
+  if (bluetoothHasHardware) {
+    if (bluetoothInfo.hardwareClassic && bluetoothInfo.hardwareBLE) {
+      bluetoothCapabilitiesOverview = currentLanguage == LANG_FR ? String("Classique + BLE") : String("Classic + BLE");
+    } else if (bluetoothInfo.hardwareClassic) {
+      bluetoothCapabilitiesOverview = currentLanguage == LANG_FR ? String("Classique") : String("Classic");
+    } else {
+      bluetoothCapabilitiesOverview = String("BLE");
+    }
+  } else {
+    bluetoothCapabilitiesOverview = String(T().bluetooth_not_available);
+  }
+  String bluetoothLastTestOverview = bluetoothInfo.lastTestMessage.length() ? bluetoothInfo.lastTestMessage : String(T().not_tested);
+  String bluetoothStatusSummary;
+  if (!bluetoothHasHardware) {
+    bluetoothStatusSummary = String(T().bluetooth_not_available);
+  } else if (!bluetoothInfo.compileEnabled) {
+    bluetoothStatusSummary = bluetoothInfo.availabilityHint.length() ? bluetoothInfo.availabilityHint : String(T().bluetooth_disabled_build);
+  } else if (bluetoothInfo.controllerEnabled) {
+    bluetoothStatusSummary = String(T().enabled);
+  } else if (bluetoothInfo.controllerInitialized) {
+    bluetoothStatusSummary = String(T().bluetooth_status_inited);
+  } else {
+    bluetoothStatusSummary = String(T().bluetooth_status_idle);
+  }
+  if (!bluetoothStatusSummary.length()) {
+    bluetoothStatusSummary = fallbackSymbol;
+  }
+
   chunk = "<div class='section'><h2>" + String(T().wifi_connection) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().connected_ssid) + "</div><div class='info-value'>" + wifiSsidOverview + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_power) + "</div><div class='info-value'>" + wifiSignalOverview + "</div></div>";
@@ -3103,6 +3334,12 @@ void handleRoot() {
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().ip_address) + "</div><div class='info-value'>" + wifiIpOverview + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().subnet_mask) + "</div><div class='info-value'>" + wifiSubnetOverview + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().gateway) + "</div><div class='info-value'>" + wifiGatewayOverview + "</div></div>";
+  chunk += "</div>";
+  chunk += "<h3>" + String(T().bluetooth_section) + "</h3><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value'>" + bluetoothStatusSummary + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_state) + "</div><div class='info-value'>" + bluetoothStateOverview + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_capabilities) + "</div><div class='info-value'>" + bluetoothCapabilitiesOverview + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_last_test) + "</div><div class='info-value'>" + bluetoothLastTestOverview + "</div></div>";
   chunk += "</div></div>";
   server.sendContent(chunk);
   
@@ -3119,9 +3356,11 @@ void handleRoot() {
 
   // CHUNK 5: TAB LEDs
   chunk = "<div id='leds' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().builtin_led) + "</h2><div class='info-grid'>";
+  chunk += "<div class='section'><h2>" + String(T().builtin_led) + "</h2>";
+  chunk += "<div id='status-led' class='status-line'>" + builtinLedTestResult + "</div>";
+  chunk += "<div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().gpio) + "</div><div class='info-value'>GPIO " + String(BUILTIN_LED_PIN) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value status-field' id='builtin-led-status'>" + builtinLedTestResult + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='led-summary'>" + builtinLedTestResult + "</div></div>";
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "<input type='number' id='ledGPIO' value='" + String(BUILTIN_LED_PIN) + "' min='0' max='48' style='width:80px'>";
   chunk += "<button class='btn btn-info' onclick='configBuiltinLED()'>" + String(T().config) + "</button>";
@@ -3133,9 +3372,11 @@ void handleRoot() {
   chunk += "<div class='gpio-hint'>" + String(T().led_auto_hint) + "</div>";
   chunk += "</div>";
 
-  chunk += "<div class='section'><h2>" + String(T().neopixel) + "</h2><div class='info-grid'>";
+  chunk += "<div class='section'><h2>" + String(T().neopixel) + "</h2>";
+  chunk += "<div id='status-neopixel' class='status-line'>" + neopixelTestResult + "</div>";
+  chunk += "<div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().gpio) + "</div><div class='info-value'>GPIO " + String(LED_PIN) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value status-field' id='neopixel-status'>" + neopixelTestResult + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='neopixel-summary'>" + neopixelTestResult + "</div></div>";
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "<input type='number' id='neoGPIO' value='" + String(LED_PIN) + "' min='0' max='48' style='width:80px'>";
   chunk += "<input type='number' id='neoCount' value='" + String(LED_COUNT) + "' min='1' max='100' style='width:80px'>";
@@ -3152,8 +3393,10 @@ void handleRoot() {
   
   // CHUNK 6: TAB Screens
   chunk = "<div id='screens' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().oled_screen) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value status-field' id='oled-status'>" + oledTestResult + "</div></div>";
+  chunk += "<div class='section'><h2>" + String(T().oled_screen) + "</h2>";
+  chunk += "<div id='status-oled' class='status-line'>" + oledTestResult + "</div>";
+  chunk += "<div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='oled-summary'>" + oledTestResult + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().i2c_pins) + "</div><div class='info-value' id='oled-pins'>SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "</div></div>";
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "SDA: <input type='number' id='oledSDA' value='" + String(I2C_SDA) + "' min='0' max='48' style='width:70px'> ";
@@ -3188,49 +3431,50 @@ void handleRoot() {
   // CHUNK 7: TAB Tests
   chunk = "<div id='tests' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().adc_test) + "</h2>";
+  chunk += "<div id='status-adc' class='status-line'>" + adcTestResult + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testADC()'>" + String(T().test) + "</button>";
-  chunk += "<div id='adc-status' class='status-live'>" + adcTestResult + "</div>";
   chunk += "</div><div id='adc-results' class='info-grid'></div></div>";
-  
+
   chunk += "<div class='section'><h2>" + String(T().touch_test) + "</h2>";
+  chunk += "<div id='status-touch' class='status-line'>" + touchTestResult + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testTouch()'>" + String(T().test) + "</button>";
-  chunk += "<div id='touch-status' class='status-live'>" + touchTestResult + "</div>";
   chunk += "</div><div id='touch-results' class='info-grid'></div></div>";
-  
+
   chunk += "<div class='section'><h2>" + String(T().pwm_test) + "</h2>";
+  chunk += "<div id='status-pwm' class='status-line'>" + pwmTestResult + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testPWM()'>" + String(T().test) + "</button>";
-  chunk += "<div id='pwm-status' class='status-live'>" + pwmTestResult + "</div>";
   chunk += "</div></div>";
-  
+
   chunk += "<div class='section'><h2>" + String(T().spi_bus) + "</h2>";
+  chunk += "<div id='status-spi' class='status-line'>" + (spiInfo.length() > 0 ? spiInfo : String(T().click_button)) + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='scanSPI()'>" + String(T().scan) + "</button>";
-  chunk += "<div id='spi-status' class='status-live'>" + (spiInfo.length() > 0 ? spiInfo : String(T().click_button)) + "</div>";
   chunk += "</div></div>";
-  
+
   chunk += "<div class='section'><h2>" + String(T().flash_partitions) + "</h2>";
+  chunk += "<div id='status-partitions' class='status-line'>" + (partitionsInfo.length() > 0 ? String(T().completed) : String(T().click_button)) + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='listPartitions()'>" + String(T().list_partitions) + "</button>";
   chunk += "</div><div id='partitions-results' style='background:#fff;padding:15px;border-radius:10px;font-family:monospace;white-space:pre-wrap;font-size:0.85em'>";
   chunk += partitionsInfo.length() > 0 ? partitionsInfo : String(T().click_button);
   chunk += "</div></div>";
-  
+
   chunk += "<div class='section'><h2>" + String(T().memory_stress) + "</h2>";
+  chunk += "<div id='status-stress' class='status-line'>" + stressTestResult + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-danger' onclick='stressTest()'>" + String(T().start_stress) + "</button>";
-  chunk += "<div id='stress-status' class='status-live'>" + stressTestResult + "</div>";
   chunk += "</div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 8: TAB GPIO
   chunk = "<div id='gpio' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().gpio_test) + "</h2>";
+  chunk += "<div id='status-gpio' class='status-line'>" + String(T().click_to_test) + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testAllGPIO()'>" + String(T().test_all_gpio) + "</button>";
-  chunk += "<div id='gpio-status' class='status-live'>" + String(T().click_to_test) + "</div>";
   chunk += "</div><p class='gpio-hint'>ℹ️ Un GPIO indiqué comme ❌ FAIL peut simplement être réservé ou non câblé. Vérifiez le schéma matériel avant de conclure à une défaillance.</p><div id='gpio-results' class='gpio-grid'></div></div></div>";
   server.sendContent(chunk);
   
@@ -3255,12 +3499,17 @@ void handleRoot() {
   chunk += "</div></div>";
 
   chunk += "<div class='section'><h2>" + String(T().wifi_scanner) + "</h2>";
+  chunk += "<div id='status-wifi' class='status-line'>" + String(T().click_to_test) + "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='scanWiFi()'>" + String(T().scan_networks) + "</button>";
-  chunk += "<div id='wifi-status' class='status-live'>" + String(T().click_to_test) + "</div>";
   chunk += "</div><div id='wifi-results' class='wifi-list'></div></div>";
 
   chunk += "<div class='section'><h2>" + String(T().bluetooth_section) + "</h2>";
+#if ENABLE_BLUETOOTH_AUTOTEST
+  chunk += "<div id='status-bt' class='status-line'>" + String(T().not_tested) + "</div>";
+#else
+  chunk += "<div id='status-bt' class='status-line'>" + String(T().bluetooth_test_not_compiled) + "</div>";
+#endif
   chunk += "<div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_state) + "</div><div class='info-value' id='bluetooth-controller'>-</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_capabilities) + "</div><div class='info-value' id='bluetooth-capabilities'>-</div></div>";
@@ -3269,9 +3518,6 @@ void handleRoot() {
   chunk += "<div style='text-align:center;margin:20px 0'>";
 #if ENABLE_BLUETOOTH_AUTOTEST
   chunk += "<button class='btn btn-primary' onclick='testBluetooth()'>" + String(T().bluetooth_test_button) + "</button>";
-  chunk += "<div id='bluetooth-status' class='status-live'>" + String(T().not_tested) + "</div>";
-#else
-  chunk += "<div id='bluetooth-status' class='status-live'>" + String(T().bluetooth_test_not_compiled) + "</div>";
 #endif
   chunk += "</div>";
   chunk += "<p id='bluetooth-hint' class='gpio-hint'></p>";
@@ -3284,16 +3530,17 @@ void handleRoot() {
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='runBenchmarks()'>" + String(T().run_benchmarks) + "</button>";
   chunk += "</div><div id='benchmark-results' class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_benchmark) + "</div><div class='info-value' id='cpu-bench'>" + String(T().not_tested) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_benchmark) + "</div><div class='info-value' id='mem-bench'>" + String(T().not_tested) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_performance) + "</div><div class='info-value' id='cpu-perf'>-</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_speed) + "</div><div class='info-value' id='mem-speed'>-</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_benchmark) + "</div><div class='info-value' id='cpu-bench'>" + String(T().not_tested) + "</div><div id='status-perf-cpu' class='status-line'></div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_benchmark) + "</div><div class='info-value' id='mem-bench'>" + String(T().not_tested) + "</div><div id='status-perf-mem' class='status-line'></div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_performance) + "</div><div class='info-value' id='cpu-perf'>-</div><div id='status-perf-panel-cpu' class='status-line'></div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_speed) + "</div><div class='info-value' id='mem-speed'>-</div><div id='status-perf-panel-mem' class='status-line'></div></div>";
   chunk += "</div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 11: TAB Export
   chunk = "<div id='export' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().data_export) + "</h2>";
+  chunk += "<div id='status-export' class='status-line'></div>";
   chunk += "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-top:20px'>";
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #667eea'>";
   chunk += "<h3 style='color:#667eea;margin-bottom:15px'>" + String(T().txt_file) + "</h3>";
@@ -3306,7 +3553,7 @@ void handleRoot() {
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #56ab2f'>";
   chunk += "<h3 style='color:#56ab2f;margin-bottom:15px'>" + String(T().csv_file) + "</h3>";
   chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String(T().for_excel) + "</p>";
-  chunk += "<a href='/export/csv' class='btn btn-success'>" + String(T().download_csv) + "</a></div>";
+  chunk += "<button type='button' class='btn btn-success' onclick='exportExcel()'>" + String(T().download_csv) + "</button></div>";
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #667eea'>";
   chunk += "<h3 style='color:#667eea;margin-bottom:15px'>" + String(T().printable_version) + "</h3>";
   chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String(T().pdf_format) + "</p>";
@@ -3441,15 +3688,21 @@ void loop() {
   if (millis() - lastUpdate > 30000) {
     lastUpdate = millis();
     collectDiagnosticInfo();
-    
+
     Serial.println("\r\n=== UPDATE ===");
-    Serial.printf("Heap: %.2f KB | Uptime: %.2f h\r\n", 
-                  diagnosticData.freeHeap / 1024.0, 
+    Serial.printf("Heap: %.2f KB | Uptime: %.2f h\r\n",
+                  diagnosticData.freeHeap / 1024.0,
                   diagnosticData.uptime / 3600000.0);
     if (diagnosticData.temperature != -999) {
       Serial.printf("Temp: %.1f°C\r\n", diagnosticData.temperature);
     }
   }
-  
+
+  static unsigned long lastHeaderRefresh = 0;
+  if (millis() - lastHeaderRefresh > 3000) {
+    lastHeaderRefresh = millis();
+    updateHeaderStatus();
+  }
+
   delay(10);
 }
