@@ -467,12 +467,12 @@ struct DiagnosticInfo {
   uint32_t flashSize;
   uint32_t psramSize;
   String macAddress;
-
+  
   uint32_t heapSize;
   uint32_t freeHeap;
   uint32_t minFreeHeap;
   uint32_t maxAllocHeap;
-
+  
   bool hasWiFi;
   bool hasBT;
   bool hasBLE;
@@ -505,17 +505,17 @@ struct DiagnosticInfo {
   String arduinoCoreVersion;
   unsigned long uptime;
   float temperature;
-
+  
   bool neopixelTested;
   bool neopixelAvailable;
   String neopixelResult;
-
+  
   unsigned long cpuBenchmark;
   unsigned long memBenchmark;
-
+  
   String i2cDevices;
   int i2cCount;
-
+  
   bool oledTested;
   bool oledAvailable;
   String oledResult;
@@ -3508,15 +3508,15 @@ void loop() {
   if (millis() - lastUpdate > 30000) {
     lastUpdate = millis();
     collectDiagnosticInfo();
-
+    
     Serial.println("\r\n=== UPDATE ===");
-    Serial.printf("Heap: %.2f KB | Uptime: %.2f h\r\n",
-                  diagnosticData.freeHeap / 1024.0,
+    Serial.printf("Heap: %.2f KB | Uptime: %.2f h\r\n", 
+                  diagnosticData.freeHeap / 1024.0, 
                   diagnosticData.uptime / 3600000.0);
     if (diagnosticData.temperature != -999) {
       Serial.printf("Temp: %.1f°C\r\n", diagnosticData.temperature);
     }
   }
-
+  
   delay(10);
 }
