@@ -6,6 +6,8 @@
  * Auteur: morfredus
  *
  * Nouveautés v2.6.0:
+ * - Gestion des réseaux WiFi optionnels sans erreur de compilation
+ * - Messages Série détaillés lorsque les identifiants WiFi sont incomplets ou absents
  * - Suppression complète du support des écrans TFT SPI
  * - Ajout de commandes individuelles pour chaque étape du test OLED
  * - Amélioration de l'interface web OLED avec reconfiguration I2C simplifiée
@@ -41,6 +43,61 @@
 
 // Système de traduction
 #include "languages.h"
+
+// Déclarations faibles pour gérer des réseaux WiFi optionnels définis dans config.h
+#if defined(__GNUC__)
+#define WIFI_CONFIG_WEAK __attribute__((weak))
+#else
+#define WIFI_CONFIG_WEAK
+#endif
+
+#if !defined(WIFI_SSID_1)
+extern const char* WIFI_SSID_1 WIFI_CONFIG_WEAK;
+#endif
+#if !defined(WIFI_PASS_1)
+extern const char* WIFI_PASS_1 WIFI_CONFIG_WEAK;
+#endif
+#if !defined(WIFI_SSID_2)
+extern const char* WIFI_SSID_2 WIFI_CONFIG_WEAK;
+#endif
+#if !defined(WIFI_PASS_2)
+extern const char* WIFI_PASS_2 WIFI_CONFIG_WEAK;
+#endif
+#if !defined(WIFI_SSID_3)
+extern const char* WIFI_SSID_3 WIFI_CONFIG_WEAK;
+#endif
+#if !defined(WIFI_PASS_3)
+extern const char* WIFI_PASS_3 WIFI_CONFIG_WEAK;
+#endif
+#if !defined(WIFI_SSID_4)
+extern const char* WIFI_SSID_4 WIFI_CONFIG_WEAK;
+#endif
+#if !defined(WIFI_PASS_4)
+extern const char* WIFI_PASS_4 WIFI_CONFIG_WEAK;
+#endif
+#if !defined(WIFI_SSID_5)
+extern const char* WIFI_SSID_5 WIFI_CONFIG_WEAK;
+#endif
+#if !defined(WIFI_PASS_5)
+extern const char* WIFI_PASS_5 WIFI_CONFIG_WEAK;
+#endif
+
+struct WiFiCredentialConfig {
+  const char* ssid;
+  const char* password;
+};
+
+static const WiFiCredentialConfig WIFI_CONFIGURED_NETWORKS[] = {
+  { WIFI_SSID_1, WIFI_PASS_1 },
+  { WIFI_SSID_2, WIFI_PASS_2 },
+  { WIFI_SSID_3, WIFI_PASS_3 },
+  { WIFI_SSID_4, WIFI_PASS_4 },
+  { WIFI_SSID_5, WIFI_PASS_5 }
+};
+
+static const size_t WIFI_CONFIGURED_NETWORKS_COUNT = sizeof(WIFI_CONFIGURED_NETWORKS) / sizeof(WIFI_CONFIGURED_NETWORKS[0]);
+
+#undef WIFI_CONFIG_WEAK
 
 // ========== CONFIGURATION ==========
 #define DIAGNOSTIC_VERSION "2.6.0"
@@ -2470,6 +2527,31 @@ void handleRoot() {
   server.sendContent("");
 }
 
+size_t registerConfiguredWiFiNetworks() {
+  size_t added = 0;
+  size_t skipped = 0;
+
+  for (size_t i = 0; i < WIFI_CONFIGURED_NETWORKS_COUNT; ++i) {
+    const WiFiCredentialConfig& cred = WIFI_CONFIGURED_NETWORKS[i];
+    const bool hasSSID = cred.ssid != nullptr && cred.ssid[0] != '\0';
+    const bool hasPassword = cred.password != nullptr;
+
+    if (hasSSID && hasPassword) {
+      wifiMulti.addAP(cred.ssid, cred.password);
+      added++;
+    } else if (hasSSID || hasPassword) {
+      skipped++;
+      Serial.printf("Configuration WiFi #%u ignoree: informations incompletes.\r\n", static_cast<unsigned>(i + 1));
+    }
+  }
+
+  if (skipped > 0) {
+    Serial.printf("%u configuration(s) WiFi ignoree(s).\r\n", static_cast<unsigned>(skipped));
+  }
+
+  return added;
+}
+
 // ========== SETUP COMPLET ==========
 void setup() {
   Serial.begin(115200);
@@ -2477,41 +2559,43 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 2.4 - FR/EN");
+  Serial.println("     Version 2.6.0 - FR/EN");
   Serial.println("     Optimise Arduino Core 3.1.3");
   Serial.println("===============================================\r\n");
   
   printPSRAMDiagnostic();
   
-  // WiFi
-  wifiMulti.addAP(WIFI_SSID_1, WIFI_PASS_1);
-  wifiMulti.addAP(WIFI_SSID_2, WIFI_PASS_2);
-  
-  Serial.println("Connexion WiFi...");
-  int attempt = 0;
-  while (wifiMulti.run() != WL_CONNECTED && attempt < 40) {
-    delay(500);
-    Serial.print(".");
-    attempt++;
-  }
-  
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\r\n\r\nWiFi OK!");
-    Serial.printf("SSID: %s\r\n", WiFi.SSID().c_str());
-    Serial.printf("IP: %s\r\n\r\n", WiFi.localIP().toString().c_str());
-    
-    if (MDNS.begin(MDNS_HOSTNAME)) {
-      Serial.println("════════════════════════════════════════");
-      Serial.printf("   http://%s.local\r\n", MDNS_HOSTNAME);
-      Serial.printf("   http://%s\r\n", WiFi.localIP().toString().c_str());
-      Serial.println("════════════════════════════════════════\r\n");
-      MDNS.addService("http", "tcp", 80);
-    } else {
-      Serial.println("mDNS erreur");
-      Serial.printf("Utilisez IP: http://%s\r\n\r\n", WiFi.localIP().toString().c_str());
-    }
+  const size_t wifiNetworksAdded = registerConfiguredWiFiNetworks();
+
+  if (wifiNetworksAdded == 0) {
+    Serial.println("Aucun réseau WiFi configuré dans config.h.\r\n");
   } else {
-    Serial.println("\r\n\r\nPas de WiFi\r\n");
+    Serial.printf("Connexion WiFi... (%u réseau(x) configuré(s))\r\n", static_cast<unsigned>(wifiNetworksAdded));
+    int attempt = 0;
+    while (wifiMulti.run() != WL_CONNECTED && attempt < 40) {
+      delay(500);
+      Serial.print(".");
+      attempt++;
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("\r\n\r\nWiFi OK!");
+      Serial.printf("SSID: %s\r\n", WiFi.SSID().c_str());
+      Serial.printf("IP: %s\r\n\r\n", WiFi.localIP().toString().c_str());
+
+      if (MDNS.begin(MDNS_HOSTNAME)) {
+        Serial.println("════════════════════════════════════════");
+        Serial.printf("   http://%s.local\r\n", MDNS_HOSTNAME);
+        Serial.printf("   http://%s\r\n", WiFi.localIP().toString().c_str());
+        Serial.println("════════════════════════════════════════\r\n");
+        MDNS.addService("http", "tcp", 80);
+      } else {
+        Serial.println("mDNS erreur");
+        Serial.printf("Utilisez IP: http://%s\r\n\r\n", WiFi.localIP().toString().c_str());
+      }
+    } else {
+      Serial.println("\r\n\r\nPas de WiFi\r\n");
+    }
   }
   
   // Détections
