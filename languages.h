@@ -292,6 +292,12 @@ struct Translations {
   const char* testing_gpio;
   const char* testing_bluetooth;
   const char* testing_benchmarks;
+  const char* export_running;
+  const char* export_done;
+  const char* bench_cpu_done;
+  const char* bench_mem_done;
+  const char* bench_cpu_updated;
+  const char* bench_mem_updated;
   const char* wifi_waiting;
   
   // Unités
@@ -591,6 +597,12 @@ const Translations LANG_FR_TEXTS = {
   "Test GPIO en cours...",
   "Test Bluetooth en cours...",
   "Benchmark CPU et mémoire en cours (~25 s)...",
+  "Export CSV en cours...",
+  "Export CSV terminé",
+  "Benchmark CPU terminé",
+  "Benchmark mémoire terminé",
+  "Performance CPU mise à jour",
+  "Vitesse mémoire mise à jour",
   "En attente de configuration WiFi...",
   
   // Unités
@@ -890,6 +902,12 @@ const Translations LANG_EN_TEXTS = {
   "GPIO test running...",
   "Bluetooth test running...",
   "CPU and memory benchmark running (~25 s)...",
+  "CSV export in progress...",
+  "CSV export completed",
+  "CPU benchmark completed",
+  "Memory benchmark completed",
+  "CPU performance updated",
+  "Memory speed updated",
   "Waiting for Wi-Fi configuration...",
   
   // Units
