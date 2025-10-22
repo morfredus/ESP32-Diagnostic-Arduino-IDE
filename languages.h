@@ -3,6 +3,8 @@
 
 // ========== SYSTÈME DE TRADUCTION ==========
 
+extern void updateHeaderStatus();
+
 enum Language {
   LANG_FR = 0,
   LANG_EN = 1
@@ -293,6 +295,14 @@ struct Translations {
   const char* testing_bluetooth;
   const char* testing_benchmarks;
   const char* wifi_waiting;
+  const char* wifi_status_disabled;
+  const char* wifi_status_connecting;
+  const char* wifi_status_ap;
+  const char* wifi_status_connected;
+  const char* bluetooth_status_disabled_not_compiled;
+  const char* bluetooth_status_activating;
+  const char* bluetooth_status_active_short;
+  const char* bluetooth_status_connected_short;
   
   // Unités
   const char* cores;
@@ -414,10 +424,10 @@ const Translations LANG_FR_TEXTS = {
   "Statut du contrôleur",
   "Capacités détectées",
   "Dernier test",
-  "Le Bluetooth est présent mais désactivé dans la compilation. Activez-le dans l'IDE puis retéléversez.",
+  "Bluetooth désactivé (non compilé)",
   "Bluetooth non disponible sur cette carte.",
   "🧪 Tester le Bluetooth",
-  "Bluetooth désactivé dans la compilation. Activez les options Bluetooth puis recommencez.",
+  "Bluetooth désactivé (non compilé)",
   "Échec d'initialisation du contrôleur Bluetooth",
   "Échec d'activation du contrôleur Bluetooth",
   "Contrôleur Bluetooth testé avec succès",
@@ -427,7 +437,7 @@ const Translations LANG_FR_TEXTS = {
   "Activation en cours",
   "Désactivation en cours",
   "Non initialisé",
-  "Bluetooth désactivé à la compilation",
+  "Bluetooth désactivé (non compilé)",
   
   // GPIO
   "GPIO et Interfaces",
@@ -591,7 +601,15 @@ const Translations LANG_FR_TEXTS = {
   "Test GPIO en cours...",
   "Test Bluetooth en cours...",
   "Benchmark CPU et mémoire en cours (~25 s)...",
-  "En attente de configuration WiFi...",
+  "Connexion Wi-Fi...",
+  "Wi-Fi désactivé",
+  "Connexion Wi-Fi...",
+  "Point d’accès Wi-Fi actif",
+  "Connecté au Wi-Fi",
+  "Bluetooth désactivé (non compilé)",
+  "Activation Bluetooth...",
+  "Bluetooth actif",
+  "Bluetooth connecté",
   
   // Unités
   "coeurs",
@@ -713,10 +731,10 @@ const Translations LANG_EN_TEXTS = {
   "Controller status",
   "Detected capabilities",
   "Last test",
-  "Bluetooth hardware detected but disabled in the firmware build. Enable it in the IDE then upload again.",
+  "Bluetooth disabled (not compiled)",
   "Bluetooth not available on this board.",
   "🧪 Run Bluetooth test",
-  "Bluetooth disabled at build time. Enable Bluetooth options and try again.",
+  "Bluetooth disabled (not compiled)",
   "Failed to initialise Bluetooth controller",
   "Failed to enable Bluetooth controller",
   "Bluetooth controller tested successfully",
@@ -726,7 +744,7 @@ const Translations LANG_EN_TEXTS = {
   "Enabling",
   "Disabling",
   "Uninitialised",
-  "Bluetooth disabled in build",
+  "Bluetooth disabled (not compiled)",
   
   // GPIO
   "GPIO and Interfaces",
@@ -890,7 +908,15 @@ const Translations LANG_EN_TEXTS = {
   "GPIO test running...",
   "Bluetooth test running...",
   "CPU and memory benchmark running (~25 s)...",
-  "Waiting for Wi-Fi configuration...",
+  "Connecting to Wi-Fi...",
+  "Wi-Fi disabled",
+  "Connecting to Wi-Fi...",
+  "Wi-Fi access point active",
+  "Connected to Wi-Fi",
+  "Bluetooth disabled (not compiled)",
+  "Activating Bluetooth...",
+  "Bluetooth active",
+  "Bluetooth connected",
   
   // Units
   "cores",
@@ -916,6 +942,7 @@ const Translations& T() {
 // Fonction pour changer la langue
 void setLanguage(Language lang) {
   currentLanguage = lang;
+  updateHeaderStatus();
 }
 
 #endif

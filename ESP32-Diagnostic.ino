@@ -1,5 +1,5 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.17-dev
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.20-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -185,7 +185,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.17-dev"
+#define DIAGNOSTIC_VERSION "2.8.20-dev"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -251,6 +251,22 @@ struct WiFiRuntimeState {
 BluetoothDiagnostics bluetoothInfo = {false, false, false, false, false, String(), false, String(), String()};
 WiFiRuntimeState wifiRuntime;
 
+struct HeaderIndicatorStatus {
+  String wifiState;
+  String wifiText;
+  String btState;
+  String btText;
+};
+
+HeaderIndicatorStatus headerStatus = {String("off"), String(), String("off"), String()};
+
+void updateIndicator(const char* id, const char* state);
+void setWifiIndicator(const char* state);
+void setBtIndicator(const char* state);
+void setWifiText(const char* text);
+void setBtText(const char* text);
+void updateHeaderStatus();
+
 String jsonEscape(const String& input) {
   String output;
   output.reserve(input.length() + 4);
@@ -275,6 +291,52 @@ String jsonEscape(const String& input) {
   return output;
 }
 
+String normalizeIndicatorState(const String& state) {
+  String lowered = state;
+  lowered.toLowerCase();
+  if (lowered == "on" || lowered == "mid" || lowered == "blink" || lowered == "off") {
+    return lowered;
+  }
+  return String("off");
+}
+
+String indicatorDotClass(const String& state) {
+  return String("dot-") + normalizeIndicatorState(state);
+}
+
+String indicatorPillClass(const String& state) {
+  return String("state-") + normalizeIndicatorState(state);
+}
+
+void updateIndicator(const char* id, const char* state) {
+  if (!id || !state) {
+    return;
+  }
+
+  String normalized = normalizeIndicatorState(String(state));
+  if (strcmp(id, "wifi") == 0) {
+    headerStatus.wifiState = normalized;
+  } else if (strcmp(id, "bt") == 0) {
+    headerStatus.btState = normalized;
+  }
+}
+
+void setWifiIndicator(const char* state) {
+  updateIndicator("wifi", state);
+}
+
+void setBtIndicator(const char* state) {
+  updateIndicator("bt", state);
+}
+
+void setWifiText(const char* text) {
+  headerStatus.wifiText = text ? String(text) : String();
+}
+
+void setBtText(const char* text) {
+  headerStatus.btText = text ? String(text) : String();
+}
+
 bool wifiCredentialValid(const WiFiCredential& cred) {
   return cred.ssid != nullptr && cred.ssid[0] != '\0';
 }
@@ -294,7 +356,16 @@ void resetWiFiRuntime() {
 }
 
 void updateWiFiRuntimeState() {
-  if (!wifiRuntime.driverStarted) {
+  wifi_mode_t currentMode = WiFi.getMode();
+
+#ifdef WIFI_OFF
+  bool wifiDisabled = (currentMode == WIFI_OFF);
+#else
+  bool wifiDisabled = (currentMode == WIFI_MODE_NULL);
+#endif
+
+  if (wifiDisabled) {
+    wifiRuntime.driverStarted = false;
     wifiRuntime.status = WL_NO_SHIELD;
     wifiRuntime.mode = WIFI_MODE_NULL;
     wifiRuntime.stationConnected = false;
@@ -302,8 +373,9 @@ void updateWiFiRuntimeState() {
     return;
   }
 
+  wifiRuntime.driverStarted = true;
+  wifiRuntime.mode = currentMode;
   wifiRuntime.status = WiFi.status();
-  wifiRuntime.mode = WiFi.getMode();
   wifiRuntime.stationConnected = (wifiRuntime.status == WL_CONNECTED);
   wifiRuntime.apActive = (wifiRuntime.mode == WIFI_MODE_AP || wifiRuntime.mode == WIFI_MODE_APSTA);
 }
@@ -337,6 +409,7 @@ bool startSoftAPFallback() {
   } else {
     Serial.println("Impossible de démarrer le SoftAP");
   }
+  updateHeaderStatus();
   return started;
 #else
   return false;
@@ -405,6 +478,7 @@ void initializeWireless() {
       startSoftAPFallback();
     }
   }
+  updateHeaderStatus();
 }
 
 #if HAS_NATIVE_BLUETOOTH
@@ -454,6 +528,104 @@ void updateBluetoothDerivedState() {
     bluetoothInfo.lastTestMessage = bluetoothInfo.availabilityHint;
   } else {
     bluetoothInfo.availabilityHint = "";
+  }
+}
+
+bool btStarted() {
+#if HAS_NATIVE_BLUETOOTH
+  esp_bt_controller_status_t status = esp_bt_controller_get_status();
+  return status == ESP_BT_CONTROLLER_STATUS_ENABLED ||
+         status == ESP_BT_CONTROLLER_STATUS_ENABLING ||
+         status == ESP_BT_CONTROLLER_STATUS_DISABLING ||
+         status == ESP_BT_CONTROLLER_STATUS_IDLE ||
+         status == ESP_BT_CONTROLLER_STATUS_INITED;
+#else
+  return false;
+#endif
+}
+
+bool btConnected() {
+#if HAS_NATIVE_BLUETOOTH
+  return bluetoothInfo.controllerEnabled && bluetoothInfo.lastTestSuccess;
+#else
+  return false;
+#endif
+}
+
+void updateHeaderStatus() {
+  updateWiFiRuntimeState();
+
+  bool wifiDriverStarted = wifiRuntime.driverStarted;
+  wl_status_t wifiStatus = wifiRuntime.status;
+  bool wifiStation = (wifiStatus == WL_CONNECTED);
+  bool wifiAp = wifiRuntime.apActive && !wifiStation;
+
+  if (!wifiDriverStarted) {
+    setWifiIndicator("off");
+    setWifiText(T().wifi_status_disabled);
+  } else if (wifiStation) {
+    setWifiIndicator("on");
+    setWifiText(T().wifi_status_connected);
+  } else if (wifiAp) {
+    setWifiIndicator("mid");
+    setWifiText(T().wifi_status_ap);
+  } else if (wifiStatus == WL_CONNECT_FAILED ||
+             wifiStatus == WL_DISCONNECTED ||
+             wifiStatus == WL_CONNECTION_LOST ||
+             wifiStatus == WL_IDLE_STATUS ||
+             wifiStatus == WL_NO_SSID_AVAIL) {
+    setWifiIndicator("blink");
+    setWifiText(T().wifi_status_connecting);
+  } else {
+    setWifiIndicator("blink");
+    setWifiText(T().wifi_status_connecting);
+  }
+
+#ifdef CONFIG_BT_ENABLED
+  bool compileEnabled = true;
+#else
+  bool compileEnabled = false;
+#endif
+
+#if HAS_NATIVE_BLUETOOTH
+  esp_bt_controller_status_t runtimeStatus = esp_bt_controller_get_status();
+  bluetoothInfo.controllerEnabled = (runtimeStatus == ESP_BT_CONTROLLER_STATUS_ENABLED);
+  bluetoothInfo.controllerInitialized = (runtimeStatus == ESP_BT_CONTROLLER_STATUS_ENABLED ||
+                                         runtimeStatus == ESP_BT_CONTROLLER_STATUS_IDLE ||
+                                         runtimeStatus == ESP_BT_CONTROLLER_STATUS_INITED ||
+                                         runtimeStatus == ESP_BT_CONTROLLER_STATUS_ENABLING ||
+                                         runtimeStatus == ESP_BT_CONTROLLER_STATUS_DISABLING);
+#endif
+
+  bool controllerStarted = btStarted();
+  bool controllerEnabled = bluetoothInfo.controllerEnabled;
+  bool controllerInitialised = bluetoothInfo.controllerInitialized || controllerStarted;
+  bool controllerConnected = btConnected();
+  bool hasBluetoothHardware = bluetoothInfo.hardwareClassic || bluetoothInfo.hardwareBLE;
+  String btAvailabilityHint = bluetoothInfo.availabilityHint;
+
+  if (!compileEnabled) {
+    setBtIndicator("off");
+    setBtText(T().bluetooth_status_disabled_not_compiled);
+  } else if (!hasBluetoothHardware) {
+    setBtIndicator("off");
+    if (btAvailabilityHint.length()) {
+      setBtText(btAvailabilityHint.c_str());
+    } else {
+      setBtText(T().bluetooth_status_disabled_not_compiled);
+    }
+  } else if (!controllerInitialised) {
+    setBtIndicator("blink");
+    setBtText(T().bluetooth_status_activating);
+  } else if (controllerConnected) {
+    setBtIndicator("on");
+    setBtText(T().bluetooth_status_connected_short);
+  } else if (controllerEnabled) {
+    setBtIndicator("mid");
+    setBtText(T().bluetooth_status_active_short);
+  } else {
+    setBtIndicator("blink");
+    setBtText(T().bluetooth_status_activating);
   }
 }
 
@@ -1835,6 +2007,7 @@ void collectDiagnosticInfo() {
     tempHistory[historyIndex] = diagnosticData.temperature;
   }
   historyIndex = (historyIndex + 1) % HISTORY_SIZE;
+  updateHeaderStatus();
 }
 
 // ========== HANDLERS API ==========
@@ -1905,6 +2078,8 @@ void handleWirelessInfo() {
   json += "\"supports_5g\":" + String(diagnosticData.wifiSupports5G ? "true" : "false") + ",";
   json += "\"hostname\":\"" + jsonEscape(diagnosticData.wifiHostname) + "\",";
   json += "\"driver_initialized\":" + String(diagnosticData.wifiDriverInitialized ? "true" : "false") + ",";
+  json += "\"header_state\":\"" + headerStatus.wifiState + "\",";
+  json += "\"header_text\":\"" + jsonEscape(headerStatus.wifiText) + "\",";
   json += "\"state\":\"" + wifiState + "\"";
   json += "},";
   json += "\"gpio\":{";
@@ -1927,6 +2102,8 @@ void handleWirelessInfo() {
   json += "\"controller_initialized\":" + String(bluetoothInfo.controllerInitialized ? "true" : "false") + ",";
   json += "\"last_test_success\":" + String(bluetoothInfo.lastTestSuccess ? "true" : "false") + ",";
   json += "\"last_test_message\":\"" + jsonEscape(bluetoothInfo.lastTestMessage) + "\",";
+  json += "\"header_state\":\"" + headerStatus.btState + "\",";
+  json += "\"header_text\":\"" + jsonEscape(headerStatus.btText) + "\",";
   json += "\"state\":\"" + btState + "\",";
   json += "\"hint\":\"" + jsonEscape(bluetoothInfo.availabilityHint) + "\"";
   json += "},";
@@ -2932,23 +3109,22 @@ void handleRoot() {
   chunk += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
   chunk += ".status-bar{position:fixed;top:20px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:1100px;display:flex;flex-direction:column;align-items:center;gap:16px;padding:18px 24px;background:rgba(17,24,39,.92);backdrop-filter:blur(14px);z-index:2500;color:#fff;border-radius:24px;box-shadow:0 16px 40px rgba(0,0,0,.35)}";
   chunk += ".status-row{width:100%;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px}";
-  chunk += ".status-pill{display:flex;align-items:center;gap:12px;padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);font-weight:600;font-size:.95em}";
-  chunk += ".status-pill.state-online{border-color:rgba(34,197,94,.65)}";
-  chunk += ".status-pill.state-offline{border-color:rgba(239,68,68,.65)}";
-  chunk += ".status-pill.state-pending{border-color:rgba(249,115,22,.65)}";
+
+  chunk += ".status-pill{display:flex;align-items:center;gap:12px;padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);font-weight:600;font-size:.95em;transition:border-color .3s,box-shadow .3s}";
+  chunk += ".status-pill.state-on{border-color:rgba(34,197,94,.7);box-shadow:0 0 18px rgba(34,197,94,.25)}";
+  chunk += ".status-pill.state-mid{border-color:rgba(249,115,22,.7);box-shadow:0 0 18px rgba(249,115,22,.2)}";
+  chunk += ".status-pill.state-off{border-color:rgba(239,68,68,.75);box-shadow:0 0 14px rgba(239,68,68,.25)}";
+  chunk += ".status-pill.state-blink{border-color:rgba(249,115,22,.85);box-shadow:0 0 22px rgba(249,115,22,.35)}";
   chunk += ".status-text{display:flex;align-items:center;gap:6px}";
   chunk += ".status-label-name{font-weight:700}";
   chunk += ".status-separator{opacity:.6}";
   chunk += ".status-state{font-weight:600;opacity:.9}";
-  chunk += ".ip-pill{background:rgba(255,255,255,.08)}";
-  chunk += ".ip-pill .status-label-name{opacity:.75}";
-  chunk += ".ip-pill .status-state{font-family:'Roboto Mono',monospace}";
-  chunk += ".status-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.4)}";
-  chunk += ".status-dot.online{background:#22c55e;animation:statusBlink 1.4s ease-in-out infinite;box-shadow:0 0 14px rgba(34,197,94,.9)}";
-  chunk += ".status-dot.offline{background:#ef4444;box-shadow:0 0 14px rgba(239,68,68,.85)}";
-  chunk += ".status-dot.pending{background:#f97316;animation:statusPulse 2s ease-in-out infinite;box-shadow:0 0 14px rgba(249,115,22,.8)}";
-  chunk += "@keyframes statusBlink{0%,100%{opacity:1}50%{opacity:.35}}";
-  chunk += "@keyframes statusPulse{0%,100%{opacity:.6}50%{opacity:1}}";
+  chunk += ".status-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.35);background:#4b5563;transition:background-color .3s,box-shadow .3s}";
+  chunk += ".status-dot.dot-on{background:#22c55e;box-shadow:0 0 16px rgba(34,197,94,.7)}";
+  chunk += ".status-dot.dot-mid{background:#f97316;box-shadow:0 0 14px rgba(249,115,22,.5)}";
+  chunk += ".status-dot.dot-off{background:#ef4444;box-shadow:0 0 14px rgba(239,68,68,.55)}";
+  chunk += ".status-dot.dot-blink{background:#f97316;box-shadow:0 0 18px rgba(249,115,22,.7);animation:indicatorBlink .5s steps(1) infinite}";
+  chunk += "@keyframes indicatorBlink{0%,100%{background:#f97316;box-shadow:0 0 18px rgba(249,115,22,.7);}50%{background:#111827;box-shadow:0 0 6px rgba(17,24,39,.45);}}";
   chunk += ".nav{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}";
   chunk += ".nav-btn{padding:8px 16px;background:rgba(255,255,255,.2);border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:600;font-size:.95em}";
   chunk += ".nav-btn:hover{background:rgba(255,255,255,.3)}";
@@ -2995,12 +3171,16 @@ void handleRoot() {
   server.sendContent(chunk);
 
   // CHUNK 2: STATUS BAR + NAVIGATION FIXE
-  String ipBadge = diagnosticData.ipAddress.length() ? diagnosticData.ipAddress : String("—");
   chunk = "<div class='status-bar'>";
+  String wifiHeaderText = headerStatus.wifiText.length() ? headerStatus.wifiText : String(T().wifi_status_connecting);
+  String btHeaderText = headerStatus.btText.length() ? headerStatus.btText : String(T().bluetooth_status_active_short);
+  String wifiPillStateClass = indicatorPillClass(headerStatus.wifiState);
+  String btPillStateClass = indicatorPillClass(headerStatus.btState);
+  String wifiDotClass = indicatorDotClass(headerStatus.wifiState);
+  String btDotClass = indicatorDotClass(headerStatus.btState);
   chunk += "<div class='status-row status-row-top'>";
-  chunk += "<div class='status-pill' id='wifi-status-pill'><span class='status-dot offline' id='wifi-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_wifi) + "</span><span class='status-separator'>·</span><span class='status-state' id='wifi-status-label'>" + String(T().disconnected) + "</span></span></div>";
-  chunk += "<div class='status-pill' id='bt-status-pill'><span class='status-dot pending' id='bt-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_bluetooth) + "</span><span class='status-separator'>·</span><span class='status-state' id='bt-status-label'>" + String(T().indicator_unavailable) + "</span></span></div>";
-  chunk += "<div class='status-pill ip-pill'><span class='status-label-name'>" + String(T().ip_address) + "</span><span class='status-state' id='status-ip'>" + ipBadge + "</span></div>";
+  chunk += "<div class='status-pill " + wifiPillStateClass + "' id='wifi-status-pill'><span class='status-dot " + wifiDotClass + "' id='wifi-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_wifi) + "</span><span class='status-separator'>·</span><span class='status-state' id='wifi-status-label'>" + wifiHeaderText + "</span></span></div>";
+  chunk += "<div class='status-pill " + btPillStateClass + "' id='bt-status-pill'><span class='status-dot " + btDotClass + "' id='bt-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_bluetooth) + "</span><span class='status-separator'>·</span><span class='status-state' id='bt-status-label'>" + btHeaderText + "</span></span></div>";
   chunk += "</div>";
   chunk += "<div class='status-row status-row-bottom'>";
   chunk += "<div class='nav'>";
@@ -3508,15 +3688,21 @@ void loop() {
   if (millis() - lastUpdate > 30000) {
     lastUpdate = millis();
     collectDiagnosticInfo();
-    
+
     Serial.println("\r\n=== UPDATE ===");
-    Serial.printf("Heap: %.2f KB | Uptime: %.2f h\r\n", 
-                  diagnosticData.freeHeap / 1024.0, 
+    Serial.printf("Heap: %.2f KB | Uptime: %.2f h\r\n",
+                  diagnosticData.freeHeap / 1024.0,
                   diagnosticData.uptime / 3600000.0);
     if (diagnosticData.temperature != -999) {
       Serial.printf("Temp: %.1f°C\r\n", diagnosticData.temperature);
     }
   }
-  
+
+  static unsigned long lastHeaderRefresh = 0;
+  if (millis() - lastHeaderRefresh > 3000) {
+    lastHeaderRefresh = millis();
+    updateHeaderStatus();
+  }
+
   delay(10);
 }

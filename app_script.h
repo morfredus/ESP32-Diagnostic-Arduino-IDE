@@ -220,10 +220,18 @@ inline String buildAppScript() {
 
   function updateDotState(dotEl, state) {
     if (!dotEl) return;
-    const validStates = ['online', 'offline', 'pending'];
-    const resolved = validStates.includes(state) ? state : 'pending';
-    dotEl.classList.remove('online', 'offline', 'pending');
-    dotEl.classList.add(resolved);
+    const validStates = ['on', 'mid', 'off', 'blink'];
+    const resolved = validStates.includes(state) ? state : 'off';
+    dotEl.classList.remove('dot-on', 'dot-mid', 'dot-off', 'dot-blink');
+    dotEl.classList.add('dot-' + resolved);
+  }
+
+  function updatePillState(pillEl, state) {
+    if (!pillEl) return;
+    const validStates = ['on', 'mid', 'off', 'blink'];
+    const resolved = validStates.includes(state) ? state : 'off';
+    pillEl.classList.remove('state-on', 'state-mid', 'state-off', 'state-blink');
+    pillEl.classList.add('state-' + resolved);
   }
 
   function applyBuiltinConfig(manual = true) {
@@ -815,76 +823,54 @@ inline String buildAppScript() {
     const wifiStation = toBool(wifi.station_connected);
     const wifiAP = toBool(wifi.ap_active);
     const wifiDriverInitialized = toBool(wifi.driver_initialized);
-    const wifiStateRaw = typeof wifi.state === 'string' ? wifi.state.toLowerCase() : '';
     const wifiConnected = Object.prototype.hasOwnProperty.call(wifi, 'connected')
       ? toBool(wifi.connected)
       : (wifiStation || wifiAP);
     const wifiAvailable = wifiFlag || wifiStation || wifiAP || wifiDriverInitialized;
 
-    let wifiStateClass = 'pending';
-    let wifiStateText = indicator.unavailable;
-
-    switch (wifiStateRaw) {
-      case 'connected':
-        wifiStateClass = 'online';
-        wifiStateText = labels.connected;
-        break;
-      case 'ap':
-        wifiStateClass = 'online';
-        wifiStateText = indicator.ap;
-        break;
-      case 'idle':
-        wifiStateClass = 'offline';
-        wifiStateText = indicator.offline;
-        break;
-      case 'waiting':
-        wifiStateClass = 'pending';
-        wifiStateText = messages.wifiWaiting;
-        break;
-      case 'unavailable':
-        wifiStateClass = 'pending';
-        wifiStateText = indicator.unavailable;
-        break;
-      default:
-        if (!wifiAvailable) {
-          wifiStateClass = 'pending';
-          wifiStateText = indicator.unavailable;
-        } else if (wifiStation || wifiConnected) {
-          wifiStateClass = 'online';
-          wifiStateText = labels.connected;
-        } else if (wifiAP) {
-          wifiStateClass = 'online';
-          wifiStateText = indicator.ap;
-        } else if (wifiDriverInitialized) {
-          wifiStateClass = 'offline';
-          wifiStateText = indicator.offline;
-        } else {
-          wifiStateClass = 'pending';
-          wifiStateText = messages.wifiWaiting;
-        }
-        break;
+    const wifiHeaderStateRaw = typeof wifi.header_state === 'string' ? wifi.header_state.toLowerCase() : '';
+    let wifiStateClass = ['on', 'mid', 'off', 'blink'].includes(wifiHeaderStateRaw) ? wifiHeaderStateRaw : null;
+    if (!wifiStateClass) {
+      if (!wifiAvailable) {
+        wifiStateClass = 'off';
+      } else if (wifiStation || wifiConnected) {
+        wifiStateClass = 'on';
+      } else if (wifiAP) {
+        wifiStateClass = 'mid';
+      } else {
+        wifiStateClass = 'blink';
+      }
     }
+    const wifiHeaderText = (typeof wifi.header_text === 'string' && wifi.header_text.length)
+      ? wifi.header_text
+      : (wifiStateClass === 'on'
+        ? labels.connected
+        : wifiStateClass === 'mid'
+          ? indicator.ap
+          : wifiStateClass === 'blink'
+            ? messages.wifiWaiting
+            : indicator.unavailable);
 
     if (wifiLabel) {
-      wifiLabel.textContent = wifiStateText;
+      wifiLabel.textContent = wifiHeaderText;
     }
     updateDotState(wifiDot, wifiStateClass);
-    if (wifiPill) {
-      wifiPill.classList.remove('state-online', 'state-offline', 'state-pending');
-      wifiPill.classList.add('state-' + (['online', 'offline', 'pending'].includes(wifiStateClass) ? wifiStateClass : 'pending'));
-    }
+    updatePillState(wifiPill, wifiStateClass);
 
     let connectionText;
-    if (!wifiAvailable && wifiStateRaw === 'unavailable') {
-      connectionText = `❌ ${indicator.unavailable}`;
-    } else if (wifiStateRaw === 'waiting') {
-      connectionText = `⏳ ${messages.wifiWaiting}`;
-    } else if (wifiStation || wifiStateRaw === 'connected') {
-      connectionText = wifiStation ? `✅ ${labels.connected}` : `✅ ${indicator.ap}`;
-    } else if (wifiAP || wifiStateRaw === 'ap') {
-      connectionText = `✅ ${indicator.ap}`;
-    } else {
-      connectionText = `❌ ${labels.disconnected}`;
+    switch (wifiStateClass) {
+      case 'on':
+        connectionText = `✅ ${wifiHeaderText}`;
+        break;
+      case 'mid':
+        connectionText = `🟡 ${wifiHeaderText}`;
+        break;
+      case 'blink':
+        connectionText = `⏳ ${wifiHeaderText}`;
+        break;
+      default:
+        connectionText = `❌ ${wifiHeaderText}`;
+        break;
     }
     updateText('wifi-connection-state', connectionText);
 
@@ -943,8 +929,8 @@ inline String buildAppScript() {
       updateText('wifi-gateway', fallbackChar);
       updateText('wifi-dns', fallbackChar);
     }
-    updateText('status-ip', ipDisplay);
     updateText('ipAddress', ipDisplay);
+
     const btClassic = toBool(bt.classic);
     const btBle = toBool(bt.ble);
     const compileEnabled = toBool(bt.compile_enabled);
@@ -977,68 +963,39 @@ inline String buildAppScript() {
     }
     const hint = bt.hint && bt.hint.length ? bt.hint : '\u00A0';
     setText('bluetooth-hint', hint);
+
     const btDot = document.getElementById('bt-status-dot');
     const btLabel = document.getElementById('bt-status-label');
     const btPill = document.getElementById('bt-status-pill');
     const hasBluetoothHardware = btClassic || btBle;
-    const btStateRaw = typeof bt.state === 'string' ? bt.state.toLowerCase() : '';
-    let btStateClass = 'pending';
-    let btStateText = indicator.unavailable;
-
-    if (!hasBluetoothHardware) {
-      btStateClass = 'pending';
-      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (btStateRaw === 'enabled') {
-      btStateClass = 'online';
-      btStateText = bt.controller && bt.controller.length ? bt.controller : labels.connected;
-    } else if (btStateRaw === 'initialised') {
-      btStateClass = 'pending';
-      btStateText = bt.controller && bt.controller.length ? bt.controller : indicator.offline;
-    } else if (btStateRaw === 'disabled') {
-      btStateClass = 'offline';
-      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (btStateRaw === 'off') {
-      btStateClass = 'offline';
-      btStateText = bt.controller && bt.controller.length ? bt.controller : indicator.offline;
-    } else if (btStateRaw === 'unavailable') {
-      btStateClass = 'pending';
-      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (!compileEnabled) {
-      btStateClass = 'offline';
-      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (controllerEnabled) {
-      btStateClass = 'online';
-      btStateText = bt.controller || labels.connected;
-    } else if (controllerInitialized) {
-      btStateClass = 'pending';
-      btStateText = bt.controller || indicator.offline;
-    } else {
-      btStateClass = 'offline';
-      btStateText = bt.controller || indicator.offline;
-    }
-
-    if (hasMeaningfulTest) {
-      if (!compileEnabled) {
-        btStateText = bt.hint && bt.hint.length ? bt.hint : lastMessage;
-        btStateClass = 'offline';
+    const btHeaderStateRaw = typeof bt.header_state === 'string' ? bt.header_state.toLowerCase() : '';
+    let btStateClass = ['on', 'mid', 'off', 'blink'].includes(btHeaderStateRaw) ? btHeaderStateRaw : null;
+    if (!btStateClass) {
+      if (!compileEnabled || !hasBluetoothHardware) {
+        btStateClass = 'off';
+      } else if (controllerEnabled && !hasMeaningfulTest) {
+        btStateClass = 'mid';
+      } else if (controllerInitialized) {
+        btStateClass = 'blink';
       } else {
-        btStateText = lastMessage;
-        btStateClass = lastTestSuccess ? 'online' : 'offline';
+        btStateClass = 'off';
       }
     }
-
-    if (!compileEnabled && bt.hint && bt.hint.length) {
-      btStateText = bt.hint;
-    }
+    const btHeaderText = (typeof bt.header_text === 'string' && bt.header_text.length)
+      ? bt.header_text
+      : (btStateClass === 'on'
+        ? (bt.controller && bt.controller.length ? bt.controller : labels.connected)
+        : btStateClass === 'mid'
+          ? (bt.controller && bt.controller.length ? bt.controller : indicator.bluetoothLabel)
+          : btStateClass === 'blink'
+            ? messages.testingBluetooth
+            : indicator.unavailable);
 
     if (btLabel) {
-      btLabel.textContent = btStateText;
+      btLabel.textContent = btHeaderText;
     }
     updateDotState(btDot, btStateClass);
-    if (btPill) {
-      btPill.classList.remove('state-online', 'state-offline', 'state-pending');
-      btPill.classList.add('state-' + (['online', 'offline', 'pending'].includes(btStateClass) ? btStateClass : 'pending'));
-    }
+    updatePillState(btPill, btStateClass);
   }
 
   function testBluetooth() {
