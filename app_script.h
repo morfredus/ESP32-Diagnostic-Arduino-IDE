@@ -71,6 +71,12 @@ inline String buildAppScript() {
     testingGpio: "{{TESTING_GPIO}}",
     testingBluetooth: "{{TESTING_BLUETOOTH}}",
     testingBenchmarks: "{{TESTING_BENCHMARKS}}",
+    exportRunning: "{{EXPORT_RUNNING}}",
+    exportDone: "{{EXPORT_DONE}}",
+    benchCpuDone: "{{BENCH_CPU_DONE}}",
+    benchMemDone: "{{BENCH_MEM_DONE}}",
+    benchCpuUpdated: "{{BENCH_CPU_UPDATED}}",
+    benchMemUpdated: "{{BENCH_MEM_UPDATED}}",
     wifiWaiting: "{{WIFI_WAITING}}",
     scanning: "{{SCANNING}}",
     ok: "{{OK}}",
@@ -604,8 +610,7 @@ inline String buildAppScript() {
           updateOledSummary(d.result || messages.configError);
         } else {
           updateOledSummary(d.result || messages.ok);
-          const completedMessage = currentLang === 'fr' ? 'Test OLED terminé' : 'OLED test finished';
-          showStatus('status-oled', completedMessage);
+          setStatusSuccess('status-oled', d.result || messages.completed);
         }
       })
       .catch(err => {
@@ -746,13 +751,12 @@ inline String buildAppScript() {
   }
 
   function listPartitions() {
-    showStatus('status-partitions', messages.testingPartitions);
+    setStatusRunning('status-partitions', messages.testingPartitions);
     fetch('/api/partitions-list')
       .then(r => r.json())
       .then(d => {
         setHTML('partitions-results', d.partitions || '');
-        const doneMessage = currentLang === 'fr' ? 'Analyse des partitions terminée' : 'Partition analysis finished';
-        setStatusSuccess('status-partitions', doneMessage);
+        setStatusSuccess('status-partitions', messages.completed);
       })
       .catch(err => {
         console.error('Partitions list', err);
@@ -1102,9 +1106,7 @@ inline String buildAppScript() {
   }
 
   function exportExcel() {
-    const running = currentLang === 'fr' ? 'Export Excel en cours...' : 'Excel export in progress...';
-    const done = currentLang === 'fr' ? 'Export Excel terminé' : 'Excel export finished';
-    showStatus('status-export', running);
+    setStatusRunning('status-export', messages.exportRunning);
     fetch('/export/csv')
       .then(resp => {
         if (!resp.ok) {
@@ -1122,7 +1124,7 @@ inline String buildAppScript() {
         anchor.click();
         document.body.removeChild(anchor);
         URL.revokeObjectURL(url);
-        showStatus('status-export', done);
+        setStatusSuccess('status-export', messages.exportDone);
       })
       .catch(err => {
         console.error('Export Excel', err);
@@ -1132,10 +1134,10 @@ inline String buildAppScript() {
 
   function runBenchmarks() {
     const runningMessage = messages.testingBenchmarks;
-    showStatus('status-perf-cpu', runningMessage);
-    showStatus('status-perf-mem', runningMessage);
-    showStatus('status-perf-panel-cpu', runningMessage);
-    showStatus('status-perf-panel-mem', runningMessage);
+    setStatusRunning('status-perf-cpu', runningMessage);
+    setStatusRunning('status-perf-mem', runningMessage);
+    setStatusRunning('status-perf-panel-cpu', runningMessage);
+    setStatusRunning('status-perf-panel-mem', runningMessage);
     setText('cpu-bench', runningMessage);
     setText('mem-bench', runningMessage);
     setText('cpu-perf', runningMessage);
@@ -1152,23 +1154,10 @@ inline String buildAppScript() {
         if (data.memSpeed !== undefined) {
           setText('mem-speed', Number(data.memSpeed).toFixed(2) + ' MB/s');
         }
-        const completion = currentLang === 'fr'
-          ? {
-              cpu: 'CPU Benchmark terminé',
-              mem: 'Mémoire Benchmark terminée',
-              panelCpu: 'Performance CPU mise à jour',
-              panelMem: 'Vitesse mémoire mise à jour'
-            }
-          : {
-              cpu: 'CPU benchmark finished',
-              mem: 'Memory benchmark finished',
-              panelCpu: 'CPU performance updated',
-              panelMem: 'Memory speed updated'
-            };
-        showStatus('status-perf-cpu', completion.cpu);
-        showStatus('status-perf-mem', completion.mem);
-        showStatus('status-perf-panel-cpu', completion.panelCpu);
-        showStatus('status-perf-panel-mem', completion.panelMem);
+        setStatusSuccess('status-perf-cpu', messages.benchCpuDone);
+        setStatusSuccess('status-perf-mem', messages.benchMemDone);
+        setStatusSuccess('status-perf-panel-cpu', messages.benchCpuUpdated);
+        setStatusSuccess('status-perf-panel-mem', messages.benchMemUpdated);
       })
       .catch(err => {
         console.error('Benchmarks', err);
@@ -1274,6 +1263,12 @@ inline String buildAppScript() {
   script.replace(F("{{TESTING_GPIO}}"), escapeForJS(String(T().testing_gpio)));
   script.replace(F("{{TESTING_BLUETOOTH}}"), escapeForJS(String(T().testing_bluetooth)));
   script.replace(F("{{TESTING_BENCHMARKS}}"), escapeForJS(String(T().testing_benchmarks)));
+  script.replace(F("{{EXPORT_RUNNING}}"), escapeForJS(String(T().export_running)));
+  script.replace(F("{{EXPORT_DONE}}"), escapeForJS(String(T().export_done)));
+  script.replace(F("{{BENCH_CPU_DONE}}"), escapeForJS(String(T().bench_cpu_done)));
+  script.replace(F("{{BENCH_MEM_DONE}}"), escapeForJS(String(T().bench_mem_done)));
+  script.replace(F("{{BENCH_CPU_UPDATED}}"), escapeForJS(String(T().bench_cpu_updated)));
+  script.replace(F("{{BENCH_MEM_UPDATED}}"), escapeForJS(String(T().bench_mem_updated)));
   script.replace(F("{{WIFI_WAITING}}"), escapeForJS(String(T().wifi_waiting)));
   script.replace(F("{{SCANNING}}"), escapeForJS(String(T().scanning)));
   script.replace(F("{{OK}}"), escapeForJS(String(T().ok)));
