@@ -15,7 +15,7 @@ Available in multiple languages:
 
 Comprehensive **multilingual** diagnostic tool for ESP32 microcontrollers, accessible via web interface. Automatically tests all hardware components, analyzes memory, scans peripherals and generates detailed reports.
 
-**What's new in v2.6.0**: WiFi configuration now gracefully skips undefined networks—no more compilation errors when you only set one SSID/password pair—and the OLED diagnostics screen gains manual step buttons after removing legacy TFT support.
+**What's new in v2.6.0**: Removed TFT screen handling, expanded OLED tooling with per-step controls, and streamlined I2C reconfiguration for the display.
 
 ## ✨ Features
 
@@ -149,8 +149,6 @@ const char* WIFI_PASS_1 = "Password1";
 
 #endif
 ```
-
-> ℹ️ **Tip:** Leave unused WiFi entries commented out or remove them entirely—the firmware automatically skips undefined networks and logs any incomplete pairs over Serial.
 
 Replace `YourSSID` and `YourPassword` with your actual WiFi credentials.
 
@@ -361,10 +359,7 @@ ESP32-Diagnostic/
 
 ## 🔄 Changelog
 
-### v2.6.0 (2025) - WIFI CONFIG RELIABILITY & OLED CONTROLS REFRESH
-- Prevents compilation failures when only one WiFi network is defined in `config.h`
-- Automatically ignores partially filled WiFi entries and reports them over Serial
-- Adds clear Serial guidance when no WiFi credentials are provided
+### v2.6.0 (2025) - OLED CONTROLS REFRESH
 - Removed TFT SPI screen support from firmware, UI and documentation
 - Added individual OLED test buttons alongside the full test workflow
 - Simplified OLED I2C reconfiguration from the web interface
@@ -407,7 +402,7 @@ Free to use, modify and distribute.
 
 Developed for the ESP32 community.
 
-**v2.6.0 - WiFi configuration resilience & OLED controls refresh**
+**v2.6.0 - OLED controls refresh & TFT removal**
 **v2.5.1 - Clearer PSRAM status guidance**
 **v2.5 - Translation of export files**
 **v2.4 - Multilingual system**
@@ -415,7 +410,7 @@ Developed for the ESP32 community.
 
 ---
 
-**Current version**: 2.6.0 Multilingual + WiFi config resilience
+**Current version**: 2.6.0 Multilingual + OLED tooling refresh
 **Last update**: October 2025  
 **Available languages**: French (default), English  
 **Support**: ESP32 Arduino Core 3.1.3+

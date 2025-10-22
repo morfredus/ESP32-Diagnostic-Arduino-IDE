@@ -5,21 +5,16 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.6.0] - 2025-10-16
+## [2.6.0] - 2025-10-15
+
+### Removed
+- Dropped TFT SPI display support, associated libraries, and UI elements.
 
 ### Added
 - Manual step buttons for each OLED diagnostic animation via the web interface and API.
 
 ### Changed
 - Simplified OLED I2C reconfiguration workflow and refreshed translations.
-- Added explicit Serial guidance when no WiFi networks are configured.
-
-### Fixed
-- Handle optional WiFi credentials gracefully so builds succeed when only one SSID/password pair is provided.
-- Ignore incomplete WiFi entries and emit clear Serial warnings instead of failing compilation.
-
-### Removed
-- Dropped TFT SPI display support, associated libraries, and UI elements.
 
 ---
 
