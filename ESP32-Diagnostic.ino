@@ -1,5 +1,5 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.21-dev
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.22-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -185,7 +185,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.21-dev"
+#define DIAGNOSTIC_VERSION "2.8.22-dev"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -252,19 +252,83 @@ BluetoothDiagnostics bluetoothInfo = {false, false, false, false, false, String(
 WiFiRuntimeState wifiRuntime;
 
 struct HeaderIndicatorStatus {
-  String wifiState;
+  String wifiStateClass;
   String wifiText;
-  String btState;
+  String btStateClass;
   String btText;
 };
 
-HeaderIndicatorStatus headerStatus = {String("off"), String(), String("off"), String()};
+HeaderIndicatorStatus headerStatus = {String("state-off"), String(), String("state-off"), String()};
 
-void updateIndicator(const char* id, const char* state);
-void setWifiIndicator(const char* state);
-void setBtIndicator(const char* state);
-void setWifiText(const char* text);
-void setBtText(const char* text);
+struct DiagnosticInfo {
+  String chipModel;
+  String chipRevision;
+  int cpuCores;
+  uint32_t cpuFreqMHz;
+  uint32_t flashSize;
+  uint32_t psramSize;
+  String macAddress;
+
+  uint32_t heapSize;
+  uint32_t freeHeap;
+  uint32_t minFreeHeap;
+  uint32_t maxAllocHeap;
+
+  bool hasWiFi;
+  bool hasBT;
+  bool hasBLE;
+  String wifiSSID;
+  String wifiApSSID;
+  int wifiRSSI;
+  String ipAddress;
+  String wifiSubnet;
+  String wifiGateway;
+  String wifiDNS;
+  String wifiApIP;
+  String wifiHostname;
+  int wifiChannel;
+  String wifiMode;
+  String wifiSleepMode;
+  String wifiBand;
+  String wifiBandMode;
+  float wifiTxPowerDbm;
+  int wifiTxPowerCode;
+  bool wifiSupports5G;
+  bool wifiStationConnected;
+  bool wifiApActive;
+  bool wifiDriverInitialized;
+
+  String gpioList;
+  int totalGPIO;
+
+  String sdkVersion;
+  String idfVersion;
+  String arduinoCoreVersion;
+  unsigned long uptime;
+  float temperature;
+
+  bool neopixelTested;
+  bool neopixelAvailable;
+  String neopixelResult;
+
+  unsigned long cpuBenchmark;
+  unsigned long memBenchmark;
+
+  String i2cDevices;
+  int i2cCount;
+
+  bool oledTested;
+  bool oledAvailable;
+  String oledResult;
+} diagnosticData;
+
+String normalizeStateClass(const String& state);
+void applyIndicatorClass(const char* moduleId, const String& stateClass);
+void applyIndicatorClass(const char* moduleId, const char* stateClass);
+void applyCardClass(const char* moduleId, const String& stateClass);
+void applyCardClass(const char* moduleId, const char* stateClass);
+void setStatusText(const char* moduleId, const char* text);
+void setModuleState(const char* moduleId, const char* stateClass, const char* text);
 void updateHeaderStatus();
 
 String jsonEscape(const String& input) {
@@ -291,50 +355,65 @@ String jsonEscape(const String& input) {
   return output;
 }
 
-String normalizeIndicatorState(const String& state) {
-  String lowered = state;
-  lowered.toLowerCase();
-  if (lowered == "on" || lowered == "mid" || lowered == "blink" || lowered == "off") {
-    return lowered;
+String normalizeStateClass(const String& state) {
+  String normalized = state;
+  normalized.trim();
+  normalized.toLowerCase();
+  if (normalized.startsWith("state-")) {
+    normalized.remove(0, 6);
   }
-  return String("off");
+  if (normalized == "on" || normalized == "mid" || normalized == "off") {
+    return String("state-") + normalized;
+  }
+  return String("state-off");
 }
 
-String indicatorDotClass(const String& state) {
-  return String("dot-") + normalizeIndicatorState(state);
-}
-
-String indicatorPillClass(const String& state) {
-  return String("state-") + normalizeIndicatorState(state);
-}
-
-void updateIndicator(const char* id, const char* state) {
-  if (!id || !state) {
+void assignModuleStateClass(const char* moduleId, const String& normalized) {
+  if (!moduleId) {
     return;
   }
-
-  String normalized = normalizeIndicatorState(String(state));
-  if (strcmp(id, "wifi") == 0) {
-    headerStatus.wifiState = normalized;
-  } else if (strcmp(id, "bt") == 0) {
-    headerStatus.btState = normalized;
+  if (strcmp(moduleId, "wifi") == 0) {
+    headerStatus.wifiStateClass = normalized;
+  } else if (strcmp(moduleId, "bt") == 0) {
+    headerStatus.btStateClass = normalized;
   }
 }
 
-void setWifiIndicator(const char* state) {
-  updateIndicator("wifi", state);
+void applyIndicatorClass(const char* moduleId, const String& stateClass) {
+  assignModuleStateClass(moduleId, normalizeStateClass(stateClass));
 }
 
-void setBtIndicator(const char* state) {
-  updateIndicator("bt", state);
+void applyIndicatorClass(const char* moduleId, const char* stateClass) {
+  applyIndicatorClass(moduleId, String(stateClass ? stateClass : ""));
 }
 
-void setWifiText(const char* text) {
-  headerStatus.wifiText = text ? String(text) : String();
+void applyCardClass(const char* moduleId, const String& stateClass) {
+  assignModuleStateClass(moduleId, normalizeStateClass(stateClass));
 }
 
-void setBtText(const char* text) {
-  headerStatus.btText = text ? String(text) : String();
+void applyCardClass(const char* moduleId, const char* stateClass) {
+  applyCardClass(moduleId, String(stateClass ? stateClass : ""));
+}
+
+void setStatusText(const char* moduleId, const char* text) {
+  if (!moduleId) {
+    return;
+  }
+  if (strcmp(moduleId, "wifi") == 0) {
+    headerStatus.wifiText = text ? String(text) : String();
+  } else if (strcmp(moduleId, "bt") == 0) {
+    headerStatus.btText = text ? String(text) : String();
+  }
+}
+
+void setModuleState(const char* moduleId, const char* stateClass, const char* text) {
+  if (!moduleId) {
+    return;
+  }
+  String normalized = normalizeStateClass(String(stateClass ? stateClass : ""));
+  applyIndicatorClass(moduleId, normalized);
+  applyCardClass(moduleId, normalized);
+  setStatusText(moduleId, text);
 }
 
 bool wifiCredentialValid(const WiFiCredential& cred) {
@@ -551,29 +630,40 @@ void updateHeaderStatus() {
   bool wifiDisabled = (wifiMode == WIFI_MODE_NULL);
 #endif
 
-  bool wifiStationConnected = (wifiStatus == WL_CONNECTED);
-  bool wifiSoftApActive = (wifiMode == WIFI_MODE_AP) ||
-                          (wifiMode == WIFI_MODE_APSTA && !wifiStationConnected);
+  bool wifiStationConnected = wifiRuntime.stationConnected && (wifiStatus == WL_CONNECTED);
+  bool wifiSoftApActive = wifiRuntime.apActive && !wifiStationConnected;
+  bool wifiConnecting = (wifiStatus == WL_CONNECT_FAILED ||
+                         wifiStatus == WL_DISCONNECTED ||
+                         wifiStatus == WL_CONNECTION_LOST ||
+                         wifiStatus == WL_IDLE_STATUS ||
+                         wifiStatus == WL_NO_SSID_AVAIL);
 
   if (wifiDisabled || !wifiRuntime.driverStarted) {
-    setWifiIndicator("off");
-    setWifiText(T().wifi_status_disabled);
+    setModuleState("wifi", "state-off", T().wifi_status_disabled);
   } else if (wifiStationConnected) {
-    setWifiIndicator("on");
-    setWifiText(T().wifi_status_connected);
+    String ssid = WiFi.SSID();
+    if (!ssid.length() && diagnosticData.wifiSSID.length()) {
+      ssid = diagnosticData.wifiSSID;
+    }
+    if (!ssid.length()) {
+      ssid = String(T().unknown);
+    }
+    String message = String(T().wifi_status_connected) + String(" : ") + ssid;
+    setModuleState("wifi", "state-on", message.c_str());
   } else if (wifiSoftApActive) {
-    setWifiIndicator("mid");
-    setWifiText(T().wifi_status_ap);
-  } else if (wifiStatus == WL_CONNECT_FAILED ||
-             wifiStatus == WL_DISCONNECTED ||
-             wifiStatus == WL_CONNECTION_LOST ||
-             wifiStatus == WL_IDLE_STATUS ||
-             wifiStatus == WL_NO_SSID_AVAIL) {
-    setWifiIndicator("blink");
-    setWifiText(T().wifi_status_connecting);
+    String apSsid = WiFi.softAPSSID();
+    if (!apSsid.length() && diagnosticData.wifiApSSID.length()) {
+      apSsid = diagnosticData.wifiApSSID;
+    }
+    if (!apSsid.length()) {
+      apSsid = String(T().unknown);
+    }
+    String message = String(T().wifi_status_ap) + String(" : ") + apSsid;
+    setModuleState("wifi", "state-mid", message.c_str());
+  } else if (wifiConnecting) {
+    setModuleState("wifi", "state-mid", T().wifi_status_connecting);
   } else {
-    setWifiIndicator("blink");
-    setWifiText(T().wifi_status_connecting);
+    setModuleState("wifi", "state-off", T().wifi_status_disabled);
   }
 
 #if HAS_NATIVE_BLUETOOTH
@@ -590,95 +680,26 @@ void updateHeaderStatus() {
   bool hasBluetoothHardware = bluetoothInfo.hardwareClassic || bluetoothInfo.hardwareBLE;
 
   if (!hasBluetoothHardware) {
-    setBtIndicator("off");
-    if (bluetoothInfo.availabilityHint.length()) {
-      setBtText(bluetoothInfo.availabilityHint.c_str());
-    } else {
-      setBtText(T().bluetooth_status_disabled_not_compiled);
-    }
+    const char* message = bluetoothInfo.availabilityHint.length()
+                            ? bluetoothInfo.availabilityHint.c_str()
+                            : T().bluetooth_not_available;
+    setModuleState("bt", "state-off", message);
   } else if (!bluetoothInfo.controllerInitialized) {
-    setBtIndicator("blink");
-    setBtText(T().bluetooth_status_activating);
+    setModuleState("bt", "state-mid", T().bluetooth_status_inactive);
   } else if (controllerConnected) {
-    setBtIndicator("on");
-    setBtText(T().bluetooth_status_connected_short);
+    setModuleState("bt", "state-on", T().bluetooth_status_connected_short);
   } else if (bluetoothInfo.controllerEnabled) {
-    setBtIndicator("mid");
-    setBtText(T().bluetooth_status_active_short);
+    setModuleState("bt", "state-mid", T().bluetooth_status_active_short);
   } else {
-    setBtIndicator("blink");
-    setBtText(T().bluetooth_status_activating);
+    setModuleState("bt", "state-mid", T().bluetooth_status_inactive);
   }
 #else
   bluetoothInfo.compileEnabled = false;
-  setBtIndicator("off");
-  setBtText(T().bluetooth_status_disabled_not_compiled);
+  setModuleState("bt", "state-off", T().bluetooth_status_disabled_not_compiled);
 #endif
 }
 
 // ========== STRUCTURES ==========
-
-struct DiagnosticInfo {
-  String chipModel;
-  String chipRevision;
-  int cpuCores;
-  uint32_t cpuFreqMHz;
-  uint32_t flashSize;
-  uint32_t psramSize;
-  String macAddress;
-  
-  uint32_t heapSize;
-  uint32_t freeHeap;
-  uint32_t minFreeHeap;
-  uint32_t maxAllocHeap;
-  
-  bool hasWiFi;
-  bool hasBT;
-  bool hasBLE;
-  String wifiSSID;
-  String wifiApSSID;
-  int wifiRSSI;
-  String ipAddress;
-  String wifiSubnet;
-  String wifiGateway;
-  String wifiDNS;
-  String wifiApIP;
-  String wifiHostname;
-  int wifiChannel;
-  String wifiMode;
-  String wifiSleepMode;
-  String wifiBand;
-  String wifiBandMode;
-  float wifiTxPowerDbm;
-  int wifiTxPowerCode;
-  bool wifiSupports5G;
-  bool wifiStationConnected;
-  bool wifiApActive;
-  bool wifiDriverInitialized;
-
-  String gpioList;
-  int totalGPIO;
-
-  String sdkVersion;
-  String idfVersion;
-  String arduinoCoreVersion;
-  unsigned long uptime;
-  float temperature;
-  
-  bool neopixelTested;
-  bool neopixelAvailable;
-  String neopixelResult;
-  
-  unsigned long cpuBenchmark;
-  unsigned long memBenchmark;
-  
-  String i2cDevices;
-  int i2cCount;
-  
-  bool oledTested;
-  bool oledAvailable;
-  String oledResult;
-} diagnosticData;
 
 struct DetailedMemoryInfo {
   uint32_t flashSizeReal;
@@ -2065,7 +2086,7 @@ void handleWirelessInfo() {
   json += "\"supports_5g\":" + String(diagnosticData.wifiSupports5G ? "true" : "false") + ",";
   json += "\"hostname\":\"" + jsonEscape(diagnosticData.wifiHostname) + "\",";
   json += "\"driver_initialized\":" + String(diagnosticData.wifiDriverInitialized ? "true" : "false") + ",";
-  json += "\"header_state\":\"" + headerStatus.wifiState + "\",";
+  json += "\"header_state\":\"" + headerStatus.wifiStateClass + "\",";
   json += "\"header_text\":\"" + jsonEscape(headerStatus.wifiText) + "\",";
   json += "\"state\":\"" + wifiState + "\"";
   json += "},";
@@ -2089,7 +2110,7 @@ void handleWirelessInfo() {
   json += "\"controller_initialized\":" + String(bluetoothInfo.controllerInitialized ? "true" : "false") + ",";
   json += "\"last_test_success\":" + String(bluetoothInfo.lastTestSuccess ? "true" : "false") + ",";
   json += "\"last_test_message\":\"" + jsonEscape(bluetoothInfo.lastTestMessage) + "\",";
-  json += "\"header_state\":\"" + headerStatus.btState + "\",";
+  json += "\"header_state\":\"" + headerStatus.btStateClass + "\",";
   json += "\"header_text\":\"" + jsonEscape(headerStatus.btText) + "\",";
   json += "\"state\":\"" + btState + "\",";
   json += "\"hint\":\"" + jsonEscape(bluetoothInfo.availabilityHint) + "\"";
@@ -3097,21 +3118,18 @@ void handleRoot() {
   chunk += ".status-bar{position:fixed;top:20px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:1100px;display:flex;flex-direction:column;align-items:center;gap:16px;padding:18px 24px;background:rgba(17,24,39,.92);backdrop-filter:blur(14px);z-index:2500;color:#fff;border-radius:24px;box-shadow:0 16px 40px rgba(0,0,0,.35)}";
   chunk += ".status-row{width:100%;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px}";
 
-  chunk += ".status-pill{display:flex;align-items:center;gap:12px;padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);font-weight:600;font-size:.95em;transition:border-color .3s,box-shadow .3s}";
-  chunk += ".status-pill.state-on{border-color:rgba(34,197,94,.7);box-shadow:0 0 18px rgba(34,197,94,.25)}";
-  chunk += ".status-pill.state-mid{border-color:rgba(249,115,22,.7);box-shadow:0 0 18px rgba(249,115,22,.2)}";
-  chunk += ".status-pill.state-off{border-color:rgba(239,68,68,.75);box-shadow:0 0 14px rgba(239,68,68,.25)}";
-  chunk += ".status-pill.state-blink{border-color:rgba(249,115,22,.85);box-shadow:0 0 22px rgba(249,115,22,.35)}";
+  chunk += ".status-pill{display:flex;align-items:center;gap:12px;padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.12);border:2px solid transparent;font-weight:600;font-size:.95em;transition:border-color .3s,color .3s,box-shadow .3s}";
+  chunk += ".status-pill.state-off{border-color:#d9534f;color:#d9534f;box-shadow:0 0 14px rgba(217,83,79,.35)}";
+  chunk += ".status-pill.state-mid{border-color:#f0ad4e;color:#f0ad4e;box-shadow:0 0 18px rgba(240,173,78,.3)}";
+  chunk += ".status-pill.state-on{border-color:#5cb85c;color:#5cb85c;box-shadow:0 0 18px rgba(92,184,92,.35)}";
   chunk += ".status-text{display:flex;align-items:center;gap:6px}";
   chunk += ".status-label-name{font-weight:700}";
   chunk += ".status-separator{opacity:.6}";
   chunk += ".status-state{font-weight:600;opacity:.9}";
-  chunk += ".status-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.35);background:#4b5563;transition:background-color .3s,box-shadow .3s}";
-  chunk += ".status-dot.dot-on{background:#22c55e;box-shadow:0 0 16px rgba(34,197,94,.7)}";
-  chunk += ".status-dot.dot-mid{background:#f97316;box-shadow:0 0 14px rgba(249,115,22,.5)}";
-  chunk += ".status-dot.dot-off{background:#ef4444;box-shadow:0 0 14px rgba(239,68,68,.55)}";
-  chunk += ".status-dot.dot-blink{background:#f97316;box-shadow:0 0 18px rgba(249,115,22,.7);animation:indicatorBlink .5s steps(1) infinite}";
-  chunk += "@keyframes indicatorBlink{0%,100%{background:#f97316;box-shadow:0 0 18px rgba(249,115,22,.7);}50%{background:#111827;box-shadow:0 0 6px rgba(17,24,39,.45);}}";
+  chunk += ".status-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 8px rgba(255,255,255,.25);background:#4b5563;transition:background-color .3s,box-shadow .3s}";
+  chunk += ".status-dot.state-off{background:#d9534f;box-shadow:0 0 16px rgba(217,83,79,.45)}";
+  chunk += ".status-dot.state-mid{background:#f0ad4e;box-shadow:0 0 16px rgba(240,173,78,.45)}";
+  chunk += ".status-dot.state-on{background:#5cb85c;box-shadow:0 0 16px rgba(92,184,92,.45)}";
   chunk += ".nav{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}";
   chunk += ".nav-btn{padding:8px 16px;background:rgba(255,255,255,.2);border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:600;font-size:.95em}";
   chunk += ".nav-btn:hover{background:rgba(255,255,255,.3)}";
@@ -3161,13 +3179,11 @@ void handleRoot() {
   chunk = "<div class='status-bar'>";
   String wifiHeaderText = headerStatus.wifiText.length() ? headerStatus.wifiText : String(T().wifi_status_connecting);
   String btHeaderText = headerStatus.btText.length() ? headerStatus.btText : String(T().bluetooth_status_active_short);
-  String wifiPillStateClass = indicatorPillClass(headerStatus.wifiState);
-  String btPillStateClass = indicatorPillClass(headerStatus.btState);
-  String wifiDotClass = indicatorDotClass(headerStatus.wifiState);
-  String btDotClass = indicatorDotClass(headerStatus.btState);
+  String wifiStateClass = headerStatus.wifiStateClass.length() ? headerStatus.wifiStateClass : String("state-off");
+  String btStateClass = headerStatus.btStateClass.length() ? headerStatus.btStateClass : String("state-off");
   chunk += "<div class='status-row status-row-top'>";
-  chunk += "<div class='status-pill " + wifiPillStateClass + "' id='wifi-status-pill'><span class='status-dot " + wifiDotClass + "' id='wifi-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_wifi) + "</span><span class='status-separator'>·</span><span class='status-state' id='wifi-status-label'>" + wifiHeaderText + "</span></span></div>";
-  chunk += "<div class='status-pill " + btPillStateClass + "' id='bt-status-pill'><span class='status-dot " + btDotClass + "' id='bt-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_bluetooth) + "</span><span class='status-separator'>·</span><span class='status-state' id='bt-status-label'>" + btHeaderText + "</span></span></div>";
+  chunk += "<div class='status-pill " + wifiStateClass + "' id='wifi-status-pill'><span class='status-dot " + wifiStateClass + "' id='wifi-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_wifi) + "</span><span class='status-separator'>·</span><span class='status-state' id='wifi-status-label'>" + wifiHeaderText + "</span></span></div>";
+  chunk += "<div class='status-pill " + btStateClass + "' id='bt-status-pill'><span class='status-dot " + btStateClass + "' id='bt-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_bluetooth) + "</span><span class='status-separator'>·</span><span class='status-state' id='bt-status-label'>" + btHeaderText + "</span></span></div>";
   chunk += "</div>";
   chunk += "<div class='status-row status-row-bottom'>";
   chunk += "<div class='nav'>";
