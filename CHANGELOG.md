@@ -5,6 +5,14 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.24-dev] - 2025-10-22
+
+### Fixed
+- Texte du bandeau Wi-Fi corrigé : les modes station et point d’accès affichent désormais respectivement « Connecté au Wi-Fi : SSID » et « Point d’accès Wi-Fi : AP_SSID » sans réutiliser les messages Bluetooth.
+- Bluetooth non compilé signalé systématiquement en rouge avec le statut « Bluetooth désactivé (non compilé) » sans pollution par les libellés Wi-Fi.
+
+---
+
 ## [2.8.22-dev] - 2025-10-21
 
 ### Changed
