@@ -71,6 +71,12 @@ inline String buildAppScript() {
     testingGpio: "{{TESTING_GPIO}}",
     testingBluetooth: "{{TESTING_BLUETOOTH}}",
     testingBenchmarks: "{{TESTING_BENCHMARKS}}",
+    exportRunning: "{{EXPORT_RUNNING}}",
+    exportDone: "{{EXPORT_DONE}}",
+    benchCpuDone: "{{BENCH_CPU_DONE}}",
+    benchMemDone: "{{BENCH_MEM_DONE}}",
+    benchCpuUpdated: "{{BENCH_CPU_UPDATED}}",
+    benchMemUpdated: "{{BENCH_MEM_UPDATED}}",
     wifiWaiting: "{{WIFI_WAITING}}",
     scanning: "{{SCANNING}}",
     ok: "{{OK}}",
@@ -89,6 +95,7 @@ inline String buildAppScript() {
     bluetoothLabel: "{{BT_LABEL}}",
     offline: "{{OFFLINE}}",
     unavailable: "{{UNAVAILABLE}}",
+    waiting: "{{STATUS_WAITING}}",
     ap: "{{AP_STATE}}"
   };
 
@@ -604,8 +611,7 @@ inline String buildAppScript() {
           updateOledSummary(d.result || messages.configError);
         } else {
           updateOledSummary(d.result || messages.ok);
-          const completedMessage = currentLang === 'fr' ? 'Test OLED terminé' : 'OLED test finished';
-          showStatus('status-oled', completedMessage);
+          setStatusSuccess('status-oled', d.result || messages.completed);
         }
       })
       .catch(err => {
@@ -746,13 +752,12 @@ inline String buildAppScript() {
   }
 
   function listPartitions() {
-    showStatus('status-partitions', messages.testingPartitions);
+    setStatusRunning('status-partitions', messages.testingPartitions);
     fetch('/api/partitions-list')
       .then(r => r.json())
       .then(d => {
         setHTML('partitions-results', d.partitions || '');
-        const doneMessage = currentLang === 'fr' ? 'Analyse des partitions terminée' : 'Partition analysis finished';
-        setStatusSuccess('status-partitions', doneMessage);
+        setStatusSuccess('status-partitions', messages.completed);
       })
       .catch(err => {
         console.error('Partitions list', err);
@@ -834,12 +839,12 @@ inline String buildAppScript() {
         wifiStateText = indicator.ap;
         break;
       case 'idle':
-        wifiStateClass = 'offline';
-        wifiStateText = indicator.offline;
+        wifiStateClass = 'pending';
+        wifiStateText = indicator.waiting;
         break;
       case 'waiting':
         wifiStateClass = 'pending';
-        wifiStateText = messages.wifiWaiting;
+        wifiStateText = indicator.waiting;
         break;
       case 'unavailable':
         wifiStateClass = 'pending';
@@ -856,11 +861,11 @@ inline String buildAppScript() {
           wifiStateClass = 'online';
           wifiStateText = indicator.ap;
         } else if (wifiDriverInitialized) {
-          wifiStateClass = 'offline';
-          wifiStateText = indicator.offline;
+          wifiStateClass = 'pending';
+          wifiStateText = indicator.waiting;
         } else {
           wifiStateClass = 'pending';
-          wifiStateText = messages.wifiWaiting;
+          wifiStateText = indicator.waiting;
         }
         break;
     }
@@ -877,14 +882,14 @@ inline String buildAppScript() {
     let connectionText;
     if (!wifiAvailable && wifiStateRaw === 'unavailable') {
       connectionText = `❌ ${indicator.unavailable}`;
-    } else if (wifiStateRaw === 'waiting') {
-      connectionText = `⏳ ${messages.wifiWaiting}`;
     } else if (wifiStation || wifiStateRaw === 'connected') {
       connectionText = wifiStation ? `✅ ${labels.connected}` : `✅ ${indicator.ap}`;
     } else if (wifiAP || wifiStateRaw === 'ap') {
       connectionText = `✅ ${indicator.ap}`;
+    } else if (wifiStateRaw === 'waiting' || wifiStateRaw === 'idle' || wifiDriverInitialized) {
+      connectionText = `⏳ ${indicator.waiting}`;
     } else {
-      connectionText = `❌ ${labels.disconnected}`;
+      connectionText = `❌ ${indicator.unavailable}`;
     }
     updateText('wifi-connection-state', connectionText);
 
@@ -943,7 +948,6 @@ inline String buildAppScript() {
       updateText('wifi-gateway', fallbackChar);
       updateText('wifi-dns', fallbackChar);
     }
-    updateText('status-ip', ipDisplay);
     updateText('ipAddress', ipDisplay);
     const btClassic = toBool(bt.classic);
     const btBle = toBool(bt.ble);
@@ -982,53 +986,37 @@ inline String buildAppScript() {
     const btPill = document.getElementById('bt-status-pill');
     const hasBluetoothHardware = btClassic || btBle;
     const btStateRaw = typeof bt.state === 'string' ? bt.state.toLowerCase() : '';
+    const showTestInHeader = hasMeaningfulTest && compileEnabled;
     let btStateClass = 'pending';
     let btStateText = indicator.unavailable;
 
-    if (!hasBluetoothHardware) {
+    if (showTestInHeader) {
+      btStateClass = lastTestSuccess ? 'online' : 'offline';
+      btStateText = lastTestSuccess ? messages.ok : messages.fail;
+    } else if (!hasBluetoothHardware || !compileEnabled) {
       btStateClass = 'pending';
-      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (btStateRaw === 'enabled') {
+      btStateText = indicator.unavailable;
+    } else if (btStateRaw === 'enabled' || controllerEnabled) {
       btStateClass = 'online';
-      btStateText = bt.controller && bt.controller.length ? bt.controller : labels.connected;
-    } else if (btStateRaw === 'initialised') {
-      btStateClass = 'pending';
-      btStateText = bt.controller && bt.controller.length ? bt.controller : indicator.offline;
-    } else if (btStateRaw === 'disabled') {
+      btStateText = labels.connected;
+    } else if (btStateRaw === 'disabled' || btStateRaw === 'off') {
       btStateClass = 'offline';
-      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (btStateRaw === 'off') {
-      btStateClass = 'offline';
-      btStateText = bt.controller && bt.controller.length ? bt.controller : indicator.offline;
+      btStateText = indicator.offline;
     } else if (btStateRaw === 'unavailable') {
       btStateClass = 'pending';
-      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (!compileEnabled) {
-      btStateClass = 'offline';
-      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (controllerEnabled) {
-      btStateClass = 'online';
-      btStateText = bt.controller || labels.connected;
-    } else if (controllerInitialized) {
+      btStateText = indicator.unavailable;
+    } else if (
+      btStateRaw === 'enabling' ||
+      btStateRaw === 'disabling' ||
+      btStateRaw === 'initialised' ||
+      btStateRaw === 'idle' ||
+      controllerInitialized
+    ) {
       btStateClass = 'pending';
-      btStateText = bt.controller || indicator.offline;
+      btStateText = indicator.waiting;
     } else {
-      btStateClass = 'offline';
-      btStateText = bt.controller || indicator.offline;
-    }
-
-    if (hasMeaningfulTest) {
-      if (!compileEnabled) {
-        btStateText = bt.hint && bt.hint.length ? bt.hint : lastMessage;
-        btStateClass = 'offline';
-      } else {
-        btStateText = lastMessage;
-        btStateClass = lastTestSuccess ? 'online' : 'offline';
-      }
-    }
-
-    if (!compileEnabled && bt.hint && bt.hint.length) {
-      btStateText = bt.hint;
+      btStateClass = 'pending';
+      btStateText = indicator.waiting;
     }
 
     if (btLabel) {
@@ -1102,9 +1090,7 @@ inline String buildAppScript() {
   }
 
   function exportExcel() {
-    const running = currentLang === 'fr' ? 'Export Excel en cours...' : 'Excel export in progress...';
-    const done = currentLang === 'fr' ? 'Export Excel terminé' : 'Excel export finished';
-    showStatus('status-export', running);
+    setStatusRunning('status-export', messages.exportRunning);
     fetch('/export/csv')
       .then(resp => {
         if (!resp.ok) {
@@ -1122,7 +1108,7 @@ inline String buildAppScript() {
         anchor.click();
         document.body.removeChild(anchor);
         URL.revokeObjectURL(url);
-        showStatus('status-export', done);
+        setStatusSuccess('status-export', messages.exportDone);
       })
       .catch(err => {
         console.error('Export Excel', err);
@@ -1132,10 +1118,10 @@ inline String buildAppScript() {
 
   function runBenchmarks() {
     const runningMessage = messages.testingBenchmarks;
-    showStatus('status-perf-cpu', runningMessage);
-    showStatus('status-perf-mem', runningMessage);
-    showStatus('status-perf-panel-cpu', runningMessage);
-    showStatus('status-perf-panel-mem', runningMessage);
+    setStatusRunning('status-perf-cpu', runningMessage);
+    setStatusRunning('status-perf-mem', runningMessage);
+    setStatusRunning('status-perf-panel-cpu', runningMessage);
+    setStatusRunning('status-perf-panel-mem', runningMessage);
     setText('cpu-bench', runningMessage);
     setText('mem-bench', runningMessage);
     setText('cpu-perf', runningMessage);
@@ -1152,23 +1138,10 @@ inline String buildAppScript() {
         if (data.memSpeed !== undefined) {
           setText('mem-speed', Number(data.memSpeed).toFixed(2) + ' MB/s');
         }
-        const completion = currentLang === 'fr'
-          ? {
-              cpu: 'CPU Benchmark terminé',
-              mem: 'Mémoire Benchmark terminée',
-              panelCpu: 'Performance CPU mise à jour',
-              panelMem: 'Vitesse mémoire mise à jour'
-            }
-          : {
-              cpu: 'CPU benchmark finished',
-              mem: 'Memory benchmark finished',
-              panelCpu: 'CPU performance updated',
-              panelMem: 'Memory speed updated'
-            };
-        showStatus('status-perf-cpu', completion.cpu);
-        showStatus('status-perf-mem', completion.mem);
-        showStatus('status-perf-panel-cpu', completion.panelCpu);
-        showStatus('status-perf-panel-mem', completion.panelMem);
+        setStatusSuccess('status-perf-cpu', messages.benchCpuDone);
+        setStatusSuccess('status-perf-mem', messages.benchMemDone);
+        setStatusSuccess('status-perf-panel-cpu', messages.benchCpuUpdated);
+        setStatusSuccess('status-perf-panel-mem', messages.benchMemUpdated);
       })
       .catch(err => {
         console.error('Benchmarks', err);
@@ -1247,6 +1220,7 @@ inline String buildAppScript() {
   script.replace(F("{{AP_STATE}}"), escapeForJS(String(T().indicator_ap)));
   script.replace(F("{{OFFLINE}}"), escapeForJS(String(T().disconnected)));
   script.replace(F("{{UNAVAILABLE}}"), escapeForJS(String(T().indicator_unavailable)));
+  script.replace(F("{{STATUS_WAITING}}"), escapeForJS(String(T().indicator_waiting)));
   String channelPrefix = (currentLanguage == LANG_FR) ? String("Canal ") : String("Ch ");
   script.replace(F("{{CHANNEL_PREFIX}}"), escapeForJS(channelPrefix));
   script.replace(F("{{TESTING}}"), escapeForJS(String(T().testing)));
@@ -1274,6 +1248,12 @@ inline String buildAppScript() {
   script.replace(F("{{TESTING_GPIO}}"), escapeForJS(String(T().testing_gpio)));
   script.replace(F("{{TESTING_BLUETOOTH}}"), escapeForJS(String(T().testing_bluetooth)));
   script.replace(F("{{TESTING_BENCHMARKS}}"), escapeForJS(String(T().testing_benchmarks)));
+  script.replace(F("{{EXPORT_RUNNING}}"), escapeForJS(String(T().export_running)));
+  script.replace(F("{{EXPORT_DONE}}"), escapeForJS(String(T().export_done)));
+  script.replace(F("{{BENCH_CPU_DONE}}"), escapeForJS(String(T().bench_cpu_done)));
+  script.replace(F("{{BENCH_MEM_DONE}}"), escapeForJS(String(T().bench_mem_done)));
+  script.replace(F("{{BENCH_CPU_UPDATED}}"), escapeForJS(String(T().bench_cpu_updated)));
+  script.replace(F("{{BENCH_MEM_UPDATED}}"), escapeForJS(String(T().bench_mem_updated)));
   script.replace(F("{{WIFI_WAITING}}"), escapeForJS(String(T().wifi_waiting)));
   script.replace(F("{{SCANNING}}"), escapeForJS(String(T().scanning)));
   script.replace(F("{{OK}}"), escapeForJS(String(T().ok)));
