@@ -18,7 +18,6 @@ resume_modifs.md
 
 # Dossier de construction (souvent caché par l'IDE)
 # Le dossier de construction varie selon l'IDE ou l'outil, voici les plus courants :
-01-prompts-dev/
 build/
 .build/
 .arduino/
