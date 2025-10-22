@@ -218,20 +218,48 @@ inline String buildAppScript() {
     return false;
   }
 
-  function updateDotState(dotEl, state) {
+  const STATE_CLASSES = ['state-off', 'state-mid', 'state-on'];
+
+  const normalizeStateClass = raw => {
+    if (typeof raw !== 'string') {
+      return 'state-off';
+    }
+    const trimmed = raw.trim().toLowerCase();
+    if (!trimmed.length) {
+      return 'state-off';
+    }
+    const prefixed = trimmed.startsWith('state-') ? trimmed : `state-${trimmed}`;
+    return STATE_CLASSES.includes(prefixed) ? prefixed : 'state-off';
+  };
+
+  function applyIndicatorClass(moduleId, stateClass) {
+    const dotEl = document.getElementById(`${moduleId}-status-dot`);
     if (!dotEl) return;
-    const validStates = ['on', 'mid', 'off', 'blink'];
-    const resolved = validStates.includes(state) ? state : 'off';
-    dotEl.classList.remove('dot-on', 'dot-mid', 'dot-off', 'dot-blink');
-    dotEl.classList.add('dot-' + resolved);
+    const normalized = normalizeStateClass(stateClass);
+    dotEl.classList.remove(...STATE_CLASSES);
+    dotEl.classList.add(normalized);
   }
 
-  function updatePillState(pillEl, state) {
+  function applyCardClass(moduleId, stateClass) {
+    const pillEl = document.getElementById(`${moduleId}-status-pill`);
     if (!pillEl) return;
-    const validStates = ['on', 'mid', 'off', 'blink'];
-    const resolved = validStates.includes(state) ? state : 'off';
-    pillEl.classList.remove('state-on', 'state-mid', 'state-off', 'state-blink');
-    pillEl.classList.add('state-' + resolved);
+    const normalized = normalizeStateClass(stateClass);
+    pillEl.classList.remove(...STATE_CLASSES);
+    pillEl.classList.add(normalized);
+  }
+
+  function setStatusText(moduleId, text) {
+    const labelEl = document.getElementById(`${moduleId}-status-label`);
+    if (!labelEl) return;
+    labelEl.textContent = typeof text === 'string' ? text : '';
+  }
+
+  function setModuleState(moduleId, stateClass, text) {
+    const normalized = normalizeStateClass(stateClass);
+    applyIndicatorClass(moduleId, normalized);
+    applyCardClass(moduleId, normalized);
+    setStatusText(moduleId, text);
+    return normalized;
   }
 
   function applyBuiltinConfig(manual = true) {
@@ -816,9 +844,6 @@ inline String buildAppScript() {
     if (!data) return;
     const wifi = data.wifi || {};
     const bt = data.bluetooth || {};
-    const wifiDot = document.getElementById('wifi-status-dot');
-    const wifiLabel = document.getElementById('wifi-status-label');
-    const wifiPill = document.getElementById('wifi-status-pill');
     const wifiFlag = Object.prototype.hasOwnProperty.call(wifi, 'available') ? toBool(wifi.available) : true;
     const wifiStation = toBool(wifi.station_connected);
     const wifiAP = toBool(wifi.ap_active);
@@ -827,46 +852,46 @@ inline String buildAppScript() {
       ? toBool(wifi.connected)
       : (wifiStation || wifiAP);
     const wifiAvailable = wifiFlag || wifiStation || wifiAP || wifiDriverInitialized;
-
-    const wifiHeaderStateRaw = typeof wifi.header_state === 'string' ? wifi.header_state.toLowerCase() : '';
-    let wifiStateClass = ['on', 'mid', 'off', 'blink'].includes(wifiHeaderStateRaw) ? wifiHeaderStateRaw : null;
-    if (!wifiStateClass) {
+    const wifiStateProvided = typeof wifi.header_state === 'string' && wifi.header_state.length;
+    let wifiStateClass = wifiStateProvided ? normalizeStateClass(wifi.header_state) : '';
+    if (!wifiStateProvided) {
       if (!wifiAvailable) {
-        wifiStateClass = 'off';
+        wifiStateClass = 'state-off';
       } else if (wifiStation || wifiConnected) {
-        wifiStateClass = 'on';
+        wifiStateClass = 'state-on';
       } else if (wifiAP) {
-        wifiStateClass = 'mid';
+        wifiStateClass = 'state-mid';
       } else {
-        wifiStateClass = 'blink';
+        wifiStateClass = 'state-mid';
       }
     }
-    const wifiHeaderText = (typeof wifi.header_text === 'string' && wifi.header_text.length)
+    let wifiHeaderText = (typeof wifi.header_text === 'string' && wifi.header_text.length)
       ? wifi.header_text
-      : (wifiStateClass === 'on'
-        ? labels.connected
-        : wifiStateClass === 'mid'
-          ? indicator.ap
-          : wifiStateClass === 'blink'
-            ? messages.wifiWaiting
-            : indicator.unavailable);
-
-    if (wifiLabel) {
-      wifiLabel.textContent = wifiHeaderText;
+      : '';
+    if (!wifiHeaderText.length) {
+      if (wifiStateClass === 'state-on') {
+        const ssid = (wifi.ssid && wifi.ssid.length) ? wifi.ssid : '';
+        wifiHeaderText = ssid.length ? `${labels.connected}: ${ssid}` : labels.connected;
+      } else if (wifiStateClass === 'state-mid') {
+        if (wifiAP && wifi.ap_ssid && wifi.ap_ssid.length) {
+          wifiHeaderText = `${indicator.ap}: ${wifi.ap_ssid}`;
+        } else {
+          wifiHeaderText = messages.wifiWaiting;
+        }
+      } else {
+        wifiHeaderText = indicator.unavailable;
+      }
     }
-    updateDotState(wifiDot, wifiStateClass);
-    updatePillState(wifiPill, wifiStateClass);
 
+    const appliedWifiState = setModuleState('wifi', wifiStateClass, wifiHeaderText);
+    const wifiStateKey = appliedWifiState.replace('state-', '');
     let connectionText;
-    switch (wifiStateClass) {
+    switch (wifiStateKey) {
       case 'on':
         connectionText = `✅ ${wifiHeaderText}`;
         break;
       case 'mid':
         connectionText = `🟡 ${wifiHeaderText}`;
-        break;
-      case 'blink':
-        connectionText = `⏳ ${wifiHeaderText}`;
         break;
       default:
         connectionText = `❌ ${wifiHeaderText}`;
@@ -964,38 +989,33 @@ inline String buildAppScript() {
     const hint = bt.hint && bt.hint.length ? bt.hint : '\u00A0';
     setText('bluetooth-hint', hint);
 
-    const btDot = document.getElementById('bt-status-dot');
-    const btLabel = document.getElementById('bt-status-label');
-    const btPill = document.getElementById('bt-status-pill');
     const hasBluetoothHardware = btClassic || btBle;
-    const btHeaderStateRaw = typeof bt.header_state === 'string' ? bt.header_state.toLowerCase() : '';
-    let btStateClass = ['on', 'mid', 'off', 'blink'].includes(btHeaderStateRaw) ? btHeaderStateRaw : null;
-    if (!btStateClass) {
+    const btStateProvided = typeof bt.header_state === 'string' && bt.header_state.length;
+    let btStateClass = btStateProvided ? normalizeStateClass(bt.header_state) : '';
+    if (!btStateProvided) {
       if (!compileEnabled || !hasBluetoothHardware) {
-        btStateClass = 'off';
-      } else if (controllerEnabled && !hasMeaningfulTest) {
-        btStateClass = 'mid';
-      } else if (controllerInitialized) {
-        btStateClass = 'blink';
+        btStateClass = 'state-off';
+      } else if (controllerEnabled && lastTestSuccess) {
+        btStateClass = 'state-on';
+      } else if (controllerEnabled || controllerInitialized) {
+        btStateClass = 'state-mid';
       } else {
-        btStateClass = 'off';
+        btStateClass = 'state-off';
       }
     }
-    const btHeaderText = (typeof bt.header_text === 'string' && bt.header_text.length)
+    let btHeaderText = (typeof bt.header_text === 'string' && bt.header_text.length)
       ? bt.header_text
-      : (btStateClass === 'on'
-        ? (bt.controller && bt.controller.length ? bt.controller : labels.connected)
-        : btStateClass === 'mid'
-          ? (bt.controller && bt.controller.length ? bt.controller : indicator.bluetoothLabel)
-          : btStateClass === 'blink'
-            ? messages.testingBluetooth
-            : indicator.unavailable);
-
-    if (btLabel) {
-      btLabel.textContent = btHeaderText;
+      : '';
+    if (!btHeaderText.length) {
+      if (btStateClass === 'state-on') {
+        btHeaderText = bt.controller && bt.controller.length ? bt.controller : labels.connected;
+      } else if (btStateClass === 'state-mid') {
+        btHeaderText = bt.controller && bt.controller.length ? bt.controller : indicator.bluetoothLabel;
+      } else {
+        btHeaderText = indicator.unavailable;
+      }
     }
-    updateDotState(btDot, btStateClass);
-    updatePillState(btPill, btStateClass);
+    setModuleState('bt', btStateClass, btHeaderText);
   }
 
   function testBluetooth() {

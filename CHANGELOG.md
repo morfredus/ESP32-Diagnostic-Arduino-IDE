@@ -5,6 +5,26 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.24-dev] - 2025-10-22
+
+### Fixed
+- Texte du bandeau Wi-Fi corrigé : les modes station et point d’accès affichent désormais respectivement « Connecté au Wi-Fi : SSID » et « Point d’accès Wi-Fi : AP_SSID » sans réutiliser les messages Bluetooth.
+- Bluetooth non compilé signalé systématiquement en rouge avec le statut « Bluetooth désactivé (non compilé) » sans pollution par les libellés Wi-Fi.
+
+---
+
+## [2.8.22-dev] - 2025-10-21
+
+### Changed
+- Normalisation des helpers du bandeau (`setModuleState`, `applyIndicatorClass`, `applyCardClass`, `setStatusText`) afin d'appliquer simultanément les classes `state-off/state-mid/state-on` sur les voyants et cartes Wi-Fi/Bluetooth, côté firmware comme côté web.
+- Textes de statut séparés des libellés modules avec messages contextualisés (« Connecté au Wi-Fi : SSID », « Point d’accès Wi-Fi actif : AP_SSID », « Bluetooth inactif », etc.) et CSS unifiée (rouge/orange/vert) pour les états synchronisés.
+
+### Fixed
+- Le Bluetooth non compilé est désormais indiqué en rouge avec le libellé « Bluetooth désactivé (non compilé) » sans risque d'afficher un voyant vert.
+- Les connexions Wi-Fi en mode station remontent correctement l'état vert avec le SSID associé et ne réutilisent plus de messages Bluetooth dans la zone Wi-Fi.
+
+---
+
 ## [2.8.21] - 2025-10-21
 
 ### Fixed

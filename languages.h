@@ -300,7 +300,7 @@ struct Translations {
   const char* wifi_status_ap;
   const char* wifi_status_connected;
   const char* bluetooth_status_disabled_not_compiled;
-  const char* bluetooth_status_activating;
+  const char* bluetooth_status_inactive;
   const char* bluetooth_status_active_short;
   const char* bluetooth_status_connected_short;
   
@@ -604,10 +604,10 @@ const Translations LANG_FR_TEXTS = {
   "Connexion Wi-Fi...",
   "Wi-Fi désactivé",
   "Connexion Wi-Fi...",
-  "Point d’accès Wi-Fi actif",
+  "Point d’accès Wi-Fi",
   "Connecté au Wi-Fi",
   "Bluetooth désactivé (non compilé)",
-  "Activation Bluetooth...",
+  "Bluetooth inactif",
   "Bluetooth actif",
   "Bluetooth connecté",
   
@@ -911,10 +911,10 @@ const Translations LANG_EN_TEXTS = {
   "Connecting to Wi-Fi...",
   "Wi-Fi disabled",
   "Connecting to Wi-Fi...",
-  "Wi-Fi access point active",
+  "Wi-Fi access point",
   "Connected to Wi-Fi",
   "Bluetooth disabled (not compiled)",
-  "Activating Bluetooth...",
+  "Bluetooth inactive",
   "Bluetooth active",
   "Bluetooth connected",
   
