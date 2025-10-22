@@ -2932,6 +2932,8 @@ void handleRoot() {
   chunk += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
   chunk += ".status-bar{position:fixed;top:20px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:1100px;display:flex;flex-direction:column;align-items:center;gap:16px;padding:18px 24px;background:rgba(17,24,39,.92);backdrop-filter:blur(14px);z-index:2500;color:#fff;border-radius:24px;box-shadow:0 16px 40px rgba(0,0,0,.35)}";
   chunk += ".status-row{width:100%;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px}";
+  chunk += ".status-row-top{max-width:480px;margin:0 auto;justify-content:space-between}";
+  chunk += ".status-row-top .status-pill{flex:1 1 200px;justify-content:center}";
   chunk += ".status-pill{display:flex;align-items:center;gap:12px;padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);font-weight:600;font-size:.95em}";
   chunk += ".status-pill.state-online{border-color:rgba(34,197,94,.65)}";
   chunk += ".status-pill.state-offline{border-color:rgba(239,68,68,.65)}";
@@ -2940,9 +2942,6 @@ void handleRoot() {
   chunk += ".status-label-name{font-weight:700}";
   chunk += ".status-separator{opacity:.6}";
   chunk += ".status-state{font-weight:600;opacity:.9}";
-  chunk += ".ip-pill{background:rgba(255,255,255,.08)}";
-  chunk += ".ip-pill .status-label-name{opacity:.75}";
-  chunk += ".ip-pill .status-state{font-family:'Roboto Mono',monospace}";
   chunk += ".status-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.4)}";
   chunk += ".status-dot.online{background:#22c55e;animation:statusBlink 1.4s ease-in-out infinite;box-shadow:0 0 14px rgba(34,197,94,.9)}";
   chunk += ".status-dot.offline{background:#ef4444;box-shadow:0 0 14px rgba(239,68,68,.85)}";
@@ -2989,18 +2988,16 @@ void handleRoot() {
   chunk += ".status-row-bottom .nav{flex:1 1 60%;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}";
   chunk += ".status-row-bottom .lang-switcher{margin-left:auto}";
   chunk += "@media(max-width:1024px){.status-bar{top:12px;width:calc(100% - 32px)}.status-row-bottom{flex-direction:column;align-items:center}.status-row-bottom .lang-switcher{margin-left:0;justify-content:center}}";
-  chunk += "@media(max-width:640px){body{padding:220px 16px 30px}.status-bar{width:calc(100% - 20px);padding:16px 18px}.status-row{gap:10px}.status-row-bottom .nav{flex:1 1 100%}.status-row-bottom .lang-switcher{margin-left:0;width:100%;justify-content:center}.nav-btn{flex:1 1 100%;min-width:0;text-align:center}}";
+  chunk += "@media(max-width:640px){body{padding:220px 16px 30px}.status-bar{width:calc(100% - 20px);padding:16px 18px}.status-row{gap:10px}.status-row-top{max-width:100%;justify-content:center}.status-row-top .status-pill{flex:1 1 100%;max-width:320px}.status-row-bottom .nav{flex:1 1 100%}.status-row-bottom .lang-switcher{margin-left:0;width:100%;justify-content:center}.nav-btn{flex:1 1 100%;min-width:0;text-align:center}}";
   chunk += "@media print{.nav,.btn,.lang-switcher,.status-bar{display:none}}";
   chunk += "</style></head><body>";
   server.sendContent(chunk);
 
   // CHUNK 2: STATUS BAR + NAVIGATION FIXE
-  String ipBadge = diagnosticData.ipAddress.length() ? diagnosticData.ipAddress : String("—");
   chunk = "<div class='status-bar'>";
   chunk += "<div class='status-row status-row-top'>";
   chunk += "<div class='status-pill' id='wifi-status-pill'><span class='status-dot offline' id='wifi-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_wifi) + "</span><span class='status-separator'>·</span><span class='status-state' id='wifi-status-label'>" + String(T().disconnected) + "</span></span></div>";
   chunk += "<div class='status-pill' id='bt-status-pill'><span class='status-dot pending' id='bt-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_bluetooth) + "</span><span class='status-separator'>·</span><span class='status-state' id='bt-status-label'>" + String(T().indicator_unavailable) + "</span></span></div>";
-  chunk += "<div class='status-pill ip-pill'><span class='status-label-name'>" + String(T().ip_address) + "</span><span class='status-state' id='status-ip'>" + ipBadge + "</span></div>";
   chunk += "</div>";
   chunk += "<div class='status-row status-row-bottom'>";
   chunk += "<div class='nav'>";
