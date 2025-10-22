@@ -3,7 +3,7 @@
 
 // ========== CONFIGURATION WIFI ==========
 // renommez ce fichier en config.h et ajoutez votre (vos) reseaux WIFI
-// Ajoutez vos réseaux WiFi ici
+// Ajoutez vos réseaux WiFi ici (les entrées non utilisées peuvent rester commentées)
 const char* WIFI_SSID_1 = "SSID1";
 const char* WIFI_PASS_1 = "MotDePasse1";
 
