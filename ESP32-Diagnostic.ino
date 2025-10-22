@@ -610,6 +610,19 @@ void updateBluetoothDerivedState() {
   }
 }
 
+bool isBtControllerStarted() {
+#if HAS_NATIVE_BLUETOOTH
+  esp_bt_controller_status_t status = esp_bt_controller_get_status();
+  return status == ESP_BT_CONTROLLER_STATUS_ENABLED ||
+         status == ESP_BT_CONTROLLER_STATUS_ENABLING ||
+         status == ESP_BT_CONTROLLER_STATUS_DISABLING ||
+         status == ESP_BT_CONTROLLER_STATUS_IDLE ||
+         status == ESP_BT_CONTROLLER_STATUS_INITED;
+#else
+  return false;
+#endif
+}
+
 bool btConnected() {
 #if HAS_NATIVE_BLUETOOTH
   return bluetoothInfo.controllerEnabled && bluetoothInfo.lastTestSuccess;
@@ -621,53 +634,38 @@ bool btConnected() {
 void updateHeaderStatus() {
   updateWiFiRuntimeState();
 
-  wifi_mode_t wifiMode = WiFi.getMode();
-  wl_status_t wifiStatus = WiFi.status();
+  bool wifiDriverStarted = wifiRuntime.driverStarted;
+  wl_status_t wifiStatus = wifiRuntime.status;
+  bool wifiStation = (wifiStatus == WL_CONNECTED);
+  bool wifiAp = wifiRuntime.apActive && !wifiStation;
 
-#ifdef WIFI_OFF
-  bool wifiDisabled = (wifiMode == WIFI_OFF);
-#else
-  bool wifiDisabled = (wifiMode == WIFI_MODE_NULL);
-#endif
-
-  bool wifiStationConnected = wifiRuntime.stationConnected && (wifiStatus == WL_CONNECTED);
-  bool wifiSoftApActive = wifiRuntime.apActive && !wifiStationConnected;
-  bool wifiConnecting = (wifiStatus == WL_CONNECT_FAILED ||
-                         wifiStatus == WL_DISCONNECTED ||
-                         wifiStatus == WL_CONNECTION_LOST ||
-                         wifiStatus == WL_IDLE_STATUS ||
-                         wifiStatus == WL_NO_SSID_AVAIL);
-
-  if (wifiDisabled || !wifiRuntime.driverStarted) {
-    setModuleState("wifi", "state-off", T().wifi_status_disabled);
-  } else if (wifiStationConnected) {
-    String ssid = WiFi.SSID();
-    if (!ssid.length() && diagnosticData.wifiSSID.length()) {
-      ssid = diagnosticData.wifiSSID;
-    }
-    if (!ssid.length()) {
-      ssid = String(T().unknown);
-    }
-    String message = String(T().wifi_status_connected) + String(" : ") + ssid;
-    setModuleState("wifi", "state-on", message.c_str());
-  } else if (wifiSoftApActive) {
-    String apSsid = WiFi.softAPSSID();
-    if (!apSsid.length() && diagnosticData.wifiApSSID.length()) {
-      apSsid = diagnosticData.wifiApSSID;
-    }
-    if (!apSsid.length()) {
-      apSsid = String(T().unknown);
-    }
-    String message = String(T().wifi_status_ap) + String(" : ") + apSsid;
-    setModuleState("wifi", "state-on", message.c_str());
-  } else if (wifiConnecting) {
-    setModuleState("wifi", "state-mid", T().wifi_status_connecting);
+  if (!wifiDriverStarted) {
+    setWifiIndicator("off");
+    setWifiText(T().wifi_status_disabled);
+  } else if (wifiStation) {
+    setWifiIndicator("on");
+    setWifiText(T().wifi_status_connected);
+  } else if (wifiAp) {
+    setWifiIndicator("mid");
+    setWifiText(T().wifi_status_ap);
+  } else if (wifiStatus == WL_CONNECT_FAILED ||
+             wifiStatus == WL_DISCONNECTED ||
+             wifiStatus == WL_CONNECTION_LOST ||
+             wifiStatus == WL_IDLE_STATUS ||
+             wifiStatus == WL_NO_SSID_AVAIL) {
+    setWifiIndicator("blink");
+    setWifiText(T().wifi_status_connecting);
   } else {
     setModuleState("wifi", "state-off", T().wifi_status_disabled);
   }
 
+#ifdef CONFIG_BT_ENABLED
+  bool compileEnabled = true;
+#else
+  bool compileEnabled = false;
+#endif
+
 #if HAS_NATIVE_BLUETOOTH
-  bluetoothInfo.compileEnabled = true;
   esp_bt_controller_status_t runtimeStatus = esp_bt_controller_get_status();
   bluetoothInfo.controllerEnabled = (runtimeStatus == ESP_BT_CONTROLLER_STATUS_ENABLED);
   bluetoothInfo.controllerInitialized = (runtimeStatus == ESP_BT_CONTROLLER_STATUS_ENABLED ||
@@ -675,28 +673,37 @@ void updateHeaderStatus() {
                                          runtimeStatus == ESP_BT_CONTROLLER_STATUS_INITED ||
                                          runtimeStatus == ESP_BT_CONTROLLER_STATUS_ENABLING ||
                                          runtimeStatus == ESP_BT_CONTROLLER_STATUS_DISABLING);
+#endif
 
+  bool controllerStarted = isBtControllerStarted();
+  bool controllerEnabled = bluetoothInfo.controllerEnabled;
+  bool controllerInitialised = bluetoothInfo.controllerInitialized || controllerStarted;
   bool controllerConnected = btConnected();
   bool hasBluetoothHardware = bluetoothInfo.hardwareClassic || bluetoothInfo.hardwareBLE;
+  String btAvailabilityHint = bluetoothInfo.availabilityHint;
 
-  if (!hasBluetoothHardware) {
-    const char* message = bluetoothInfo.availabilityHint.length()
-                            ? bluetoothInfo.availabilityHint.c_str()
-                            : T().bluetooth_not_available;
-    setModuleState("bt", "state-off", message);
-  } else if (!bluetoothInfo.controllerInitialized) {
-    setModuleState("bt", "state-mid", T().bluetooth_status_inactive);
+  if (!compileEnabled) {
+    setBtIndicator("off");
+    setBtText(T().bluetooth_status_disabled_not_compiled);
+  } else if (!hasBluetoothHardware) {
+    setBtIndicator("off");
+    if (btAvailabilityHint.length()) {
+      setBtText(btAvailabilityHint.c_str());
+    } else {
+      setBtText(T().bluetooth_status_disabled_not_compiled);
+    }
+  } else if (!controllerInitialised) {
+    setBtIndicator("blink");
+    setBtText(T().bluetooth_status_activating);
   } else if (controllerConnected) {
-    setModuleState("bt", "state-on", T().bluetooth_status_connected_short);
-  } else if (bluetoothInfo.controllerEnabled) {
-    setModuleState("bt", "state-mid", T().bluetooth_status_active_short);
+    setBtIndicator("on");
+    setBtText(T().bluetooth_status_connected_short);
+  } else if (controllerEnabled) {
+    setBtIndicator("mid");
+    setBtText(T().bluetooth_status_active_short);
   } else {
     setModuleState("bt", "state-mid", T().bluetooth_status_inactive);
   }
-#else
-  bluetoothInfo.compileEnabled = false;
-  setModuleState("bt", "state-off", T().bluetooth_status_disabled_not_compiled);
-#endif
 }
 
 // ========== STRUCTURES ==========
