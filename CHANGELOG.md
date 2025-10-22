@@ -5,11 +5,14 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.8.24-dev] - 2025-10-22
+## [2.8.23-dev] - 2025-10-22
+
+### Changed
+- Harmonisation des zones de statut (LEDs, écran, tests avancés, GPIO, Sans fil, Performance, Export) avec un helper `showProgressAndResult()` et des messages dédiés pour chaque action (progression + résultat temporisé).
 
 ### Fixed
-- Texte du bandeau Wi-Fi corrigé : les modes station et point d’accès affichent désormais respectivement « Connecté au Wi-Fi : SSID » et « Point d’accès Wi-Fi : AP_SSID » sans réutiliser les messages Bluetooth.
-- Bluetooth non compilé signalé systématiquement en rouge avec le statut « Bluetooth désactivé (non compilé) » sans pollution par les libellés Wi-Fi.
+- Suppression des textes génériques et croisements de messages : chaque bouton affiche désormais le libellé attendu (ex. « Mesure ADC en cours... » → « Lecture ADC terminée. », « Benchmark CPU et mémoire en cours (~25s)... » → « Benchmarks terminés. »).
+- Export Excel et tests sans fil utilisent les nouvelles chaînes (« Export Excel en cours... », « Analyse Wi-Fi terminée. », « Test Bluetooth terminé. ») avec nettoyage automatique après affichage.
 
 ---
 

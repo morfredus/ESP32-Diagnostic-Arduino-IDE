@@ -281,6 +281,7 @@ struct Translations {
   const char* testing_led_off;
   const char* testing_neopixel;
   const char* testing_neopixel_effect;
+  const char* testing_neopixel_generic;
   const char* testing_neopixel_color;
   const char* testing_neopixel_off;
   const char* testing_oled_step;
@@ -303,6 +304,28 @@ struct Translations {
   const char* bluetooth_status_inactive;
   const char* bluetooth_status_active_short;
   const char* bluetooth_status_connected_short;
+
+  const char* led_test_done;
+  const char* led_blink_done;
+  const char* led_fade_done;
+  const char* led_off_done;
+  const char* neopixel_test_done;
+  const char* neopixel_rainbow_done;
+  const char* neopixel_color_done;
+  const char* neopixel_off_done;
+  const char* oled_test_done;
+  const char* adc_test_done;
+  const char* touch_test_done;
+  const char* pwm_test_done;
+  const char* spi_test_done;
+  const char* partitions_done;
+  const char* stress_test_done;
+  const char* gpio_test_done;
+  const char* wifi_scan_done;
+  const char* bt_test_done;
+  const char* benchmarks_done;
+  const char* export_progress;
+  const char* export_done;
   
   // Unités
   const char* cores;
@@ -586,13 +609,14 @@ const Translations LANG_FR_TEXTS = {
   "LED en clignotement...",
   "Effet de fondu LED en cours...",
   "Extinction de la LED...",
-  "Test NeoPixel en cours...",
   "Animation Arc-en-ciel en cours...",
+  "Effet Arc-en-ciel en cours...",
+  "Animation NeoPixel en cours...",
   "Application de la couleur NeoPixel...",
   "Extinction des LEDs NeoPixel...",
-  "Séquence OLED étape en cours...",
+  "Séquence OLED en cours...",
   "Affichage du message OLED...",
-  "Test ADC en cours...",
+  "Mesure ADC en cours...",
   "Test tactile en cours...",
   "Test PWM en cours...",
   "Test SPI en cours...",
@@ -600,7 +624,7 @@ const Translations LANG_FR_TEXTS = {
   "Stress test GPIO en cours...",
   "Test GPIO en cours...",
   "Test Bluetooth en cours...",
-  "Benchmark CPU et mémoire en cours (~25 s)...",
+  "Benchmark CPU et mémoire en cours (~25s)...",
   "Connexion Wi-Fi...",
   "Wi-Fi désactivé",
   "Connexion Wi-Fi...",
@@ -610,6 +634,27 @@ const Translations LANG_FR_TEXTS = {
   "Bluetooth inactif",
   "Bluetooth actif",
   "Bluetooth connecté",
+  "Test LED terminé.",
+  "Clignotement terminé.",
+  "Fondu terminé.",
+  "LED éteinte.",
+  "Animation NeoPixel terminée.",
+  "Effet Arc-en-ciel terminé.",
+  "Couleur appliquée.",
+  "LEDs NeoPixel éteintes.",
+  "Test OLED terminé avec succès.",
+  "Lecture ADC terminée.",
+  "Test tactile terminé.",
+  "Test PWM terminé.",
+  "Communication SPI OK.",
+  "Liste des partitions terminée.",
+  "Stress test terminé.",
+  "Test GPIO terminé.",
+  "Analyse Wi-Fi terminée.",
+  "Test Bluetooth terminé.",
+  "Benchmarks terminés.",
+  "Export Excel en cours...",
+  "Export Excel terminé avec succès.",
   
   // Unités
   "coeurs",
@@ -893,13 +938,14 @@ const Translations LANG_EN_TEXTS = {
   "LED blinking...",
   "LED fade effect running...",
   "Turning LED off...",
-  "NeoPixel test running...",
   "Rainbow animation running...",
+  "Rainbow effect running...",
+  "NeoPixel animation running...",
   "Applying NeoPixel color...",
   "Turning NeoPixel LEDs off...",
-  "OLED step running...",
+  "Running OLED sequence...",
   "Sending custom OLED message...",
-  "ADC test running...",
+  "ADC measurement running...",
   "Touch test running...",
   "PWM test running...",
   "SPI test running...",
@@ -907,7 +953,7 @@ const Translations LANG_EN_TEXTS = {
   "GPIO stress test running...",
   "GPIO test running...",
   "Bluetooth test running...",
-  "CPU and memory benchmark running (~25 s)...",
+  "CPU and memory benchmark running (~25s)...",
   "Connecting to Wi-Fi...",
   "Wi-Fi disabled",
   "Connecting to Wi-Fi...",
@@ -917,6 +963,27 @@ const Translations LANG_EN_TEXTS = {
   "Bluetooth inactive",
   "Bluetooth active",
   "Bluetooth connected",
+  "LED test completed.",
+  "Blink completed.",
+  "Fade effect completed.",
+  "LED turned off.",
+  "NeoPixel animation finished.",
+  "Rainbow effect finished.",
+  "Color applied.",
+  "NeoPixel LEDs turned off.",
+  "OLED test completed successfully.",
+  "ADC reading completed.",
+  "Touch test completed.",
+  "PWM test completed.",
+  "SPI communication OK.",
+  "Partition listing completed.",
+  "Stress test completed.",
+  "GPIO test completed.",
+  "Wi-Fi scan completed.",
+  "Bluetooth test completed.",
+  "Benchmarks completed.",
+  "Excel export in progress...",
+  "Excel export completed successfully.",
   
   // Units
   "cores",
