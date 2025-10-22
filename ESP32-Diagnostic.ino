@@ -39,7 +39,7 @@
 #include <vector>
 
 // Configuration WiFi
-#include "config.h"
+#include "wifi-config.h"
 
 // Système de traduction
 #include "languages.h"
