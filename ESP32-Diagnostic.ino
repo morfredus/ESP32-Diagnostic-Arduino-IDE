@@ -260,6 +260,68 @@ struct HeaderIndicatorStatus {
 
 HeaderIndicatorStatus headerStatus = {String("state-off"), String(), String("state-off"), String()};
 
+struct DiagnosticInfo {
+  String chipModel;
+  String chipRevision;
+  int cpuCores;
+  uint32_t cpuFreqMHz;
+  uint32_t flashSize;
+  uint32_t psramSize;
+  String macAddress;
+
+  uint32_t heapSize;
+  uint32_t freeHeap;
+  uint32_t minFreeHeap;
+  uint32_t maxAllocHeap;
+
+  bool hasWiFi;
+  bool hasBT;
+  bool hasBLE;
+  String wifiSSID;
+  String wifiApSSID;
+  int wifiRSSI;
+  String ipAddress;
+  String wifiSubnet;
+  String wifiGateway;
+  String wifiDNS;
+  String wifiApIP;
+  String wifiHostname;
+  int wifiChannel;
+  String wifiMode;
+  String wifiSleepMode;
+  String wifiBand;
+  String wifiBandMode;
+  float wifiTxPowerDbm;
+  int wifiTxPowerCode;
+  bool wifiSupports5G;
+  bool wifiStationConnected;
+  bool wifiApActive;
+  bool wifiDriverInitialized;
+
+  String gpioList;
+  int totalGPIO;
+
+  String sdkVersion;
+  String idfVersion;
+  String arduinoCoreVersion;
+  unsigned long uptime;
+  float temperature;
+
+  bool neopixelTested;
+  bool neopixelAvailable;
+  String neopixelResult;
+
+  unsigned long cpuBenchmark;
+  unsigned long memBenchmark;
+
+  String i2cDevices;
+  int i2cCount;
+
+  bool oledTested;
+  bool oledAvailable;
+  String oledResult;
+} diagnosticData;
+
 String normalizeStateClass(const String& state);
 void applyIndicatorClass(const char* moduleId, const String& stateClass);
 void applyIndicatorClass(const char* moduleId, const char* stateClass);
@@ -638,68 +700,6 @@ void updateHeaderStatus() {
 }
 
 // ========== STRUCTURES ==========
-
-struct DiagnosticInfo {
-  String chipModel;
-  String chipRevision;
-  int cpuCores;
-  uint32_t cpuFreqMHz;
-  uint32_t flashSize;
-  uint32_t psramSize;
-  String macAddress;
-  
-  uint32_t heapSize;
-  uint32_t freeHeap;
-  uint32_t minFreeHeap;
-  uint32_t maxAllocHeap;
-  
-  bool hasWiFi;
-  bool hasBT;
-  bool hasBLE;
-  String wifiSSID;
-  String wifiApSSID;
-  int wifiRSSI;
-  String ipAddress;
-  String wifiSubnet;
-  String wifiGateway;
-  String wifiDNS;
-  String wifiApIP;
-  String wifiHostname;
-  int wifiChannel;
-  String wifiMode;
-  String wifiSleepMode;
-  String wifiBand;
-  String wifiBandMode;
-  float wifiTxPowerDbm;
-  int wifiTxPowerCode;
-  bool wifiSupports5G;
-  bool wifiStationConnected;
-  bool wifiApActive;
-  bool wifiDriverInitialized;
-
-  String gpioList;
-  int totalGPIO;
-
-  String sdkVersion;
-  String idfVersion;
-  String arduinoCoreVersion;
-  unsigned long uptime;
-  float temperature;
-  
-  bool neopixelTested;
-  bool neopixelAvailable;
-  String neopixelResult;
-  
-  unsigned long cpuBenchmark;
-  unsigned long memBenchmark;
-  
-  String i2cDevices;
-  int i2cCount;
-  
-  bool oledTested;
-  bool oledAvailable;
-  String oledResult;
-} diagnosticData;
 
 struct DetailedMemoryInfo {
   uint32_t flashSizeReal;
