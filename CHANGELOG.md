@@ -5,48 +5,6 @@ All notable changes to the ESP32 Complete Diagnostic Tool will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.8.23-dev] - 2025-10-22
-
-### Changed
-- Harmonisation des zones de statut (LEDs, écran, tests avancés, GPIO, Sans fil, Performance, Export) avec un helper `showProgressAndResult()` et des messages dédiés pour chaque action (progression + résultat temporisé).
-
-### Fixed
-- Suppression des textes génériques et croisements de messages : chaque bouton affiche désormais le libellé attendu (ex. « Mesure ADC en cours... » → « Lecture ADC terminée. », « Benchmark CPU et mémoire en cours (~25s)... » → « Benchmarks terminés. »).
-- Export Excel et tests sans fil utilisent les nouvelles chaînes (« Export Excel en cours... », « Analyse Wi-Fi terminée. », « Test Bluetooth terminé. ») avec nettoyage automatique après affichage.
-
----
-
-## [2.8.22-dev] - 2025-10-21
-
-### Changed
-- Normalisation des helpers du bandeau (`setModuleState`, `applyIndicatorClass`, `applyCardClass`, `setStatusText`) afin d'appliquer simultanément les classes `state-off/state-mid/state-on` sur les voyants et cartes Wi-Fi/Bluetooth, côté firmware comme côté web.
-- Textes de statut séparés des libellés modules avec messages contextualisés (« Connecté au Wi-Fi : SSID », « Point d’accès Wi-Fi actif : AP_SSID », « Bluetooth inactif », etc.) et CSS unifiée (rouge/orange/vert) pour les états synchronisés.
-
-### Fixed
-- Le Bluetooth non compilé est désormais indiqué en rouge avec le libellé « Bluetooth désactivé (non compilé) » sans risque d'afficher un voyant vert.
-- Les connexions Wi-Fi en mode station remontent correctement l'état vert avec le SSID associé et ne réutilisent plus de messages Bluetooth dans la zone Wi-Fi.
-
----
-
-## [2.8.21] - 2025-10-21
-
-### Fixed
-- Renommage de l'utilitaire interne `btStarted()` pour éviter le conflit de liaison avec l'implémentation Arduino et restaurer la compilation.
-
----
-
-## [2.8.20] - 2025-10-21
-
-### Changed
-- Bandeau supérieur épuré : voyants Wi-Fi/Bluetooth centrés sur deux lignes avec animation orange clignotante pendant les phases de connexion/activation et suppression de la pastille d'adresse IP.
-- Nouvelle logique `updateHeaderStatus()` (appelée au démarrage, sur les transitions réseau et périodiquement) pour synchroniser les textes « Wi-Fi désactivé », « Connexion Wi-Fi... », « Point d’accès Wi-Fi actif », « Connecté au Wi-Fi » et les équivalents Bluetooth.
-
-### Fixed
-- Correction de l’inversion des statuts Wi-Fi/Bluetooth et remplacement définitif du message « Bluetooth désactivé (non compilé) » dans l’UI web et les API.
-- Mises à jour CSS/JS afin de prendre en charge les états `off/mid/on/blink` et router les messages sans fil vers les bonnes zones sans chevauchement.
-
----
-
 ## [2.8.17] - 2025-10-20
 
 ### Changed

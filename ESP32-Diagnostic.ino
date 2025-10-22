@@ -1,5 +1,5 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.23-dev
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.17-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -185,7 +185,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.23-dev"
+#define DIAGNOSTIC_VERSION "2.8.17-dev"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -251,86 +251,6 @@ struct WiFiRuntimeState {
 BluetoothDiagnostics bluetoothInfo = {false, false, false, false, false, String(), false, String(), String()};
 WiFiRuntimeState wifiRuntime;
 
-struct HeaderIndicatorStatus {
-  String wifiStateClass;
-  String wifiText;
-  String btStateClass;
-  String btText;
-};
-
-HeaderIndicatorStatus headerStatus = {String("state-off"), String(), String("state-off"), String()};
-
-struct DiagnosticInfo {
-  String chipModel;
-  String chipRevision;
-  int cpuCores;
-  uint32_t cpuFreqMHz;
-  uint32_t flashSize;
-  uint32_t psramSize;
-  String macAddress;
-
-  uint32_t heapSize;
-  uint32_t freeHeap;
-  uint32_t minFreeHeap;
-  uint32_t maxAllocHeap;
-
-  bool hasWiFi;
-  bool hasBT;
-  bool hasBLE;
-  String wifiSSID;
-  String wifiApSSID;
-  int wifiRSSI;
-  String ipAddress;
-  String wifiSubnet;
-  String wifiGateway;
-  String wifiDNS;
-  String wifiApIP;
-  String wifiHostname;
-  int wifiChannel;
-  String wifiMode;
-  String wifiSleepMode;
-  String wifiBand;
-  String wifiBandMode;
-  float wifiTxPowerDbm;
-  int wifiTxPowerCode;
-  bool wifiSupports5G;
-  bool wifiStationConnected;
-  bool wifiApActive;
-  bool wifiDriverInitialized;
-
-  String gpioList;
-  int totalGPIO;
-
-  String sdkVersion;
-  String idfVersion;
-  String arduinoCoreVersion;
-  unsigned long uptime;
-  float temperature;
-
-  bool neopixelTested;
-  bool neopixelAvailable;
-  String neopixelResult;
-
-  unsigned long cpuBenchmark;
-  unsigned long memBenchmark;
-
-  String i2cDevices;
-  int i2cCount;
-
-  bool oledTested;
-  bool oledAvailable;
-  String oledResult;
-} diagnosticData;
-
-String normalizeStateClass(const String& state);
-void applyIndicatorClass(const char* moduleId, const String& stateClass);
-void applyIndicatorClass(const char* moduleId, const char* stateClass);
-void applyCardClass(const char* moduleId, const String& stateClass);
-void applyCardClass(const char* moduleId, const char* stateClass);
-void setStatusText(const char* moduleId, const char* text);
-void setModuleState(const char* moduleId, const char* stateClass, const char* text);
-void updateHeaderStatus();
-
 String jsonEscape(const String& input) {
   String output;
   output.reserve(input.length() + 4);
@@ -355,67 +275,6 @@ String jsonEscape(const String& input) {
   return output;
 }
 
-String normalizeStateClass(const String& state) {
-  String normalized = state;
-  normalized.trim();
-  normalized.toLowerCase();
-  if (normalized.startsWith("state-")) {
-    normalized.remove(0, 6);
-  }
-  if (normalized == "on" || normalized == "mid" || normalized == "off") {
-    return String("state-") + normalized;
-  }
-  return String("state-off");
-}
-
-void assignModuleStateClass(const char* moduleId, const String& normalized) {
-  if (!moduleId) {
-    return;
-  }
-  if (strcmp(moduleId, "wifi") == 0) {
-    headerStatus.wifiStateClass = normalized;
-  } else if (strcmp(moduleId, "bt") == 0) {
-    headerStatus.btStateClass = normalized;
-  }
-}
-
-void applyIndicatorClass(const char* moduleId, const String& stateClass) {
-  assignModuleStateClass(moduleId, normalizeStateClass(stateClass));
-}
-
-void applyIndicatorClass(const char* moduleId, const char* stateClass) {
-  applyIndicatorClass(moduleId, String(stateClass ? stateClass : ""));
-}
-
-void applyCardClass(const char* moduleId, const String& stateClass) {
-  assignModuleStateClass(moduleId, normalizeStateClass(stateClass));
-}
-
-void applyCardClass(const char* moduleId, const char* stateClass) {
-  applyCardClass(moduleId, String(stateClass ? stateClass : ""));
-}
-
-void setStatusText(const char* moduleId, const char* text) {
-  if (!moduleId) {
-    return;
-  }
-  if (strcmp(moduleId, "wifi") == 0) {
-    headerStatus.wifiText = text ? String(text) : String();
-  } else if (strcmp(moduleId, "bt") == 0) {
-    headerStatus.btText = text ? String(text) : String();
-  }
-}
-
-void setModuleState(const char* moduleId, const char* stateClass, const char* text) {
-  if (!moduleId) {
-    return;
-  }
-  String normalized = normalizeStateClass(String(stateClass ? stateClass : ""));
-  applyIndicatorClass(moduleId, normalized);
-  applyCardClass(moduleId, normalized);
-  setStatusText(moduleId, text);
-}
-
 bool wifiCredentialValid(const WiFiCredential& cred) {
   return cred.ssid != nullptr && cred.ssid[0] != '\0';
 }
@@ -435,16 +294,7 @@ void resetWiFiRuntime() {
 }
 
 void updateWiFiRuntimeState() {
-  wifi_mode_t currentMode = WiFi.getMode();
-
-#ifdef WIFI_OFF
-  bool wifiDisabled = (currentMode == WIFI_OFF);
-#else
-  bool wifiDisabled = (currentMode == WIFI_MODE_NULL);
-#endif
-
-  if (wifiDisabled) {
-    wifiRuntime.driverStarted = false;
+  if (!wifiRuntime.driverStarted) {
     wifiRuntime.status = WL_NO_SHIELD;
     wifiRuntime.mode = WIFI_MODE_NULL;
     wifiRuntime.stationConnected = false;
@@ -452,9 +302,8 @@ void updateWiFiRuntimeState() {
     return;
   }
 
-  wifiRuntime.driverStarted = true;
-  wifiRuntime.mode = currentMode;
   wifiRuntime.status = WiFi.status();
+  wifiRuntime.mode = WiFi.getMode();
   wifiRuntime.stationConnected = (wifiRuntime.status == WL_CONNECTED);
   wifiRuntime.apActive = (wifiRuntime.mode == WIFI_MODE_AP || wifiRuntime.mode == WIFI_MODE_APSTA);
 }
@@ -488,7 +337,6 @@ bool startSoftAPFallback() {
   } else {
     Serial.println("Impossible de démarrer le SoftAP");
   }
-  updateHeaderStatus();
   return started;
 #else
   return false;
@@ -557,7 +405,6 @@ void initializeWireless() {
       startSoftAPFallback();
     }
   }
-  updateHeaderStatus();
 }
 
 #if HAS_NATIVE_BLUETOOTH
@@ -610,103 +457,69 @@ void updateBluetoothDerivedState() {
   }
 }
 
-bool isBtControllerStarted() {
-#if HAS_NATIVE_BLUETOOTH
-  esp_bt_controller_status_t status = esp_bt_controller_get_status();
-  return status == ESP_BT_CONTROLLER_STATUS_ENABLED ||
-         status == ESP_BT_CONTROLLER_STATUS_ENABLING ||
-         status == ESP_BT_CONTROLLER_STATUS_DISABLING ||
-         status == ESP_BT_CONTROLLER_STATUS_IDLE ||
-         status == ESP_BT_CONTROLLER_STATUS_INITED;
-#else
-  return false;
-#endif
-}
-
-bool btConnected() {
-#if HAS_NATIVE_BLUETOOTH
-  return bluetoothInfo.controllerEnabled && bluetoothInfo.lastTestSuccess;
-#else
-  return false;
-#endif
-}
-
-void updateHeaderStatus() {
-  updateWiFiRuntimeState();
-
-  bool wifiDriverStarted = wifiRuntime.driverStarted;
-  wl_status_t wifiStatus = wifiRuntime.status;
-  bool wifiStation = (wifiStatus == WL_CONNECTED);
-  bool wifiAp = wifiRuntime.apActive && !wifiStation;
-
-  if (!wifiDriverStarted) {
-    setWifiIndicator("off");
-    setWifiText(T().wifi_status_disabled);
-  } else if (wifiStation) {
-    setWifiIndicator("on");
-    setWifiText(T().wifi_status_connected);
-  } else if (wifiAp) {
-    setWifiIndicator("mid");
-    setWifiText(T().wifi_status_ap);
-  } else if (wifiStatus == WL_CONNECT_FAILED ||
-             wifiStatus == WL_DISCONNECTED ||
-             wifiStatus == WL_CONNECTION_LOST ||
-             wifiStatus == WL_IDLE_STATUS ||
-             wifiStatus == WL_NO_SSID_AVAIL) {
-    setWifiIndicator("blink");
-    setWifiText(T().wifi_status_connecting);
-  } else {
-    setModuleState("wifi", "state-off", T().wifi_status_disabled);
-  }
-
-#ifdef CONFIG_BT_ENABLED
-  bool compileEnabled = true;
-#else
-  bool compileEnabled = false;
-#endif
-
-#if HAS_NATIVE_BLUETOOTH
-  esp_bt_controller_status_t runtimeStatus = esp_bt_controller_get_status();
-  bluetoothInfo.controllerEnabled = (runtimeStatus == ESP_BT_CONTROLLER_STATUS_ENABLED);
-  bluetoothInfo.controllerInitialized = (runtimeStatus == ESP_BT_CONTROLLER_STATUS_ENABLED ||
-                                         runtimeStatus == ESP_BT_CONTROLLER_STATUS_IDLE ||
-                                         runtimeStatus == ESP_BT_CONTROLLER_STATUS_INITED ||
-                                         runtimeStatus == ESP_BT_CONTROLLER_STATUS_ENABLING ||
-                                         runtimeStatus == ESP_BT_CONTROLLER_STATUS_DISABLING);
-#endif
-
-  bool controllerStarted = isBtControllerStarted();
-  bool controllerEnabled = bluetoothInfo.controllerEnabled;
-  bool controllerInitialised = bluetoothInfo.controllerInitialized || controllerStarted;
-  bool controllerConnected = btConnected();
-  bool hasBluetoothHardware = bluetoothInfo.hardwareClassic || bluetoothInfo.hardwareBLE;
-  String btAvailabilityHint = bluetoothInfo.availabilityHint;
-
-  if (!compileEnabled) {
-    setBtIndicator("off");
-    setBtText(T().bluetooth_status_disabled_not_compiled);
-  } else if (!hasBluetoothHardware) {
-    setBtIndicator("off");
-    if (btAvailabilityHint.length()) {
-      setBtText(btAvailabilityHint.c_str());
-    } else {
-      setBtText(T().bluetooth_status_disabled_not_compiled);
-    }
-  } else if (!controllerInitialised) {
-    setBtIndicator("blink");
-    setBtText(T().bluetooth_status_activating);
-  } else if (controllerConnected) {
-    setBtIndicator("on");
-    setBtText(T().bluetooth_status_connected_short);
-  } else if (controllerEnabled) {
-    setBtIndicator("mid");
-    setBtText(T().bluetooth_status_active_short);
-  } else {
-    setModuleState("bt", "state-mid", T().bluetooth_status_inactive);
-  }
-}
-
 // ========== STRUCTURES ==========
+
+struct DiagnosticInfo {
+  String chipModel;
+  String chipRevision;
+  int cpuCores;
+  uint32_t cpuFreqMHz;
+  uint32_t flashSize;
+  uint32_t psramSize;
+  String macAddress;
+
+  uint32_t heapSize;
+  uint32_t freeHeap;
+  uint32_t minFreeHeap;
+  uint32_t maxAllocHeap;
+
+  bool hasWiFi;
+  bool hasBT;
+  bool hasBLE;
+  String wifiSSID;
+  String wifiApSSID;
+  int wifiRSSI;
+  String ipAddress;
+  String wifiSubnet;
+  String wifiGateway;
+  String wifiDNS;
+  String wifiApIP;
+  String wifiHostname;
+  int wifiChannel;
+  String wifiMode;
+  String wifiSleepMode;
+  String wifiBand;
+  String wifiBandMode;
+  float wifiTxPowerDbm;
+  int wifiTxPowerCode;
+  bool wifiSupports5G;
+  bool wifiStationConnected;
+  bool wifiApActive;
+  bool wifiDriverInitialized;
+
+  String gpioList;
+  int totalGPIO;
+
+  String sdkVersion;
+  String idfVersion;
+  String arduinoCoreVersion;
+  unsigned long uptime;
+  float temperature;
+
+  bool neopixelTested;
+  bool neopixelAvailable;
+  String neopixelResult;
+
+  unsigned long cpuBenchmark;
+  unsigned long memBenchmark;
+
+  String i2cDevices;
+  int i2cCount;
+
+  bool oledTested;
+  bool oledAvailable;
+  String oledResult;
+} diagnosticData;
 
 struct DetailedMemoryInfo {
   uint32_t flashSizeReal;
@@ -2022,7 +1835,6 @@ void collectDiagnosticInfo() {
     tempHistory[historyIndex] = diagnosticData.temperature;
   }
   historyIndex = (historyIndex + 1) % HISTORY_SIZE;
-  updateHeaderStatus();
 }
 
 // ========== HANDLERS API ==========
@@ -2093,8 +1905,6 @@ void handleWirelessInfo() {
   json += "\"supports_5g\":" + String(diagnosticData.wifiSupports5G ? "true" : "false") + ",";
   json += "\"hostname\":\"" + jsonEscape(diagnosticData.wifiHostname) + "\",";
   json += "\"driver_initialized\":" + String(diagnosticData.wifiDriverInitialized ? "true" : "false") + ",";
-  json += "\"header_state\":\"" + headerStatus.wifiStateClass + "\",";
-  json += "\"header_text\":\"" + jsonEscape(headerStatus.wifiText) + "\",";
   json += "\"state\":\"" + wifiState + "\"";
   json += "},";
   json += "\"gpio\":{";
@@ -2117,8 +1927,6 @@ void handleWirelessInfo() {
   json += "\"controller_initialized\":" + String(bluetoothInfo.controllerInitialized ? "true" : "false") + ",";
   json += "\"last_test_success\":" + String(bluetoothInfo.lastTestSuccess ? "true" : "false") + ",";
   json += "\"last_test_message\":\"" + jsonEscape(bluetoothInfo.lastTestMessage) + "\",";
-  json += "\"header_state\":\"" + headerStatus.btStateClass + "\",";
-  json += "\"header_text\":\"" + jsonEscape(headerStatus.btText) + "\",";
   json += "\"state\":\"" + btState + "\",";
   json += "\"hint\":\"" + jsonEscape(bluetoothInfo.availabilityHint) + "\"";
   json += "},";
@@ -3124,19 +2932,23 @@ void handleRoot() {
   chunk += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
   chunk += ".status-bar{position:fixed;top:20px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:1100px;display:flex;flex-direction:column;align-items:center;gap:16px;padding:18px 24px;background:rgba(17,24,39,.92);backdrop-filter:blur(14px);z-index:2500;color:#fff;border-radius:24px;box-shadow:0 16px 40px rgba(0,0,0,.35)}";
   chunk += ".status-row{width:100%;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px}";
-
-  chunk += ".status-pill{display:flex;align-items:center;gap:12px;padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.12);border:2px solid transparent;font-weight:600;font-size:.95em;transition:border-color .3s,color .3s,box-shadow .3s}";
-  chunk += ".status-pill.state-off{border-color:#d9534f;color:#d9534f;box-shadow:0 0 14px rgba(217,83,79,.35)}";
-  chunk += ".status-pill.state-mid{border-color:#f0ad4e;color:#f0ad4e;box-shadow:0 0 18px rgba(240,173,78,.3)}";
-  chunk += ".status-pill.state-on{border-color:#5cb85c;color:#5cb85c;box-shadow:0 0 18px rgba(92,184,92,.35)}";
+  chunk += ".status-pill{display:flex;align-items:center;gap:12px;padding:8px 18px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);font-weight:600;font-size:.95em}";
+  chunk += ".status-pill.state-online{border-color:rgba(34,197,94,.65)}";
+  chunk += ".status-pill.state-offline{border-color:rgba(239,68,68,.65)}";
+  chunk += ".status-pill.state-pending{border-color:rgba(249,115,22,.65)}";
   chunk += ".status-text{display:flex;align-items:center;gap:6px}";
   chunk += ".status-label-name{font-weight:700}";
   chunk += ".status-separator{opacity:.6}";
   chunk += ".status-state{font-weight:600;opacity:.9}";
-  chunk += ".status-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 8px rgba(255,255,255,.25);background:#4b5563;transition:background-color .3s,box-shadow .3s}";
-  chunk += ".status-dot.state-off{background:#d9534f;box-shadow:0 0 16px rgba(217,83,79,.45)}";
-  chunk += ".status-dot.state-mid{background:#f0ad4e;box-shadow:0 0 16px rgba(240,173,78,.45)}";
-  chunk += ".status-dot.state-on{background:#5cb85c;box-shadow:0 0 16px rgba(92,184,92,.45)}";
+  chunk += ".ip-pill{background:rgba(255,255,255,.08)}";
+  chunk += ".ip-pill .status-label-name{opacity:.75}";
+  chunk += ".ip-pill .status-state{font-family:'Roboto Mono',monospace}";
+  chunk += ".status-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 10px rgba(255,255,255,.4)}";
+  chunk += ".status-dot.online{background:#22c55e;animation:statusBlink 1.4s ease-in-out infinite;box-shadow:0 0 14px rgba(34,197,94,.9)}";
+  chunk += ".status-dot.offline{background:#ef4444;box-shadow:0 0 14px rgba(239,68,68,.85)}";
+  chunk += ".status-dot.pending{background:#f97316;animation:statusPulse 2s ease-in-out infinite;box-shadow:0 0 14px rgba(249,115,22,.8)}";
+  chunk += "@keyframes statusBlink{0%,100%{opacity:1}50%{opacity:.35}}";
+  chunk += "@keyframes statusPulse{0%,100%{opacity:.6}50%{opacity:1}}";
   chunk += ".nav{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}";
   chunk += ".nav-btn{padding:8px 16px;background:rgba(255,255,255,.2);border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:600;font-size:.95em}";
   chunk += ".nav-btn:hover{background:rgba(255,255,255,.3)}";
@@ -3183,14 +2995,12 @@ void handleRoot() {
   server.sendContent(chunk);
 
   // CHUNK 2: STATUS BAR + NAVIGATION FIXE
+  String ipBadge = diagnosticData.ipAddress.length() ? diagnosticData.ipAddress : String("—");
   chunk = "<div class='status-bar'>";
-  String wifiHeaderText = headerStatus.wifiText.length() ? headerStatus.wifiText : String(T().wifi_status_connecting);
-  String btHeaderText = headerStatus.btText.length() ? headerStatus.btText : String(T().bluetooth_status_active_short);
-  String wifiStateClass = headerStatus.wifiStateClass.length() ? headerStatus.wifiStateClass : String("state-off");
-  String btStateClass = headerStatus.btStateClass.length() ? headerStatus.btStateClass : String("state-off");
   chunk += "<div class='status-row status-row-top'>";
-  chunk += "<div class='status-pill " + wifiStateClass + "' id='wifi-status-pill'><span class='status-dot " + wifiStateClass + "' id='wifi-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_wifi) + "</span><span class='status-separator'>·</span><span class='status-state' id='wifi-status-label'>" + wifiHeaderText + "</span></span></div>";
-  chunk += "<div class='status-pill " + btStateClass + "' id='bt-status-pill'><span class='status-dot " + btStateClass + "' id='bt-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_bluetooth) + "</span><span class='status-separator'>·</span><span class='status-state' id='bt-status-label'>" + btHeaderText + "</span></span></div>";
+  chunk += "<div class='status-pill' id='wifi-status-pill'><span class='status-dot offline' id='wifi-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_wifi) + "</span><span class='status-separator'>·</span><span class='status-state' id='wifi-status-label'>" + String(T().disconnected) + "</span></span></div>";
+  chunk += "<div class='status-pill' id='bt-status-pill'><span class='status-dot pending' id='bt-status-dot'></span><span class='status-text'><span class='status-label-name'>" + String(T().indicator_bluetooth) + "</span><span class='status-separator'>·</span><span class='status-state' id='bt-status-label'>" + String(T().indicator_unavailable) + "</span></span></div>";
+  chunk += "<div class='status-pill ip-pill'><span class='status-label-name'>" + String(T().ip_address) + "</span><span class='status-state' id='status-ip'>" + ipBadge + "</span></div>";
   chunk += "</div>";
   chunk += "<div class='status-row status-row-bottom'>";
   chunk += "<div class='nav'>";
@@ -3706,12 +3516,6 @@ void loop() {
     if (diagnosticData.temperature != -999) {
       Serial.printf("Temp: %.1f°C\r\n", diagnosticData.temperature);
     }
-  }
-
-  static unsigned long lastHeaderRefresh = 0;
-  if (millis() - lastHeaderRefresh > 3000) {
-    lastHeaderRefresh = millis();
-    updateHeaderStatus();
   }
 
   delay(10);

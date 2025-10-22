@@ -1,6 +1,6 @@
 # ESP32 Diagnostic – Mode d'emploi & compilation (FR)
 
-Ce guide pas-à-pas décrit la configuration nécessaire pour compiler et utiliser **ESP32-Diagnostic v2.8.15** avec l'IDE Arduino 2.x.
+Ce guide pas-à-pas décrit la configuration nécessaire pour compiler et utiliser **ESP32-Diagnostic v2.8.10** avec l'IDE Arduino 2.x.
 
 ## 1. Pré-requis
 
@@ -27,13 +27,14 @@ Le core ESP32 fournit déjà `WiFi`, `WebServer`, `ESPmDNS`, `Wire`, `SPI`, `esp
 
 ## 2. Fichiers du projet & WiFi
 1. Copiez le dossier `ESP32-Diagnostic/` dans votre répertoire de sketches Arduino.
-2. Dupliquez `wifi-config.example.h` en `wifi-config.h` (fichier non versionné) puis décommentez/ajoutez des lignes `WIFI_CREDENTIAL` dans `WIFI_CREDENTIALS_LIST` :
+2. Dupliquez `wifi-config.example.h` en `wifi-config.h` (fichier non versionné) puis renseignez vos réseaux :
    ```cpp
-   #define WIFI_CREDENTIALS_LIST \
-     WIFI_CREDENTIAL("MonReseau", "MotDePasse") \
-     /* WIFI_CREDENTIAL("Secours", "Mot2") */
+   static const WiFiCredential WIFI_NETWORKS[] = {
+     {"MonReseau", "MotDePasse"},
+     {"Secours", "Mot2"}
+   };
    ```
-   Commentez les lignes inutiles : le gabarit gère automatiquement virgules et accolades.
+   Les SSID vides sont ignorés automatiquement.
 3. Ajustez `config.h` (fourni) : broches (`CUSTOM_LED_PIN`, `DEFAULT_I2C_SDA/SCL`), `MDNS_HOSTNAME`, activation de l'auto-test Bluetooth (`ENABLE_BLUETOOTH_AUTOTEST`), intervalle `WIRELESS_STATUS_REFRESH_MS`, etc.
 
 ## 3. Réglages IDE
@@ -62,7 +63,7 @@ Le core ESP32 fournit déjà `WiFi`, `WebServer`, `ESPmDNS`, `Wire`, `SPI`, `esp
 | Problème | Solution recommandée |
 | --- | --- |
 | `esp_bt_main.h: No such file or directory` | Activez *Outils → Bluetooth*. Sinon, ignorez le test : le bandeau indiquera « Indisponible ». |
-| Voyants WiFi/Bluetooth incohérents | Rechargez l'onglet « Sans fil » ou la page ; la v2.8.15 maintient la cohérence des voyants, réessaie chaque SSID configuré et affiche l'adresse IP ainsi que les indications Bluetooth. |
+| Données WiFi obsolètes | Rechargez l'onglet « Sans fil » ou la page ; la v2.8.10 rafraîchit automatiquement le bandeau et maintient le voyant WiFi au vert dès qu'une connexion STA/AP est active. |
 | SoftAP uniquement mais voyant WiFi rouge | Vérifiez les identifiants dans `wifi-config.h` ou utilisez le SoftAP (voyant orange = mode AP seul). |
 | Textes non traduits | Assurez-vous que `languages.h` est présent à côté du `.ino`, puis re-téléversez. |
 
