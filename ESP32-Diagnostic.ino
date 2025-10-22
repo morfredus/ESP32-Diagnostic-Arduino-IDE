@@ -1,5 +1,5 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.20-dev
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.8.21-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -185,7 +185,7 @@
 #include "app_script.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.8.20-dev"
+#define DIAGNOSTIC_VERSION "2.8.21-dev"
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
@@ -531,7 +531,7 @@ void updateBluetoothDerivedState() {
   }
 }
 
-bool btStarted() {
+bool isBtControllerStarted() {
 #if HAS_NATIVE_BLUETOOTH
   esp_bt_controller_status_t status = esp_bt_controller_get_status();
   return status == ESP_BT_CONTROLLER_STATUS_ENABLED ||
@@ -597,7 +597,7 @@ void updateHeaderStatus() {
                                          runtimeStatus == ESP_BT_CONTROLLER_STATUS_DISABLING);
 #endif
 
-  bool controllerStarted = btStarted();
+  bool controllerStarted = isBtControllerStarted();
   bool controllerEnabled = bluetoothInfo.controllerEnabled;
   bool controllerInitialised = bluetoothInfo.controllerInitialized || controllerStarted;
   bool controllerConnected = btConnected();
