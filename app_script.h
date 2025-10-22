@@ -95,6 +95,7 @@ inline String buildAppScript() {
     bluetoothLabel: "{{BT_LABEL}}",
     offline: "{{OFFLINE}}",
     unavailable: "{{UNAVAILABLE}}",
+    waiting: "{{STATUS_WAITING}}",
     ap: "{{AP_STATE}}"
   };
 
@@ -838,12 +839,12 @@ inline String buildAppScript() {
         wifiStateText = indicator.ap;
         break;
       case 'idle':
-        wifiStateClass = 'offline';
-        wifiStateText = indicator.offline;
+        wifiStateClass = 'pending';
+        wifiStateText = indicator.waiting;
         break;
       case 'waiting':
         wifiStateClass = 'pending';
-        wifiStateText = messages.wifiWaiting;
+        wifiStateText = indicator.waiting;
         break;
       case 'unavailable':
         wifiStateClass = 'pending';
@@ -860,11 +861,11 @@ inline String buildAppScript() {
           wifiStateClass = 'online';
           wifiStateText = indicator.ap;
         } else if (wifiDriverInitialized) {
-          wifiStateClass = 'offline';
-          wifiStateText = indicator.offline;
+          wifiStateClass = 'pending';
+          wifiStateText = indicator.waiting;
         } else {
           wifiStateClass = 'pending';
-          wifiStateText = messages.wifiWaiting;
+          wifiStateText = indicator.waiting;
         }
         break;
     }
@@ -881,14 +882,14 @@ inline String buildAppScript() {
     let connectionText;
     if (!wifiAvailable && wifiStateRaw === 'unavailable') {
       connectionText = `❌ ${indicator.unavailable}`;
-    } else if (wifiStateRaw === 'waiting') {
-      connectionText = `⏳ ${messages.wifiWaiting}`;
     } else if (wifiStation || wifiStateRaw === 'connected') {
       connectionText = wifiStation ? `✅ ${labels.connected}` : `✅ ${indicator.ap}`;
     } else if (wifiAP || wifiStateRaw === 'ap') {
       connectionText = `✅ ${indicator.ap}`;
+    } else if (wifiStateRaw === 'waiting' || wifiStateRaw === 'idle' || wifiDriverInitialized) {
+      connectionText = `⏳ ${indicator.waiting}`;
     } else {
-      connectionText = `❌ ${labels.disconnected}`;
+      connectionText = `❌ ${indicator.unavailable}`;
     }
     updateText('wifi-connection-state', connectionText);
 
@@ -947,7 +948,6 @@ inline String buildAppScript() {
       updateText('wifi-gateway', fallbackChar);
       updateText('wifi-dns', fallbackChar);
     }
-    updateText('status-ip', ipDisplay);
     updateText('ipAddress', ipDisplay);
     const btClassic = toBool(bt.classic);
     const btBle = toBool(bt.ble);
@@ -986,53 +986,37 @@ inline String buildAppScript() {
     const btPill = document.getElementById('bt-status-pill');
     const hasBluetoothHardware = btClassic || btBle;
     const btStateRaw = typeof bt.state === 'string' ? bt.state.toLowerCase() : '';
+    const showTestInHeader = hasMeaningfulTest && compileEnabled;
     let btStateClass = 'pending';
     let btStateText = indicator.unavailable;
 
-    if (!hasBluetoothHardware) {
+    if (showTestInHeader) {
+      btStateClass = lastTestSuccess ? 'online' : 'offline';
+      btStateText = lastTestSuccess ? messages.ok : messages.fail;
+    } else if (!hasBluetoothHardware || !compileEnabled) {
       btStateClass = 'pending';
-      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (btStateRaw === 'enabled') {
+      btStateText = indicator.unavailable;
+    } else if (btStateRaw === 'enabled' || controllerEnabled) {
       btStateClass = 'online';
-      btStateText = bt.controller && bt.controller.length ? bt.controller : labels.connected;
-    } else if (btStateRaw === 'initialised') {
-      btStateClass = 'pending';
-      btStateText = bt.controller && bt.controller.length ? bt.controller : indicator.offline;
-    } else if (btStateRaw === 'disabled') {
+      btStateText = labels.connected;
+    } else if (btStateRaw === 'disabled' || btStateRaw === 'off') {
       btStateClass = 'offline';
-      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (btStateRaw === 'off') {
-      btStateClass = 'offline';
-      btStateText = bt.controller && bt.controller.length ? bt.controller : indicator.offline;
+      btStateText = indicator.offline;
     } else if (btStateRaw === 'unavailable') {
       btStateClass = 'pending';
-      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (!compileEnabled) {
-      btStateClass = 'offline';
-      btStateText = bt.hint && bt.hint.length ? bt.hint : indicator.unavailable;
-    } else if (controllerEnabled) {
-      btStateClass = 'online';
-      btStateText = bt.controller || labels.connected;
-    } else if (controllerInitialized) {
+      btStateText = indicator.unavailable;
+    } else if (
+      btStateRaw === 'enabling' ||
+      btStateRaw === 'disabling' ||
+      btStateRaw === 'initialised' ||
+      btStateRaw === 'idle' ||
+      controllerInitialized
+    ) {
       btStateClass = 'pending';
-      btStateText = bt.controller || indicator.offline;
+      btStateText = indicator.waiting;
     } else {
-      btStateClass = 'offline';
-      btStateText = bt.controller || indicator.offline;
-    }
-
-    if (hasMeaningfulTest) {
-      if (!compileEnabled) {
-        btStateText = bt.hint && bt.hint.length ? bt.hint : lastMessage;
-        btStateClass = 'offline';
-      } else {
-        btStateText = lastMessage;
-        btStateClass = lastTestSuccess ? 'online' : 'offline';
-      }
-    }
-
-    if (!compileEnabled && bt.hint && bt.hint.length) {
-      btStateText = bt.hint;
+      btStateClass = 'pending';
+      btStateText = indicator.waiting;
     }
 
     if (btLabel) {
@@ -1236,6 +1220,7 @@ inline String buildAppScript() {
   script.replace(F("{{AP_STATE}}"), escapeForJS(String(T().indicator_ap)));
   script.replace(F("{{OFFLINE}}"), escapeForJS(String(T().disconnected)));
   script.replace(F("{{UNAVAILABLE}}"), escapeForJS(String(T().indicator_unavailable)));
+  script.replace(F("{{STATUS_WAITING}}"), escapeForJS(String(T().indicator_waiting)));
   String channelPrefix = (currentLanguage == LANG_FR) ? String("Canal ") : String("Ch ");
   script.replace(F("{{CHANNEL_PREFIX}}"), escapeForJS(channelPrefix));
   script.replace(F("{{TESTING}}"), escapeForJS(String(T().testing)));
