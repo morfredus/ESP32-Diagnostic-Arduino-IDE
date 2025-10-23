@@ -1,4 +1,4 @@
-// Version de dev : 3.0.06-dev
+// Version de dev : 3.0.07-dev
 /*
  * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
@@ -36,10 +36,25 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <esp32-hal-ledc.h>
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
+
+// --- [NEW FEATURE] Détection des bibliothèques Bluetooth ---
+#if defined(__has_include)
+#  if __has_include(<BLEDevice.h>) && __has_include(<BLEServer.h>) && __has_include(<BLEUtils.h>) && __has_include(<BLE2902.h>)
+#    define HAS_BLUETOOTH_LIBRARIES 1
+#  else
+#    define HAS_BLUETOOTH_LIBRARIES 0
+#  endif
+#else
+#  define HAS_BLUETOOTH_LIBRARIES 0
+#endif
+
+#if HAS_BLUETOOTH_LIBRARIES
+#  include <BLEDevice.h>
+#  include <BLEServer.h>
+#  include <BLEUtils.h>
+#  include <BLE2902.h>
+#endif
+
 #include <vector>
 
 #if defined(__has_include)
@@ -54,7 +69,7 @@
 #endif
 
 // --- [NEW FEATURE] Détection de l'activation Bluetooth dans le firmware ---
-#if defined(CONFIG_BT_ENABLED) || defined(CONFIG_BT_NIMBLE_ENABLED) || defined(CONFIG_BT_BLUEDROID_ENABLED) || defined(CONFIG_BLUEDROID_ENABLED) || defined(CONFIG_NIMBLE_ENABLED)
+#if HAS_BLUETOOTH_LIBRARIES && (defined(CONFIG_BT_ENABLED) || defined(CONFIG_BT_NIMBLE_ENABLED) || defined(CONFIG_BT_BLUEDROID_ENABLED) || defined(CONFIG_BLUEDROID_ENABLED) || defined(CONFIG_NIMBLE_ENABLED))
 #  define BLUETOOTH_FIRMWARE_ENABLED 1
 #else
 #  define BLUETOOTH_FIRMWARE_ENABLED 0
@@ -260,6 +275,7 @@ struct BluetoothStatus {
 };
 
 BluetoothStatus bluetoothStatus;
+#if HAS_BLUETOOTH_LIBRARIES
 BLEServer* bluetoothServer = nullptr;
 BLEService* bluetoothService = nullptr;
 BLECharacteristic* bluetoothCharacteristic = nullptr;
@@ -322,6 +338,7 @@ public:
     }
   }
 };
+#endif  // HAS_BLUETOOTH_LIBRARIES
 
 void updateBluetoothCharacteristicPayload();
 void initBluetooth();
@@ -462,6 +479,7 @@ String getBluetoothEventAge() {
 }
 
 void updateBluetoothCharacteristicPayload() {
+#if HAS_BLUETOOTH_LIBRARIES
   if (!bluetoothCharacteristic) {
     return;
   }
@@ -479,6 +497,9 @@ void updateBluetoothCharacteristicPayload() {
   if (bluetoothStatus.connected) {
     bluetoothCharacteristic->notify();
   }
+#else
+  // Bibliothèques Bluetooth absentes : aucune mise à jour à réaliser
+#endif
 }
 
 String getGPIOList() {
@@ -796,6 +817,15 @@ void initBluetooth() {
     return;
   }
 
+#if !HAS_BLUETOOTH_LIBRARIES
+  bluetoothStatus.initialized = false;
+  bluetoothStatus.advertising = false;
+  bluetoothStatus.lastEventCode = "firmware_disabled";
+  bluetoothStatus.serviceUUID = "";
+  bluetoothStatus.characteristicUUID = "";
+  Serial.println("Bibliotheques Bluetooth absentes pour cette configuration");
+  return;
+#else
   if (!bluetoothStatus.firmwareEnabled) {
     bluetoothStatus.initialized = false;
     bluetoothStatus.advertising = false;
@@ -840,9 +870,11 @@ void initBluetooth() {
   bluetoothStatus.lastEventMillis = millis();
 
   Serial.printf("Bluetooth prêt (%s)\r\n", bluetoothStatus.deviceName.c_str());
+#endif
 }
 
 bool startBluetoothAdvertising() {
+#if HAS_BLUETOOTH_LIBRARIES
   if (!bluetoothStatus.initialized || !bluetoothAdvertising || !bluetoothStatus.firmwareEnabled) {
     return false;
   }
@@ -851,9 +883,13 @@ bool startBluetoothAdvertising() {
   bluetoothStatus.lastEventCode = "advertising";
   bluetoothStatus.lastEventMillis = millis();
   return true;
+#else
+  return false;
+#endif
 }
 
 bool stopBluetoothAdvertising() {
+#if HAS_BLUETOOTH_LIBRARIES
   if (!bluetoothStatus.initialized || !bluetoothAdvertising || !bluetoothStatus.firmwareEnabled) {
     return false;
   }
@@ -864,6 +900,9 @@ bool stopBluetoothAdvertising() {
   bluetoothStatus.lastEventCode = "idle";
   bluetoothStatus.lastEventMillis = millis();
   return true;
+#else
+  return false;
+#endif
 }
 
 void handleBluetoothStatus() {
@@ -880,10 +919,10 @@ void handleBluetoothStatus() {
   json += "\"modes\":\"" + getBluetoothModesLabel() + "\",";
   json += "\"supportedLabel\":\"" + String(bluetoothStatus.supported ? T().bluetooth_supported : T().bluetooth_not_supported) + "\",";
   String firmwareLabel = bluetoothStatus.supported ? String(bluetoothStatus.firmwareEnabled ? T().bluetooth_firmware_enabled : T().bluetooth_firmware_disabled) : String(T().bluetooth_not_supported);
-  firmwareLabel.replace("\"", "'"");
+  firmwareLabel.replace("\"", "'");
   json += "\"firmwareLabel\":\"" + firmwareLabel + "\",";
   String firmwareHint = (bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled) ? String(T().bluetooth_compiler_disabled) : String("");
-  firmwareHint.replace("\"", "'"");
+  firmwareHint.replace("\"", "'");
   json += "\"compilerHint\":\"" + firmwareHint + "\",";
   json += "\"advertisingLabel\":\"" + String(bluetoothStatus.advertising ? T().enabled : T().disabled) + "\",";
   json += "\"connectedLabel\":\"" + String(bluetoothStatus.connected ? T().connected : T().fail) + "\",";
