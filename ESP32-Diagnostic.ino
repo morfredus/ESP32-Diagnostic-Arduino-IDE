@@ -29,12 +29,26 @@
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
-#ifdef CONFIG_BT_ENABLED
-#include <esp_bt.h>
-#include <esp_bt_main.h>
+
+// --- [NEW FEATURE] Détection conditionnelle Bluetooth ---
+#if defined(__has_include)
+  #if __has_include(<esp_bt.h>) && __has_include(<esp_bt_main.h>)
+    #define ESP_DIAG_HAVE_BT_STACK 1
+    #include <esp_bt.h>
+    #include <esp_bt_main.h>
+  #endif
+  #if __has_include(<esp_bt_device.h>)
+    #define ESP_DIAG_HAVE_BT_DEVICE 1
+    #include <esp_bt_device.h>
+  #endif
 #endif
-#if defined(CONFIG_BT_ENABLED) || defined(CONFIG_BT_BLE_ENABLED)
-#include <esp_bt_device.h>
+
+#ifndef ESP_DIAG_HAVE_BT_STACK
+  #define ESP_DIAG_HAVE_BT_STACK 0
+#endif
+
+#ifndef ESP_DIAG_HAVE_BT_DEVICE
+  #define ESP_DIAG_HAVE_BT_DEVICE 0
 #endif
 #include <soc/soc.h>
 #include <soc/rtc.h>
@@ -324,7 +338,7 @@ String formatMacAddress(const uint8_t mac[6]) {
   return String(buffer);
 }
 
-#ifdef CONFIG_BT_ENABLED
+#if ESP_DIAG_HAVE_BT_STACK
 String translateBluetoothControllerStatus(esp_bt_controller_status_t status) {
   switch (status) {
     case ESP_BT_CONTROLLER_STATUS_IDLE:
@@ -1349,7 +1363,7 @@ void collectDiagnosticInfo() {
   diagnosticData.btClassicAddress = diagnosticData.hasBT ? String(T().unknown) : String(T().not_detected);
   diagnosticData.bleAddress = diagnosticData.hasBLE ? String(T().unknown) : String(T().not_detected);
 
-#ifdef CONFIG_BT_ENABLED
+#if ESP_DIAG_HAVE_BT_STACK && (defined(CONFIG_BT_ENABLED) || defined(CONFIG_BT_BLE_ENABLED))
   esp_bt_controller_status_t btStatus = esp_bt_controller_get_status();
   diagnosticData.bluetoothControllerStatus = translateBluetoothControllerStatus(btStatus);
   diagnosticData.bluetoothControllerEnabled = (btStatus == ESP_BT_CONTROLLER_STATUS_ENABLED);
