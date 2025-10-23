@@ -1,4 +1,4 @@
-// Version de dev : 3.0.07-dev
+// Version de dev : 3.0.08-dev
 /*
  * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
@@ -68,11 +68,11 @@
 #  define HAS_ESP_GATTS_API 0
 #endif
 
-// --- [NEW FEATURE] Détection de l'activation Bluetooth dans le firmware ---
+// --- [NEW FEATURE] Indication de compilation Bluetooth ---
 #if HAS_BLUETOOTH_LIBRARIES && (defined(CONFIG_BT_ENABLED) || defined(CONFIG_BT_NIMBLE_ENABLED) || defined(CONFIG_BT_BLUEDROID_ENABLED) || defined(CONFIG_BLUEDROID_ENABLED) || defined(CONFIG_NIMBLE_ENABLED))
-#  define BLUETOOTH_FIRMWARE_ENABLED 1
+#  define BLUETOOTH_COMPILER_ENABLED 1
 #else
-#  define BLUETOOTH_FIRMWARE_ENABLED 0
+#  define BLUETOOTH_COMPILER_ENABLED 0
 #endif
 
 // Configuration WiFi
@@ -261,7 +261,9 @@ struct BluetoothStatus {
   bool supported = false;
   bool classicSupported = false;
   bool bleSupported = false;
-  bool firmwareEnabled = BLUETOOTH_FIRMWARE_ENABLED;
+  bool librariesAvailable = HAS_BLUETOOTH_LIBRARIES;
+  bool compilerEnabled = BLUETOOTH_COMPILER_ENABLED;
+  bool firmwareEnabled = false;
   bool initialized = false;
   bool advertising = false;
   bool connected = false;
@@ -808,11 +810,19 @@ void initBluetooth() {
   bluetoothStatus.supported = (chipInfo.features & CHIP_FEATURE_BT) || (chipInfo.features & CHIP_FEATURE_BLE);
   bluetoothStatus.classicSupported = chipInfo.features & CHIP_FEATURE_BT;
   bluetoothStatus.bleSupported = chipInfo.features & CHIP_FEATURE_BLE;
-  bluetoothStatus.firmwareEnabled = BLUETOOTH_FIRMWARE_ENABLED;
+  bluetoothStatus.librariesAvailable = HAS_BLUETOOTH_LIBRARIES;
+  bluetoothStatus.compilerEnabled = BLUETOOTH_COMPILER_ENABLED;
+  bluetoothStatus.firmwareEnabled = false;
   bluetoothStatus.lastEventMillis = millis();
 
   if (!bluetoothStatus.supported) {
+    bluetoothStatus.initialized = false;
+    bluetoothStatus.advertising = false;
+    bluetoothStatus.connected = false;
+    bluetoothStatus.firmwareEnabled = false;
     bluetoothStatus.lastEventCode = "idle";
+    bluetoothStatus.serviceUUID = "";
+    bluetoothStatus.characteristicUUID = "";
     Serial.println("Bluetooth non supporte sur cette carte");
     return;
   }
@@ -820,22 +830,13 @@ void initBluetooth() {
 #if !HAS_BLUETOOTH_LIBRARIES
   bluetoothStatus.initialized = false;
   bluetoothStatus.advertising = false;
+  bluetoothStatus.connected = false;
   bluetoothStatus.lastEventCode = "firmware_disabled";
   bluetoothStatus.serviceUUID = "";
   bluetoothStatus.characteristicUUID = "";
   Serial.println("Bibliotheques Bluetooth absentes pour cette configuration");
   return;
 #else
-  if (!bluetoothStatus.firmwareEnabled) {
-    bluetoothStatus.initialized = false;
-    bluetoothStatus.advertising = false;
-    bluetoothStatus.lastEventCode = "firmware_disabled";
-    bluetoothStatus.serviceUUID = "";
-    bluetoothStatus.characteristicUUID = "";
-    Serial.println("Bluetooth supporte mais desactive dans la configuration du firmware");
-    return;
-  }
-
   if (bluetoothStatus.deviceName.isEmpty()) {
     uint64_t chipId = ESP.getEfuseMac();
     char name[20];
@@ -843,39 +844,83 @@ void initBluetooth() {
     bluetoothStatus.deviceName = String(name);
   }
 
-  BLEDevice::init(bluetoothStatus.deviceName.c_str());
-  bluetoothServer = BLEDevice::createServer();
-  bluetoothServer->setCallbacks(new DiagnosticBLECallbacks());
+  BLEServer* serverCandidate = nullptr;
+  BLEService* serviceCandidate = nullptr;
+  BLECharacteristic* characteristicCandidate = nullptr;
+  BLEAdvertising* advertisingCandidate = nullptr;
+  bool initSuccess = false;
 
-  bluetoothService = bluetoothServer->createService(DIAGNOSTIC_SERVICE_UUID);
-  bluetoothCharacteristic = bluetoothService->createCharacteristic(
-    DIAGNOSTIC_CHARACTERISTIC_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
-  );
-  bluetoothCharacteristic->addDescriptor(new BLE2902());
-  bluetoothCharacteristic->setValue("ESP32 Diagnostic BLE");
-  bluetoothService->start();
+  do {
+    BLEDevice::init(bluetoothStatus.deviceName.c_str());
+    serverCandidate = BLEDevice::createServer();
+    if (!serverCandidate) break;
+    serverCandidate->setCallbacks(new DiagnosticBLECallbacks());
 
-  bluetoothAdvertising = BLEDevice::getAdvertising();
-  bluetoothAdvertising->addServiceUUID(DIAGNOSTIC_SERVICE_UUID);
-  bluetoothAdvertising->setScanResponse(true);
-  bluetoothAdvertising->start();
+    serviceCandidate = serverCandidate->createService(DIAGNOSTIC_SERVICE_UUID);
+    if (!serviceCandidate) break;
+
+    characteristicCandidate = serviceCandidate->createCharacteristic(
+      DIAGNOSTIC_CHARACTERISTIC_UUID,
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+    );
+    if (!characteristicCandidate) break;
+
+    characteristicCandidate->addDescriptor(new BLE2902());
+    characteristicCandidate->setValue("ESP32 Diagnostic BLE");
+    serviceCandidate->start();
+
+    advertisingCandidate = BLEDevice::getAdvertising();
+    if (!advertisingCandidate) break;
+
+    advertisingCandidate->addServiceUUID(DIAGNOSTIC_SERVICE_UUID);
+    advertisingCandidate->setScanResponse(true);
+    advertisingCandidate->start();
+
+    initSuccess = true;
+  } while (false);
+
+  if (!initSuccess) {
+    bluetoothServer = nullptr;
+    bluetoothService = nullptr;
+    bluetoothCharacteristic = nullptr;
+    bluetoothAdvertising = nullptr;
+    bluetoothStatus.initialized = false;
+    bluetoothStatus.advertising = false;
+    bluetoothStatus.connected = false;
+    bluetoothStatus.firmwareEnabled = false;
+    bluetoothStatus.serviceUUID = "";
+    bluetoothStatus.characteristicUUID = "";
+    bluetoothStatus.lastEventCode = "firmware_disabled";
+    bluetoothStatus.lastEventMillis = millis();
+    Serial.println("Bluetooth supporte mais indisponible (initialisation echou)");
+    return;
+  }
+
+  bluetoothServer = serverCandidate;
+  bluetoothService = serviceCandidate;
+  bluetoothCharacteristic = characteristicCandidate;
+  bluetoothAdvertising = advertisingCandidate;
 
   bluetoothStatus.serviceUUID = String(DIAGNOSTIC_SERVICE_UUID.toString().c_str());
   bluetoothStatus.characteristicUUID = String(DIAGNOSTIC_CHARACTERISTIC_UUID.toString().c_str());
 
   bluetoothStatus.initialized = true;
   bluetoothStatus.advertising = true;
+  bluetoothStatus.connected = false;
+  bluetoothStatus.firmwareEnabled = true;
   bluetoothStatus.lastEventCode = "advertising";
   bluetoothStatus.lastEventMillis = millis();
 
+  if (!bluetoothStatus.compilerEnabled) {
+    Serial.println("Bluetooth actif apres verification runtime (compilation non forcee)");
+  }
   Serial.printf("Bluetooth prêt (%s)\r\n", bluetoothStatus.deviceName.c_str());
 #endif
 }
 
 bool startBluetoothAdvertising() {
 #if HAS_BLUETOOTH_LIBRARIES
-  if (!bluetoothStatus.initialized || !bluetoothAdvertising || !bluetoothStatus.firmwareEnabled) {
+  if (!bluetoothStatus.initialized || !bluetoothAdvertising) {
     return false;
   }
   bluetoothAdvertising->start();
@@ -890,7 +935,7 @@ bool startBluetoothAdvertising() {
 
 bool stopBluetoothAdvertising() {
 #if HAS_BLUETOOTH_LIBRARIES
-  if (!bluetoothStatus.initialized || !bluetoothAdvertising || !bluetoothStatus.firmwareEnabled) {
+  if (!bluetoothStatus.initialized || !bluetoothAdvertising) {
     return false;
   }
   if (bluetoothAdvertising->isAdvertising()) {
@@ -915,13 +960,20 @@ void handleBluetoothStatus() {
   json += "\"connected\":" + String(bluetoothStatus.connected ? "true" : "false") + ",";
   json += "\"connections\":" + String(bluetoothStatus.connectionCount) + ",";
   json += "\"firmware\":" + String((bluetoothStatus.supported && bluetoothStatus.firmwareEnabled) ? "true" : "false") + ",";
+  json += "\"libraries\":" + String(bluetoothStatus.librariesAvailable ? "true" : "false") + ",";
+  json += "\"compiler\":" + String(bluetoothStatus.compilerEnabled ? "true" : "false") + ",";
   json += "\"device\":\"" + bluetoothStatus.deviceName + "\",";
   json += "\"modes\":\"" + getBluetoothModesLabel() + "\",";
   json += "\"supportedLabel\":\"" + String(bluetoothStatus.supported ? T().bluetooth_supported : T().bluetooth_not_supported) + "\",";
   String firmwareLabel = bluetoothStatus.supported ? String(bluetoothStatus.firmwareEnabled ? T().bluetooth_firmware_enabled : T().bluetooth_firmware_disabled) : String(T().bluetooth_not_supported);
   firmwareLabel.replace("\"", "'");
   json += "\"firmwareLabel\":\"" + firmwareLabel + "\",";
-  String firmwareHint = (bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled) ? String(T().bluetooth_compiler_disabled) : String("");
+  String firmwareHint = "";
+  if (bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled) {
+    if (!bluetoothStatus.librariesAvailable || !bluetoothStatus.compilerEnabled) {
+      firmwareHint = String(T().bluetooth_compiler_disabled);
+    }
+  }
   firmwareHint.replace("\"", "'");
   json += "\"compilerHint\":\"" + firmwareHint + "\",";
   json += "\"advertisingLabel\":\"" + String(bluetoothStatus.advertising ? T().enabled : T().disabled) + "\",";
@@ -948,8 +1000,33 @@ void handleBluetoothControl() {
     return;
   }
 
+  if (action == "init") {
+    initBluetooth();
+    bool success = bluetoothStatus.initialized && bluetoothStatus.firmwareEnabled;
+    String message;
+    if (success) {
+      message = String(T().bluetooth_action_started);
+    } else if (!bluetoothStatus.librariesAvailable || !bluetoothStatus.compilerEnabled) {
+      message = String(T().bluetooth_compiler_disabled);
+    } else {
+      message = String(T().bluetooth_action_not_available);
+    }
+    message.replace("\"", "'");
+    String json = "{\"success\":" + String(success ? "true" : "false") + ",\"message\":\"" + message + "\"}";
+    server.send(success ? 200 : 400, "application/json", json);
+    return;
+  }
+
   if (!bluetoothStatus.firmwareEnabled) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().bluetooth_compiler_disabled) + "\"}");
+    initBluetooth();
+  }
+
+  if (!bluetoothStatus.firmwareEnabled) {
+    String disabledMessage = (!bluetoothStatus.librariesAvailable || !bluetoothStatus.compilerEnabled)
+                               ? String(T().bluetooth_compiler_disabled)
+                               : String(T().bluetooth_action_not_available);
+    disabledMessage.replace("\"", "'");
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + disabledMessage + "\"}");
     return;
   }
 
@@ -971,15 +1048,12 @@ void handleBluetoothControl() {
     bool started = startBluetoothAdvertising();
     success = stopped && started;
     if (success) message = String(T().bluetooth_action_restarted);
-  } else if (action == "init") {
-    initBluetooth();
-    success = bluetoothStatus.initialized;
-    if (success) message = String(T().bluetooth_action_started);
   } else {
     server.send(400, "application/json", "{\"success\":false,\"message\":\"Unknown action\"}");
     return;
   }
 
+  message.replace("\"", "'");
   String json = "{\"success\":" + String(success ? "true" : "false") + ",\"message\":\"" + message + "\"}";
   server.send(success ? 200 : 400, "application/json", json);
 }
@@ -2732,15 +2806,19 @@ void handleRoot() {
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_service_uuid'>" + String(T().bluetooth_service_uuid) + "</div><div class='info-value' id='bt-overview-service'>" + diagnosticData.bluetoothServiceUUID + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_characteristic_uuid'>" + String(T().bluetooth_characteristic_uuid) + "</div><div class='info-value' id='bt-overview-characteristic'>" + diagnosticData.bluetoothCharacteristicUUID + "</div></div>";
   chunk += "</div>";
-  chunk += "<div class='status-live' id='bt-overview-warning'";
-  if (!(bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled)) {
-    chunk += " style='display:none'";
+  {
+    bool showCompilerWarning = bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled &&
+                               (!bluetoothStatus.librariesAvailable || !bluetoothStatus.compilerEnabled);
+    chunk += "<div class='status-live' id='bt-overview-warning'";
+    if (!showCompilerWarning) {
+      chunk += " style='display:none'";
+    }
+    chunk += ">";
+    if (showCompilerWarning) {
+      chunk += String(T().bluetooth_compiler_disabled);
+    }
+    chunk += "</div></div>";
   }
-  chunk += ">";
-  if (bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled) {
-    chunk += String(T().bluetooth_compiler_disabled);
-  }
-  chunk += "</div></div>";
   server.sendContent(chunk);
   
   // GPIO et I2C
@@ -2896,15 +2974,19 @@ void handleRoot() {
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_service_uuid'>" + String(T().bluetooth_service_uuid) + "</div><div class='info-value' id='bt-service'>" + diagnosticData.bluetoothServiceUUID + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_characteristic_uuid'>" + String(T().bluetooth_characteristic_uuid) + "</div><div class='info-value' id='bt-characteristic'>" + diagnosticData.bluetoothCharacteristicUUID + "</div></div>";
   chunk += "</div>";
-  chunk += "<div class='status-live' id='bt-warning'";
-  if (!(bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled)) {
-    chunk += " style='display:none'";
+  {
+    bool showCompilerWarning = bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled &&
+                               (!bluetoothStatus.librariesAvailable || !bluetoothStatus.compilerEnabled);
+    chunk += "<div class='status-live' id='bt-warning'";
+    if (!showCompilerWarning) {
+      chunk += " style='display:none'";
+    }
+    chunk += ">";
+    if (showCompilerWarning) {
+      chunk += String(T().bluetooth_compiler_disabled);
+    }
+    chunk += "</div>";
   }
-  chunk += ">";
-  if (bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled) {
-    chunk += String(T().bluetooth_compiler_disabled);
-  }
-  chunk += "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-info' onclick='refreshBluetoothStatus()'><span data-i18n='bluetooth_refresh'>" + String(T().bluetooth_refresh) + "</span></button> ";
   chunk += "<button class='btn btn-success' onclick='bluetoothControl(\"start\")'><span data-i18n='bluetooth_start_adv'>" + String(T().bluetooth_start_adv) + "</span></button> ";
