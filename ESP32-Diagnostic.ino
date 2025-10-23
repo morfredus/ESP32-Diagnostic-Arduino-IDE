@@ -42,6 +42,24 @@
 #include <BLE2902.h>
 #include <vector>
 
+#if defined(__has_include)
+#  if __has_include(<esp_gatts_api.h>)
+#    include <esp_gatts_api.h>
+#    define HAS_ESP_GATTS_API 1
+#  else
+#    define HAS_ESP_GATTS_API 0
+#  endif
+#else
+#  define HAS_ESP_GATTS_API 0
+#endif
+
+// --- [NEW FEATURE] Indication de compilation Bluetooth ---
+#if HAS_BLUETOOTH_LIBRARIES && (defined(CONFIG_BT_ENABLED) || defined(CONFIG_BT_NIMBLE_ENABLED) || defined(CONFIG_BT_BLUEDROID_ENABLED) || defined(CONFIG_BLUEDROID_ENABLED) || defined(CONFIG_NIMBLE_ENABLED))
+#  define BLUETOOTH_COMPILER_ENABLED 1
+#else
+#  define BLUETOOTH_COMPILER_ENABLED 0
+#endif
+
 // Configuration WiFi
 #include "wifi-config.h"
 
