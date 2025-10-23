@@ -73,6 +73,9 @@ WebServer server(80);
 WiFiMulti wifiMulti;
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+// --- [NEW FEATURE] Sécurisation I2C sans OLED ---
+bool i2cBusInitialized = false;
+
 // NeoPixel
 int LED_PIN = CUSTOM_LED_PIN;
 int LED_COUNT = CUSTOM_LED_COUNT;
@@ -591,14 +594,30 @@ unsigned long benchmarkMemory() {
   return duration;
 }
 
+// --- [NEW FEATURE] Initialisation sécurisée du bus I2C ---
+bool ensureI2CBus() {
+  if (!i2cBusInitialized) {
+    i2cBusInitialized = Wire.begin(I2C_SDA, I2C_SCL);
+    if (!i2cBusInitialized) {
+      Serial.println("I2C: initialisation impossible");
+      return false;
+    }
+  }
+  return true;
+}
+
 // ========== SCAN I2C ==========
 void scanI2C() {
   if (!ENABLE_I2C_SCAN) return;
-  
+
   Serial.println("\r\n=== SCAN I2C ===");
-  Wire.begin(I2C_SDA, I2C_SCL);
+  if (!ensureI2CBus()) {
+    diagnosticData.i2cDevices = String(T().i2c_bus_unavailable);
+    diagnosticData.i2cCount = 0;
+    return;
+  }
   Serial.printf("I2C: SDA=%d, SCL=%d\r\n", I2C_SDA, I2C_SCL);
-  
+
   diagnosticData.i2cDevices = "";
   diagnosticData.i2cCount = 0;
   
@@ -864,12 +883,17 @@ void neopixelFade(uint32_t color) {
 // ========== OLED 0.96" ==========
 void detectOLED() {
   Serial.println("\r\n=== DETECTION OLED ===");
-  Wire.begin(I2C_SDA, I2C_SCL);
+  if (!ensureI2CBus()) {
+    oledAvailable = false;
+    oledTestResult = String(T().i2c_bus_unavailable);
+    Serial.println("OLED: Bus I2C non disponible\r\n");
+    return;
+  }
   Serial.printf("I2C: SDA=%d, SCL=%d\r\n", I2C_SDA, I2C_SCL);
-  
+
   Wire.beginTransmission(SCREEN_ADDRESS);
   bool i2cDetected = (Wire.endTransmission() == 0);
-  
+
   if(i2cDetected && oled.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     oledAvailable = true;
     oledTestResult = "Detecte a 0x" + String(SCREEN_ADDRESS, HEX);
@@ -1554,12 +1578,15 @@ void handleOLEDConfig() {
   if (server.hasArg("sda") && server.hasArg("scl")) {
     int newSDA = server.arg("sda").toInt();
     int newSCL = server.arg("scl").toInt();
-    
+
     if (newSDA >= 0 && newSDA <= 48 && newSCL >= 0 && newSCL <= 48) {
       I2C_SDA = newSDA;
       I2C_SCL = newSCL;
       resetOLEDTest();
-      Wire.end();
+      if (i2cBusInitialized) {
+        Wire.end();
+        i2cBusInitialized = false;
+      }
       detectOLED();
       server.send(200, "application/json", "{\"success\":true,\"message\":\"I2C reconfigure: SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "\"}");
       return;

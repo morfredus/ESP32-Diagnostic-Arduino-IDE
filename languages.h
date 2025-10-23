@@ -144,6 +144,7 @@ struct Translations {
   const char* show_message;
   const char* no_detected;
   const char* check_wiring;
+  const char* i2c_bus_unavailable;
   const char* oled_step_welcome;
   const char* oled_step_big_text;
   const char* oled_step_text_sizes;
@@ -389,6 +390,7 @@ const Translations LANG_FR_TEXTS = {
   "Afficher Message",
   "Aucun écran OLED détecté. Vérifiez le câblage et les pins I2C ci-dessus.",
   "Vérifiez le câblage et les pins I2C",
+  "Bus I2C indisponible (initialisation impossible)",
   "Accueil",
   "Texte grand format",
   "Tailles de texte",
@@ -634,6 +636,7 @@ const Translations LANG_EN_TEXTS = {
   "Display Message",
   "No OLED screen detected. Check wiring and I2C pins above.",
   "Check wiring and I2C pins",
+  "I2C bus unavailable (initialization failed)",
   "Welcome",
   "Large text",
   "Text sizes",
