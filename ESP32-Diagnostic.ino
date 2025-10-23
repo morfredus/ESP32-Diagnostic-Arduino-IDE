@@ -1,4 +1,4 @@
-// Version de dev : 3.0.01-dev
+// Version de dev : 3.0.03-dev
 /*
  * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
@@ -36,6 +36,11 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <esp32-hal-ledc.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+#include <esp_gatts_api.h>
 #include <vector>
 
 // Configuration WiFi
@@ -116,7 +121,18 @@ struct DiagnosticInfo {
   String wifiSSID;
   int wifiRSSI;
   String ipAddress;
-  
+
+  bool bluetoothInitialized;
+  bool bluetoothAdvertising;
+  bool bluetoothConnected;
+  uint32_t bluetoothConnectionCount;
+  String bluetoothDeviceName;
+  String bluetoothLastEvent;
+  String bluetoothLastClient;
+  String bluetoothModes;
+  String bluetoothServiceUUID;
+  String bluetoothCharacteristicUUID;
+
   String gpioList;
   int totalGPIO;
   
@@ -205,6 +221,83 @@ std::vector<TouchReading> touchReadings;
 float heapHistory[HISTORY_SIZE];
 float tempHistory[HISTORY_SIZE];
 int historyIndex = 0;
+
+// --- [NEW FEATURE] Suivi Bluetooth pour le core 3.3.2 ---
+struct BluetoothStatus {
+  bool supported = false;
+  bool classicSupported = false;
+  bool bleSupported = false;
+  bool initialized = false;
+  bool advertising = false;
+  bool connected = false;
+  uint32_t connectionCount = 0;
+  String deviceName = "";
+  String serviceUUID = "";
+  String characteristicUUID = "";
+  String lastEventCode = "idle";
+  String lastClientAddress = "";
+  unsigned long lastEventMillis = 0;
+};
+
+BluetoothStatus bluetoothStatus;
+BLEServer* bluetoothServer = nullptr;
+BLEService* bluetoothService = nullptr;
+BLECharacteristic* bluetoothCharacteristic = nullptr;
+BLEAdvertising* bluetoothAdvertising = nullptr;
+static BLEUUID DIAGNOSTIC_SERVICE_UUID((uint16_t)0x180A);
+static BLEUUID DIAGNOSTIC_CHARACTERISTIC_UUID((uint16_t)0x2A29);
+
+class DiagnosticBLECallbacks : public BLEServerCallbacks {
+  void markConnected(esp_ble_gatts_cb_param_t* param = nullptr) {
+    bluetoothStatus.connected = true;
+    bluetoothStatus.advertising = false;
+    bluetoothStatus.connectionCount++;
+    bluetoothStatus.lastEventCode = "connected";
+    bluetoothStatus.lastEventMillis = millis();
+    if (param) {
+      char buffer[18];
+      sprintf(buffer, "%02X:%02X:%02X:%02X:%02X:%02X",
+              param->connect.remote_bda[0],
+              param->connect.remote_bda[1],
+              param->connect.remote_bda[2],
+              param->connect.remote_bda[3],
+              param->connect.remote_bda[4],
+              param->connect.remote_bda[5]);
+      bluetoothStatus.lastClientAddress = String(buffer);
+    }
+  }
+
+public:
+  void onConnect(BLEServer* server) override {
+    markConnected();
+  }
+
+  void onConnect(BLEServer* server, esp_ble_gatts_cb_param_t* param) override {
+    markConnected(param);
+  }
+
+  void onDisconnect(BLEServer* server) override {
+    bluetoothStatus.connected = false;
+    bluetoothStatus.lastEventCode = "disconnected";
+    bluetoothStatus.lastEventMillis = millis();
+    if (bluetoothAdvertising) {
+      bluetoothAdvertising->start();
+      bluetoothStatus.advertising = true;
+      bluetoothStatus.lastEventCode = "advertising";
+      bluetoothStatus.lastEventMillis = millis();
+    }
+  }
+};
+
+void updateBluetoothCharacteristicPayload();
+void initBluetooth();
+bool startBluetoothAdvertising();
+bool stopBluetoothAdvertising();
+String getBluetoothEventLabel(const String& code);
+String getBluetoothModesLabel();
+String getBluetoothEventAge();
+void handleBluetoothStatus();
+void handleBluetoothControl();
 
 // ========== DÉTECTION MODÈLE ==========
 String detectChipModel() {
@@ -297,6 +390,60 @@ String getWiFiSignalQuality() {
   else if (diagnosticData.wifiRSSI >= -70) return T().good;
   else if (diagnosticData.wifiRSSI >= -80) return T().weak;
   else return T().very_weak;
+}
+
+String getBluetoothEventLabel(const String& code) {
+  if (code == "advertising") return String(T().bluetooth_event_advertising);
+  if (code == "connected") return String(T().bluetooth_event_connected);
+  if (code == "disconnected") return String(T().bluetooth_event_disconnected);
+  return String(T().bluetooth_event_idle);
+}
+
+String getBluetoothModesLabel() {
+  if (!bluetoothStatus.supported) {
+    return String(T().bluetooth_modes_none);
+  }
+
+  String label = "";
+  if (bluetoothStatus.classicSupported) {
+    label += String(T().bluetooth_modes_classic);
+  }
+  if (bluetoothStatus.bleSupported) {
+    if (label.length() > 0) label += " / ";
+    label += String(T().bluetooth_modes_ble);
+  }
+  if (label.length() == 0) {
+    label = String(T().bluetooth_modes_none);
+  }
+  return label;
+}
+
+String getBluetoothEventAge() {
+  if (bluetoothStatus.lastEventMillis == 0) {
+    return String(T().unknown);
+  }
+  unsigned long elapsed = (millis() - bluetoothStatus.lastEventMillis) / 1000;
+  return String(elapsed) + "s";
+}
+
+void updateBluetoothCharacteristicPayload() {
+  if (!bluetoothCharacteristic) {
+    return;
+  }
+
+  String payload = "MODEL:" + (diagnosticData.chipModel.length() ? diagnosticData.chipModel : detectChipModel());
+  if (WiFi.status() == WL_CONNECTED) {
+    payload += "|WIFI:" + WiFi.SSID() + "(" + String(WiFi.RSSI()) + "dBm)";
+    payload += "|IP:" + WiFi.localIP().toString();
+  } else {
+    payload += "|WIFI:OFFLINE";
+  }
+  payload += "|HEAP:" + String(ESP.getFreeHeap());
+
+  bluetoothCharacteristic->setValue(payload.c_str());
+  if (bluetoothStatus.connected) {
+    bluetoothCharacteristic->notify();
+  }
 }
 
 String getGPIOList() {
@@ -567,7 +714,7 @@ void scanI2C() {
 void scanWiFiNetworks() {
   Serial.println("\r\n=== SCAN WIFI ===");
   wifiNetworks.clear();
-  
+
   int n = WiFi.scanNetworks();
   for (int i = 0; i < n; i++) {
     WiFiNetwork net;
@@ -592,6 +739,154 @@ void scanWiFiNetworks() {
     wifiNetworks.push_back(net);
   }
   Serial.printf("WiFi: %d reseaux trouves\r\n", n);
+}
+
+// ========== BLUETOOTH ==========
+void initBluetooth() {
+  if (bluetoothStatus.initialized) {
+    return;
+  }
+
+  esp_chip_info_t chipInfo;
+  esp_chip_info(&chipInfo);
+  bluetoothStatus.supported = (chipInfo.features & CHIP_FEATURE_BT) || (chipInfo.features & CHIP_FEATURE_BLE);
+  bluetoothStatus.classicSupported = chipInfo.features & CHIP_FEATURE_BT;
+  bluetoothStatus.bleSupported = chipInfo.features & CHIP_FEATURE_BLE;
+  bluetoothStatus.lastEventMillis = millis();
+
+  if (!bluetoothStatus.supported) {
+    bluetoothStatus.lastEventCode = "idle";
+    Serial.println("Bluetooth non supporte sur cette carte");
+    return;
+  }
+
+  if (bluetoothStatus.deviceName.isEmpty()) {
+    uint64_t chipId = ESP.getEfuseMac();
+    char name[20];
+    sprintf(name, "ESP32-DIAG-%04X", (uint16_t)(chipId & 0xFFFF));
+    bluetoothStatus.deviceName = String(name);
+  }
+
+  BLEDevice::init(bluetoothStatus.deviceName.c_str());
+  bluetoothServer = BLEDevice::createServer();
+  bluetoothServer->setCallbacks(new DiagnosticBLECallbacks());
+
+  bluetoothService = bluetoothServer->createService(DIAGNOSTIC_SERVICE_UUID);
+  bluetoothCharacteristic = bluetoothService->createCharacteristic(
+    DIAGNOSTIC_CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+  );
+  bluetoothCharacteristic->addDescriptor(new BLE2902());
+  bluetoothCharacteristic->setValue("ESP32 Diagnostic BLE");
+  bluetoothService->start();
+
+  bluetoothAdvertising = BLEDevice::getAdvertising();
+  bluetoothAdvertising->addServiceUUID(DIAGNOSTIC_SERVICE_UUID);
+  bluetoothAdvertising->setScanResponse(true);
+  bluetoothAdvertising->start();
+
+  std::string serviceUuid = DIAGNOSTIC_SERVICE_UUID.toString();
+  std::string characteristicUuid = DIAGNOSTIC_CHARACTERISTIC_UUID.toString();
+  bluetoothStatus.serviceUUID = String(serviceUuid.c_str());
+  bluetoothStatus.characteristicUUID = String(characteristicUuid.c_str());
+
+  bluetoothStatus.initialized = true;
+  bluetoothStatus.advertising = true;
+  bluetoothStatus.lastEventCode = "advertising";
+  bluetoothStatus.lastEventMillis = millis();
+
+  Serial.printf("Bluetooth prêt (%s)\r\n", bluetoothStatus.deviceName.c_str());
+}
+
+bool startBluetoothAdvertising() {
+  if (!bluetoothStatus.initialized || !bluetoothAdvertising) {
+    return false;
+  }
+  bluetoothAdvertising->start();
+  bluetoothStatus.advertising = true;
+  bluetoothStatus.lastEventCode = "advertising";
+  bluetoothStatus.lastEventMillis = millis();
+  return true;
+}
+
+bool stopBluetoothAdvertising() {
+  if (!bluetoothStatus.initialized || !bluetoothAdvertising) {
+    return false;
+  }
+  if (bluetoothAdvertising->isAdvertising()) {
+    bluetoothAdvertising->stop();
+  }
+  bluetoothStatus.advertising = false;
+  bluetoothStatus.lastEventCode = "idle";
+  bluetoothStatus.lastEventMillis = millis();
+  return true;
+}
+
+void handleBluetoothStatus() {
+  String json = "{";
+  json += "\"supported\":" + String(bluetoothStatus.supported ? "true" : "false") + ",";
+  json += "\"classic\":" + String(bluetoothStatus.classicSupported ? "true" : "false") + ",";
+  json += "\"ble\":" + String(bluetoothStatus.bleSupported ? "true" : "false") + ",";
+  json += "\"initialized\":" + String(bluetoothStatus.initialized ? "true" : "false") + ",";
+  json += "\"advertising\":" + String(bluetoothStatus.advertising ? "true" : "false") + ",";
+  json += "\"connected\":" + String(bluetoothStatus.connected ? "true" : "false") + ",";
+  json += "\"connections\":" + String(bluetoothStatus.connectionCount) + ",";
+  json += "\"device\":\"" + bluetoothStatus.deviceName + "\",";
+  json += "\"modes\":\"" + getBluetoothModesLabel() + "\",";
+  json += "\"supportedLabel\":\"" + String(bluetoothStatus.supported ? T().bluetooth_supported : T().bluetooth_not_supported) + "\",";
+  json += "\"advertisingLabel\":\"" + String(bluetoothStatus.advertising ? T().enabled : T().disabled) + "\",";
+  json += "\"connectedLabel\":\"" + String(bluetoothStatus.connected ? T().connected : T().fail) + "\",";
+  json += "\"lastEvent\":\"" + getBluetoothEventLabel(bluetoothStatus.lastEventCode) + "\",";
+  json += "\"lastEventAge\":\"" + getBluetoothEventAge() + "\",";
+  json += "\"lastClient\":\"" + (bluetoothStatus.lastClientAddress.length() ? bluetoothStatus.lastClientAddress : String(T().none)) + "\",";
+  json += "\"serviceUUID\":\"" + bluetoothStatus.serviceUUID + "\",";
+  json += "\"characteristicUUID\":\"" + bluetoothStatus.characteristicUUID + "\"";
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
+void handleBluetoothControl() {
+  if (!server.hasArg("action")) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Missing action\"}");
+    return;
+  }
+
+  String action = server.arg("action");
+  if (!bluetoothStatus.supported) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().bluetooth_action_not_available) + "\"}");
+    return;
+  }
+
+  bool success = false;
+  String message = String(T().bluetooth_action_not_available);
+
+  if (action == "start") {
+    if (!bluetoothStatus.initialized) {
+      initBluetooth();
+    }
+    success = startBluetoothAdvertising();
+    if (success) message = String(T().bluetooth_action_started);
+  } else if (action == "stop") {
+    success = stopBluetoothAdvertising();
+    if (success) message = String(T().bluetooth_action_stopped);
+  } else if (action == "restart") {
+    bool stopped = stopBluetoothAdvertising();
+    delay(20);
+    bool started = startBluetoothAdvertising();
+    success = stopped && started;
+    if (success) message = String(T().bluetooth_action_restarted);
+  } else if (action == "init") {
+    initBluetooth();
+    success = bluetoothStatus.initialized;
+    if (success) message = String(T().bluetooth_action_started);
+  } else {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Unknown action\"}");
+    return;
+  }
+
+  String json = "{\"success\":" + String(success ? "true" : "false") + ",\"message\":\"" + message + "\"}";
+  server.send(success ? 200 : 400, "application/json", json);
 }
 
 // ========== TEST GPIO ==========
@@ -1298,8 +1593,23 @@ void collectDiagnosticInfo() {
     diagnosticData.wifiSSID = WiFi.SSID();
     diagnosticData.wifiRSSI = WiFi.RSSI();
     diagnosticData.ipAddress = WiFi.localIP().toString();
+  } else {
+    diagnosticData.wifiSSID = String(T().none);
+    diagnosticData.wifiRSSI = 0;
+    diagnosticData.ipAddress = String(T().unknown);
   }
-  
+
+  diagnosticData.bluetoothInitialized = bluetoothStatus.initialized;
+  diagnosticData.bluetoothAdvertising = bluetoothStatus.advertising;
+  diagnosticData.bluetoothConnected = bluetoothStatus.connected;
+  diagnosticData.bluetoothConnectionCount = bluetoothStatus.connectionCount;
+  diagnosticData.bluetoothDeviceName = bluetoothStatus.deviceName;
+  diagnosticData.bluetoothLastEvent = getBluetoothEventLabel(bluetoothStatus.lastEventCode);
+  diagnosticData.bluetoothLastClient = bluetoothStatus.lastClientAddress.length() ? bluetoothStatus.lastClientAddress : String(T().none);
+  diagnosticData.bluetoothModes = getBluetoothModesLabel();
+  diagnosticData.bluetoothServiceUUID = bluetoothStatus.serviceUUID;
+  diagnosticData.bluetoothCharacteristicUUID = bluetoothStatus.characteristicUUID;
+
   diagnosticData.gpioList = getGPIOList();
   diagnosticData.totalGPIO = countGPIO();
   
@@ -1326,6 +1636,10 @@ void collectDiagnosticInfo() {
     tempHistory[historyIndex] = diagnosticData.temperature;
   }
   historyIndex = (historyIndex + 1) % HISTORY_SIZE;
+
+  if (bluetoothStatus.initialized) {
+    updateBluetoothCharacteristicPayload();
+  }
 }
 
 // ========== HANDLERS API ==========
@@ -1756,7 +2070,21 @@ void handleExportJSON() {
   json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",";
   json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
   json += "},";
-  
+
+  json += "\"bluetooth\":{";
+  json += "\"supported\":" + String(bluetoothStatus.supported ? "true" : "false") + ",";
+  json += "\"advertising\":" + String(bluetoothStatus.advertising ? "true" : "false") + ",";
+  json += "\"connected\":" + String(bluetoothStatus.connected ? "true" : "false") + ",";
+  json += "\"connections\":" + String(bluetoothStatus.connectionCount) + ",";
+  json += "\"device\":\"" + diagnosticData.bluetoothDeviceName + "\",";
+  json += "\"modes\":\"" + diagnosticData.bluetoothModes + "\",";
+  json += "\"last_event\":\"" + diagnosticData.bluetoothLastEvent + "\",";
+  json += "\"last_event_age\":\"" + getBluetoothEventAge() + "\",";
+  json += "\"last_client\":\"" + diagnosticData.bluetoothLastClient + "\",";
+  json += "\"service_uuid\":\"" + diagnosticData.bluetoothServiceUUID + "\",";
+  json += "\"characteristic_uuid\":\"" + diagnosticData.bluetoothCharacteristicUUID + "\"";
+  json += "},";
+
   json += "\"gpio\":{";
   json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
   json += "\"list\":\"" + diagnosticData.gpioList + "\"";
@@ -1967,7 +2295,23 @@ void handlePrintVersion() {
   html += "<div class='row'><b>Passerelle:</b><span>" + WiFi.gatewayIP().toString() + "</span></div>";
   html += "<div class='row'><b>DNS:</b><span>" + WiFi.dnsIP().toString() + "</span></div>";
   html += "</div></div>";
-  
+
+  html += "<div class='section'>";
+  html += "<h2>" + String(T().bluetooth_section) + "</h2>";
+  html += "<div class='grid'>";
+  html += "<div class='row'><b>" + String(T().bluetooth_support) + ":</b><span>" + String(bluetoothStatus.supported ? T().bluetooth_supported : T().bluetooth_not_supported) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_modes) + ":</b><span>" + diagnosticData.bluetoothModes + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_device_name) + ":</b><span>" + diagnosticData.bluetoothDeviceName + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_advertising) + ":</b><span>" + String(diagnosticData.bluetoothAdvertising ? T().enabled : T().disabled) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_connected) + ":</b><span>" + String(diagnosticData.bluetoothConnected ? T().connected : T().fail) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_connections) + ":</b><span>" + String(diagnosticData.bluetoothConnectionCount) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_last_event) + ":</b><span>" + diagnosticData.bluetoothLastEvent + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_last_event_age) + ":</b><span>" + getBluetoothEventAge() + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_last_client) + ":</b><span>" + diagnosticData.bluetoothLastClient + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_service_uuid) + ":</b><span>" + diagnosticData.bluetoothServiceUUID + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_characteristic_uuid) + ":</b><span>" + diagnosticData.bluetoothCharacteristicUUID + "</span></div>";
+  html += "</div></div>";
+
   // GPIO et Périphériques
   html += "<div class='section'>";
   html += "<h2>GPIO et Périphériques</h2>";
@@ -2041,6 +2385,51 @@ void handleGetTranslations() {
   json += "\"chip_info\":\"" + String(T().chip_info) + "\",";
   json += "\"memory_details\":\"" + String(T().memory_details) + "\",";
   json += "\"wifi_connection\":\"" + String(T().wifi_connection) + "\",";
+  json += "\"connected_ssid\":\"" + String(T().connected_ssid) + "\",";
+  json += "\"signal_power\":\"" + String(T().signal_power) + "\",";
+  json += "\"signal_quality\":\"" + String(T().signal_quality) + "\",";
+  json += "\"ip_address\":\"" + String(T().ip_address) + "\",";
+  json += "\"subnet_mask\":\"" + String(T().subnet_mask) + "\",";
+  json += "\"gateway\":\"" + String(T().gateway) + "\",";
+  json += "\"dns\":\"" + String(T().dns) + "\",";
+  json += "\"wifi_channel\":\"" + String(T().wifi_channel) + "\",";
+  json += "\"bluetooth_section\":\"" + String(T().bluetooth_section) + "\",";
+  json += "\"bluetooth_support\":\"" + String(T().bluetooth_support) + "\",";
+  json += "\"bluetooth_modes\":\"" + String(T().bluetooth_modes) + "\",";
+  json += "\"bluetooth_device_name\":\"" + String(T().bluetooth_device_name) + "\",";
+  json += "\"bluetooth_advertising\":\"" + String(T().bluetooth_advertising) + "\",";
+  json += "\"bluetooth_connected\":\"" + String(T().bluetooth_connected) + "\",";
+  json += "\"bluetooth_connections\":\"" + String(T().bluetooth_connections) + "\",";
+  json += "\"bluetooth_last_event\":\"" + String(T().bluetooth_last_event) + "\",";
+  json += "\"bluetooth_last_event_age\":\"" + String(T().bluetooth_last_event_age) + "\",";
+  json += "\"bluetooth_last_client\":\"" + String(T().bluetooth_last_client) + "\",";
+  json += "\"bluetooth_service_uuid\":\"" + String(T().bluetooth_service_uuid) + "\",";
+  json += "\"bluetooth_characteristic_uuid\":\"" + String(T().bluetooth_characteristic_uuid) + "\",";
+  json += "\"bluetooth_refresh\":\"" + String(T().bluetooth_refresh) + "\",";
+  json += "\"bluetooth_start_adv\":\"" + String(T().bluetooth_start_adv) + "\",";
+  json += "\"bluetooth_stop_adv\":\"" + String(T().bluetooth_stop_adv) + "\",";
+  json += "\"bluetooth_restart_adv\":\"" + String(T().bluetooth_restart_adv) + "\",";
+  json += "\"bluetooth_supported\":\"" + String(T().bluetooth_supported) + "\",";
+  json += "\"bluetooth_not_supported\":\"" + String(T().bluetooth_not_supported) + "\",";
+  json += "\"bluetooth_modes_classic\":\"" + String(T().bluetooth_modes_classic) + "\",";
+  json += "\"bluetooth_modes_ble\":\"" + String(T().bluetooth_modes_ble) + "\",";
+  json += "\"bluetooth_modes_none\":\"" + String(T().bluetooth_modes_none) + "\",";
+  json += "\"bluetooth_event_idle\":\"" + String(T().bluetooth_event_idle) + "\",";
+  json += "\"bluetooth_event_advertising\":\"" + String(T().bluetooth_event_advertising) + "\",";
+  json += "\"bluetooth_event_connected\":\"" + String(T().bluetooth_event_connected) + "\",";
+  json += "\"bluetooth_event_disconnected\":\"" + String(T().bluetooth_event_disconnected) + "\",";
+  json += "\"bluetooth_action_running\":\"" + String(T().bluetooth_action_running) + "\",";
+  json += "\"bluetooth_action_started\":\"" + String(T().bluetooth_action_started) + "\",";
+  json += "\"bluetooth_action_stopped\":\"" + String(T().bluetooth_action_stopped) + "\",";
+  json += "\"bluetooth_action_restarted\":\"" + String(T().bluetooth_action_restarted) + "\",";
+  json += "\"bluetooth_action_not_available\":\"" + String(T().bluetooth_action_not_available) + "\",";
+  json += "\"enabled\":\"" + String(T().enabled) + "\",";
+  json += "\"disabled\":\"" + String(T().disabled) + "\",";
+  json += "\"connected_label\":\"" + String(T().connected) + "\",";
+  json += "\"fail_label\":\"" + String(T().fail) + "\",";
+  json += "\"scan\":\"" + String(T().scan) + "\",";
+  json += "\"completed\":\"" + String(T().completed) + "\",";
+  json += "\"click_to_test\":\"" + String(T().click_to_test) + "\",";
   json += "\"gpio_interfaces\":\"" + String(T().gpio_interfaces) + "\",";
   json += "\"i2c_peripherals\":\"" + String(T().i2c_peripherals) + "\",";
   json += "\"builtin_led\":\"" + String(T().builtin_led) + "\",";
@@ -2054,9 +2443,12 @@ void handleGetTranslations() {
   json += "\"gpio_test\":\"" + String(T().gpio_test) + "\",";
   json += "\"wifi_scanner\":\"" + String(T().wifi_scanner) + "\",";
   json += "\"performance_bench\":\"" + String(T().performance_bench) + "\",";
-  json += "\"data_export\":\"" + String(T().data_export) + "\"";
+  json += "\"data_export\":\"" + String(T().data_export) + "\",";
+  if (json.endsWith(",")) {
+    json.remove(json.length() - 1);
+  }
   json += "}";
-  
+
   server.send(200, "application/json", json);
 }
 
@@ -2214,13 +2606,28 @@ void handleRoot() {
   server.sendContent(chunk);
   
   // WiFi
-  chunk = "<div class='section'><h2>" + String(T().wifi_connection) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().connected_ssid) + "</div><div class='info-value'>" + diagnosticData.wifiSSID + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_power) + "</div><div class='info-value'>" + String(diagnosticData.wifiRSSI) + " dBm</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_quality) + "</div><div class='info-value'>" + getWiFiSignalQuality() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().ip_address) + "</div><div class='info-value'>" + diagnosticData.ipAddress + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().subnet_mask) + "</div><div class='info-value'>" + WiFi.subnetMask().toString() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().gateway) + "</div><div class='info-value'>" + WiFi.gatewayIP().toString() + "</div></div>";
+  chunk = "<div class='section'><h2 data-i18n='wifi_connection'>" + String(T().wifi_connection) + "</h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='connected_ssid'>" + String(T().connected_ssid) + "</div><div class='info-value' id='wifi-overview-ssid'>" + diagnosticData.wifiSSID + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='signal_power'>" + String(T().signal_power) + "</div><div class='info-value' id='wifi-overview-rssi'>" + String(diagnosticData.wifiRSSI) + " dBm</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='signal_quality'>" + String(T().signal_quality) + "</div><div class='info-value' id='wifi-overview-quality'>" + getWiFiSignalQuality() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='ip_address'>" + String(T().ip_address) + "</div><div class='info-value' id='wifi-overview-ip'>" + diagnosticData.ipAddress + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='subnet_mask'>" + String(T().subnet_mask) + "</div><div class='info-value' id='wifi-overview-mask'>" + WiFi.subnetMask().toString() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='gateway'>" + String(T().gateway) + "</div><div class='info-value' id='wifi-overview-gateway'>" + WiFi.gatewayIP().toString() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='dns'>" + String(T().dns) + "</div><div class='info-value' id='wifi-overview-dns'>" + WiFi.dnsIP().toString() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='wifi_channel'>" + String(T().wifi_channel) + "</div><div class='info-value' id='wifi-overview-channel'>" + String(WiFi.channel()) + "</div></div>";
+  chunk += "</div></div>";
+  chunk += "<div class='section'><h2 data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_support'>" + String(T().bluetooth_support) + "</div><div class='info-value' id='bt-overview-supported'>" + String(bluetoothStatus.supported ? T().bluetooth_supported : T().bluetooth_not_supported) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_modes'>" + String(T().bluetooth_modes) + "</div><div class='info-value' id='bt-overview-modes'>" + diagnosticData.bluetoothModes + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_device_name'>" + String(T().bluetooth_device_name) + "</div><div class='info-value' id='bt-overview-device'>" + diagnosticData.bluetoothDeviceName + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_advertising'>" + String(T().bluetooth_advertising) + "</div><div class='info-value' id='bt-overview-advertising'>" + String(diagnosticData.bluetoothAdvertising ? T().enabled : T().disabled) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_connected'>" + String(T().bluetooth_connected) + "</div><div class='info-value' id='bt-overview-connected'>" + String(diagnosticData.bluetoothConnected ? T().connected : T().fail) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_connections'>" + String(T().bluetooth_connections) + "</div><div class='info-value' id='bt-overview-connections'>" + String(diagnosticData.bluetoothConnectionCount) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_last_event'>" + String(T().bluetooth_last_event) + "</div><div class='info-value' id='bt-overview-last-event'>" + diagnosticData.bluetoothLastEvent + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_last_event_age'>" + String(T().bluetooth_last_event_age) + "</div><div class='info-value' id='bt-overview-last-event-age'>" + getBluetoothEventAge() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_last_client'>" + String(T().bluetooth_last_client) + "</div><div class='info-value' id='bt-overview-last-client'>" + diagnosticData.bluetoothLastClient + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_service_uuid'>" + String(T().bluetooth_service_uuid) + "</div><div class='info-value' id='bt-overview-service'>" + diagnosticData.bluetoothServiceUUID + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_characteristic_uuid'>" + String(T().bluetooth_characteristic_uuid) + "</div><div class='info-value' id='bt-overview-characteristic'>" + diagnosticData.bluetoothCharacteristicUUID + "</div></div>";
   chunk += "</div></div>";
   server.sendContent(chunk);
   
@@ -2350,11 +2757,40 @@ void handleRoot() {
   
   // CHUNK 8: TAB WiFi
   chunk = "<div id='wifi' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().wifi_scanner) + "</h2>";
+  chunk += "<div class='section'><h2>📡 <span data-i18n='wifi_scanner'>" + String(T().wifi_scanner) + "</span></h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='connected_ssid'>" + String(T().connected_ssid) + "</div><div class='info-value' id='wifi-tab-ssid'>" + diagnosticData.wifiSSID + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='signal_power'>" + String(T().signal_power) + "</div><div class='info-value' id='wifi-tab-rssi'>" + String(diagnosticData.wifiRSSI) + " dBm</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='signal_quality'>" + String(T().signal_quality) + "</div><div class='info-value' id='wifi-tab-quality'>" + getWiFiSignalQuality() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='ip_address'>" + String(T().ip_address) + "</div><div class='info-value' id='wifi-tab-ip'>" + diagnosticData.ipAddress + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='subnet_mask'>" + String(T().subnet_mask) + "</div><div class='info-value' id='wifi-tab-mask'>" + WiFi.subnetMask().toString() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='gateway'>" + String(T().gateway) + "</div><div class='info-value' id='wifi-tab-gateway'>" + WiFi.gatewayIP().toString() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='dns'>" + String(T().dns) + "</div><div class='info-value' id='wifi-tab-dns'>" + WiFi.dnsIP().toString() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='wifi_channel'>" + String(T().wifi_channel) + "</div><div class='info-value' id='wifi-tab-channel'>" + String(WiFi.channel()) + "</div></div>";
+  chunk += "</div>";
+  chunk += "<div style='text-align:center;margin:20px 0'><button class='btn btn-primary' onclick='scanWiFi()'>🔍 <span data-i18n='scan_networks'>" + String(T().scan_networks) + "</span></button>";
+  chunk += "<div id='wifi-status' class='status-live'>" + String(T().click_to_test) + "</div></div>";
+  chunk += "<div id='wifi-results' class='wifi-list'></div></div>";
+  chunk += "<div class='section'><h2>🌀 <span data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</span></h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_support'>" + String(T().bluetooth_support) + "</div><div class='info-value' id='bt-supported'>" + String(bluetoothStatus.supported ? T().bluetooth_supported : T().bluetooth_not_supported) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_modes'>" + String(T().bluetooth_modes) + "</div><div class='info-value' id='bt-modes'>" + diagnosticData.bluetoothModes + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_device_name'>" + String(T().bluetooth_device_name) + "</div><div class='info-value' id='bt-device'>" + diagnosticData.bluetoothDeviceName + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_advertising'>" + String(T().bluetooth_advertising) + "</div><div class='info-value' id='bt-advertising'>" + String(diagnosticData.bluetoothAdvertising ? T().enabled : T().disabled) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_connected'>" + String(T().bluetooth_connected) + "</div><div class='info-value' id='bt-connected'>" + String(diagnosticData.bluetoothConnected ? T().connected : T().fail) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_connections'>" + String(T().bluetooth_connections) + "</div><div class='info-value' id='bt-connections'>" + String(diagnosticData.bluetoothConnectionCount) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_last_event'>" + String(T().bluetooth_last_event) + "</div><div class='info-value' id='bt-last-event'>" + diagnosticData.bluetoothLastEvent + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_last_event_age'>" + String(T().bluetooth_last_event_age) + "</div><div class='info-value' id='bt-last-event-age'>" + getBluetoothEventAge() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_last_client'>" + String(T().bluetooth_last_client) + "</div><div class='info-value' id='bt-last-client'>" + diagnosticData.bluetoothLastClient + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_service_uuid'>" + String(T().bluetooth_service_uuid) + "</div><div class='info-value' id='bt-service'>" + diagnosticData.bluetoothServiceUUID + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_characteristic_uuid'>" + String(T().bluetooth_characteristic_uuid) + "</div><div class='info-value' id='bt-characteristic'>" + diagnosticData.bluetoothCharacteristicUUID + "</div></div>";
+  chunk += "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='scanWiFi()'>" + String(T().scan_networks) + "</button>";
-  chunk += "<div id='wifi-status' class='status-live'>" + String(T().click_to_test) + "</div>";
-  chunk += "</div><div id='wifi-results' class='wifi-list'></div></div></div>";
+  chunk += "<button class='btn btn-info' onclick='refreshBluetoothStatus()'><span data-i18n='bluetooth_refresh'>" + String(T().bluetooth_refresh) + "</span></button> ";
+  chunk += "<button class='btn btn-success' onclick='bluetoothControl(\\"start\\")'><span data-i18n='bluetooth_start_adv'>" + String(T().bluetooth_start_adv) + "</span></button> ";
+  chunk += "<button class='btn btn-warning' onclick='bluetoothControl(\\"stop\\")'><span data-i18n='bluetooth_stop_adv'>" + String(T().bluetooth_stop_adv) + "</span></button> ";
+  chunk += "<button class='btn btn-primary' onclick='bluetoothControl(\\"restart\\")'><span data-i18n='bluetooth_restart_adv'>" + String(T().bluetooth_restart_adv) + "</span></button>";
+  chunk += "</div>";
+  chunk += "<div id='bluetooth-action-status' class='status-live'>" + String(T().click_to_test) + "</div>";
+  chunk += "</div></div>";
   server.sendContent(chunk);
   
   // CHUNK 9: TAB Benchmark
@@ -2396,6 +2832,7 @@ void handleRoot() {
   // CHUNK 11: JavaScript complet
   chunk = "<script>";
   chunk += "let currentLang='" + String(currentLanguage == LANG_FR ? "fr" : "en") + "';";
+  chunk += "let translations={};";
   
   // Changement de langue
   chunk += "function changeLang(lang){";
@@ -2408,17 +2845,20 @@ void handleRoot() {
   // Mise à jour traductions
   chunk += "function updateTranslations(){";
   chunk += "fetch('/api/get-translations').then(r=>r.json()).then(tr=>{";
+  chunk += "translations=tr;";
   chunk += "document.getElementById('main-title').textContent=tr.title+' v" + String(DIAGNOSTIC_VERSION) + "';";
   chunk += "document.querySelectorAll('[data-i18n]').forEach(el=>{";
   chunk += "const key=el.getAttribute('data-i18n');";
-  chunk += "if(tr[key])el.textContent=tr[key]})});}";
+  chunk += "if(tr[key])el.textContent=tr[key]});";
+  chunk += "if(typeof refreshBluetoothStatus==='function'){refreshBluetoothStatus();}});}";
   
   // Navigation onglets
   chunk += "function showTab(t){";
   chunk += "document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));";
   chunk += "document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));";
   chunk += "document.getElementById(t).classList.add('active');";
-  chunk += "event.target.classList.add('active');}";
+  chunk += "event.target.classList.add('active');";
+  chunk += "if(t==='wifi'){refreshBluetoothStatus();}}";
   
   // LED intégrée
   chunk += "function configBuiltinLED(){fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value)";
@@ -2482,6 +2922,36 @@ void handleRoot() {
   chunk += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+n.bssid+' | Ch'+n.channel+' | '+n.encryption+'</small></div>';";
   chunk += "h+='<div style=\"font-size:1.2em;font-weight:bold\">'+n.rssi+' dBm</div></div></div>'});";
   chunk += "document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' reseaux detectes'})}";
+
+  chunk += "function refreshBluetoothStatus(){";
+  chunk += "const status=document.getElementById('bluetooth-action-status');";
+  chunk += "const scanning=(translations.scan||'" + String(T().scan) + "')+'...';";
+  chunk += "if(status)status.textContent=scanning;";
+  chunk += "fetch('/api/bluetooth-status').then(r=>r.json()).then(d=>{";
+  chunk += "const completed=translations.completed||'" + String(T().completed) + "';";
+  chunk += "if(status)status.textContent=completed;";
+  chunk += "const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};";
+  chunk += "setText('bt-supported',d.supportedLabel||(d.supported?(translations.bluetooth_supported||'" + String(T().bluetooth_supported) + "'):(translations.bluetooth_not_supported||'" + String(T().bluetooth_not_supported) + "')));";
+  chunk += "setText('bt-modes',d.modes||'');";
+  chunk += "setText('bt-device',d.device||'');";
+  chunk += "setText('bt-advertising',d.advertisingLabel||(d.advertising?(translations.enabled||'" + String(T().enabled) + "'):(translations.disabled||'" + String(T().disabled) + "')));";
+  chunk += "setText('bt-connected',d.connectedLabel||(d.connected?(translations.connected_label||'" + String(T().connected) + "'):(translations.fail_label||'" + String(T().fail) + "')));";
+  chunk += "setText('bt-connections',d.connections||'0');";
+  chunk += "setText('bt-last-event',d.lastEvent||'');";
+  chunk += "setText('bt-last-event-age',d.lastEventAge||'');";
+  chunk += "setText('bt-last-client',d.lastClient||'');";
+  chunk += "setText('bt-service',d.serviceUUID||'');";
+  chunk += "setText('bt-characteristic',d.characteristicUUID||'');";
+  chunk += "}).catch(e=>{if(status)status.textContent='Error';console.error(e);});}";
+
+  chunk += "function bluetoothControl(action){";
+  chunk += "const status=document.getElementById('bluetooth-action-status');";
+  chunk += "const running=translations.bluetooth_action_running||'" + String(T().bluetooth_action_running) + "';";
+  chunk += "if(status)status.textContent=running;";
+  chunk += "fetch('/api/bluetooth-control?action='+action).then(r=>r.json()).then(d=>{";
+  chunk += "if(status)status.textContent=d.message;";
+  chunk += "refreshBluetoothStatus();";
+  chunk += "}).catch(e=>{if(status)status.textContent='Error';console.error(e);});}";
   
   // I2C
   chunk += "function scanI2C(){fetch('/api/i2c-scan').then(r=>r.json()).then(d=>{alert('I2C: '+d.count+' peripherique(s)\\n'+d.devices);location.reload()})}";
@@ -2566,7 +3036,9 @@ void setup() {
   
   scanSPI();
   listPartitions();
-  
+
+  initBluetooth();
+
   collectDiagnosticInfo();
   collectDetailedMemory();
   
@@ -2581,6 +3053,10 @@ void setup() {
   server.on("/api/test-gpio", handleTestGPIO);
   server.on("/api/wifi-scan", handleWiFiScan);
   server.on("/api/i2c-scan", handleI2CScan);
+
+  // --- [NEW FEATURE] API Bluetooth ---
+  server.on("/api/bluetooth-status", handleBluetoothStatus);
+  server.on("/api/bluetooth-control", handleBluetoothControl);
   
   // LED intégrée
   server.on("/api/builtin-led-config", handleBuiltinLEDConfig);
