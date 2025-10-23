@@ -90,7 +90,44 @@ struct Translations {
   const char* gateway;
   const char* dns;
   const char* wifi_channel;
-  
+
+  // Bluetooth
+  const char* bluetooth_section;
+  const char* bluetooth_support;
+  const char* bluetooth_firmware;
+  const char* bluetooth_modes;
+  const char* bluetooth_device_name;
+  const char* bluetooth_advertising;
+  const char* bluetooth_connected;
+  const char* bluetooth_connections;
+  const char* bluetooth_last_event;
+  const char* bluetooth_last_event_age;
+  const char* bluetooth_last_client;
+  const char* bluetooth_service_uuid;
+  const char* bluetooth_characteristic_uuid;
+  const char* bluetooth_firmware_enabled;
+  const char* bluetooth_firmware_disabled;
+  const char* bluetooth_compiler_disabled;
+  const char* bluetooth_refresh;
+  const char* bluetooth_start_adv;
+  const char* bluetooth_stop_adv;
+  const char* bluetooth_restart_adv;
+  const char* bluetooth_supported;
+  const char* bluetooth_not_supported;
+  const char* bluetooth_action_running;
+  const char* bluetooth_action_started;
+  const char* bluetooth_action_stopped;
+  const char* bluetooth_action_restarted;
+  const char* bluetooth_action_not_available;
+  const char* bluetooth_modes_classic;
+  const char* bluetooth_modes_ble;
+  const char* bluetooth_modes_none;
+  const char* bluetooth_event_idle;
+  const char* bluetooth_event_advertising;
+  const char* bluetooth_event_connected;
+  const char* bluetooth_event_disconnected;
+  const char* bluetooth_event_firmware_disabled;
+
   // GPIO et périphériques
   const char* gpio_interfaces;
   const char* total_gpio;
@@ -252,7 +289,7 @@ const Translations LANG_FR_TEXTS = {
   "Écrans",
   "Tests Avancés",
   "GPIO",
-  "WiFi",
+  "Sans fil",
   "Performance",
   "Export",
   
@@ -317,7 +354,44 @@ const Translations LANG_FR_TEXTS = {
   "Passerelle",
   "DNS",
   "Canal WiFi",
-  
+
+  // Bluetooth
+  "Bluetooth",
+  "Support",
+  "Support firmware",
+  "Modes supportés",
+  "Nom du périphérique",
+  "Diffusion (advertising)",
+  "Connexion active",
+  "Connexions établies",
+  "Dernier événement",
+  "Âge du dernier événement",
+  "Dernier client",
+  "Service UUID",
+  "UUID Caractéristique",
+  "Activé",
+  "Désactivé (compiler)",
+  "La carte prend en charge le Bluetooth mais il est désactivé dans ce firmware.",
+  "Actualiser l'état",
+  "Démarrer la diffusion",
+  "Arrêter la diffusion",
+  "Redémarrer la diffusion",
+  "Pris en charge",
+  "Non supporté",
+  "Action Bluetooth en cours...",
+  "Diffusion démarrée",
+  "Diffusion arrêtée",
+  "Diffusion relancée",
+  "Bluetooth indisponible",
+  "Bluetooth Classique",
+  "Bluetooth Low Energy",
+  "Aucun",
+  "En veille",
+  "Diffusion en cours",
+  "Client connecté",
+  "Client déconnecté",
+  "Bluetooth désactivé dans le firmware",
+
   // GPIO
   "GPIO et Interfaces",
   "Total GPIO",
@@ -384,7 +458,7 @@ const Translations LANG_FR_TEXTS = {
   "Cliquez pour tester",
   
   // WiFi
-  "Scanner WiFi",
+  "WiFi",
   "Scanner Réseaux WiFi",
   
   // Performance
@@ -479,7 +553,7 @@ const Translations LANG_EN_TEXTS = {
   "Screens",
   "Advanced Tests",
   "GPIO",
-  "WiFi",
+  "Wireless",
   "Performance",
   "Export",
   
@@ -544,7 +618,44 @@ const Translations LANG_EN_TEXTS = {
   "Gateway",
   "DNS",
   "WiFi Channel",
-  
+
+  // Bluetooth
+  "Bluetooth",
+  "Support",
+  "Firmware support",
+  "Supported modes",
+  "Device name",
+  "Advertising",
+  "Connected",
+  "Connections",
+  "Last event",
+  "Last event age",
+  "Last client",
+  "Service UUID",
+  "Characteristic UUID",
+  "Enabled",
+  "Disabled (build config)",
+  "The board supports Bluetooth but it is disabled in this firmware build.",
+  "Refresh status",
+  "Start advertising",
+  "Stop advertising",
+  "Restart advertising",
+  "Supported",
+  "Not supported",
+  "Bluetooth action in progress...",
+  "Advertising started",
+  "Advertising stopped",
+  "Advertising restarted",
+  "Bluetooth unavailable",
+  "Bluetooth Classic",
+  "Bluetooth Low Energy",
+  "None",
+  "Idle",
+  "Advertising",
+  "Client connected",
+  "Client disconnected",
+  "Bluetooth disabled in firmware",
+
   // GPIO
   "GPIO and Interfaces",
   "Total GPIO",
@@ -611,7 +722,7 @@ const Translations LANG_EN_TEXTS = {
   "Click to test",
   
   // WiFi
-  "WiFi Scanner",
+  "WiFi",
   "Scan WiFi Networks",
   
   // Performance
