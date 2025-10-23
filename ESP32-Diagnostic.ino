@@ -25,9 +25,17 @@
 #include <ESPmDNS.h>
 #include <esp_chip_info.h>
 #include <esp_mac.h>
+#include <esp_system.h>
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
+#ifdef CONFIG_BT_ENABLED
+#include <esp_bt.h>
+#include <esp_bt_main.h>
+#endif
+#if defined(CONFIG_BT_ENABLED) || defined(CONFIG_BT_BLE_ENABLED)
+#include <esp_bt_device.h>
+#endif
 #include <soc/soc.h>
 #include <soc/rtc.h>
 #include <Wire.h>
@@ -44,6 +52,7 @@
 
 // ========== CONFIGURATION ==========
 #define DIAGNOSTIC_VERSION "2.6.0"
+// Version de dev : 2.6.xx-dev
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -114,7 +123,14 @@ struct DiagnosticInfo {
   String wifiSSID;
   int wifiRSSI;
   String ipAddress;
-  
+
+  // --- [NEW FEATURE] Diagnostics Bluetooth ---
+  bool bluetoothControllerEnabled;
+  String bluetoothControllerStatus;
+  String bluetoothMode;
+  String btClassicAddress;
+  String bleAddress;
+
   String gpioList;
   int totalGPIO;
   
@@ -295,6 +311,48 @@ String getWiFiSignalQuality() {
   else if (diagnosticData.wifiRSSI >= -70) return T().good;
   else if (diagnosticData.wifiRSSI >= -80) return T().weak;
   else return T().very_weak;
+}
+
+// --- [NEW FEATURE] Utilitaires Bluetooth ---
+String formatMacAddress(const uint8_t mac[6]) {
+  char buffer[18];
+  sprintf(buffer, "%02X:%02X:%02X:%02X:%02X:%02X",
+          mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  return String(buffer);
+}
+
+#ifdef CONFIG_BT_ENABLED
+String translateBluetoothControllerStatus(esp_bt_controller_status_t status) {
+  switch (status) {
+    case ESP_BT_CONTROLLER_STATUS_IDLE:
+      return String(T().bluetooth_status_idle);
+    case ESP_BT_CONTROLLER_STATUS_INITED:
+      return String(T().bluetooth_status_inited);
+    case ESP_BT_CONTROLLER_STATUS_ENABLED:
+      return String(T().bluetooth_status_enabled);
+    default:
+      return String(T().unknown);
+  }
+}
+
+String translateBluetoothMode(esp_bt_mode_t mode) {
+  switch (mode) {
+    case ESP_BT_MODE_IDLE:
+      return String(T().bluetooth_mode_idle);
+    case ESP_BT_MODE_CLASSIC_BT:
+      return String(T().bluetooth_mode_classic);
+    case ESP_BT_MODE_BLE:
+      return String(T().bluetooth_mode_ble);
+    case ESP_BT_MODE_BTDM:
+      return String(T().bluetooth_mode_dual);
+    default:
+      return String(T().unknown);
+  }
+}
+#endif
+
+String getBluetoothSupportLabel(bool supported) {
+  return supported ? String(T().detected) : String(T().not_detected);
 }
 
 String getGPIOList() {
@@ -1253,13 +1311,46 @@ void collectDiagnosticInfo() {
   diagnosticData.hasWiFi = (chip_info.features & CHIP_FEATURE_WIFI_BGN);
   diagnosticData.hasBT = (chip_info.features & CHIP_FEATURE_BT);
   diagnosticData.hasBLE = (chip_info.features & CHIP_FEATURE_BLE);
-  
+
   if (WiFi.status() == WL_CONNECTED) {
     diagnosticData.wifiSSID = WiFi.SSID();
     diagnosticData.wifiRSSI = WiFi.RSSI();
     diagnosticData.ipAddress = WiFi.localIP().toString();
   }
-  
+
+  // --- [NEW FEATURE] Collecte Bluetooth ---
+  diagnosticData.bluetoothControllerEnabled = false;
+  diagnosticData.bluetoothControllerStatus = String(T().bluetooth_not_available);
+  diagnosticData.bluetoothMode = String(T().bluetooth_mode_idle);
+  diagnosticData.btClassicAddress = diagnosticData.hasBT ? String(T().unknown) : String(T().not_detected);
+  diagnosticData.bleAddress = diagnosticData.hasBLE ? String(T().unknown) : String(T().not_detected);
+
+#ifdef CONFIG_BT_ENABLED
+  esp_bt_controller_status_t btStatus = esp_bt_controller_get_status();
+  diagnosticData.bluetoothControllerStatus = translateBluetoothControllerStatus(btStatus);
+  diagnosticData.bluetoothControllerEnabled = (btStatus == ESP_BT_CONTROLLER_STATUS_ENABLED);
+  esp_bt_mode_t btMode = esp_bt_controller_get_mode();
+  diagnosticData.bluetoothMode = translateBluetoothMode(btMode);
+#endif
+
+#ifdef ESP_MAC_BT
+  if (diagnosticData.hasBT) {
+    uint8_t btMac[6] = {0};
+    if (esp_read_mac(btMac, ESP_MAC_BT) == ESP_OK) {
+      diagnosticData.btClassicAddress = formatMacAddress(btMac);
+    }
+  }
+#endif
+
+#ifdef ESP_MAC_BLE
+  if (diagnosticData.hasBLE) {
+    uint8_t bleMac[6] = {0};
+    if (esp_read_mac(bleMac, ESP_MAC_BLE) == ESP_OK) {
+      diagnosticData.bleAddress = formatMacAddress(bleMac);
+    }
+  }
+#endif
+
   diagnosticData.gpioList = getGPIOList();
   diagnosticData.totalGPIO = countGPIO();
   
@@ -1634,7 +1725,17 @@ void handleExportTXT() {
   txt += String(T().gateway) + ": " + WiFi.gatewayIP().toString() + "\r\n";
   txt += "DNS: " + WiFi.dnsIP().toString() + "\r\n";
   txt += "\r\n";
-  
+
+  // --- [NEW FEATURE] Export Bluetooth ---
+  txt += "=== BLUETOOTH ===\r\n";
+  txt += String(T().bluetooth_controller) + ": " + diagnosticData.bluetoothControllerStatus + "\r\n";
+  txt += String(T().bluetooth_mode) + ": " + diagnosticData.bluetoothMode + "\r\n";
+  txt += String(T().bluetooth_support_classic) + ": " + getBluetoothSupportLabel(diagnosticData.hasBT) + "\r\n";
+  txt += String(T().bluetooth_support_ble) + ": " + getBluetoothSupportLabel(diagnosticData.hasBLE) + "\r\n";
+  txt += String(T().bluetooth_mac_classic) + ": " + diagnosticData.btClassicAddress + "\r\n";
+  txt += String(T().bluetooth_mac_ble) + ": " + diagnosticData.bleAddress + "\r\n";
+  txt += "\r\n";
+
   txt += "=== GPIO ===\r\n";
   txt += String(T().total_gpio) + ": " + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "\r\n";
   txt += String(T().gpio_list) + ": " + diagnosticData.gpioList + "\r\n";
@@ -1723,7 +1824,17 @@ void handleExportJSON() {
   json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",";
   json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
   json += "},";
-  
+
+  json += "\"bluetooth\":{";
+  json += "\"controller_enabled\":" + String(diagnosticData.bluetoothControllerEnabled ? "true" : "false") + ",";
+  json += "\"controller_status\":\"" + diagnosticData.bluetoothControllerStatus + "\",";
+  json += "\"mode\":\"" + diagnosticData.bluetoothMode + "\",";
+  json += "\"support_classic\":" + String(diagnosticData.hasBT ? "true" : "false") + ",";
+  json += "\"support_ble\":" + String(diagnosticData.hasBLE ? "true" : "false") + ",";
+  json += "\"mac_classic\":\"" + diagnosticData.btClassicAddress + "\",";
+  json += "\"mac_ble\":\"" + diagnosticData.bleAddress + "\"";
+  json += "},";
+
   json += "\"gpio\":{";
   json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
   json += "\"list\":\"" + diagnosticData.gpioList + "\"";
@@ -1805,7 +1916,15 @@ void handleExportCSV() {
   csv += "WiFi,RSSI dBm," + String(diagnosticData.wifiRSSI) + "\r\n";
   csv += "WiFi,IP," + diagnosticData.ipAddress + "\r\n";
   csv += "WiFi," + String(T().gateway) + "," + WiFi.gatewayIP().toString() + "\r\n";
-  
+
+  // --- [NEW FEATURE] Export Bluetooth ---
+  csv += "Bluetooth," + String(T().bluetooth_controller) + "," + diagnosticData.bluetoothControllerStatus + "\r\n";
+  csv += "Bluetooth," + String(T().bluetooth_mode) + "," + diagnosticData.bluetoothMode + "\r\n";
+  csv += "Bluetooth," + String(T().bluetooth_support_classic) + "," + getBluetoothSupportLabel(diagnosticData.hasBT) + "\r\n";
+  csv += "Bluetooth," + String(T().bluetooth_support_ble) + "," + getBluetoothSupportLabel(diagnosticData.hasBLE) + "\r\n";
+  csv += "Bluetooth," + String(T().bluetooth_mac_classic) + "," + diagnosticData.btClassicAddress + "\r\n";
+  csv += "Bluetooth," + String(T().bluetooth_mac_ble) + "," + diagnosticData.bleAddress + "\r\n";
+
   csv += "GPIO," + String(T().total_gpio) + "," + String(diagnosticData.totalGPIO) + "\r\n";
   
   csv += String(T().i2c_peripherals) + "," + String(T().device_count) + "," + String(diagnosticData.i2cCount) + "\r\n";
@@ -1934,7 +2053,19 @@ void handlePrintVersion() {
   html += "<div class='row'><b>Passerelle:</b><span>" + WiFi.gatewayIP().toString() + "</span></div>";
   html += "<div class='row'><b>DNS:</b><span>" + WiFi.dnsIP().toString() + "</span></div>";
   html += "</div></div>";
-  
+
+  // --- [NEW FEATURE] Bluetooth (impression) ---
+  html += "<div class='section'>";
+  html += "<h2>" + String(T().bluetooth_section) + "</h2>";
+  html += "<div class='grid'>";
+  html += "<div class='row'><b>" + String(T().bluetooth_controller) + ":</b><span>" + diagnosticData.bluetoothControllerStatus + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_mode) + ":</b><span>" + diagnosticData.bluetoothMode + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_support_classic) + ":</b><span>" + getBluetoothSupportLabel(diagnosticData.hasBT) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_support_ble) + ":</b><span>" + getBluetoothSupportLabel(diagnosticData.hasBLE) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_mac_classic) + ":</b><span>" + diagnosticData.btClassicAddress + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_mac_ble) + ":</b><span>" + diagnosticData.bleAddress + "</span></div>";
+  html += "</div></div>";
+
   // GPIO et Périphériques
   html += "<div class='section'>";
   html += "<h2>GPIO et Périphériques</h2>";
@@ -2008,6 +2139,22 @@ void handleGetTranslations() {
   json += "\"chip_info\":\"" + String(T().chip_info) + "\",";
   json += "\"memory_details\":\"" + String(T().memory_details) + "\",";
   json += "\"wifi_connection\":\"" + String(T().wifi_connection) + "\",";
+  json += "\"bluetooth_section\":\"" + String(T().bluetooth_section) + "\",";
+  json += "\"bluetooth_controller\":\"" + String(T().bluetooth_controller) + "\",";
+  json += "\"bluetooth_controller_status\":\"" + String(T().bluetooth_controller_status) + "\",";
+  json += "\"bluetooth_mode\":\"" + String(T().bluetooth_mode) + "\",";
+  json += "\"bluetooth_support_classic\":\"" + String(T().bluetooth_support_classic) + "\",";
+  json += "\"bluetooth_support_ble\":\"" + String(T().bluetooth_support_ble) + "\",";
+  json += "\"bluetooth_mac_classic\":\"" + String(T().bluetooth_mac_classic) + "\",";
+  json += "\"bluetooth_mac_ble\":\"" + String(T().bluetooth_mac_ble) + "\",";
+  json += "\"bluetooth_not_available\":\"" + String(T().bluetooth_not_available) + "\",";
+  json += "\"bluetooth_status_idle\":\"" + String(T().bluetooth_status_idle) + "\",";
+  json += "\"bluetooth_status_inited\":\"" + String(T().bluetooth_status_inited) + "\",";
+  json += "\"bluetooth_status_enabled\":\"" + String(T().bluetooth_status_enabled) + "\",";
+  json += "\"bluetooth_mode_idle\":\"" + String(T().bluetooth_mode_idle) + "\",";
+  json += "\"bluetooth_mode_classic\":\"" + String(T().bluetooth_mode_classic) + "\",";
+  json += "\"bluetooth_mode_ble\":\"" + String(T().bluetooth_mode_ble) + "\",";
+  json += "\"bluetooth_mode_dual\":\"" + String(T().bluetooth_mode_dual) + "\",";
   json += "\"gpio_interfaces\":\"" + String(T().gpio_interfaces) + "\",";
   json += "\"i2c_peripherals\":\"" + String(T().i2c_peripherals) + "\",";
   json += "\"builtin_led\":\"" + String(T().builtin_led) + "\",";
@@ -2190,7 +2337,18 @@ void handleRoot() {
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().gateway) + "</div><div class='info-value'>" + WiFi.gatewayIP().toString() + "</div></div>";
   chunk += "</div></div>";
   server.sendContent(chunk);
-  
+
+  // --- [NEW FEATURE] Section Bluetooth ---
+  chunk = "<div class='section'><h2>" + String(T().bluetooth_section) + "</h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_controller) + "</div><div class='info-value'>" + diagnosticData.bluetoothControllerStatus + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_mode) + "</div><div class='info-value'>" + diagnosticData.bluetoothMode + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_support_classic) + "</div><div class='info-value'>" + getBluetoothSupportLabel(diagnosticData.hasBT) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_support_ble) + "</div><div class='info-value'>" + getBluetoothSupportLabel(diagnosticData.hasBLE) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_mac_classic) + "</div><div class='info-value'>" + diagnosticData.btClassicAddress + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_mac_ble) + "</div><div class='info-value'>" + diagnosticData.bleAddress + "</div></div>";
+  chunk += "</div></div>";
+  server.sendContent(chunk);
+
   // GPIO et I2C
   chunk = "<div class='section'><h2>" + String(T().gpio_interfaces) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().total_gpio) + "</div><div class='info-value'>" + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "</div></div>";
@@ -2315,13 +2473,27 @@ void handleRoot() {
   chunk += "</div><div id='gpio-results' class='gpio-grid'></div></div></div>";
   server.sendContent(chunk);
   
-  // CHUNK 8: TAB WiFi
+  // --- [NEW FEATURE] Onglet Sans fil ---
   chunk = "<div id='wifi' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().wifi_scanner) + "</h2>";
-  chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='scanWiFi()'>" + String(T().scan_networks) + "</button>";
+  chunk += "<div class='section'><h2>" + String(T().wifi_scanner) + "</h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().connected_ssid) + "</div><div class='info-value'>" + diagnosticData.wifiSSID + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_power) + "</div><div class='info-value'>" + String(diagnosticData.wifiRSSI) + " dBm</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_quality) + "</div><div class='info-value'>" + getWiFiSignalQuality() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().ip_address) + "</div><div class='info-value'>" + diagnosticData.ipAddress + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().wifi_channel) + "</div><div class='info-value'>" + String(WiFi.channel()) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().gateway) + "</div><div class='info-value'>" + WiFi.gatewayIP().toString() + "</div></div>";
+  chunk += "</div>";
+  chunk += "<div style='text-align:center;margin:20px 0'><button class='btn btn-primary' onclick='scanWiFi()'>" + String(T().scan_networks) + "</button></div>";
   chunk += "<div id='wifi-status' class='status-live'>" + String(T().click_to_test) + "</div>";
-  chunk += "</div><div id='wifi-results' class='wifi-list'></div></div></div>";
+  chunk += "<div id='wifi-results' class='wifi-list'></div></div>";
+  chunk += "<div class='section'><h2>" + String(T().bluetooth_section) + "</h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_controller) + "</div><div class='info-value'>" + diagnosticData.bluetoothControllerStatus + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_mode) + "</div><div class='info-value'>" + diagnosticData.bluetoothMode + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_support_classic) + "</div><div class='info-value'>" + getBluetoothSupportLabel(diagnosticData.hasBT) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_support_ble) + "</div><div class='info-value'>" + getBluetoothSupportLabel(diagnosticData.hasBLE) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_mac_classic) + "</div><div class='info-value'>" + diagnosticData.btClassicAddress + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().bluetooth_mac_ble) + "</div><div class='info-value'>" + diagnosticData.bleAddress + "</div></div>";
+  chunk += "</div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 9: TAB Benchmark
