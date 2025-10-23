@@ -1,3 +1,4 @@
+// Version de dev : 3.0.01-dev
 /*
  * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
@@ -34,6 +35,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <esp32-hal-ledc.h>
 #include <vector>
 
 // Configuration WiFi
@@ -643,7 +645,7 @@ void testAllGPIOs() {
 // ========== LED INTÉGRÉE ==========
 void detectBuiltinLED() {
   String chipModel = detectChipModel();
-  
+
   #ifdef LED_BUILTIN
     BUILTIN_LED_PIN = LED_BUILTIN;
   #else
@@ -652,9 +654,52 @@ void detectBuiltinLED() {
     else if (chipModel == "ESP32-S2") BUILTIN_LED_PIN = 15;
     else BUILTIN_LED_PIN = 2;
   #endif
-  
+
   builtinLedTestResult = "Pret - GPIO " + String(BUILTIN_LED_PIN);
   Serial.printf("LED integree: GPIO %d\r\n", BUILTIN_LED_PIN);
+}
+
+// --- [NEW FEATURE] Compatibilite LEDC Arduino Core 3.3.2 ---
+bool fadeLEDWithLEDC(int pin, uint32_t freq = 5000, uint8_t resolution = 8, uint8_t step = 5, uint16_t stepDelayMs = 10) {
+  #if SOC_LEDC_SUPPORTED
+    if (step == 0) {
+      step = 1;
+    }
+
+    if (!ledcAttach(pin, freq, resolution)) {
+      return false;
+    }
+
+    uint32_t maxDuty = (1UL << resolution) - 1UL;
+    for (uint32_t duty = 0; duty <= maxDuty; duty += step) {
+      uint32_t clampedDuty = duty > maxDuty ? maxDuty : duty;
+      ledcWrite(pin, clampedDuty);
+      delay(stepDelayMs);
+      if (clampedDuty == maxDuty) {
+        break;
+      }
+    }
+
+    for (int32_t duty = static_cast<int32_t>(maxDuty); duty >= 0; duty -= step) {
+      uint32_t clampedDuty = duty < 0 ? 0 : static_cast<uint32_t>(duty);
+      ledcWrite(pin, clampedDuty);
+      delay(stepDelayMs);
+      if (clampedDuty == 0) {
+        break;
+      }
+    }
+
+    ledcWrite(pin, 0);
+    ledcDetach(pin);
+    return true;
+  #else
+    (void)pin;
+    (void)freq;
+    (void)resolution;
+    (void)step;
+    (void)stepDelayMs;
+    return false;
+  #endif
 }
 
 void testBuiltinLED() {
@@ -669,16 +714,11 @@ void testBuiltinLED() {
     digitalWrite(BUILTIN_LED_PIN, LOW);
     delay(200);
   }
-  
-  for(int i = 0; i <= 255; i += 5) {
-    analogWrite(BUILTIN_LED_PIN, i);
-    delay(10);
+
+  bool fadeOk = fadeLEDWithLEDC(BUILTIN_LED_PIN);
+  if (!fadeOk) {
+    Serial.println("LEDC fade non disponible pour la LED integree");
   }
-  for(int i = 255; i >= 0; i -= 5) {
-    analogWrite(BUILTIN_LED_PIN, i);
-    delay(10);
-  }
-  
   digitalWrite(BUILTIN_LED_PIN, LOW);
   builtinLedAvailable = true;
   builtinLedTestResult = "Test OK - GPIO " + String(BUILTIN_LED_PIN);
@@ -1361,16 +1401,9 @@ void handleBuiltinLEDControl() {
     }
     message = "Clignotement OK";
   } else if (action == "fade") {
-    for(int i = 0; i <= 255; i += 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
-    }
-    for(int i = 255; i >= 0; i -= 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
-    }
+    bool fadeOk = fadeLEDWithLEDC(BUILTIN_LED_PIN);
     digitalWrite(BUILTIN_LED_PIN, LOW);
-    message = "Fade OK";
+    message = fadeOk ? "Fade OK" : "Fade indisponible";
   } else if (action == "off") {
     digitalWrite(BUILTIN_LED_PIN, LOW);
     builtinLedTested = false;
