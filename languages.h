@@ -107,7 +107,6 @@ struct Translations {
   const char* bluetooth_characteristic_uuid;
   const char* bluetooth_firmware_enabled;
   const char* bluetooth_firmware_disabled;
-  const char* bluetooth_compiler_disabled;
   const char* bluetooth_refresh;
   const char* bluetooth_start_adv;
   const char* bluetooth_stop_adv;
@@ -371,7 +370,6 @@ const Translations LANG_FR_TEXTS = {
   "UUID Caractéristique",
   "Activé",
   "Désactivé (compiler)",
-  "La carte prend en charge le Bluetooth mais il est désactivé dans ce firmware.",
   "Actualiser l'état",
   "Démarrer la diffusion",
   "Arrêter la diffusion",
@@ -635,7 +633,6 @@ const Translations LANG_EN_TEXTS = {
   "Characteristic UUID",
   "Enabled",
   "Disabled (build config)",
-  "The board supports Bluetooth but it is disabled in this firmware build.",
   "Refresh status",
   "Start advertising",
   "Stop advertising",
