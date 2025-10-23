@@ -90,7 +90,25 @@ struct Translations {
   const char* gateway;
   const char* dns;
   const char* wifi_channel;
-  
+
+  // Bluetooth
+  const char* bluetooth_section;
+  const char* bluetooth_controller;
+  const char* bluetooth_controller_status;
+  const char* bluetooth_mode;
+  const char* bluetooth_support_classic;
+  const char* bluetooth_support_ble;
+  const char* bluetooth_mac_classic;
+  const char* bluetooth_mac_ble;
+  const char* bluetooth_not_available;
+  const char* bluetooth_status_idle;
+  const char* bluetooth_status_inited;
+  const char* bluetooth_status_enabled;
+  const char* bluetooth_mode_idle;
+  const char* bluetooth_mode_classic;
+  const char* bluetooth_mode_ble;
+  const char* bluetooth_mode_dual;
+
   // GPIO et périphériques
   const char* gpio_interfaces;
   const char* total_gpio;
@@ -126,6 +144,7 @@ struct Translations {
   const char* show_message;
   const char* no_detected;
   const char* check_wiring;
+  const char* i2c_bus_unavailable;
   const char* oled_step_welcome;
   const char* oled_step_big_text;
   const char* oled_step_text_sizes;
@@ -252,7 +271,7 @@ const Translations LANG_FR_TEXTS = {
   "Écrans",
   "Tests Avancés",
   "GPIO",
-  "WiFi",
+  "Sans fil",
   "Performance",
   "Export",
   
@@ -317,7 +336,25 @@ const Translations LANG_FR_TEXTS = {
   "Passerelle",
   "DNS",
   "Canal WiFi",
-  
+
+  // Bluetooth
+  "Bluetooth",
+  "Contrôleur Bluetooth",
+  "Statut du contrôleur",
+  "Mode radio",
+  "Support Bluetooth Classic",
+  "Support Bluetooth LE",
+  "Adresse MAC Bluetooth",
+  "Adresse MAC BLE",
+  "Non disponible",
+  "Contrôleur inactif",
+  "Contrôleur initialisé",
+  "Contrôleur actif",
+  "Mode inactif",
+  "Mode Classic",
+  "Mode BLE",
+  "Mode double",
+
   // GPIO
   "GPIO et Interfaces",
   "Total GPIO",
@@ -353,6 +390,7 @@ const Translations LANG_FR_TEXTS = {
   "Afficher Message",
   "Aucun écran OLED détecté. Vérifiez le câblage et les pins I2C ci-dessus.",
   "Vérifiez le câblage et les pins I2C",
+  "Bus I2C indisponible (initialisation impossible)",
   "Accueil",
   "Texte grand format",
   "Tailles de texte",
@@ -384,7 +422,7 @@ const Translations LANG_FR_TEXTS = {
   "Cliquez pour tester",
   
   // WiFi
-  "Scanner WiFi",
+  "WiFi",
   "Scanner Réseaux WiFi",
   
   // Performance
@@ -544,7 +582,25 @@ const Translations LANG_EN_TEXTS = {
   "Gateway",
   "DNS",
   "WiFi Channel",
-  
+
+  // Bluetooth
+  "Bluetooth",
+  "Bluetooth Controller",
+  "Controller status",
+  "Radio mode",
+  "Bluetooth Classic support",
+  "Bluetooth LE support",
+  "Bluetooth MAC address",
+  "BLE MAC address",
+  "Not available",
+  "Controller idle",
+  "Controller initialized",
+  "Controller enabled",
+  "Idle mode",
+  "Classic mode",
+  "BLE mode",
+  "Dual mode",
+
   // GPIO
   "GPIO and Interfaces",
   "Total GPIO",
@@ -580,6 +636,7 @@ const Translations LANG_EN_TEXTS = {
   "Display Message",
   "No OLED screen detected. Check wiring and I2C pins above.",
   "Check wiring and I2C pins",
+  "I2C bus unavailable (initialization failed)",
   "Welcome",
   "Large text",
   "Text sizes",
@@ -611,7 +668,7 @@ const Translations LANG_EN_TEXTS = {
   "Click to test",
   
   // WiFi
-  "WiFi Scanner",
+  "WiFi",
   "Scan WiFi Networks",
   
   // Performance
