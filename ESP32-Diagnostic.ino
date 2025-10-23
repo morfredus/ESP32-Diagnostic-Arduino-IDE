@@ -1,4 +1,4 @@
-// Version de dev : 3.0.04-dev
+// Version de dev : 3.0.05-dev
 /*
  * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
@@ -41,6 +41,17 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 #include <vector>
+
+#if defined(__has_include)
+#  if __has_include(<esp_gatts_api.h>)
+#    include <esp_gatts_api.h>
+#    define HAS_ESP_GATTS_API 1
+#  else
+#    define HAS_ESP_GATTS_API 0
+#  endif
+#else
+#  define HAS_ESP_GATTS_API 0
+#endif
 
 // Configuration WiFi
 #include "wifi-config.h"
@@ -247,35 +258,49 @@ static BLEUUID DIAGNOSTIC_SERVICE_UUID((uint16_t)0x180A);
 static BLEUUID DIAGNOSTIC_CHARACTERISTIC_UUID((uint16_t)0x2A29);
 
 class DiagnosticBLECallbacks : public BLEServerCallbacks {
-  void markConnected(esp_ble_gatts_cb_param_t* param = nullptr) {
+  void markConnected(const String& clientAddress = String()) {
     bluetoothStatus.connected = true;
     bluetoothStatus.advertising = false;
     bluetoothStatus.connectionCount++;
     bluetoothStatus.lastEventCode = "connected";
     bluetoothStatus.lastEventMillis = millis();
-    if (param) {
-      char buffer[18];
-      sprintf(buffer, "%02X:%02X:%02X:%02X:%02X:%02X",
-              param->connect.remote_bda[0],
-              param->connect.remote_bda[1],
-              param->connect.remote_bda[2],
-              param->connect.remote_bda[3],
-              param->connect.remote_bda[4],
-              param->connect.remote_bda[5]);
-      bluetoothStatus.lastClientAddress = String(buffer);
+    if (clientAddress.length()) {
+      bluetoothStatus.lastClientAddress = clientAddress;
     }
   }
 
+#if HAS_ESP_GATTS_API
+  String formatClientAddress(const esp_ble_gatts_cb_param_t* param) {
+    if (!param) {
+      return String();
+    }
+    char buffer[18];
+    sprintf(buffer, "%02X:%02X:%02X:%02X:%02X:%02X",
+            param->connect.remote_bda[0],
+            param->connect.remote_bda[1],
+            param->connect.remote_bda[2],
+            param->connect.remote_bda[3],
+            param->connect.remote_bda[4],
+            param->connect.remote_bda[5]);
+    return String(buffer);
+  }
+#endif
+
 public:
   void onConnect(BLEServer* server) override {
+    (void)server;
     markConnected();
   }
 
+#if HAS_ESP_GATTS_API
   void onConnect(BLEServer* server, esp_ble_gatts_cb_param_t* param) override {
-    markConnected(param);
+    (void)server;
+    markConnected(formatClientAddress(param));
   }
+#endif
 
   void onDisconnect(BLEServer* server) override {
+    (void)server;
     bluetoothStatus.connected = false;
     bluetoothStatus.lastEventCode = "disconnected";
     bluetoothStatus.lastEventMillis = millis();
@@ -784,10 +809,8 @@ void initBluetooth() {
   bluetoothAdvertising->setScanResponse(true);
   bluetoothAdvertising->start();
 
-  std::string serviceUuid = DIAGNOSTIC_SERVICE_UUID.toString();
-  std::string characteristicUuid = DIAGNOSTIC_CHARACTERISTIC_UUID.toString();
-  bluetoothStatus.serviceUUID = String(serviceUuid.c_str());
-  bluetoothStatus.characteristicUUID = String(characteristicUuid.c_str());
+  bluetoothStatus.serviceUUID = String(DIAGNOSTIC_SERVICE_UUID.toString().c_str());
+  bluetoothStatus.characteristicUUID = String(DIAGNOSTIC_CHARACTERISTIC_UUID.toString().c_str());
 
   bluetoothStatus.initialized = true;
   bluetoothStatus.advertising = true;
@@ -2784,9 +2807,9 @@ void handleRoot() {
   chunk += "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-info' onclick='refreshBluetoothStatus()'><span data-i18n='bluetooth_refresh'>" + String(T().bluetooth_refresh) + "</span></button> ";
-  chunk += "<button class='btn btn-success' onclick='bluetoothControl(\\"start\\")'><span data-i18n='bluetooth_start_adv'>" + String(T().bluetooth_start_adv) + "</span></button> ";
-  chunk += "<button class='btn btn-warning' onclick='bluetoothControl(\\"stop\\")'><span data-i18n='bluetooth_stop_adv'>" + String(T().bluetooth_stop_adv) + "</span></button> ";
-  chunk += "<button class='btn btn-primary' onclick='bluetoothControl(\\"restart\\")'><span data-i18n='bluetooth_restart_adv'>" + String(T().bluetooth_restart_adv) + "</span></button>";
+  chunk += "<button class='btn btn-success' onclick='bluetoothControl(\"start\")'><span data-i18n='bluetooth_start_adv'>" + String(T().bluetooth_start_adv) + "</span></button> ";
+  chunk += "<button class='btn btn-warning' onclick='bluetoothControl(\"stop\")'><span data-i18n='bluetooth_stop_adv'>" + String(T().bluetooth_stop_adv) + "</span></button> ";
+  chunk += "<button class='btn btn-primary' onclick='bluetoothControl(\"restart\")'><span data-i18n='bluetooth_restart_adv'>" + String(T().bluetooth_restart_adv) + "</span></button>";
   chunk += "</div>";
   chunk += "<div id='bluetooth-action-status' class='status-live'>" + String(T().click_to_test) + "</div>";
   chunk += "</div></div>";
