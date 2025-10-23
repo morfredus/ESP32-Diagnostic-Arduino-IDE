@@ -1,4 +1,4 @@
-// Version de dev : 3.0.05-dev
+// Version de dev : 3.0.06-dev
 /*
  * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
@@ -51,6 +51,13 @@
 #  endif
 #else
 #  define HAS_ESP_GATTS_API 0
+#endif
+
+// --- [NEW FEATURE] Détection de l'activation Bluetooth dans le firmware ---
+#if defined(CONFIG_BT_ENABLED) || defined(CONFIG_BT_NIMBLE_ENABLED) || defined(CONFIG_BT_BLUEDROID_ENABLED) || defined(CONFIG_BLUEDROID_ENABLED) || defined(CONFIG_NIMBLE_ENABLED)
+#  define BLUETOOTH_FIRMWARE_ENABLED 1
+#else
+#  define BLUETOOTH_FIRMWARE_ENABLED 0
 #endif
 
 // Configuration WiFi
@@ -135,6 +142,7 @@ struct DiagnosticInfo {
   bool bluetoothInitialized;
   bool bluetoothAdvertising;
   bool bluetoothConnected;
+  bool bluetoothFirmwareEnabled;
   uint32_t bluetoothConnectionCount;
   String bluetoothDeviceName;
   String bluetoothLastEvent;
@@ -142,6 +150,7 @@ struct DiagnosticInfo {
   String bluetoothModes;
   String bluetoothServiceUUID;
   String bluetoothCharacteristicUUID;
+  String bluetoothFirmwareStatus;
 
   String gpioList;
   int totalGPIO;
@@ -237,6 +246,7 @@ struct BluetoothStatus {
   bool supported = false;
   bool classicSupported = false;
   bool bleSupported = false;
+  bool firmwareEnabled = BLUETOOTH_FIRMWARE_ENABLED;
   bool initialized = false;
   bool advertising = false;
   bool connected = false;
@@ -420,6 +430,7 @@ String getBluetoothEventLabel(const String& code) {
   if (code == "advertising") return String(T().bluetooth_event_advertising);
   if (code == "connected") return String(T().bluetooth_event_connected);
   if (code == "disconnected") return String(T().bluetooth_event_disconnected);
+  if (code == "firmware_disabled") return String(T().bluetooth_event_firmware_disabled);
   return String(T().bluetooth_event_idle);
 }
 
@@ -776,11 +787,22 @@ void initBluetooth() {
   bluetoothStatus.supported = (chipInfo.features & CHIP_FEATURE_BT) || (chipInfo.features & CHIP_FEATURE_BLE);
   bluetoothStatus.classicSupported = chipInfo.features & CHIP_FEATURE_BT;
   bluetoothStatus.bleSupported = chipInfo.features & CHIP_FEATURE_BLE;
+  bluetoothStatus.firmwareEnabled = BLUETOOTH_FIRMWARE_ENABLED;
   bluetoothStatus.lastEventMillis = millis();
 
   if (!bluetoothStatus.supported) {
     bluetoothStatus.lastEventCode = "idle";
     Serial.println("Bluetooth non supporte sur cette carte");
+    return;
+  }
+
+  if (!bluetoothStatus.firmwareEnabled) {
+    bluetoothStatus.initialized = false;
+    bluetoothStatus.advertising = false;
+    bluetoothStatus.lastEventCode = "firmware_disabled";
+    bluetoothStatus.serviceUUID = "";
+    bluetoothStatus.characteristicUUID = "";
+    Serial.println("Bluetooth supporte mais desactive dans la configuration du firmware");
     return;
   }
 
@@ -821,7 +843,7 @@ void initBluetooth() {
 }
 
 bool startBluetoothAdvertising() {
-  if (!bluetoothStatus.initialized || !bluetoothAdvertising) {
+  if (!bluetoothStatus.initialized || !bluetoothAdvertising || !bluetoothStatus.firmwareEnabled) {
     return false;
   }
   bluetoothAdvertising->start();
@@ -832,7 +854,7 @@ bool startBluetoothAdvertising() {
 }
 
 bool stopBluetoothAdvertising() {
-  if (!bluetoothStatus.initialized || !bluetoothAdvertising) {
+  if (!bluetoothStatus.initialized || !bluetoothAdvertising || !bluetoothStatus.firmwareEnabled) {
     return false;
   }
   if (bluetoothAdvertising->isAdvertising()) {
@@ -853,9 +875,16 @@ void handleBluetoothStatus() {
   json += "\"advertising\":" + String(bluetoothStatus.advertising ? "true" : "false") + ",";
   json += "\"connected\":" + String(bluetoothStatus.connected ? "true" : "false") + ",";
   json += "\"connections\":" + String(bluetoothStatus.connectionCount) + ",";
+  json += "\"firmware\":" + String((bluetoothStatus.supported && bluetoothStatus.firmwareEnabled) ? "true" : "false") + ",";
   json += "\"device\":\"" + bluetoothStatus.deviceName + "\",";
   json += "\"modes\":\"" + getBluetoothModesLabel() + "\",";
   json += "\"supportedLabel\":\"" + String(bluetoothStatus.supported ? T().bluetooth_supported : T().bluetooth_not_supported) + "\",";
+  String firmwareLabel = bluetoothStatus.supported ? String(bluetoothStatus.firmwareEnabled ? T().bluetooth_firmware_enabled : T().bluetooth_firmware_disabled) : String(T().bluetooth_not_supported);
+  firmwareLabel.replace("\"", "'"");
+  json += "\"firmwareLabel\":\"" + firmwareLabel + "\",";
+  String firmwareHint = (bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled) ? String(T().bluetooth_compiler_disabled) : String("");
+  firmwareHint.replace("\"", "'"");
+  json += "\"compilerHint\":\"" + firmwareHint + "\",";
   json += "\"advertisingLabel\":\"" + String(bluetoothStatus.advertising ? T().enabled : T().disabled) + "\",";
   json += "\"connectedLabel\":\"" + String(bluetoothStatus.connected ? T().connected : T().fail) + "\",";
   json += "\"lastEvent\":\"" + getBluetoothEventLabel(bluetoothStatus.lastEventCode) + "\",";
@@ -877,6 +906,11 @@ void handleBluetoothControl() {
   String action = server.arg("action");
   if (!bluetoothStatus.supported) {
     server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().bluetooth_action_not_available) + "\"}");
+    return;
+  }
+
+  if (!bluetoothStatus.firmwareEnabled) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().bluetooth_compiler_disabled) + "\"}");
     return;
   }
 
@@ -1624,6 +1658,7 @@ void collectDiagnosticInfo() {
   diagnosticData.bluetoothInitialized = bluetoothStatus.initialized;
   diagnosticData.bluetoothAdvertising = bluetoothStatus.advertising;
   diagnosticData.bluetoothConnected = bluetoothStatus.connected;
+  diagnosticData.bluetoothFirmwareEnabled = bluetoothStatus.supported && bluetoothStatus.firmwareEnabled;
   diagnosticData.bluetoothConnectionCount = bluetoothStatus.connectionCount;
   diagnosticData.bluetoothDeviceName = bluetoothStatus.deviceName;
   diagnosticData.bluetoothLastEvent = getBluetoothEventLabel(bluetoothStatus.lastEventCode);
@@ -1631,6 +1666,7 @@ void collectDiagnosticInfo() {
   diagnosticData.bluetoothModes = getBluetoothModesLabel();
   diagnosticData.bluetoothServiceUUID = bluetoothStatus.serviceUUID;
   diagnosticData.bluetoothCharacteristicUUID = bluetoothStatus.characteristicUUID;
+  diagnosticData.bluetoothFirmwareStatus = bluetoothStatus.supported ? String(bluetoothStatus.firmwareEnabled ? T().bluetooth_firmware_enabled : T().bluetooth_firmware_disabled) : String(T().bluetooth_not_supported);
 
   diagnosticData.gpioList = getGPIOList();
   diagnosticData.totalGPIO = countGPIO();
@@ -2417,6 +2453,7 @@ void handleGetTranslations() {
   json += "\"wifi_channel\":\"" + String(T().wifi_channel) + "\",";
   json += "\"bluetooth_section\":\"" + String(T().bluetooth_section) + "\",";
   json += "\"bluetooth_support\":\"" + String(T().bluetooth_support) + "\",";
+  json += "\"bluetooth_firmware\":\"" + String(T().bluetooth_firmware) + "\",";
   json += "\"bluetooth_modes\":\"" + String(T().bluetooth_modes) + "\",";
   json += "\"bluetooth_device_name\":\"" + String(T().bluetooth_device_name) + "\",";
   json += "\"bluetooth_advertising\":\"" + String(T().bluetooth_advertising) + "\",";
@@ -2427,6 +2464,9 @@ void handleGetTranslations() {
   json += "\"bluetooth_last_client\":\"" + String(T().bluetooth_last_client) + "\",";
   json += "\"bluetooth_service_uuid\":\"" + String(T().bluetooth_service_uuid) + "\",";
   json += "\"bluetooth_characteristic_uuid\":\"" + String(T().bluetooth_characteristic_uuid) + "\",";
+  json += "\"bluetooth_firmware_enabled\":\"" + String(T().bluetooth_firmware_enabled) + "\",";
+  json += "\"bluetooth_firmware_disabled\":\"" + String(T().bluetooth_firmware_disabled) + "\",";
+  json += "\"bluetooth_compiler_disabled\":\"" + String(T().bluetooth_compiler_disabled) + "\",";
   json += "\"bluetooth_refresh\":\"" + String(T().bluetooth_refresh) + "\",";
   json += "\"bluetooth_start_adv\":\"" + String(T().bluetooth_start_adv) + "\",";
   json += "\"bluetooth_stop_adv\":\"" + String(T().bluetooth_stop_adv) + "\",";
@@ -2440,6 +2480,7 @@ void handleGetTranslations() {
   json += "\"bluetooth_event_advertising\":\"" + String(T().bluetooth_event_advertising) + "\",";
   json += "\"bluetooth_event_connected\":\"" + String(T().bluetooth_event_connected) + "\",";
   json += "\"bluetooth_event_disconnected\":\"" + String(T().bluetooth_event_disconnected) + "\",";
+  json += "\"bluetooth_event_firmware_disabled\":\"" + String(T().bluetooth_event_firmware_disabled) + "\",";
   json += "\"bluetooth_action_running\":\"" + String(T().bluetooth_action_running) + "\",";
   json += "\"bluetooth_action_started\":\"" + String(T().bluetooth_action_started) + "\",";
   json += "\"bluetooth_action_stopped\":\"" + String(T().bluetooth_action_stopped) + "\",";
@@ -2640,6 +2681,7 @@ void handleRoot() {
   chunk += "</div></div>";
   chunk += "<div class='section'><h2 data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_support'>" + String(T().bluetooth_support) + "</div><div class='info-value' id='bt-overview-supported'>" + String(bluetoothStatus.supported ? T().bluetooth_supported : T().bluetooth_not_supported) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_firmware'>" + String(T().bluetooth_firmware) + "</div><div class='info-value' id='bt-overview-firmware'>" + diagnosticData.bluetoothFirmwareStatus + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_modes'>" + String(T().bluetooth_modes) + "</div><div class='info-value' id='bt-overview-modes'>" + diagnosticData.bluetoothModes + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_device_name'>" + String(T().bluetooth_device_name) + "</div><div class='info-value' id='bt-overview-device'>" + diagnosticData.bluetoothDeviceName + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_advertising'>" + String(T().bluetooth_advertising) + "</div><div class='info-value' id='bt-overview-advertising'>" + String(diagnosticData.bluetoothAdvertising ? T().enabled : T().disabled) + "</div></div>";
@@ -2650,6 +2692,15 @@ void handleRoot() {
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_last_client'>" + String(T().bluetooth_last_client) + "</div><div class='info-value' id='bt-overview-last-client'>" + diagnosticData.bluetoothLastClient + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_service_uuid'>" + String(T().bluetooth_service_uuid) + "</div><div class='info-value' id='bt-overview-service'>" + diagnosticData.bluetoothServiceUUID + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_characteristic_uuid'>" + String(T().bluetooth_characteristic_uuid) + "</div><div class='info-value' id='bt-overview-characteristic'>" + diagnosticData.bluetoothCharacteristicUUID + "</div></div>";
+  chunk += "</div>";
+  chunk += "<div class='status-live' id='bt-overview-warning'";
+  if (!(bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled)) {
+    chunk += " style='display:none'";
+  }
+  chunk += ">";
+  if (bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled) {
+    chunk += String(T().bluetooth_compiler_disabled);
+  }
   chunk += "</div></div>";
   server.sendContent(chunk);
   
@@ -2794,6 +2845,7 @@ void handleRoot() {
   chunk += "<div id='wifi-results' class='wifi-list'></div></div>";
   chunk += "<div class='section'><h2>🌀 <span data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</span></h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_support'>" + String(T().bluetooth_support) + "</div><div class='info-value' id='bt-supported'>" + String(bluetoothStatus.supported ? T().bluetooth_supported : T().bluetooth_not_supported) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_firmware'>" + String(T().bluetooth_firmware) + "</div><div class='info-value' id='bt-firmware'>" + diagnosticData.bluetoothFirmwareStatus + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_modes'>" + String(T().bluetooth_modes) + "</div><div class='info-value' id='bt-modes'>" + diagnosticData.bluetoothModes + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_device_name'>" + String(T().bluetooth_device_name) + "</div><div class='info-value' id='bt-device'>" + diagnosticData.bluetoothDeviceName + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_advertising'>" + String(T().bluetooth_advertising) + "</div><div class='info-value' id='bt-advertising'>" + String(diagnosticData.bluetoothAdvertising ? T().enabled : T().disabled) + "</div></div>";
@@ -2804,6 +2856,15 @@ void handleRoot() {
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_last_client'>" + String(T().bluetooth_last_client) + "</div><div class='info-value' id='bt-last-client'>" + diagnosticData.bluetoothLastClient + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_service_uuid'>" + String(T().bluetooth_service_uuid) + "</div><div class='info-value' id='bt-service'>" + diagnosticData.bluetoothServiceUUID + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_characteristic_uuid'>" + String(T().bluetooth_characteristic_uuid) + "</div><div class='info-value' id='bt-characteristic'>" + diagnosticData.bluetoothCharacteristicUUID + "</div></div>";
+  chunk += "</div>";
+  chunk += "<div class='status-live' id='bt-warning'";
+  if (!(bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled)) {
+    chunk += " style='display:none'";
+  }
+  chunk += ">";
+  if (bluetoothStatus.supported && !bluetoothStatus.firmwareEnabled) {
+    chunk += String(T().bluetooth_compiler_disabled);
+  }
   chunk += "</div>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-info' onclick='refreshBluetoothStatus()'><span data-i18n='bluetooth_refresh'>" + String(T().bluetooth_refresh) + "</span></button> ";
@@ -2953,17 +3014,28 @@ void handleRoot() {
   chunk += "const completed=translations.completed||'" + String(T().completed) + "';";
   chunk += "if(status)status.textContent=completed;";
   chunk += "const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};";
-  chunk += "setText('bt-supported',d.supportedLabel||(d.supported?(translations.bluetooth_supported||'" + String(T().bluetooth_supported) + "'):(translations.bluetooth_not_supported||'" + String(T().bluetooth_not_supported) + "')));";
-  chunk += "setText('bt-modes',d.modes||'');";
-  chunk += "setText('bt-device',d.device||'');";
-  chunk += "setText('bt-advertising',d.advertisingLabel||(d.advertising?(translations.enabled||'" + String(T().enabled) + "'):(translations.disabled||'" + String(T().disabled) + "')));";
-  chunk += "setText('bt-connected',d.connectedLabel||(d.connected?(translations.connected_label||'" + String(T().connected) + "'):(translations.fail_label||'" + String(T().fail) + "')));";
-  chunk += "setText('bt-connections',d.connections||'0');";
-  chunk += "setText('bt-last-event',d.lastEvent||'');";
-  chunk += "setText('bt-last-event-age',d.lastEventAge||'');";
-  chunk += "setText('bt-last-client',d.lastClient||'');";
-  chunk += "setText('bt-service',d.serviceUUID||'');";
-  chunk += "setText('bt-characteristic',d.characteristicUUID||'');";
+  chunk += "const setTexts=(ids,value)=>{ids.forEach(id=>setText(id,value));};";
+  chunk += "const toggleWarning=(id,message)=>{const el=document.getElementById(id);if(!el)return;if(message&&message.length){el.textContent=message;el.style.display='block';}else{el.textContent='';el.style.display='none';}};";
+  chunk += "const fallbackNone=translations.none||'" + String(T().none) + "';";
+  chunk += "const fallbackEvent=translations.bluetooth_event_idle||'" + String(T().bluetooth_event_idle) + "';";
+  chunk += "const supportedLabel=d.supportedLabel||(d.supported?(translations.bluetooth_supported||'" + String(T().bluetooth_supported) + "'):(translations.bluetooth_not_supported||'" + String(T().bluetooth_not_supported) + "'));";
+  chunk += "const firmwareLabel=d.firmwareLabel||(d.firmware?(translations.bluetooth_firmware_enabled||'" + String(T().bluetooth_firmware_enabled) + "'):(translations.bluetooth_firmware_disabled||'" + String(T().bluetooth_firmware_disabled) + "'));";
+  chunk += "const advertisingLabel=d.advertisingLabel||(d.advertising?(translations.enabled||'" + String(T().enabled) + "'):(translations.disabled||'" + String(T().disabled) + "'));";
+  chunk += "const connectedLabel=d.connectedLabel||(d.connected?(translations.connected_label||'" + String(T().connected) + "'):(translations.fail_label||'" + String(T().fail) + "'));";
+  chunk += "setTexts(['bt-supported','bt-overview-supported'],supportedLabel);";
+  chunk += "setTexts(['bt-firmware','bt-overview-firmware'],firmwareLabel);";
+  chunk += "setTexts(['bt-modes','bt-overview-modes'],d.modes||'');";
+  chunk += "setTexts(['bt-device','bt-overview-device'],(d.device&&d.device.length)?d.device:fallbackNone);";
+  chunk += "setTexts(['bt-advertising','bt-overview-advertising'],advertisingLabel);";
+  chunk += "setTexts(['bt-connected','bt-overview-connected'],connectedLabel);";
+  chunk += "setTexts(['bt-connections','bt-overview-connections'],(d.connections||d.connections===0)?d.connections:'0');";
+  chunk += "setTexts(['bt-last-event','bt-overview-last-event'],d.lastEvent&&d.lastEvent.length?d.lastEvent:fallbackEvent);";
+  chunk += "setTexts(['bt-last-event-age','bt-overview-last-event-age'],d.lastEventAge||'');";
+  chunk += "setTexts(['bt-last-client','bt-overview-last-client'],(d.lastClient&&d.lastClient.length)?d.lastClient:fallbackNone);";
+  chunk += "setTexts(['bt-service','bt-overview-service'],(d.serviceUUID&&d.serviceUUID.length)?d.serviceUUID:fallbackNone);";
+  chunk += "setTexts(['bt-characteristic','bt-overview-characteristic'],(d.characteristicUUID&&d.characteristicUUID.length)?d.characteristicUUID:fallbackNone);";
+  chunk += "toggleWarning('bt-warning',d.compilerHint||'');";
+  chunk += "toggleWarning('bt-overview-warning',d.compilerHint||'');";
   chunk += "}).catch(e=>{if(status)status.textContent='Error';console.error(e);});}";
 
   chunk += "function bluetoothControl(action){";

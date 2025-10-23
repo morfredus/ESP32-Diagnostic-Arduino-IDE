@@ -94,6 +94,7 @@ struct Translations {
   // Bluetooth
   const char* bluetooth_section;
   const char* bluetooth_support;
+  const char* bluetooth_firmware;
   const char* bluetooth_modes;
   const char* bluetooth_device_name;
   const char* bluetooth_advertising;
@@ -104,6 +105,9 @@ struct Translations {
   const char* bluetooth_last_client;
   const char* bluetooth_service_uuid;
   const char* bluetooth_characteristic_uuid;
+  const char* bluetooth_firmware_enabled;
+  const char* bluetooth_firmware_disabled;
+  const char* bluetooth_compiler_disabled;
   const char* bluetooth_refresh;
   const char* bluetooth_start_adv;
   const char* bluetooth_stop_adv;
@@ -122,6 +126,7 @@ struct Translations {
   const char* bluetooth_event_advertising;
   const char* bluetooth_event_connected;
   const char* bluetooth_event_disconnected;
+  const char* bluetooth_event_firmware_disabled;
 
   // GPIO et périphériques
   const char* gpio_interfaces;
@@ -353,6 +358,7 @@ const Translations LANG_FR_TEXTS = {
   // Bluetooth
   "Bluetooth",
   "Support",
+  "Support firmware",
   "Modes supportés",
   "Nom du périphérique",
   "Diffusion (advertising)",
@@ -363,6 +369,9 @@ const Translations LANG_FR_TEXTS = {
   "Dernier client",
   "Service UUID",
   "UUID Caractéristique",
+  "Activé",
+  "Désactivé (compiler)",
+  "La carte prend en charge le Bluetooth mais il est désactivé dans ce firmware.",
   "Actualiser l'état",
   "Démarrer la diffusion",
   "Arrêter la diffusion",
@@ -381,6 +390,7 @@ const Translations LANG_FR_TEXTS = {
   "Diffusion en cours",
   "Client connecté",
   "Client déconnecté",
+  "Bluetooth désactivé dans le firmware",
 
   // GPIO
   "GPIO et Interfaces",
@@ -612,6 +622,7 @@ const Translations LANG_EN_TEXTS = {
   // Bluetooth
   "Bluetooth",
   "Support",
+  "Firmware support",
   "Supported modes",
   "Device name",
   "Advertising",
@@ -622,6 +633,9 @@ const Translations LANG_EN_TEXTS = {
   "Last client",
   "Service UUID",
   "Characteristic UUID",
+  "Enabled",
+  "Disabled (build config)",
+  "The board supports Bluetooth but it is disabled in this firmware build.",
   "Refresh status",
   "Start advertising",
   "Stop advertising",
@@ -640,6 +654,7 @@ const Translations LANG_EN_TEXTS = {
   "Advertising",
   "Client connected",
   "Client disconnected",
+  "Bluetooth disabled in firmware",
 
   // GPIO
   "GPIO and Interfaces",
