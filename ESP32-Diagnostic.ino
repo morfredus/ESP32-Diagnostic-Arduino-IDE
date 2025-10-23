@@ -1,4 +1,4 @@
-// Version de dev : 3.0.03-dev
+// Version de dev : 3.0.04-dev
 /*
  * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
@@ -40,7 +40,6 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include <esp_gatts_api.h>
 #include <vector>
 
 // Configuration WiFi
