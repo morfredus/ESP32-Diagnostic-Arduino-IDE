@@ -96,10 +96,18 @@ struct Translations {
   const char* bluetooth_controller;
   const char* bluetooth_controller_status;
   const char* bluetooth_mode;
+  const char* bluetooth_service_status;
+  const char* bluetooth_advertising_status;
+  const char* bluetooth_client_state;
+  const char* bluetooth_device_name;
   const char* bluetooth_support_classic;
   const char* bluetooth_support_ble;
   const char* bluetooth_mac_classic;
   const char* bluetooth_mac_ble;
+  const char* bluetooth_service_uuid_label;
+  const char* bluetooth_characteristic_uuid_label;
+  const char* bluetooth_notifications_sent;
+  const char* bluetooth_last_value;
   const char* bluetooth_not_available;
   const char* bluetooth_status_idle;
   const char* bluetooth_status_inited;
@@ -108,6 +116,12 @@ struct Translations {
   const char* bluetooth_mode_classic;
   const char* bluetooth_mode_ble;
   const char* bluetooth_mode_dual;
+  const char* bluetooth_advertising_active;
+  const char* bluetooth_advertising_inactive;
+  const char* bluetooth_client_connected;
+  const char* bluetooth_client_disconnected;
+  const char* bluetooth_service_running;
+  const char* bluetooth_service_stopped;
 
   // GPIO et périphériques
   const char* gpio_interfaces;
@@ -342,10 +356,18 @@ const Translations LANG_FR_TEXTS = {
   "Contrôleur Bluetooth",
   "Statut du contrôleur",
   "Mode radio",
+  "Statut du service Bluetooth",
+  "Diffusion publicitaire",
+  "État du client BLE",
+  "Nom du périphérique",
   "Support Bluetooth Classic",
   "Support Bluetooth LE",
   "Adresse MAC Bluetooth",
   "Adresse MAC BLE",
+  "UUID du service",
+  "UUID de la caractéristique",
+  "Notifications envoyées",
+  "Dernière valeur transmise",
   "Non disponible",
   "Contrôleur inactif",
   "Contrôleur initialisé",
@@ -354,6 +376,12 @@ const Translations LANG_FR_TEXTS = {
   "Mode Classic",
   "Mode BLE",
   "Mode double",
+  "Publicité active",
+  "Publicité arrêtée",
+  "Client connecté",
+  "Client déconnecté",
+  "Service actif",
+  "Service arrêté",
 
   // GPIO
   "GPIO et Interfaces",
@@ -588,10 +616,18 @@ const Translations LANG_EN_TEXTS = {
   "Bluetooth Controller",
   "Controller status",
   "Radio mode",
+  "Service status",
+  "Advertising state",
+  "Client state",
+  "Device name",
   "Bluetooth Classic support",
   "Bluetooth LE support",
   "Bluetooth MAC address",
   "BLE MAC address",
+  "Service UUID",
+  "Characteristic UUID",
+  "Notifications sent",
+  "Last value",
   "Not available",
   "Controller idle",
   "Controller initialized",
@@ -600,6 +636,12 @@ const Translations LANG_EN_TEXTS = {
   "Classic mode",
   "BLE mode",
   "Dual mode",
+  "Advertising active",
+  "Advertising stopped",
+  "Client connected",
+  "Client disconnected",
+  "Service running",
+  "Service stopped",
 
   // GPIO
   "GPIO and Interfaces",
