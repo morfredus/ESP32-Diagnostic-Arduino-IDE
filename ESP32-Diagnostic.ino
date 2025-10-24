@@ -18,7 +18,7 @@
  * - Changement de langue dynamique sans rechargement
  * - Toutes fonctionnalités v2.3 préservées
  */
-// Version de dev : 3.0.01-dev - Compatibilité ESP32 Arduino Core 3.3.2
+// Version de dev : 3.0.02-dev - Correction LEDC test PWM
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -46,7 +46,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.01-dev"
+#define DIAGNOSTIC_VERSION "3.0.02-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -74,6 +74,8 @@ Adafruit_NeoPixel *strip = nullptr;
 
 // --- [NEW FEATURE] Paramètres LEDC pour la LED intégrée (compatibilité core 3.3.2) ---
 const int BUILTIN_LED_LEDC_CHANNEL = 7;
+// --- [FIX] Canal LEDC dédié au test PWM pour éviter les conflits et assurer la compilation ---
+const int TEST_PWM_LEDC_CHANNEL = 6;
 const uint32_t BUILTIN_LED_LEDC_FREQ = 5000;
 const uint8_t BUILTIN_LED_LEDC_RESOLUTION = 8;
 
@@ -1187,17 +1189,19 @@ void testPWM() {
   
   Serial.printf("Test PWM sur GPIO%d\r\n", testPin);
   
-  // Nouvelle API pour ESP32 Arduino Core 3.x
-  ledcAttach(testPin, 5000, 8); // pin, freq, resolution
-  
+  // --- [FIX] Utilisation de l'API LEDC standard pour garantir la compilation ---
+  ledcDetachPin(testPin);
+  ledcSetup(TEST_PWM_LEDC_CHANNEL, 5000, 8);
+  ledcAttachPin(testPin, TEST_PWM_LEDC_CHANNEL);
+
   for(int duty = 0; duty <= 255; duty += 51) {
-    ledcWrite(testPin, duty);
+    ledcWrite(TEST_PWM_LEDC_CHANNEL, duty);
     Serial.printf("PWM duty: %d/255\r\n", duty);
     delay(200);
   }
-  
-  ledcWrite(testPin, 0);
-  ledcDetach(testPin);
+
+  ledcWrite(TEST_PWM_LEDC_CHANNEL, 0);
+  ledcDetachPin(testPin);
   
   pwmTestResult = "Test OK sur GPIO" + String(testPin);
   Serial.println("PWM: OK");
