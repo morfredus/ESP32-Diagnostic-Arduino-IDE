@@ -118,6 +118,7 @@ struct Translations {
   const char* oled_screen;
   const char* i2c_pins;
   const char* i2c_address;
+  const char* rotation;
   const char* no_device;
   const char* pin_config;
   const char* apply_redetect;
@@ -345,6 +346,7 @@ const Translations LANG_FR_TEXTS = {
   "Écran OLED 0.96\" I2C",
   "Pins I2C",
   "Adresse I2C",
+  "Rotation",
   "aucun périphérique",
   "Configuration Pins I2C",
   "Appliquer et Re-détecter",
@@ -572,6 +574,7 @@ const Translations LANG_EN_TEXTS = {
   "OLED Screen 0.96\" I2C",
   "I2C Pins",
   "I2C Address",
+  "Rotation",
   "no device",
   "I2C Pin Configuration",
   "Apply and Re-detect",
