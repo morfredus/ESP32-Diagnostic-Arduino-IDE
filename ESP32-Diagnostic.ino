@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.09-dev - Délégation universelle des clics onglets
 // Version de dev : 3.0.08-dev - Correction finale navigation onglets
 // Version de dev : 3.0.07-dev - Réactivation complète navigation onglets
 // Version de dev : 3.0.06-dev - Correction compilation fallback onglets
@@ -72,7 +73,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.08-dev"
+#define DIAGNOSTIC_VERSION "3.0.09-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2658,28 +2659,43 @@ void handleRoot() {
   chunk += "if(tr[key])el.textContent=tr[key]})});}";
   
   // Navigation onglets
-  // --- [BUGFIX] Navigation onglets : événement explicite ---
+  // --- [BUGFIX] Navigation onglets : délégation universelle ---
   chunk += "function showTab(t,btn){";
-  chunk += "document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));";
-  chunk += "document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));";
-  chunk += "const target=document.getElementById(t);";
+  chunk += "var tabs=document.querySelectorAll('.tab-content');";
+  chunk += "for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');}";
+  chunk += "var target=document.getElementById(t);";
   chunk += "if(target){target.classList.add('active');}";
-  // --- [BUGFIX] Navigation onglets : gestion fallback sécurisée ---
-  chunk += "if(!btn){";
-  chunk += "const fallback=document.querySelector('.nav-btn[data-tab=\"'+t+'\"]');";
-  chunk += "if(fallback){btn=fallback;}";
+  chunk += "var buttons=document.querySelectorAll('.nav-btn');";
+  chunk += "for(var j=0;j<buttons.length;j++){buttons[j].classList.remove('active');}";
+  chunk += "if(btn&&btn.classList){btn.classList.add('active');}else{";
+  chunk += "var selector='.nav-btn[data-tab=\"'+t+'\"]';";
+  chunk += "var fallback=document.querySelector(selector);";
+  chunk += "if(fallback){fallback.classList.add('active');}";
   chunk += "}";
-  chunk += "if(btn){btn.classList.add('active');}";
   chunk += "}";
 
-  // --- [BUGFIX] Navigation onglets : écouteurs et initialisation ---
-  chunk += "const navButtons=document.querySelectorAll('.nav-btn');";
-  chunk += "for(let i=0;i<navButtons.length;i++){";
-  chunk += "const button=navButtons[i];";
-  chunk += "button.addEventListener('click',evt=>{evt.preventDefault();const targetTab=button.getAttribute('data-tab');showTab(targetTab,button);});";
+  chunk += "function findNavButton(el){";
+  chunk += "while(el&&el.classList&&!el.classList.contains('nav-btn')){el=el.parentElement;}";
+  chunk += "if(el&&el.classList&&el.classList.contains('nav-btn')){return el;}";
+  chunk += "return null;";
   chunk += "}";
-  chunk += "const defaultButton=document.querySelector('.nav-btn.active')||navButtons[0];";
-  chunk += "if(defaultButton){showTab(defaultButton.getAttribute('data-tab'),defaultButton);}";
+
+  chunk += "function initNavigation(){";
+  chunk += "var nav=document.querySelector('.nav');";
+  chunk += "if(!nav){return;}";
+  chunk += "nav.addEventListener('click',function(evt){";
+  chunk += "var button=findNavButton(evt.target);";
+  chunk += "if(!button){return;}";
+  chunk += "evt.preventDefault();";
+  chunk += "var targetTab=button.getAttribute('data-tab');";
+  chunk += "if(targetTab){showTab(targetTab,button);}";
+  chunk += "});";
+  chunk += "var defaultButton=document.querySelector('.nav-btn.active');";
+  chunk += "if(!defaultButton){var list=nav.querySelectorAll('.nav-btn');if(list.length>0){defaultButton=list[0];}}";
+  chunk += "if(defaultButton){showTab(defaultButton.getAttribute('data-tab'),defaultButton);}else{showTab('overview',null);}";
+  chunk += "}";
+
+  chunk += "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initNavigation);}else{initNavigation();}";
 
   // LED intégrée
   chunk += "function configBuiltinLED(){updateStatus('builtin-led-status','Configuration...',null);";
