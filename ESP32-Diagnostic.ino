@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.05-dev - Onglets web compatibles tous navigateurs
 // Version de dev : 3.0.04-dev - Correction navigation onglets principale
 // Version de dev : 3.0.03-dev - Rotation OLED ajustable et messages inline
 // Version de dev : 3.0.02-dev - Correction API scan WiFi pour core 3.3.2
@@ -68,7 +69,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.04-dev"
+#define DIAGNOSTIC_VERSION "3.0.05-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2360,15 +2361,16 @@ void handleRoot() {
   chunk += "<div style='font-size:.9em;opacity:.9;margin:10px 0'>";
   chunk += String(T().access) + ": <a href='http://" + String(MDNS_HOSTNAME) + ".local' style='color:#fff;text-decoration:underline'><strong>http://" + String(MDNS_HOSTNAME) + ".local</strong></a> " + String(T().or_text) + " <strong>" + diagnosticData.ipAddress + "</strong>";
   chunk += "</div>";
+  // --- [BUGFIX] Navigation onglets : gestion explicite du bouton ---
   chunk += "<div class='nav'>";
-  chunk += "<button class='nav-btn active' onclick='showTab(\"overview\")' data-i18n='nav_overview'>" + String(T().nav_overview) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"leds\")' data-i18n='nav_leds'>" + String(T().nav_leds) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"screens\")' data-i18n='nav_screens'>" + String(T().nav_screens) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"tests\")' data-i18n='nav_tests'>" + String(T().nav_tests) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"gpio\")' data-i18n='nav_gpio'>" + String(T().nav_gpio) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"wifi\")' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"benchmark\")' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"export\")' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
+  chunk += "<button class='nav-btn active' data-tab='overview' onclick='showTab(\"overview\",this)' data-i18n='nav_overview'>" + String(T().nav_overview) + "</button>";
+  chunk += "<button class='nav-btn' data-tab='leds' onclick='showTab(\"leds\",this)' data-i18n='nav_leds'>" + String(T().nav_leds) + "</button>";
+  chunk += "<button class='nav-btn' data-tab='screens' onclick='showTab(\"screens\",this)' data-i18n='nav_screens'>" + String(T().nav_screens) + "</button>";
+  chunk += "<button class='nav-btn' data-tab='tests' onclick='showTab(\"tests\",this)' data-i18n='nav_tests'>" + String(T().nav_tests) + "</button>";
+  chunk += "<button class='nav-btn' data-tab='gpio' onclick='showTab(\"gpio\",this)' data-i18n='nav_gpio'>" + String(T().nav_gpio) + "</button>";
+  chunk += "<button class='nav-btn' data-tab='wifi' onclick='showTab(\"wifi\",this)' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</button>";
+  chunk += "<button class='nav-btn' data-tab='benchmark' onclick='showTab(\"benchmark\",this)' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</button>";
+  chunk += "<button class='nav-btn' data-tab='export' onclick='showTab(\"export\",this)' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
   chunk += "</div></div><div class='content'>";
   server.sendContent(chunk);
   
@@ -2653,11 +2655,14 @@ void handleRoot() {
   chunk += "if(tr[key])el.textContent=tr[key]})});}";
   
   // Navigation onglets
-  chunk += "function showTab(t){";
+  // --- [BUGFIX] Navigation onglets : événement explicite ---
+  chunk += "function showTab(t,btn){";
   chunk += "document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));";
   chunk += "document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));";
-  chunk += "document.getElementById(t).classList.add('active');";
-  chunk += "event.target.classList.add('active');}";
+  chunk += "const target=document.getElementById(t);";
+  chunk += "if(target){target.classList.add('active');}";
+  chunk += "if(btn){btn.classList.add('active');}else{const fallback=document.querySelector('.nav-btn[data-tab=\\'"+t+"\\']');if(fallback)fallback.classList.add('active');}";
+  chunk += "}";
   
   // LED intégrée
   chunk += "function configBuiltinLED(){updateStatus('builtin-led-status','Configuration...',null);";
