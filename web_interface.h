@@ -192,16 +192,10 @@ String generateJavaScript() {
   js += "let isConnected=true;";
 
   // Initialisation - CORRIGÉE
-  // --- [BUGFIX] Navigation onglets : écouteurs et activation initiale ---
+  // --- [BUGFIX] Navigation onglets : délégation dès le chargement ---
   js += "document.addEventListener('DOMContentLoaded',function(){";
   js += "console.log('Interface chargée');";
-  js += "const navButtons=document.querySelectorAll('.nav-btn');";
-  js += "for(let i=0;i<navButtons.length;i++){";
-  js += "const btn=navButtons[i];";
-  js += "btn.addEventListener('click',e=>{e.preventDefault();const target=btn.getAttribute('data-tab');showTab(target,btn);});";
-  js += "}";
-  js += "const initialBtn=document.querySelector('.nav-btn.active')||navButtons[0];";
-  js += "if(initialBtn){showTab(initialBtn.getAttribute('data-tab'),initialBtn);}else{showTab('overview');}";
+  js += "initNavigation();";
   js += "loadAllData();";
   js += "startAutoUpdate();";
   js += "});";
@@ -242,12 +236,43 @@ String generateJavaScript() {
   js += "async function updateWiFiInfo(){await fetch('/api/wifi-info');}";
   js += "async function updatePeripheralsInfo(){await fetch('/api/peripherals');}";
 
-  // --- [BUGFIX] Navigation par onglets restaurée ---
+  // --- [BUGFIX] Navigation onglets : délégation universelle ---
   js += "function showTab(tabName,btn){";
-  js += "document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));";
-  js += "setActiveTabButton(tabName,btn);";
-  js += "const tab=document.getElementById(tabName);";
+  js += "var contents=document.querySelectorAll('.tab-content');";
+  js += "for(var i=0;i<contents.length;i++){contents[i].classList.remove('active');}";
+  js += "var tab=document.getElementById(tabName);";
   js += "if(tab){tab.classList.add('active');}else{loadTab(tabName);}";
+  js += "setActiveTabButton(tabName,btn);";
+  js += "}";
+
+  js += "function setActiveTabButton(tabName,btn){";
+  js += "var buttons=document.querySelectorAll('.nav-btn');";
+  js += "for(var i=0;i<buttons.length;i++){buttons[i].classList.remove('active');}";
+  js += "if(btn&&btn.classList){btn.classList.add('active');return;}";
+  js += "var selector='.nav-btn[data-tab=\"'+tabName+'\"]';";
+  js += "var fallback=document.querySelector(selector);";
+  js += "if(fallback){fallback.classList.add('active');}";
+  js += "}";
+
+  js += "function findNavButton(el){";
+  js += "while(el&&el.classList&&!el.classList.contains('nav-btn')){el=el.parentElement;}";
+  js += "if(el&&el.classList&&el.classList.contains('nav-btn')){return el;}";
+  js += "return null;";
+  js += "}";
+
+  js += "function initNavigation(){";
+  js += "var nav=document.querySelector('.nav');";
+  js += "if(!nav){return;}";
+  js += "nav.addEventListener('click',function(e){";
+  js += "var btn=findNavButton(e.target);";
+  js += "if(!btn){return;}";
+  js += "e.preventDefault();";
+  js += "var target=btn.getAttribute('data-tab');";
+  js += "if(target){showTab(target,btn);}";
+  js += "});";
+  js += "var active=document.querySelector('.nav-btn.active');";
+  js += "if(!active){var list=nav.querySelectorAll('.nav-btn');if(list.length>0){active=list[0];}}";
+  js += "if(active){showTab(active.getAttribute('data-tab'),active);}else{showTab('overview');}";
   js += "}";
 
   js += "function setActiveTabButton(tabName,btn){";
