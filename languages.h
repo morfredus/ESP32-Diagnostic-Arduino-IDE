@@ -90,7 +90,51 @@ struct Translations {
   const char* gateway;
   const char* dns;
   const char* wifi_channel;
-  
+  const char* wifi_security;
+  const char* wifi_bssid;
+  const char* wifi_networks_detected;
+  const char* wifi_not_connected;
+  const char* refresh_wireless;
+  const char* wifi_security_open;
+  const char* wifi_security_wep;
+  const char* wifi_security_wpa;
+  const char* wifi_security_wpa2;
+  const char* wifi_security_wpa_wpa2;
+  const char* wifi_security_wpa3;
+  const char* wifi_security_wpa2_wpa3;
+
+  // Bluetooth
+  const char* bluetooth_section;
+  const char* bluetooth_capabilities;
+  const char* bluetooth_device_name;
+  const char* bluetooth_address;
+  const char* bluetooth_service_uuid;
+  const char* bluetooth_connected_device;
+  const char* bluetooth_last_event;
+  const char* bluetooth_event_connected;
+  const char* bluetooth_event_disconnected;
+  const char* bluetooth_event_advertising;
+  const char* bluetooth_event_stopped;
+  const char* bluetooth_event_initialized;
+  const char* bluetooth_ready;
+  const char* bluetooth_connected_status;
+  const char* bluetooth_advertising_status;
+  const char* bluetooth_start_adv;
+  const char* bluetooth_stop_adv;
+  const char* bluetooth_refresh;
+  const char* bluetooth_action_missing;
+  const char* bluetooth_action_unknown;
+  const char* bluetooth_event_updated;
+  const char* bluetooth_classic;
+  const char* bluetooth_ble;
+  const char* bluetooth_not_supported;
+  const char* bluetooth_supported_classic;
+  const char* bluetooth_supported_ble;
+  const char* bluetooth_initialized_flag;
+  const char* bluetooth_advertising_flag;
+  const char* bluetooth_connected_flag;
+  const char* bluetooth_searching;
+
   // GPIO et périphériques
   const char* gpio_interfaces;
   const char* total_gpio;
@@ -157,7 +201,7 @@ struct Translations {
   const char* click_to_test;
   
   // WiFi Scanner
-  const char* wifi_scanner;
+  const char* wifi_section;
   const char* scan_networks;
   
   // Performance
@@ -221,7 +265,9 @@ struct Translations {
   const char* completed;
   const char* scan;
   const char* scanning;
-  
+  const char* yes;
+  const char* no;
+
   // Unités
   const char* cores;
   const char* pins;
@@ -252,7 +298,7 @@ const Translations LANG_FR_TEXTS = {
   "Écrans",
   "Tests Avancés",
   "GPIO",
-  "WiFi",
+  "Sans fil",
   "Performance",
   "Export",
   
@@ -317,6 +363,50 @@ const Translations LANG_FR_TEXTS = {
   "Passerelle",
   "DNS",
   "Canal WiFi",
+  "Sécurité WiFi",
+  "BSSID",
+  "%COUNT% réseaux détectés",
+  "Non connecté",
+  "Actualiser Sans fil",
+  "Ouvert",
+  "WEP",
+  "WPA-PSK",
+  "WPA2-PSK",
+  "WPA/WPA2",
+  "WPA3-PSK",
+  "WPA2/WPA3",
+
+  // Bluetooth
+  "Bluetooth",
+  "Capacités",
+  "Nom du périphérique",
+  "Adresse Bluetooth",
+  "UUID de service",
+  "Appareil connecté",
+  "Dernier évènement",
+  "Connexion Bluetooth établie",
+  "Périphérique déconnecté",
+  "Publicité Bluetooth active",
+  "Publicité Bluetooth stoppée",
+  "Bluetooth initialisé",
+  "Bluetooth prêt",
+  "Appareil connecté",
+  "En publicité",
+  "Démarrer la publicité",
+  "Arrêter la publicité",
+  "Actualiser Bluetooth",
+  "Action Bluetooth manquante",
+  "Action Bluetooth inconnue",
+  "Statut Bluetooth mis à jour",
+  "Bluetooth Classique",
+  "Bluetooth Low Energy",
+  "Bluetooth non supporté",
+  "Support Bluetooth Classique",
+  "Support Bluetooth Low Energy",
+  "Pile Bluetooth initialisée",
+  "Publicité Bluetooth en cours",
+  "Lien Bluetooth actif",
+  "Recherche...",
   
   // GPIO
   "GPIO et Interfaces",
@@ -384,8 +474,8 @@ const Translations LANG_FR_TEXTS = {
   "Cliquez pour tester",
   
   // WiFi
-  "Scanner WiFi",
-  "Scanner Réseaux WiFi",
+  "WiFi",
+  "WiFi",
   
   // Performance
   "Benchmarks de Performance",
@@ -448,6 +538,8 @@ const Translations LANG_FR_TEXTS = {
   "Terminé",
   "Scan...",
   "Scan...",
+  "Oui",
+  "Non",
   
   // Unités
   "coeurs",
@@ -479,7 +571,7 @@ const Translations LANG_EN_TEXTS = {
   "Screens",
   "Advanced Tests",
   "GPIO",
-  "WiFi",
+  "Wireless",
   "Performance",
   "Export",
   
@@ -544,6 +636,50 @@ const Translations LANG_EN_TEXTS = {
   "Gateway",
   "DNS",
   "WiFi Channel",
+  "WiFi Security",
+  "BSSID",
+  "%COUNT% networks detected",
+  "Not connected",
+  "Refresh Wireless",
+  "Open",
+  "WEP",
+  "WPA-PSK",
+  "WPA2-PSK",
+  "WPA/WPA2",
+  "WPA3-PSK",
+  "WPA2/WPA3",
+
+  // Bluetooth
+  "Bluetooth",
+  "Capabilities",
+  "Device Name",
+  "Bluetooth Address",
+  "Service UUID",
+  "Connected Device",
+  "Last event",
+  "Bluetooth connection established",
+  "Device disconnected",
+  "Bluetooth advertising active",
+  "Bluetooth advertising stopped",
+  "Bluetooth initialized",
+  "Bluetooth ready",
+  "Device connected",
+  "Advertising",
+  "Start advertising",
+  "Stop advertising",
+  "Refresh Bluetooth",
+  "Missing Bluetooth action",
+  "Unknown Bluetooth action",
+  "Bluetooth status updated",
+  "Bluetooth Classic",
+  "Bluetooth Low Energy",
+  "Bluetooth not supported",
+  "Bluetooth Classic support",
+  "Bluetooth Low Energy support",
+  "Bluetooth stack initialized",
+  "Bluetooth advertising running",
+  "Active Bluetooth link",
+  "Searching...",
   
   // GPIO
   "GPIO and Interfaces",
@@ -611,8 +747,8 @@ const Translations LANG_EN_TEXTS = {
   "Click to test",
   
   // WiFi
-  "WiFi Scanner",
-  "Scan WiFi Networks",
+  "WiFi",
+  "WiFi",
   
   // Performance
   "Performance Benchmarks",
@@ -675,6 +811,8 @@ const Translations LANG_EN_TEXTS = {
   "Completed",
   "Scanning...",
   "Scanning...",
+  "Yes",
+  "No",
   
   // Units
   "cores",
