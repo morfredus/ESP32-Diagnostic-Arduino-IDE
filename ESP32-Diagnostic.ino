@@ -11,7 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
-// Version de dev : 3.0.01-dev - Migration Core 3.3.2 + scan WiFi avancé
+// Version de dev : 3.0.02-dev - Correction API scan WiFi pour core 3.3.2
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -66,7 +66,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.01-dev"
+#define DIAGNOSTIC_VERSION "3.0.02-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -758,29 +758,30 @@ void scanWiFiNetworks() {
 
 #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
     // --- [NEW FEATURE] Analyse avancée du scan WiFi ---
-    wifi_ap_record_t info;
-    if (WiFi.getScanInfoByIndex(i, &info)) {
-      net.ssid = String(reinterpret_cast<const char*>(info.ssid));
-      net.rssi = info.rssi;
-      net.channel = info.primary;
+    // --- [NEW FEATURE] Compatibilite API WiFiScan core 3.3.2 ---
+    wifi_ap_record_t* info = static_cast<wifi_ap_record_t*>(WiFi.getScanInfoByIndex(i));
+    if (info != nullptr) {
+      net.ssid = String(reinterpret_cast<const char*>(info->ssid));
+      net.rssi = info->rssi;
+      net.channel = info->primary;
 
       char bssidStr[18];
       sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",
-              info.bssid[0], info.bssid[1], info.bssid[2], info.bssid[3], info.bssid[4], info.bssid[5]);
+              info->bssid[0], info->bssid[1], info->bssid[2], info->bssid[3], info->bssid[4], info->bssid[5]);
       net.bssid = String(bssidStr);
 
-      net.encryption = wifiAuthModeToString(info.authmode);
+      net.encryption = wifiAuthModeToString(info->authmode);
 #if defined(WIFI_CIPHER_TYPE_NONE)
-      String pairwise = wifiCipherToString(info.pairwise_cipher);
-      String group = wifiCipherToString(info.group_cipher);
+      String pairwise = wifiCipherToString(info->pairwise_cipher);
+      String group = wifiCipherToString(info->group_cipher);
       if ((pairwise != "-" && pairwise != "None") || (group != "-" && group != "None")) {
         net.encryption += " (" + pairwise + "/" + group + ")";
       }
 #endif
-      net.bandwidth = wifiBandwidthToString(info.second);
-      net.band = wifiChannelToBand(info.primary);
-      net.freqMHz = wifiChannelToFrequency(info.primary);
-      net.phyModes = wifiPhyModesToString(info);
+      net.bandwidth = wifiBandwidthToString(info->second);
+      net.band = wifiChannelToBand(info->primary);
+      net.freqMHz = wifiChannelToFrequency(info->primary);
+      net.phyModes = wifiPhyModesToString(*info);
     } else
 #endif
     {
