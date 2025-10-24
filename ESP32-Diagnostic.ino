@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.04-dev - Correction navigation onglets principale
 // Version de dev : 3.0.03-dev - Rotation OLED ajustable et messages inline
 // Version de dev : 3.0.02-dev - Correction API scan WiFi pour core 3.3.2
 
@@ -67,7 +68,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.03-dev"
+#define DIAGNOSTIC_VERSION "3.0.04-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
