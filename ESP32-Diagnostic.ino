@@ -1,22 +1,15 @@
+// v3.0.0-dev - Suppression du système multilingue et francisation complète
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
+ * DIAGNOSTIC COMPLET ESP32 - VERSION FRANCOPHONE v3.0.0-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.1.3
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v2.6.0:
- * - Suppression complète du support des écrans TFT SPI
- * - Ajout de commandes individuelles pour chaque étape du test OLED
- * - Amélioration de l'interface web OLED avec reconfiguration I2C simplifiée
- *
- * Nouveautés v2.5:
- * - Traduction des exports (Français/Anglais)
- * 
- * Nouveautés v2.4:
- * - Interface multilingue (Français/Anglais)
- * - Changement de langue dynamique sans rechargement
- * - Toutes fonctionnalités v2.3 préservées
+ * Nouveautés v3.0.0-dev:
+ * - Suppression du système multilingue
+ * - Textes de l'interface figés en français
+ * - Toutes fonctionnalités v2.6.0 préservées
  */
 
 #include <WiFi.h>
@@ -43,7 +36,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.6.0"
+#define DIAGNOSTIC_VERSION "3.0.0-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -1758,7 +1751,7 @@ void handleExportJSON() {
   json += "\"system\":{";
   json += "\"uptime_ms\":" + String(diagnosticData.uptime) + ",";
   json += "\"reset_reason\":\"" + getResetReason() + "\",";
-  json += "\"language\":\"" + String(currentLanguage == LANG_FR ? "fr" : "en") + "\"";
+  json += "\"language\":\"fr\"";
   json += "}";
   
   json += "}";
@@ -1978,56 +1971,7 @@ void handlePrintVersion() {
   server.send(200, "text/html; charset=utf-8", html);
 }
 
-// ========== HANDLER CHANGEMENT DE LANGUE ==========
-void handleSetLanguage() {
-  if (server.hasArg("lang")) {
-    String lang = server.arg("lang");
-    if (lang == "fr") {
-      setLanguage(LANG_FR);
-    } else if (lang == "en") {
-      setLanguage(LANG_EN);
-    }
-    server.send(200, "application/json", "{\"success\":true,\"lang\":\"" + lang + "\"}");
-  } else {
-    server.send(400, "application/json", "{\"success\":false}");
-  }
-}
-
-void handleGetTranslations() {
-  // Envoie toutes les traductions en JSON pour mise à jour dynamique
-  String json = "{";
-  json += "\"title\":\"" + String(T().title) + "\",";
-  json += "\"nav_overview\":\"" + String(T().nav_overview) + "\",";
-  json += "\"nav_leds\":\"" + String(T().nav_leds) + "\",";
-  json += "\"nav_screens\":\"" + String(T().nav_screens) + "\",";
-  json += "\"nav_tests\":\"" + String(T().nav_tests) + "\",";
-  json += "\"nav_gpio\":\"" + String(T().nav_gpio) + "\",";
-  json += "\"nav_wifi\":\"" + String(T().nav_wifi) + "\",";
-  json += "\"nav_benchmark\":\"" + String(T().nav_benchmark) + "\",";
-  json += "\"nav_export\":\"" + String(T().nav_export) + "\",";
-  json += "\"chip_info\":\"" + String(T().chip_info) + "\",";
-  json += "\"memory_details\":\"" + String(T().memory_details) + "\",";
-  json += "\"wifi_connection\":\"" + String(T().wifi_connection) + "\",";
-  json += "\"gpio_interfaces\":\"" + String(T().gpio_interfaces) + "\",";
-  json += "\"i2c_peripherals\":\"" + String(T().i2c_peripherals) + "\",";
-  json += "\"builtin_led\":\"" + String(T().builtin_led) + "\",";
-  json += "\"oled_screen\":\"" + String(T().oled_screen) + "\",";
-  json += "\"adc_test\":\"" + String(T().adc_test) + "\",";
-  json += "\"touch_test\":\"" + String(T().touch_test) + "\",";
-  json += "\"pwm_test\":\"" + String(T().pwm_test) + "\",";
-  json += "\"spi_bus\":\"" + String(T().spi_bus) + "\",";
-  json += "\"flash_partitions\":\"" + String(T().flash_partitions) + "\",";
-  json += "\"memory_stress\":\"" + String(T().memory_stress) + "\",";
-  json += "\"gpio_test\":\"" + String(T().gpio_test) + "\",";
-  json += "\"wifi_scanner\":\"" + String(T().wifi_scanner) + "\",";
-  json += "\"performance_bench\":\"" + String(T().performance_bench) + "\",";
-  json += "\"data_export\":\"" + String(T().data_export) + "\"";
-  json += "}";
-  
-  server.send(200, "application/json", json);
-}
-
-// ========== INTERFACE WEB PRINCIPALE MULTILINGUE ==========
+// ========== INTERFACE WEB PRINCIPALE ==========
 void handleRoot() {
   collectDiagnosticInfo();
   collectDetailedMemory();
@@ -2036,9 +1980,7 @@ void handleRoot() {
   server.send(200, "text/html; charset=utf-8", "");
   
   // CHUNK 1: HEAD + CSS
-  String chunk = "<!DOCTYPE html><html lang='";
-  chunk += (currentLanguage == LANG_FR) ? "fr" : "en";
-  chunk += "'><head>";
+  String chunk = "<!DOCTYPE html><html lang='fr'><head>";
   chunk += "<meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>";
   chunk += "<title>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</title>";
   chunk += "<style>";
@@ -2047,10 +1989,6 @@ void handleRoot() {
   chunk += ".container{max-width:1400px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}";
   chunk += ".header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:30px;text-align:center;position:relative}";
   chunk += ".header h1{font-size:2.5em;margin-bottom:10px}";
-  chunk += ".lang-switcher{position:absolute;top:20px;right:20px;display:flex;gap:5px}";
-  chunk += ".lang-btn{padding:8px 15px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
-  chunk += ".lang-btn:hover{background:rgba(255,255,255,.3)}";
-  chunk += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
   chunk += ".nav{display:flex;justify-content:center;gap:10px;margin-top:20px;flex-wrap:wrap}";
   chunk += ".nav-btn{padding:10px 20px;background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;cursor:pointer;font-weight:bold}";
   chunk += ".nav-btn:hover{background:rgba(255,255,255,.3)}";
@@ -2085,16 +2023,12 @@ void handleRoot() {
   chunk += ".wifi-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;border-left:4px solid #667eea}";
   chunk += ".status-live{padding:10px;background:#f0f0f0;border-radius:5px;text-align:center;font-weight:bold;margin:10px 0}";
   chunk += "input[type='number'],input[type='color'],input[type='text']{padding:10px;border:2px solid #ddd;border-radius:5px;font-size:1em}";
-  chunk += "@media print{.nav,.btn,.lang-switcher{display:none}}";
+  chunk += "@media print{.nav,.btn{display:none}}";
   chunk += "</style></head><body>";
   server.sendContent(chunk);
   
   // CHUNK 2: HEADER + NAV
   chunk = "<div class='container'><div class='header'>";
-  chunk += "<div class='lang-switcher'>";
-  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_FR ? "active" : "") + "' onclick='changeLang(\"fr\")'>FR</button>";
-  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_EN ? "active" : "") + "' onclick='changeLang(\"en\")'>EN</button>";
-  chunk += "</div>";
   chunk += "<h1 id='main-title'>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1>";
   chunk += "<div style='font-size:1.2em;margin:10px 0'>" + diagnosticData.chipModel + "</div>";
   chunk += "<div style='font-size:.9em;opacity:.9;margin:10px 0'>";
@@ -2362,23 +2296,6 @@ void handleRoot() {
   server.sendContent(chunk);
   // CHUNK 11: JavaScript complet
   chunk = "<script>";
-  chunk += "let currentLang='" + String(currentLanguage == LANG_FR ? "fr" : "en") + "';";
-  
-  // Changement de langue
-  chunk += "function changeLang(lang){";
-  chunk += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
-  chunk += "if(d.success){currentLang=lang;";
-  chunk += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
-  chunk += "event.target.classList.add('active');";
-  chunk += "updateTranslations()}});}";
-  
-  // Mise à jour traductions
-  chunk += "function updateTranslations(){";
-  chunk += "fetch('/api/get-translations').then(r=>r.json()).then(tr=>{";
-  chunk += "document.getElementById('main-title').textContent=tr.title+' v" + String(DIAGNOSTIC_VERSION) + "';";
-  chunk += "document.querySelectorAll('[data-i18n]').forEach(el=>{";
-  chunk += "const key=el.getAttribute('data-i18n');";
-  chunk += "if(tr[key])el.textContent=tr[key]})});}";
   
   // Navigation onglets
   chunk += "function showTab(t){";
@@ -2476,8 +2393,8 @@ void setup() {
   delay(1000);
   
   Serial.println("\r\n===============================================");
-  Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 2.4 - FR/EN");
+  Serial.println("     DIAGNOSTIC ESP32 FRANCOPHONE");
+  Serial.println("     Version 3.0.0-dev");
   Serial.println("     Optimise Arduino Core 3.1.3");
   Serial.println("===============================================\r\n");
   
@@ -2540,10 +2457,6 @@ void setup() {
   // ========== ROUTES SERVEUR ==========
   server.on("/", handleRoot);
   
-  // **NOUVELLES ROUTES MULTILINGUES**
-  server.on("/api/set-language", handleSetLanguage);
-  server.on("/api/get-translations", handleGetTranslations);
-  
   // GPIO & WiFi
   server.on("/api/test-gpio", handleTestGPIO);
   server.on("/api/wifi-scan", handleWiFiScan);
@@ -2588,8 +2501,8 @@ void setup() {
   Serial.println("Serveur Web OK!");
   Serial.println("\r\n===============================================");
   Serial.println("            PRET - En attente");
-  Serial.println("   Langue par defaut: FRANCAIS");
-  Serial.println("   Changement dynamique via interface web");
+  Serial.println("   Interface web en français");
+  Serial.println("   Système multilingue désactivé");
   Serial.println("===============================================\r\n");
 }
 
