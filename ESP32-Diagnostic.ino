@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.08-dev - Correction finale navigation onglets
 // Version de dev : 3.0.07-dev - Réactivation complète navigation onglets
 // Version de dev : 3.0.06-dev - Correction compilation fallback onglets
 // Version de dev : 3.0.05-dev - Onglets web compatibles tous navigateurs
@@ -71,7 +72,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.07-dev"
+#define DIAGNOSTIC_VERSION "3.0.08-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2663,12 +2664,20 @@ void handleRoot() {
   chunk += "document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));";
   chunk += "const target=document.getElementById(t);";
   chunk += "if(target){target.classList.add('active');}";
-  chunk += "if(btn){btn.classList.add('active');}else{const fallback=document.querySelector('.nav-btn[data-tab=\"'+t+'\"]');if(fallback)fallback.classList.add('active');}";
+  // --- [BUGFIX] Navigation onglets : gestion fallback sécurisée ---
+  chunk += "if(!btn){";
+  chunk += "const fallback=document.querySelector('.nav-btn[data-tab=\"'+t+'\"]');";
+  chunk += "if(fallback){btn=fallback;}";
+  chunk += "}";
+  chunk += "if(btn){btn.classList.add('active');}";
   chunk += "}";
 
   // --- [BUGFIX] Navigation onglets : écouteurs et initialisation ---
   chunk += "const navButtons=document.querySelectorAll('.nav-btn');";
-  chunk += "navButtons.forEach(button=>{button.addEventListener('click',evt=>{evt.preventDefault();const targetTab=button.getAttribute('data-tab');showTab(targetTab,button);});});";
+  chunk += "for(let i=0;i<navButtons.length;i++){";
+  chunk += "const button=navButtons[i];";
+  chunk += "button.addEventListener('click',evt=>{evt.preventDefault();const targetTab=button.getAttribute('data-tab');showTab(targetTab,button);});";
+  chunk += "}";
   chunk += "const defaultButton=document.querySelector('.nav-btn.active')||navButtons[0];";
   chunk += "if(defaultButton){showTab(defaultButton.getAttribute('data-tab'),defaultButton);}";
 
