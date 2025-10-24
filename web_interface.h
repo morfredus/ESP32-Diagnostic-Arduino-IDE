@@ -161,14 +161,14 @@ String generateHTML() {
   html += diagnosticData.ipAddress;
   html += "</strong></div>";
   html += "<div class='nav'>";
-  html += "<button type='button' class='nav-btn active' data-tab='overview'>Vue d'ensemble</button>";
-  html += "<button type='button' class='nav-btn' data-tab='leds'>LEDs</button>";
-  html += "<button type='button' class='nav-btn' data-tab='screens'>Écrans</button>";
-  html += "<button type='button' class='nav-btn' data-tab='tests'>Tests</button>";
-  html += "<button type='button' class='nav-btn' data-tab='gpio'>GPIO</button>";
-  html += "<button type='button' class='nav-btn' data-tab='wifi'>WiFi</button>";
-  html += "<button type='button' class='nav-btn' data-tab='benchmark'>Performance</button>";
-  html += "<button type='button' class='nav-btn' data-tab='export'>Export</button>";
+  html += "<button type='button' class='nav-btn active' data-tab='overview' onclick=\"showTab('overview',this);\">Vue d'ensemble</button>";
+  html += "<button type='button' class='nav-btn' data-tab='leds' onclick=\"showTab('leds',this);\">LEDs</button>";
+  html += "<button type='button' class='nav-btn' data-tab='screens' onclick=\"showTab('screens',this);\">Écrans</button>";
+  html += "<button type='button' class='nav-btn' data-tab='tests' onclick=\"showTab('tests',this);\">Tests</button>";
+  html += "<button type='button' class='nav-btn' data-tab='gpio' onclick=\"showTab('gpio',this);\">GPIO</button>";
+  html += "<button type='button' class='nav-btn' data-tab='wifi' onclick=\"showTab('wifi',this);\">WiFi</button>";
+  html += "<button type='button' class='nav-btn' data-tab='benchmark' onclick=\"showTab('benchmark',this);\">Performance</button>";
+  html += "<button type='button' class='nav-btn' data-tab='export' onclick=\"showTab('export',this);\">Export</button>";
   html += "</div>";
   html += "</div>";
   html += "<div class='content'>";
@@ -261,8 +261,9 @@ String generateJavaScript() {
   js += "}";
 
   js += "function initNavigation(){";
-  js += "var nav=document.querySelector('.nav');";
-  js += "if(!nav){return;}";
+  js += "var navs=document.querySelectorAll('.nav');";
+  js += "if(!navs||!navs.length){showTab('overview');return;}";
+  js += "for(var n=0;n<navs.length;n++){(function(nav){";
   js += "nav.addEventListener('click',function(e){";
   js += "var btn=findNavButton(e.target);";
   js += "if(!btn){return;}";
@@ -270,17 +271,10 @@ String generateJavaScript() {
   js += "var target=btn.getAttribute('data-tab');";
   js += "if(target){showTab(target,btn);}";
   js += "});";
+  js += "})(navs[n]);}";
   js += "var active=document.querySelector('.nav-btn.active');";
-  js += "if(!active){var list=nav.querySelectorAll('.nav-btn');if(list.length>0){active=list[0];}}";
+  js += "if(!active){var list=document.querySelectorAll('.nav-btn');if(list.length>0){active=list[0];}}";
   js += "if(active){showTab(active.getAttribute('data-tab'),active);}else{showTab('overview');}";
-  js += "}";
-
-  js += "function setActiveTabButton(tabName,btn){";
-  js += "const buttons=document.querySelectorAll('.nav-btn');";
-  js += "buttons.forEach(b=>{if(b===btn){b.classList.add('active');return;}b.classList.remove('active');});";
-  js += "if(btn)return;";
-  js += "const fallback=document.querySelector(`.nav-btn[data-tab=\"${tabName}\"]`);";
-  js += "if(fallback){fallback.classList.add('active');}";
   js += "}";
 
   // Load tab

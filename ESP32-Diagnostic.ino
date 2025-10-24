@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.10-dev - Restauration clic onglets via double liaison
 // Version de dev : 3.0.09-dev - Délégation universelle des clics onglets
 // Version de dev : 3.0.08-dev - Correction finale navigation onglets
 // Version de dev : 3.0.07-dev - Réactivation complète navigation onglets
@@ -73,7 +74,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.09-dev"
+#define DIAGNOSTIC_VERSION "3.0.10-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2365,16 +2366,16 @@ void handleRoot() {
   chunk += "<div style='font-size:.9em;opacity:.9;margin:10px 0'>";
   chunk += String(T().access) + ": <a href='http://" + String(MDNS_HOSTNAME) + ".local' style='color:#fff;text-decoration:underline'><strong>http://" + String(MDNS_HOSTNAME) + ".local</strong></a> " + String(T().or_text) + " <strong>" + diagnosticData.ipAddress + "</strong>";
   chunk += "</div>";
-  // --- [BUGFIX] Navigation onglets : boutons dédiés sans gestion inline ---
+  // --- [BUGFIX] Navigation onglets : boutons dédiés avec double liaison ---
   chunk += "<div class='nav'>";
-  chunk += "<button type='button' class='nav-btn active' data-tab='overview' data-i18n='nav_overview'>" + String(T().nav_overview) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='leds' data-i18n='nav_leds'>" + String(T().nav_leds) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='screens' data-i18n='nav_screens'>" + String(T().nav_screens) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='tests' data-i18n='nav_tests'>" + String(T().nav_tests) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='gpio' data-i18n='nav_gpio'>" + String(T().nav_gpio) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='wifi' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='benchmark' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='export' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
+  chunk += "<button type='button' class='nav-btn active' data-tab='overview' data-i18n='nav_overview' onclick=\"showTab('overview',this);\">" + String(T().nav_overview) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='leds' data-i18n='nav_leds' onclick=\"showTab('leds',this);\">" + String(T().nav_leds) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='screens' data-i18n='nav_screens' onclick=\"showTab('screens',this);\">" + String(T().nav_screens) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='tests' data-i18n='nav_tests' onclick=\"showTab('tests',this);\">" + String(T().nav_tests) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='gpio' data-i18n='nav_gpio' onclick=\"showTab('gpio',this);\">" + String(T().nav_gpio) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='wifi' data-i18n='nav_wifi' onclick=\"showTab('wifi',this);\">" + String(T().nav_wifi) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='benchmark' data-i18n='nav_benchmark' onclick=\"showTab('benchmark',this);\">" + String(T().nav_benchmark) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='export' data-i18n='nav_export' onclick=\"showTab('export',this);\">" + String(T().nav_export) + "</button>";
   chunk += "</div></div><div class='content'>";
   server.sendContent(chunk);
   
@@ -2681,8 +2682,9 @@ void handleRoot() {
   chunk += "}";
 
   chunk += "function initNavigation(){";
-  chunk += "var nav=document.querySelector('.nav');";
-  chunk += "if(!nav){return;}";
+  chunk += "var navs=document.querySelectorAll('.nav');";
+  chunk += "if(!navs||!navs.length){showTab('overview',null);return;}";
+  chunk += "for(var n=0;n<navs.length;n++){(function(nav){";
   chunk += "nav.addEventListener('click',function(evt){";
   chunk += "var button=findNavButton(evt.target);";
   chunk += "if(!button){return;}";
@@ -2690,8 +2692,9 @@ void handleRoot() {
   chunk += "var targetTab=button.getAttribute('data-tab');";
   chunk += "if(targetTab){showTab(targetTab,button);}";
   chunk += "});";
+  chunk += "})(navs[n]);}";
   chunk += "var defaultButton=document.querySelector('.nav-btn.active');";
-  chunk += "if(!defaultButton){var list=nav.querySelectorAll('.nav-btn');if(list.length>0){defaultButton=list[0];}}";
+  chunk += "if(!defaultButton){var list=document.querySelectorAll('.nav-btn');if(list.length>0){defaultButton=list[0];}}";
   chunk += "if(defaultButton){showTab(defaultButton.getAttribute('data-tab'),defaultButton);}else{showTab('overview',null);}";
   chunk += "}";
 
