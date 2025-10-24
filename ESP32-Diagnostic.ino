@@ -344,6 +344,46 @@ String wifiAuthModeToString(wifi_auth_mode_t auth) {
   }
 }
 
+// --- [NEW FEATURE] Support des nouveaux modes WiFi du core 3.3.2 ---
+String wifiAuthModeToString(wifi_auth_mode_t auth) {
+  switch (auth) {
+    case WIFI_AUTH_OPEN: return "Ouvert";
+#ifdef WIFI_AUTH_WEP
+    case WIFI_AUTH_WEP: return "WEP";
+#endif
+#ifdef WIFI_AUTH_WPA_PSK
+    case WIFI_AUTH_WPA_PSK: return "WPA-PSK";
+#endif
+    case WIFI_AUTH_WPA2_PSK: return "WPA2-PSK";
+#ifdef WIFI_AUTH_WPA_WPA2_PSK
+    case WIFI_AUTH_WPA_WPA2_PSK: return "WPA/WPA2-PSK";
+#endif
+    case WIFI_AUTH_WPA3_PSK: return "WPA3-PSK";
+#ifdef WIFI_AUTH_WPA2_WPA3_PSK
+    case WIFI_AUTH_WPA2_WPA3_PSK: return "WPA2/WPA3-PSK";
+#endif
+#ifdef WIFI_AUTH_WPA2_ENTERPRISE
+    case WIFI_AUTH_WPA2_ENTERPRISE: return "WPA2-Entreprise";
+#endif
+#ifdef WIFI_AUTH_WPA3_ENTERPRISE
+    case WIFI_AUTH_WPA3_ENTERPRISE: return "WPA3-Entreprise";
+#endif
+#ifdef WIFI_AUTH_WPA3_ENTERPRISE_192
+    case WIFI_AUTH_WPA3_ENTERPRISE_192: return "WPA3-Entreprise 192";
+#endif
+#ifdef WIFI_AUTH_OWE
+    case WIFI_AUTH_OWE: return "OWE";
+#endif
+#ifdef WIFI_AUTH_OWE_TRANSITION
+    case WIFI_AUTH_OWE_TRANSITION: return "OWE Transition";
+#endif
+#ifdef WIFI_AUTH_WAPI_PSK
+    case WIFI_AUTH_WAPI_PSK: return "WAPI-PSK";
+#endif
+    default: return String(T().unknown);
+  }
+}
+
 String getGPIOList() {
   String gpioList = "";
   
