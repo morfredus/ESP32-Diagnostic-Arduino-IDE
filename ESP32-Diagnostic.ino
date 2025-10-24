@@ -1,7 +1,7 @@
 /*
  * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
- * Optimisé pour ESP32 Arduino Core 3.1.3
+ * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
@@ -12,12 +12,13 @@
  *
  * Nouveautés v2.5:
  * - Traduction des exports (Français/Anglais)
- * 
+ *
  * Nouveautés v2.4:
  * - Interface multilingue (Français/Anglais)
  * - Changement de langue dynamique sans rechargement
  * - Toutes fonctionnalités v2.3 préservées
  */
+// Version de dev : 3.0.01-dev - Compatibilité ESP32 Arduino Core 3.3.2
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -28,8 +29,10 @@
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
+#include <esp_system.h>
 #include <soc/soc.h>
 #include <soc/rtc.h>
+#include "esp32-hal-ledc.h"
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_GFX.h>
@@ -43,7 +46,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.6.0"
+#define DIAGNOSTIC_VERSION "3.0.01-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -68,6 +71,11 @@ Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 int LED_PIN = CUSTOM_LED_PIN;
 int LED_COUNT = CUSTOM_LED_COUNT;
 Adafruit_NeoPixel *strip = nullptr;
+
+// --- [NEW FEATURE] Paramètres LEDC pour la LED intégrée (compatibilité core 3.3.2) ---
+const int BUILTIN_LED_LEDC_CHANNEL = 7;
+const uint32_t BUILTIN_LED_LEDC_FREQ = 5000;
+const uint8_t BUILTIN_LED_LEDC_RESOLUTION = 8;
 
 bool neopixelTested = false;
 bool neopixelAvailable = false;
@@ -295,6 +303,46 @@ String getWiFiSignalQuality() {
   else if (diagnosticData.wifiRSSI >= -70) return T().good;
   else if (diagnosticData.wifiRSSI >= -80) return T().weak;
   else return T().very_weak;
+}
+
+// --- [NEW FEATURE] Support des nouveaux modes WiFi du core 3.3.2 ---
+String wifiAuthModeToString(wifi_auth_mode_t auth) {
+  switch (auth) {
+    case WIFI_AUTH_OPEN: return "Ouvert";
+#ifdef WIFI_AUTH_WEP
+    case WIFI_AUTH_WEP: return "WEP";
+#endif
+#ifdef WIFI_AUTH_WPA_PSK
+    case WIFI_AUTH_WPA_PSK: return "WPA-PSK";
+#endif
+    case WIFI_AUTH_WPA2_PSK: return "WPA2-PSK";
+#ifdef WIFI_AUTH_WPA_WPA2_PSK
+    case WIFI_AUTH_WPA_WPA2_PSK: return "WPA/WPA2-PSK";
+#endif
+    case WIFI_AUTH_WPA3_PSK: return "WPA3-PSK";
+#ifdef WIFI_AUTH_WPA2_WPA3_PSK
+    case WIFI_AUTH_WPA2_WPA3_PSK: return "WPA2/WPA3-PSK";
+#endif
+#ifdef WIFI_AUTH_WPA2_ENTERPRISE
+    case WIFI_AUTH_WPA2_ENTERPRISE: return "WPA2-Entreprise";
+#endif
+#ifdef WIFI_AUTH_WPA3_ENTERPRISE
+    case WIFI_AUTH_WPA3_ENTERPRISE: return "WPA3-Entreprise";
+#endif
+#ifdef WIFI_AUTH_WPA3_ENTERPRISE_192
+    case WIFI_AUTH_WPA3_ENTERPRISE_192: return "WPA3-Entreprise 192";
+#endif
+#ifdef WIFI_AUTH_OWE
+    case WIFI_AUTH_OWE: return "OWE";
+#endif
+#ifdef WIFI_AUTH_OWE_TRANSITION
+    case WIFI_AUTH_OWE_TRANSITION: return "OWE Transition";
+#endif
+#ifdef WIFI_AUTH_WAPI_PSK
+    case WIFI_AUTH_WAPI_PSK: return "WAPI-PSK";
+#endif
+    default: return String(T().unknown);
+  }
 }
 
 String getGPIOList() {
@@ -565,28 +613,20 @@ void scanI2C() {
 void scanWiFiNetworks() {
   Serial.println("\r\n=== SCAN WIFI ===");
   wifiNetworks.clear();
-  
+
   int n = WiFi.scanNetworks();
   for (int i = 0; i < n; i++) {
     WiFiNetwork net;
     net.ssid = WiFi.SSID(i);
     net.rssi = WiFi.RSSI(i);
     net.channel = WiFi.channel(i);
-    
-    uint8_t* bssid = WiFi.BSSID(i);
-    char bssidStr[18];
-    sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",
-            bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
-    net.bssid = String(bssidStr);
-    
+
+    // --- [NEW FEATURE] Récupération du BSSID compatible core 3.3.2 ---
+    net.bssid = WiFi.BSSIDstr(i);
+
     wifi_auth_mode_t auth = WiFi.encryptionType(i);
-    switch (auth) {
-      case WIFI_AUTH_OPEN: net.encryption = "Ouvert"; break;
-      case WIFI_AUTH_WPA2_PSK: net.encryption = "WPA2-PSK"; break;
-      case WIFI_AUTH_WPA3_PSK: net.encryption = "WPA3-PSK"; break;
-      default: net.encryption = "WPA/WPA2"; break;
-    }
-    
+    net.encryption = wifiAuthModeToString(auth);
+
     wifiNetworks.push_back(net);
   }
   Serial.printf("WiFi: %d reseaux trouves\r\n", n);
@@ -641,9 +681,33 @@ void testAllGPIOs() {
 }
 
 // ========== LED INTÉGRÉE ==========
+// --- [NEW FEATURE] Gestion LEDC pour la LED intégrée ---
+void fadeBuiltinLEDWithLEDC(int pin) {
+  if (pin < 0) {
+    return;
+  }
+
+  ledcDetachPin(pin);
+  ledcSetup(BUILTIN_LED_LEDC_CHANNEL, BUILTIN_LED_LEDC_FREQ, BUILTIN_LED_LEDC_RESOLUTION);
+  ledcAttachPin(pin, BUILTIN_LED_LEDC_CHANNEL);
+
+  for (int duty = 0; duty <= 255; duty += 5) {
+    ledcWrite(BUILTIN_LED_LEDC_CHANNEL, duty);
+    delay(10);
+  }
+
+  for (int duty = 255; duty >= 0; duty -= 5) {
+    ledcWrite(BUILTIN_LED_LEDC_CHANNEL, duty);
+    delay(10);
+  }
+
+  ledcWrite(BUILTIN_LED_LEDC_CHANNEL, 0);
+  ledcDetachPin(pin);
+}
+
 void detectBuiltinLED() {
   String chipModel = detectChipModel();
-  
+
   #ifdef LED_BUILTIN
     BUILTIN_LED_PIN = LED_BUILTIN;
   #else
@@ -659,26 +723,20 @@ void detectBuiltinLED() {
 
 void testBuiltinLED() {
   if (BUILTIN_LED_PIN == -1) return;
-  
+
   Serial.println("\r\n=== TEST LED ===");
   pinMode(BUILTIN_LED_PIN, OUTPUT);
-  
+
   for(int i = 0; i < 5; i++) {
     digitalWrite(BUILTIN_LED_PIN, HIGH);
     delay(200);
     digitalWrite(BUILTIN_LED_PIN, LOW);
     delay(200);
   }
-  
-  for(int i = 0; i <= 255; i += 5) {
-    analogWrite(BUILTIN_LED_PIN, i);
-    delay(10);
-  }
-  for(int i = 255; i >= 0; i -= 5) {
-    analogWrite(BUILTIN_LED_PIN, i);
-    delay(10);
-  }
-  
+
+  // --- [NEW FEATURE] Effet fade via LEDC pour compatibilité core 3.3.2 ---
+  fadeBuiltinLEDWithLEDC(BUILTIN_LED_PIN);
+
   digitalWrite(BUILTIN_LED_PIN, LOW);
   builtinLedAvailable = true;
   builtinLedTestResult = "Test OK - GPIO " + String(BUILTIN_LED_PIN);
@@ -689,7 +747,10 @@ void testBuiltinLED() {
 void resetBuiltinLEDTest() {
   builtinLedTested = false;
   builtinLedAvailable = false;
-  if (BUILTIN_LED_PIN != -1) digitalWrite(BUILTIN_LED_PIN, LOW);
+  if (BUILTIN_LED_PIN != -1) {
+    ledcDetachPin(BUILTIN_LED_PIN);
+    digitalWrite(BUILTIN_LED_PIN, LOW);
+  }
 }
 
 // ========== NEOPIXEL ==========
@@ -1361,14 +1422,8 @@ void handleBuiltinLEDControl() {
     }
     message = "Clignotement OK";
   } else if (action == "fade") {
-    for(int i = 0; i <= 255; i += 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
-    }
-    for(int i = 255; i >= 0; i -= 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
-    }
+    // --- [NEW FEATURE] Contrôle LED fade via LEDC depuis l'API ---
+    fadeBuiltinLEDWithLEDC(BUILTIN_LED_PIN);
     digitalWrite(BUILTIN_LED_PIN, LOW);
     message = "Fade OK";
   } else if (action == "off") {
@@ -2477,13 +2532,16 @@ void setup() {
   
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 2.4 - FR/EN");
-  Serial.println("     Optimise Arduino Core 3.1.3");
+  // --- [NEW FEATURE] Journalisation de la version de développement ---
+  Serial.println("     Version 3.0.01-dev - FR/EN");
+  Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
-  
+
   printPSRAMDiagnostic();
-  
+
   // WiFi
+  // --- [NEW FEATURE] Configuration explicite du mode station pour le core 3.3.2 ---
+  WiFi.mode(WIFI_STA);
   wifiMulti.addAP(WIFI_SSID_1, WIFI_PASS_1);
   wifiMulti.addAP(WIFI_SSID_2, WIFI_PASS_2);
   
