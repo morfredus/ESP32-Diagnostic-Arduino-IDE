@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.06-dev - Correction compilation fallback onglets
 // Version de dev : 3.0.05-dev - Onglets web compatibles tous navigateurs
 // Version de dev : 3.0.04-dev - Correction navigation onglets principale
 // Version de dev : 3.0.03-dev - Rotation OLED ajustable et messages inline
@@ -69,7 +70,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.05-dev"
+#define DIAGNOSTIC_VERSION "3.0.06-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2661,7 +2662,7 @@ void handleRoot() {
   chunk += "document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));";
   chunk += "const target=document.getElementById(t);";
   chunk += "if(target){target.classList.add('active');}";
-  chunk += "if(btn){btn.classList.add('active');}else{const fallback=document.querySelector('.nav-btn[data-tab=\\'"+t+"\\']');if(fallback)fallback.classList.add('active');}";
+  chunk += "if(btn){btn.classList.add('active');}else{const fallback=document.querySelector('.nav-btn[data-tab=\"'+t+'\"]');if(fallback)fallback.classList.add('active');}";
   chunk += "}";
   
   // LED intégrée
