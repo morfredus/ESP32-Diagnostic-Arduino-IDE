@@ -1,23 +1,17 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
- * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
- * Optimisé pour ESP32 Arduino Core 3.1.3
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v3.0.x
+ * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
+ * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v2.6.0:
- * - Suppression complète du support des écrans TFT SPI
- * - Ajout de commandes individuelles pour chaque étape du test OLED
- * - Amélioration de l'interface web OLED avec reconfiguration I2C simplifiée
- *
- * Nouveautés v2.5:
- * - Traduction des exports (Français/Anglais)
- * 
- * Nouveautés v2.4:
- * - Interface multilingue (Français/Anglais)
- * - Changement de langue dynamique sans rechargement
- * - Toutes fonctionnalités v2.3 préservées
+ * Nouveautés v3.0.x:
+ * - Migration complète vers Arduino Core 3.3.2 (WiFi & I2C actualisés)
+ * - Analyse avancée du scan WiFi (bandes, PHY, largeur de bande)
+ * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
+
+// Version de dev : 3.0.01-dev - Migration Core 3.3.2 + scan WiFi avancé
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -28,6 +22,7 @@
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
+#include <esp_wifi.h>
 #include <soc/soc.h>
 #include <soc/rtc.h>
 #include <Wire.h>
@@ -36,18 +31,63 @@
 #include <Adafruit_SSD1306.h>
 #include <vector>
 
-// Configuration WiFi
-#include "wifi-config.h"
+// --- [NEW FEATURE] Inclusion automatique de la configuration WiFi ---
+#if defined(__has_include)
+  #if __has_include("wifi-config.h")
+    #include "wifi-config.h"
+  #elif __has_include("wifi-config-example.h")
+    #include "wifi-config-example.h"
+  #else
+    #error "Aucun fichier de configuration WiFi disponible"
+  #endif
+#else
+  #include "wifi-config.h"
+#endif
 
 // Système de traduction
 #include "languages.h"
 
+#if defined(__has_include)
+  #if __has_include(<esp_arduino_version.h>)
+    #include <esp_arduino_version.h>
+  #endif
+#endif
+
+#ifndef ESP_ARDUINO_VERSION_VAL
+#define ESP_ARDUINO_VERSION_VAL(major, minor, patch) ((major << 16) | (minor << 8) | (patch))
+#endif
+
+#ifndef ESP_ARDUINO_VERSION
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && defined(ESP_ARDUINO_VERSION_MINOR) && defined(ESP_ARDUINO_VERSION_PATCH)
+#define ESP_ARDUINO_VERSION ESP_ARDUINO_VERSION_VAL(ESP_ARDUINO_VERSION_MAJOR, ESP_ARDUINO_VERSION_MINOR, ESP_ARDUINO_VERSION_PATCH)
+#else
+#define ESP_ARDUINO_VERSION ESP_ARDUINO_VERSION_VAL(0, 0, 0)
+#endif
+#endif
+
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.6.0"
+#define DIAGNOSTIC_VERSION "3.0.01-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
 #define MDNS_HOSTNAME "esp32-diagnostic"
+
+// --- [NEW FEATURE] Références texte partagées pour l'interface web ---
+const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
+const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
+
+// --- [NEW FEATURE] Aide pour afficher la version du core Arduino ---
+String getArduinoCoreVersionString() {
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && defined(ESP_ARDUINO_VERSION_MINOR) && defined(ESP_ARDUINO_VERSION_PATCH)
+  return String(ESP_ARDUINO_VERSION_MAJOR) + "." + String(ESP_ARDUINO_VERSION_MINOR) + "." + String(ESP_ARDUINO_VERSION_PATCH);
+#else
+  uint32_t value = ESP_ARDUINO_VERSION;
+  int major = (value >> 16) & 0xFF;
+  int minor = (value >> 8) & 0xFF;
+  int patch = value & 0xFF;
+  return String(major) + "." + String(minor) + "." + String(patch);
+#endif
+}
 
 // Pins I2C pour OLED (modifiables via web)
 int I2C_SCL = 20;
@@ -180,6 +220,10 @@ struct WiFiNetwork {
   int channel;
   String encryption;
   String bssid;
+  int freqMHz;
+  String band;
+  String bandwidth;
+  String phyModes;
 };
 
 std::vector<WiFiNetwork> wifiNetworks;
@@ -295,6 +339,126 @@ String getWiFiSignalQuality() {
   else if (diagnosticData.wifiRSSI >= -70) return T().good;
   else if (diagnosticData.wifiRSSI >= -80) return T().weak;
   else return T().very_weak;
+}
+
+// --- [NEW FEATURE] Utilitaires WiFi avancés compatibles Arduino 3.3.2 ---
+String wifiAuthModeToString(wifi_auth_mode_t mode) {
+  switch (mode) {
+    case WIFI_AUTH_OPEN: return "Ouvert";
+#ifdef WIFI_AUTH_WEP
+    case WIFI_AUTH_WEP: return "WEP";
+#endif
+    case WIFI_AUTH_WPA_PSK: return "WPA-PSK";
+    case WIFI_AUTH_WPA2_PSK: return "WPA2-PSK";
+    case WIFI_AUTH_WPA_WPA2_PSK: return "WPA/WPA2";
+#ifdef WIFI_AUTH_WPA2_ENTERPRISE
+    case WIFI_AUTH_WPA2_ENTERPRISE: return "WPA2-ENT";
+#endif
+#ifdef WIFI_AUTH_WPA3_PSK
+    case WIFI_AUTH_WPA3_PSK: return "WPA3-PSK";
+#endif
+#ifdef WIFI_AUTH_WPA2_WPA3_PSK
+    case WIFI_AUTH_WPA2_WPA3_PSK: return "WPA2/WPA3";
+#endif
+#ifdef WIFI_AUTH_WAPI_PSK
+    case WIFI_AUTH_WAPI_PSK: return "WAPI-PSK";
+#endif
+#ifdef WIFI_AUTH_OWE
+    case WIFI_AUTH_OWE: return "OWE";
+#endif
+    default: return "Inconnu";
+  }
+}
+
+#if defined(WIFI_CIPHER_TYPE_NONE)
+String wifiCipherToString(wifi_cipher_type_t cipher) {
+  switch (cipher) {
+    case WIFI_CIPHER_TYPE_NONE: return "None";
+    case WIFI_CIPHER_TYPE_WEP40: return "WEP40";
+    case WIFI_CIPHER_TYPE_WEP104: return "WEP104";
+    case WIFI_CIPHER_TYPE_TKIP: return "TKIP";
+    case WIFI_CIPHER_TYPE_CCMP: return "CCMP";
+    case WIFI_CIPHER_TYPE_TKIP_CCMP: return "TKIP/CCMP";
+#ifdef WIFI_CIPHER_TYPE_GCMP
+    case WIFI_CIPHER_TYPE_GCMP: return "GCMP";
+#endif
+#ifdef WIFI_CIPHER_TYPE_GCMP256
+    case WIFI_CIPHER_TYPE_GCMP256: return "GCMP256";
+#endif
+#ifdef WIFI_CIPHER_TYPE_AES_CMAC128
+    case WIFI_CIPHER_TYPE_AES_CMAC128: return "CMAC128";
+#endif
+#ifdef WIFI_CIPHER_TYPE_SMS4
+    case WIFI_CIPHER_TYPE_SMS4: return "SMS4";
+#endif
+    default: return "-";
+  }
+}
+#endif
+
+String wifiBandwidthToString(wifi_second_chan_t secondary) {
+  switch (secondary) {
+    case WIFI_SECOND_CHAN_NONE: return "20 MHz";
+    case WIFI_SECOND_CHAN_ABOVE:
+    case WIFI_SECOND_CHAN_BELOW: return "40 MHz";
+    default: return "Auto";
+  }
+}
+
+String wifiChannelToBand(int channel) {
+  if (channel <= 0) return "?";
+  if (channel <= 14) return "2.4 GHz";
+  if (channel >= 180) return "6 GHz";
+  return "5 GHz";
+}
+
+int wifiChannelToFrequency(int channel) {
+  if (channel <= 0) return 0;
+  if (channel <= 14) return 2407 + channel * 5;
+  if (channel >= 180) return 5950 + channel * 5;
+  return 5000 + channel * 5;
+}
+
+String wifiPhyModesToString(const wifi_ap_record_t& record) {
+  String modes = "";
+  if (record.phy_11b) {
+    if (modes.length()) modes += "/";
+    modes += "11b";
+  }
+  if (record.phy_11g) {
+    if (modes.length()) modes += "/";
+    modes += "11g";
+  }
+  if (record.phy_11n) {
+    if (modes.length()) modes += "/";
+    modes += "11n";
+  }
+#ifdef CONFIG_ESP_WIFI_80211AC_SUPPORT
+  if (record.phy_11ac) {
+    if (modes.length()) modes += "/";
+    modes += "11ac";
+  }
+#endif
+#ifdef CONFIG_ESP_WIFI_80211AX_SUPPORT
+  if (record.phy_11ax) {
+    if (modes.length()) modes += "/";
+    modes += "11ax";
+  }
+#endif
+#ifdef CONFIG_ESP_WIFI_80211BE_SUPPORT
+  if (record.phy_11be) {
+    if (modes.length()) modes += "/";
+    modes += "11be";
+  }
+#endif
+  if (record.phy_lr) {
+    if (modes.length()) modes += "/";
+    modes += "LR";
+  }
+  if (modes.length() == 0) {
+    modes = "-";
+  }
+  return modes;
 }
 
 String getGPIOList() {
@@ -534,11 +698,23 @@ unsigned long benchmarkMemory() {
 }
 
 // ========== SCAN I2C ==========
+// --- [NEW FEATURE] Réinitialisation I2C compatible core 3.3.2 ---
+void ensureI2CBusConfigured() {
+  Wire.end();
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
+  Wire.setPins(I2C_SDA, I2C_SCL);
+  Wire.begin();
+#else
+  Wire.begin(I2C_SDA, I2C_SCL);
+#endif
+  Wire.setClock(400000);
+}
+
 void scanI2C() {
   if (!ENABLE_I2C_SCAN) return;
-  
+
   Serial.println("\r\n=== SCAN I2C ===");
-  Wire.begin(I2C_SDA, I2C_SCL);
+  ensureI2CBusConfigured();
   Serial.printf("I2C: SDA=%d, SCL=%d\r\n", I2C_SDA, I2C_SCL);
   
   diagnosticData.i2cDevices = "";
@@ -565,30 +741,75 @@ void scanI2C() {
 void scanWiFiNetworks() {
   Serial.println("\r\n=== SCAN WIFI ===");
   wifiNetworks.clear();
-  
+
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
+  int n = WiFi.scanNetworks(false, true, true);
+#else
   int n = WiFi.scanNetworks();
+#endif
+
+  if (n < 0) {
+    Serial.println("WiFi: scan en echec");
+    return;
+  }
+
   for (int i = 0; i < n; i++) {
     WiFiNetwork net;
-    net.ssid = WiFi.SSID(i);
-    net.rssi = WiFi.RSSI(i);
-    net.channel = WiFi.channel(i);
-    
-    uint8_t* bssid = WiFi.BSSID(i);
-    char bssidStr[18];
-    sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",
-            bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
-    net.bssid = String(bssidStr);
-    
-    wifi_auth_mode_t auth = WiFi.encryptionType(i);
-    switch (auth) {
-      case WIFI_AUTH_OPEN: net.encryption = "Ouvert"; break;
-      case WIFI_AUTH_WPA2_PSK: net.encryption = "WPA2-PSK"; break;
-      case WIFI_AUTH_WPA3_PSK: net.encryption = "WPA3-PSK"; break;
-      default: net.encryption = "WPA/WPA2"; break;
+
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
+    // --- [NEW FEATURE] Analyse avancée du scan WiFi ---
+    wifi_ap_record_t info;
+    if (WiFi.getScanInfoByIndex(i, &info)) {
+      net.ssid = String(reinterpret_cast<const char*>(info.ssid));
+      net.rssi = info.rssi;
+      net.channel = info.primary;
+
+      char bssidStr[18];
+      sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",
+              info.bssid[0], info.bssid[1], info.bssid[2], info.bssid[3], info.bssid[4], info.bssid[5]);
+      net.bssid = String(bssidStr);
+
+      net.encryption = wifiAuthModeToString(info.authmode);
+#if defined(WIFI_CIPHER_TYPE_NONE)
+      String pairwise = wifiCipherToString(info.pairwise_cipher);
+      String group = wifiCipherToString(info.group_cipher);
+      if ((pairwise != "-" && pairwise != "None") || (group != "-" && group != "None")) {
+        net.encryption += " (" + pairwise + "/" + group + ")";
+      }
+#endif
+      net.bandwidth = wifiBandwidthToString(info.second);
+      net.band = wifiChannelToBand(info.primary);
+      net.freqMHz = wifiChannelToFrequency(info.primary);
+      net.phyModes = wifiPhyModesToString(info);
+    } else
+#endif
+    {
+      net.ssid = WiFi.SSID(i);
+      net.rssi = WiFi.RSSI(i);
+      net.channel = WiFi.channel(i);
+
+      uint8_t* bssid = WiFi.BSSID(i);
+      char bssidFallback[18];
+      sprintf(bssidFallback, "%02X:%02X:%02X:%02X:%02X:%02X",
+              bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
+      net.bssid = String(bssidFallback);
+
+      wifi_auth_mode_t auth = WiFi.encryptionType(i);
+      net.encryption = wifiAuthModeToString(auth);
+      net.band = wifiChannelToBand(net.channel);
+      net.bandwidth = "-";
+      net.freqMHz = wifiChannelToFrequency(net.channel);
+      net.phyModes = "-";
     }
-    
+
+    if (net.bandwidth.length() == 0) net.bandwidth = "-";
     wifiNetworks.push_back(net);
   }
+
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
+  WiFi.scanDelete();
+#endif
+
   Serial.printf("WiFi: %d reseaux trouves\r\n", n);
 }
 
@@ -806,7 +1027,7 @@ void neopixelFade(uint32_t color) {
 // ========== OLED 0.96" ==========
 void detectOLED() {
   Serial.println("\r\n=== DETECTION OLED ===");
-  Wire.begin(I2C_SDA, I2C_SCL);
+  ensureI2CBusConfigured();
   Serial.printf("I2C: SDA=%d, SCL=%d\r\n", I2C_SDA, I2C_SCL);
   
   Wire.beginTransmission(SCREEN_ADDRESS);
@@ -1305,9 +1526,11 @@ void handleWiFiScan() {
   String json = "{\"networks\":[";
   for (size_t i = 0; i < wifiNetworks.size(); i++) {
     if (i > 0) json += ",";
-    json += "{\"ssid\":\"" + wifiNetworks[i].ssid + "\",\"rssi\":" + String(wifiNetworks[i].rssi) + 
-            ",\"channel\":" + String(wifiNetworks[i].channel) + ",\"encryption\":\"" + wifiNetworks[i].encryption + 
-            "\",\"bssid\":\"" + wifiNetworks[i].bssid + "\"}";
+    json += "{\"ssid\":\"" + wifiNetworks[i].ssid + "\",\"rssi\":" + String(wifiNetworks[i].rssi) +
+            ",\"channel\":" + String(wifiNetworks[i].channel) + ",\"encryption\":\"" + wifiNetworks[i].encryption +
+            "\",\"bssid\":\"" + wifiNetworks[i].bssid + "\",\"band\":\"" + wifiNetworks[i].band +
+            "\",\"bandwidth\":\"" + wifiNetworks[i].bandwidth + "\",\"phy\":\"" + wifiNetworks[i].phyModes +
+            "\",\"freq\":" + String(wifiNetworks[i].freqMHz) + "}";
   }
   json += "]}";
   server.send(200, "application/json", json);
@@ -2446,7 +2669,9 @@ void handleRoot() {
   chunk += "function scanWiFi(){document.getElementById('wifi-status').innerHTML='Scan...';";
   chunk += "fetch('/api/wifi-scan').then(r=>r.json()).then(data=>{let h='';";
   chunk += "data.networks.forEach(n=>{let s=n.rssi>=-60?'🟢':n.rssi>=-70?'🟡':'🔴';";
-  chunk += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+n.bssid+' | Ch'+n.channel+' | '+n.encryption+'</small></div>';";
+  chunk += "const freq=(n.freq&&n.freq>0)?n.freq+' MHz':'';";
+  chunk += "const pieces=[n.bssid,'Ch'+n.channel,n.band,freq,n.bandwidth,n.phy,n.encryption].filter(v=>v&&v.length>0&&v!=='-').join(' | ');";
+  chunk += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+pieces+'</small></div>';";
   chunk += "h+='<div style=\"font-size:1.2em;font-weight:bold\">'+n.rssi+' dBm</div></div></div>'});";
   chunk += "document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' reseaux detectes'})}";
   
@@ -2474,16 +2699,27 @@ void handleRoot() {
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  
+
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 2.4 - FR/EN");
-  Serial.println("     Optimise Arduino Core 3.1.3");
+  Serial.printf("     Version %s - FR/EN\r\n", DIAGNOSTIC_VERSION_STR);
+  Serial.printf("     Arduino Core %s\r\n", getArduinoCoreVersionString().c_str());
   Serial.println("===============================================\r\n");
-  
+
   printPSRAMDiagnostic();
-  
+
   // WiFi
+  // --- [NEW FEATURE] Préconfiguration WiFi pour le core 3.3.2 ---
+  WiFi.mode(WIFI_STA);
+  WiFi.persistent(false);
+  WiFi.setHostname(MDNS_HOSTNAME_STR);
+  WiFi.setSleep(false);
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
+  WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+#ifdef WIFI_CONNECT_AP_BY_SIGNAL
+  WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+#endif
+#endif
   wifiMulti.addAP(WIFI_SSID_1, WIFI_PASS_1);
   wifiMulti.addAP(WIFI_SSID_2, WIFI_PASS_2);
   
