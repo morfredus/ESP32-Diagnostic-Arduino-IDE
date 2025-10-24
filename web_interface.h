@@ -161,14 +161,14 @@ String generateHTML() {
   html += diagnosticData.ipAddress;
   html += "</strong></div>";
   html += "<div class='nav'>";
-  html += "<button class='nav-btn active' onclick='showTab(\"overview\",event)'>Vue d'ensemble</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"leds\",event)'>LEDs</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"screens\",event)'>Écrans</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"tests\",event)'>Tests</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"gpio\",event)'>GPIO</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"wifi\",event)'>WiFi</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"benchmark\",event)'>Performance</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"export\",event)'>Export</button>";
+  html += "<button class='nav-btn active' data-tab='overview' onclick='showTab(\"overview\",this)'>Vue d'ensemble</button>";
+  html += "<button class='nav-btn' data-tab='leds' onclick='showTab(\"leds\",this)'>LEDs</button>";
+  html += "<button class='nav-btn' data-tab='screens' onclick='showTab(\"screens\",this)'>Écrans</button>";
+  html += "<button class='nav-btn' data-tab='tests' onclick='showTab(\"tests\",this)'>Tests</button>";
+  html += "<button class='nav-btn' data-tab='gpio' onclick='showTab(\"gpio\",this)'>GPIO</button>";
+  html += "<button class='nav-btn' data-tab='wifi' onclick='showTab(\"wifi\",this)'>WiFi</button>";
+  html += "<button class='nav-btn' data-tab='benchmark' onclick='showTab(\"benchmark\",this)'>Performance</button>";
+  html += "<button class='nav-btn' data-tab='export' onclick='showTab(\"export\",this)'>Export</button>";
   html += "</div>";
   html += "</div>";
   html += "<div class='content'>";
@@ -196,7 +196,7 @@ String generateJavaScript() {
   js += "console.log('Interface chargée');";
   js += "loadAllData();";
   js += "startAutoUpdate();";
-  js += "loadTab('overview');";
+  js += "showTab('overview');";
   js += "});";
 
   // Auto-update
@@ -235,13 +235,20 @@ String generateJavaScript() {
   js += "async function updateWiFiInfo(){await fetch('/api/wifi-info');}";
   js += "async function updatePeripheralsInfo(){await fetch('/api/peripherals');}";
 
-  // Tab navigation - CORRIGÉ
-  js += "function showTab(tabName,evt){";
+  // --- [BUGFIX] Navigation par onglets restaurée ---
+  js += "function showTab(tabName,btn){";
   js += "document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));";
-  js += "document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));";
-  js += "if(evt&&evt.target)evt.target.classList.add('active');";
+  js += "setActiveTabButton(tabName,btn);";
   js += "const tab=document.getElementById(tabName);";
   js += "if(tab){tab.classList.add('active');}else{loadTab(tabName);}";
+  js += "}";
+
+  js += "function setActiveTabButton(tabName,btn){";
+  js += "const buttons=document.querySelectorAll('.nav-btn');";
+  js += "buttons.forEach(b=>{if(b===btn){b.classList.add('active');return;}b.classList.remove('active');});";
+  js += "if(btn)return;";
+  js += "const fallback=document.querySelector(`.nav-btn[data-tab=\"${tabName}\"]`);";
+  js += "if(fallback){fallback.classList.add('active');}";
   js += "}";
 
   // Load tab
@@ -629,9 +636,9 @@ js += "function buildScreens(d){";
   js += "}";
 
   js += "function updateInterfaceTexts(t){";
-  js += "const tabs=['overview','leds','screens','tests','gpio','wifi','benchmark','export'];";
+  // --- [BUGFIX] Traductions alignées sur les onglets dynamiques ---
   js += "const btns=document.querySelectorAll('.nav-btn');";
-  js += "btns.forEach((btn,i)=>{if(t[tabs[i]])btn.textContent=t[tabs[i]];});";
+  js += "btns.forEach(btn=>{const key=btn.dataset.tab;if(key&&t[key])btn.textContent=t[key];});";
   js += "}";
 
   return js;
