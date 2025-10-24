@@ -275,6 +275,14 @@ String generateJavaScript() {
   js += "if(active){showTab(active.getAttribute('data-tab'),active);}else{showTab('overview');}";
   js += "}";
 
+  js += "function setActiveTabButton(tabName,btn){";
+  js += "const buttons=document.querySelectorAll('.nav-btn');";
+  js += "buttons.forEach(b=>{if(b===btn){b.classList.add('active');return;}b.classList.remove('active');});";
+  js += "if(btn)return;";
+  js += "const fallback=document.querySelector(`.nav-btn[data-tab=\"${tabName}\"]`);";
+  js += "if(fallback){fallback.classList.add('active');}";
+  js += "}";
+
   // Load tab
   js += "async function loadTab(tabName){";
   js += "const c=document.getElementById('tabContainer');";
