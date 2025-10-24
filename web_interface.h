@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v2.5.1
+ * WEB_INTERFACE.H - Interface Web Dynamique v3.0.0-dev
  */
 
 #ifndef WEB_INTERFACE_H
@@ -12,7 +12,6 @@ extern const char* DIAGNOSTIC_VERSION_STR;
 extern const char* MDNS_HOSTNAME_STR;
 extern WebServer server;
 extern DiagnosticInfo diagnosticData;
-extern Language currentLanguage;
 
 // Déclarations forward des fonctions
 String generateHTML();
@@ -46,11 +45,6 @@ String generateHTML() {
   html += "color:#fff;padding:30px;text-align:center;position:relative}";
   html += ".header h1{font-size:2.5em;margin-bottom:10px;animation:fadeIn 0.5s}";
   html += "@keyframes fadeIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}";
-  html += ".lang-switcher{position:absolute;top:20px;right:20px;display:flex;gap:5px}";
-  html += ".lang-btn{padding:8px 15px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);";
-  html += "border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
-  html += ".lang-btn:hover{background:rgba(255,255,255,.3)}";
-  html += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
   html += ".status-indicator{display:inline-block;width:12px;height:12px;border-radius:50%;";
   html += "margin-right:8px;animation:pulse 2s infinite}";
   html += ".status-online{background:#0f0;box-shadow:0 0 10px #0f0}";
@@ -127,10 +121,9 @@ String generateHTML() {
   html += ".info-grid{grid-template-columns:1fr}";
   html += ".nav{flex-direction:column}";
   html += ".nav-btn{width:100%}";
-  html += ".lang-switcher{position:static;margin-top:10px;justify-content:center}";
   html += "}";
   html += "@media print{";
-  html += ".nav,.btn,.lang-switcher{display:none}";
+  html += ".nav,.btn{display:none}";
   html += ".container{box-shadow:none}";
   html += "}";
   html += "</style>";
@@ -138,10 +131,6 @@ String generateHTML() {
   html += "<div class='update-indicator' id='updateIndicator'>Mise à jour...</div>";
   html += "<div class='container'>";
   html += "<div class='header'>";
-  html += "<div class='lang-switcher'>";
-  html += "<button class='lang-btn active' onclick='changeLang(\"fr\")'>FR</button>";
-  html += "<button class='lang-btn' onclick='changeLang(\"en\")'>EN</button>";
-  html += "</div>";
   html += "<h1 id='main-title'>";
   html += "<span class='status-indicator status-online' id='statusIndicator'></span>";
   html += "Diagnostic ESP32 v";
@@ -185,7 +174,6 @@ String generateJavaScript() {
   js += DIAGNOSTIC_VERSION_STR;
   js += " - Initialisation');";
   js += "const UPDATE_INTERVAL=5000;";
-  js += "let currentLang='fr';";
   js += "let updateTimer=null;";
   js += "let isConnected=true;";
 
@@ -603,26 +591,6 @@ js += "function buildScreens(d){";
   js += "if(pp){const pct=((d.psram.used/d.psram.total)*100).toFixed(1);pp.style.width=pct+'%';pp.textContent=pct+'%';}";
   js += "}";
   js += "const f=document.getElementById('fragmentation');if(f)f.textContent=d.fragmentation.toFixed(1)+'%';";
-  js += "}";
-
-  // Changement de langue
-  js += "function changeLang(lang){";
-  js += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
-  js += "if(d.success){";
-  js += "currentLang=lang;";
-  js += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
-  js += "document.querySelectorAll('.lang-btn').forEach(b=>{if(b.textContent.toLowerCase()===lang)b.classList.add('active');});";
-  js += "return fetch('/api/get-translations');";
-  js += "}).then(r=>r.json()).then(translations=>{";
-  js += "updateInterfaceTexts(translations);";
-  js += "alert('Langue changée : '+lang.toUpperCase());";
-  js += "}).catch(e=>alert('Erreur changement langue: '+e));";
-  js += "}";
-
-  js += "function updateInterfaceTexts(t){";
-  js += "const tabs=['overview','leds','screens','tests','gpio','wifi','benchmark','export'];";
-  js += "const btns=document.querySelectorAll('.nav-btn');";
-  js += "btns.forEach((btn,i)=>{if(t[tabs[i]])btn.textContent=t[tabs[i]];});";
   js += "}";
 
   return js;
