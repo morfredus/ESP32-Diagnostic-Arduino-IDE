@@ -18,7 +18,7 @@
  * - Changement de langue dynamique sans rechargement
  * - Toutes fonctionnalités v2.3 préservées
  */
-// Version de dev : 3.0.02-dev - Correction LEDC test PWM
+// Version de dev : 3.0.03-dev - Adoption de la nouvelle API LEDC
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -46,7 +46,7 @@
 #include "languages.h"
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.02-dev"
+#define DIAGNOSTIC_VERSION "3.0.03-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -689,22 +689,24 @@ void fadeBuiltinLEDWithLEDC(int pin) {
     return;
   }
 
-  ledcDetachPin(pin);
-  ledcSetup(BUILTIN_LED_LEDC_CHANNEL, BUILTIN_LED_LEDC_FREQ, BUILTIN_LED_LEDC_RESOLUTION);
-  ledcAttachPin(pin, BUILTIN_LED_LEDC_CHANNEL);
+  ledcDetach(pin);
+  if (!ledcAttachChannel(pin, BUILTIN_LED_LEDC_FREQ, BUILTIN_LED_LEDC_RESOLUTION, BUILTIN_LED_LEDC_CHANNEL)) {
+    Serial.println("LEDC: impossible d'attacher la LED integree");
+    return;
+  }
 
   for (int duty = 0; duty <= 255; duty += 5) {
-    ledcWrite(BUILTIN_LED_LEDC_CHANNEL, duty);
+    ledcWriteChannel(BUILTIN_LED_LEDC_CHANNEL, duty);
     delay(10);
   }
 
   for (int duty = 255; duty >= 0; duty -= 5) {
-    ledcWrite(BUILTIN_LED_LEDC_CHANNEL, duty);
+    ledcWriteChannel(BUILTIN_LED_LEDC_CHANNEL, duty);
     delay(10);
   }
 
-  ledcWrite(BUILTIN_LED_LEDC_CHANNEL, 0);
-  ledcDetachPin(pin);
+  ledcWriteChannel(BUILTIN_LED_LEDC_CHANNEL, 0);
+  ledcDetach(pin);
 }
 
 void detectBuiltinLED() {
@@ -750,7 +752,7 @@ void resetBuiltinLEDTest() {
   builtinLedTested = false;
   builtinLedAvailable = false;
   if (BUILTIN_LED_PIN != -1) {
-    ledcDetachPin(BUILTIN_LED_PIN);
+    ledcDetach(BUILTIN_LED_PIN);
     digitalWrite(BUILTIN_LED_PIN, LOW);
   }
 }
@@ -1189,19 +1191,22 @@ void testPWM() {
   
   Serial.printf("Test PWM sur GPIO%d\r\n", testPin);
   
-  // --- [FIX] Utilisation de l'API LEDC standard pour garantir la compilation ---
-  ledcDetachPin(testPin);
-  ledcSetup(TEST_PWM_LEDC_CHANNEL, 5000, 8);
-  ledcAttachPin(testPin, TEST_PWM_LEDC_CHANNEL);
+  // --- [FIX] Utilisation de l'API LEDC moderne pour garantir la compilation ---
+  ledcDetach(testPin);
+  if (!ledcAttachChannel(testPin, 5000, 8, TEST_PWM_LEDC_CHANNEL)) {
+    Serial.println("LEDC: echec de configuration du test PWM");
+    pwmTestResult = "Erreur LEDC";
+    return;
+  }
 
   for(int duty = 0; duty <= 255; duty += 51) {
-    ledcWrite(TEST_PWM_LEDC_CHANNEL, duty);
+    ledcWriteChannel(TEST_PWM_LEDC_CHANNEL, duty);
     Serial.printf("PWM duty: %d/255\r\n", duty);
     delay(200);
   }
 
-  ledcWrite(TEST_PWM_LEDC_CHANNEL, 0);
-  ledcDetachPin(testPin);
+  ledcWriteChannel(TEST_PWM_LEDC_CHANNEL, 0);
+  ledcDetach(testPin);
   
   pwmTestResult = "Test OK sur GPIO" + String(testPin);
   Serial.println("PWM: OK");
