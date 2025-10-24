@@ -128,13 +128,7 @@ struct Translations {
   const char* bluetooth_classic;
   const char* bluetooth_ble;
   const char* bluetooth_not_supported;
-  const char* bluetooth_supported_classic;
-  const char* bluetooth_supported_ble;
-  const char* bluetooth_initialized_flag;
-  const char* bluetooth_advertising_flag;
-  const char* bluetooth_connected_flag;
-  const char* bluetooth_searching;
-
+  
   // GPIO et périphériques
   const char* gpio_interfaces;
   const char* total_gpio;
@@ -401,12 +395,6 @@ const Translations LANG_FR_TEXTS = {
   "Bluetooth Classique",
   "Bluetooth Low Energy",
   "Bluetooth non supporté",
-  "Support Bluetooth Classique",
-  "Support Bluetooth Low Energy",
-  "Pile Bluetooth initialisée",
-  "Publicité Bluetooth en cours",
-  "Lien Bluetooth actif",
-  "Recherche...",
   
   // GPIO
   "GPIO et Interfaces",
@@ -475,7 +463,7 @@ const Translations LANG_FR_TEXTS = {
   
   // WiFi
   "WiFi",
-  "WiFi",
+  "Scanner Réseaux WiFi",
   
   // Performance
   "Benchmarks de Performance",
@@ -674,12 +662,6 @@ const Translations LANG_EN_TEXTS = {
   "Bluetooth Classic",
   "Bluetooth Low Energy",
   "Bluetooth not supported",
-  "Bluetooth Classic support",
-  "Bluetooth Low Energy support",
-  "Bluetooth stack initialized",
-  "Bluetooth advertising running",
-  "Active Bluetooth link",
-  "Searching...",
   
   // GPIO
   "GPIO and Interfaces",
@@ -748,7 +730,7 @@ const Translations LANG_EN_TEXTS = {
   
   // WiFi
   "WiFi",
-  "WiFi",
+  "Scan WiFi Networks",
   
   // Performance
   "Performance Benchmarks",

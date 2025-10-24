@@ -2871,12 +2871,9 @@ void handleRoot() {
   // CHUNK 11: JavaScript complet
   String wifiNetworksDetectedText = escapeForJS(String(T().wifi_networks_detected));
   String scanningText = escapeForJS(String(T().scanning));
-  String yesJS = escapeForJS(String(T().yes));
-  String noJS = escapeForJS(String(T().no));
-  String btSearchingJS = escapeForJS(String(T().bluetooth_searching));
   chunk = "<script>";
   chunk += "let currentLang='" + String(currentLanguage == LANG_FR ? "fr" : "en") + "';";
-  chunk += "let translations={wifi_networks_detected:'" + wifiNetworksDetectedText + "',scanning:'" + scanningText + "',yes:'" + yesJS + "',no:'" + noJS + "',bluetooth_searching:'" + btSearchingJS + "'};";
+  chunk += "let translations={wifi_networks_detected:'" + wifiNetworksDetectedText + "',scanning:'" + scanningText + "'};";
   
   // Changement de langue
   chunk += "function changeLang(lang){";
@@ -2958,26 +2955,7 @@ void handleRoot() {
   chunk += "document.getElementById('gpio-results').innerHTML=h;document.getElementById('gpio-status').innerHTML='Termine - '+data.results.length+' GPIO testes'})}";
 
   // Sans fil
-  chunk += "function refreshWireless(){";
-  chunk += "const searching=(translations.bluetooth_searching||translations.scanning||'Recherche...');";
-  chunk += "const btConnectedEl=document.getElementById('bt-connected-device');";
-  chunk += "if(btConnectedEl){btConnectedEl.innerHTML=searching;}";
-  chunk += "fetch('/api/bluetooth-info').then(r=>r.json()).then(data=>{";
-  chunk += "if(data.wifi){document.getElementById('wifi-status-value').innerHTML=data.wifi.status;document.getElementById('wifi-ssid').innerHTML=data.wifi.ssid;document.getElementById('wifi-rssi').innerHTML=data.wifi.connected?(data.wifi.rssi+' dBm'):data.wifi.status;document.getElementById('wifi-quality').innerHTML=data.wifi.quality;document.getElementById('wifi-ip').innerHTML=data.wifi.ip;document.getElementById('wifi-subnet').innerHTML=data.wifi.subnet;document.getElementById('wifi-gateway').innerHTML=data.wifi.gateway;document.getElementById('wifi-dns').innerHTML=data.wifi.dns;document.getElementById('wifi-channel').innerHTML=data.wifi.channel;document.getElementById('wifi-security').innerHTML=data.wifi.security;document.getElementById('wifi-bssid').innerHTML=data.wifi.bssid;}";
-  chunk += "if(data.bluetooth){const yesText=translations.yes||'Oui';const noText=translations.no||'Non';";
-  chunk += "const statusEl=document.getElementById('bt-status');if(statusEl)statusEl.innerHTML=data.bluetooth.statusText;";
-  chunk += "const capEl=document.getElementById('bt-capabilities');if(capEl)capEl.innerHTML=data.bluetooth.capabilities;";
-  chunk += "const classicEl=document.getElementById('bt-supported-classic');if(classicEl)classicEl.innerHTML=data.bluetooth.supportedClassic?yesText:noText;";
-  chunk += "const bleEl=document.getElementById('bt-supported-ble');if(bleEl)bleEl.innerHTML=data.bluetooth.supportedBLE?yesText:noText;";
-  chunk += "const initEl=document.getElementById('bt-initialized');if(initEl)initEl.innerHTML=data.bluetooth.initialized?yesText:noText;";
-  chunk += "const advEl=document.getElementById('bt-advertising-flag');if(advEl)advEl.innerHTML=data.bluetooth.advertising?yesText:noText;";
-  chunk += "const connFlagEl=document.getElementById('bt-connected-flag');if(connFlagEl)connFlagEl.innerHTML=data.bluetooth.connected?yesText:noText;";
-  chunk += "const deviceEl=document.getElementById('bt-device');if(deviceEl)deviceEl.innerHTML=data.bluetooth.deviceName;";
-  chunk += "const addressEl=document.getElementById('bt-address');if(addressEl)addressEl.innerHTML=data.bluetooth.address;";
-  chunk += "const serviceEl=document.getElementById('bt-service');if(serviceEl)serviceEl.innerHTML=data.bluetooth.serviceUUID;";
-  chunk += "if(btConnectedEl)btConnectedEl.innerHTML=data.bluetooth.connectedDevice;";
-  chunk += "const lastEventEl=document.getElementById('bt-last-event');if(lastEventEl)lastEventEl.innerHTML=data.bluetooth.lastEvent;}}).catch(()=>{});";
-  chunk += "}";
+  chunk += "function refreshWireless(){fetch('/api/bluetooth-info').then(r=>r.json()).then(data=>{if(data.wifi){document.getElementById('wifi-status-value').innerHTML=data.wifi.status;document.getElementById('wifi-ssid').innerHTML=data.wifi.ssid;document.getElementById('wifi-rssi').innerHTML=data.wifi.connected?(data.wifi.rssi+' dBm'):data.wifi.status;document.getElementById('wifi-quality').innerHTML=data.wifi.quality;document.getElementById('wifi-ip').innerHTML=data.wifi.ip;document.getElementById('wifi-subnet').innerHTML=data.wifi.subnet;document.getElementById('wifi-gateway').innerHTML=data.wifi.gateway;document.getElementById('wifi-dns').innerHTML=data.wifi.dns;document.getElementById('wifi-channel').innerHTML=data.wifi.channel;document.getElementById('wifi-security').innerHTML=data.wifi.security;document.getElementById('wifi-bssid').innerHTML=data.wifi.bssid;}if(data.bluetooth){document.getElementById('bt-status').innerHTML=data.bluetooth.statusText;document.getElementById('bt-capabilities').innerHTML=data.bluetooth.capabilities;document.getElementById('bt-device').innerHTML=data.bluetooth.deviceName;document.getElementById('bt-address').innerHTML=data.bluetooth.address;document.getElementById('bt-service').innerHTML=data.bluetooth.serviceUUID;document.getElementById('bt-connected-device').innerHTML=data.bluetooth.connectedDevice;document.getElementById('bt-last-event').innerHTML=data.bluetooth.lastEvent;}}).catch(()=>{})}";
   chunk += "function startBluetooth(){fetch('/api/bluetooth-control?action=start').then(r=>r.json()).then(d=>{document.getElementById('bt-last-event').innerHTML=d.message||'';if(d.success){refreshWireless();}else{alert(d.message)}})}";
   chunk += "function stopBluetooth(){fetch('/api/bluetooth-control?action=stop').then(r=>r.json()).then(d=>{document.getElementById('bt-last-event').innerHTML=d.message||'';if(d.success){refreshWireless();}else{alert(d.message)}})}";
 
