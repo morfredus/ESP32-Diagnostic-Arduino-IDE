@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.07-dev - Réactivation complète navigation onglets
 // Version de dev : 3.0.06-dev - Correction compilation fallback onglets
 // Version de dev : 3.0.05-dev - Onglets web compatibles tous navigateurs
 // Version de dev : 3.0.04-dev - Correction navigation onglets principale
@@ -70,7 +71,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.06-dev"
+#define DIAGNOSTIC_VERSION "3.0.07-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2354,24 +2355,24 @@ void handleRoot() {
   // CHUNK 2: HEADER + NAV
   chunk = "<div class='container'><div class='header'>";
   chunk += "<div class='lang-switcher'>";
-  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_FR ? "active" : "") + "' onclick='changeLang(\"fr\")'>FR</button>";
-  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_EN ? "active" : "") + "' onclick='changeLang(\"en\")'>EN</button>";
+  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_FR ? "active" : "") + "' onclick='changeLang(\"fr\",this)'>FR</button>";
+  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_EN ? "active" : "") + "' onclick='changeLang(\"en\",this)'>EN</button>";
   chunk += "</div>";
   chunk += "<h1 id='main-title'>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1>";
   chunk += "<div style='font-size:1.2em;margin:10px 0'>" + diagnosticData.chipModel + "</div>";
   chunk += "<div style='font-size:.9em;opacity:.9;margin:10px 0'>";
   chunk += String(T().access) + ": <a href='http://" + String(MDNS_HOSTNAME) + ".local' style='color:#fff;text-decoration:underline'><strong>http://" + String(MDNS_HOSTNAME) + ".local</strong></a> " + String(T().or_text) + " <strong>" + diagnosticData.ipAddress + "</strong>";
   chunk += "</div>";
-  // --- [BUGFIX] Navigation onglets : gestion explicite du bouton ---
+  // --- [BUGFIX] Navigation onglets : boutons dédiés sans gestion inline ---
   chunk += "<div class='nav'>";
-  chunk += "<button class='nav-btn active' data-tab='overview' onclick='showTab(\"overview\",this)' data-i18n='nav_overview'>" + String(T().nav_overview) + "</button>";
-  chunk += "<button class='nav-btn' data-tab='leds' onclick='showTab(\"leds\",this)' data-i18n='nav_leds'>" + String(T().nav_leds) + "</button>";
-  chunk += "<button class='nav-btn' data-tab='screens' onclick='showTab(\"screens\",this)' data-i18n='nav_screens'>" + String(T().nav_screens) + "</button>";
-  chunk += "<button class='nav-btn' data-tab='tests' onclick='showTab(\"tests\",this)' data-i18n='nav_tests'>" + String(T().nav_tests) + "</button>";
-  chunk += "<button class='nav-btn' data-tab='gpio' onclick='showTab(\"gpio\",this)' data-i18n='nav_gpio'>" + String(T().nav_gpio) + "</button>";
-  chunk += "<button class='nav-btn' data-tab='wifi' onclick='showTab(\"wifi\",this)' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</button>";
-  chunk += "<button class='nav-btn' data-tab='benchmark' onclick='showTab(\"benchmark\",this)' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</button>";
-  chunk += "<button class='nav-btn' data-tab='export' onclick='showTab(\"export\",this)' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
+  chunk += "<button type='button' class='nav-btn active' data-tab='overview' data-i18n='nav_overview'>" + String(T().nav_overview) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='leds' data-i18n='nav_leds'>" + String(T().nav_leds) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='screens' data-i18n='nav_screens'>" + String(T().nav_screens) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='tests' data-i18n='nav_tests'>" + String(T().nav_tests) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='gpio' data-i18n='nav_gpio'>" + String(T().nav_gpio) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='wifi' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='benchmark' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</button>";
+  chunk += "<button type='button' class='nav-btn' data-tab='export' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
   chunk += "</div></div><div class='content'>";
   server.sendContent(chunk);
   
@@ -2640,11 +2641,11 @@ void handleRoot() {
   chunk += "function updateStatus(id,text,state){const el=document.getElementById(id);if(!el)return;el.textContent=text;el.classList.remove('success','error');if(state){el.classList.add(state);}}";
   
   // Changement de langue
-  chunk += "function changeLang(lang){";
+  chunk += "function changeLang(lang,btn){";
   chunk += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
   chunk += "if(d.success){currentLang=lang;";
   chunk += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
-  chunk += "event.target.classList.add('active');";
+  chunk += "if(btn){btn.classList.add('active');}";
   chunk += "updateTranslations()}});}";
   
   // Mise à jour traductions
@@ -2664,7 +2665,13 @@ void handleRoot() {
   chunk += "if(target){target.classList.add('active');}";
   chunk += "if(btn){btn.classList.add('active');}else{const fallback=document.querySelector('.nav-btn[data-tab=\"'+t+'\"]');if(fallback)fallback.classList.add('active');}";
   chunk += "}";
-  
+
+  // --- [BUGFIX] Navigation onglets : écouteurs et initialisation ---
+  chunk += "const navButtons=document.querySelectorAll('.nav-btn');";
+  chunk += "navButtons.forEach(button=>{button.addEventListener('click',evt=>{evt.preventDefault();const targetTab=button.getAttribute('data-tab');showTab(targetTab,button);});});";
+  chunk += "const defaultButton=document.querySelector('.nav-btn.active')||navButtons[0];";
+  chunk += "if(defaultButton){showTab(defaultButton.getAttribute('data-tab'),defaultButton);}";
+
   // LED intégrée
   chunk += "function configBuiltinLED(){updateStatus('builtin-led-status','Configuration...',null);";
   chunk += "fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value)";
