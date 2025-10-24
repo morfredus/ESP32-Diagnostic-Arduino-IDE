@@ -1,22 +1,15 @@
+// v3.0.01-dev - Intégration directe des textes français dans le sketch
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
+ * DIAGNOSTIC COMPLET ESP32 - VERSION FRANCOPHONE v3.0.01-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
  * Optimisé pour ESP32 Arduino Core 3.1.3
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v2.6.0:
- * - Suppression complète du support des écrans TFT SPI
- * - Ajout de commandes individuelles pour chaque étape du test OLED
- * - Amélioration de l'interface web OLED avec reconfiguration I2C simplifiée
- *
- * Nouveautés v2.5:
- * - Traduction des exports (Français/Anglais)
- * 
- * Nouveautés v2.4:
- * - Interface multilingue (Français/Anglais)
- * - Changement de langue dynamique sans rechargement
- * - Toutes fonctionnalités v2.3 préservées
+ * Nouveautés v3.0.01-dev:
+ * - Suppression du fichier languages.h
+ * - Textes français intégrés directement dans le sketch principal
+ * - Toutes les fonctionnalités v3.0.0-dev conservées
  */
 
 #include <WiFi.h>
@@ -39,11 +32,8 @@
 // Configuration WiFi
 #include "wifi-config.h"
 
-// Système de traduction
-#include "languages.h"
-
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.6.0"
+#define DIAGNOSTIC_VERSION "3.0.01-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -58,6 +48,468 @@ int I2C_SDA = 21;
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
 #define SCREEN_ADDRESS 0x3C
+
+// ========== TEXTES EN FRANÇAIS ==========
+
+// Structure pour les traductions
+struct Translations {
+  // Titres et navigation
+  const char* title;
+  const char* version;
+  const char* access;
+  const char* or_text;
+  
+  // Navigation
+  const char* nav_overview;
+  const char* nav_leds;
+  const char* nav_screens;
+  const char* nav_tests;
+  const char* nav_gpio;
+  const char* nav_wifi;
+  const char* nav_benchmark;
+  const char* nav_export;
+  
+  // Sections Vue d'ensemble
+  const char* chip_info;
+  const char* full_model;
+  const char* cpu_cores;
+  const char* mac_wifi;
+  const char* last_reset;
+  const char* chip_features;
+  const char* sdk_version;
+  const char* idf_version;
+  const char* uptime;
+  const char* cpu_temp;
+  
+  // Mémoire
+  const char* memory_details;
+  const char* flash_memory;
+  const char* real_size;
+  const char* configured_ide;
+  const char* configuration;
+  const char* correct;
+  const char* to_fix;
+  const char* flash_type;
+  const char* flash_speed;
+  const char* action_required;
+  
+  const char* psram_external;
+  const char* hardware_status;
+  const char* detected_active;
+  const char* supported_not_enabled;
+  const char* ide_config;
+  const char* enabled;
+  const char* total_size;
+  const char* free;
+  const char* used;
+  const char* largest_block;
+  const char* integrity_test;
+  const char* not_detected;
+  const char* disabled;
+  const char* psram_usage;
+  const char* enable_psram_hint;
+  
+  const char* internal_sram;
+  const char* min_free;
+  const char* max_alloc;
+  
+  const char* global_analysis;
+  const char* memory_fragmentation;
+  const char* memory_status;
+  const char* total_ram;
+  const char* free_ram_total;
+  const char* refresh_memory;
+  
+  // WiFi
+  const char* wifi_connection;
+  const char* connected_ssid;
+  const char* signal_power;
+  const char* signal_quality;
+  const char* ip_address;
+  const char* subnet_mask;
+  const char* gateway;
+  const char* dns;
+  const char* wifi_channel;
+  
+  // GPIO et périphériques
+  const char* gpio_interfaces;
+  const char* total_gpio;
+  const char* gpio_list;
+  const char* i2c_peripherals;
+  const char* device_count;
+  const char* detected_addresses;
+  const char* rescan_i2c;
+  
+  // LEDs
+  const char* builtin_led;
+  const char* gpio;
+  const char* status;
+  const char* config;
+  const char* test;
+  const char* blink;
+  const char* fade;
+  const char* off;
+  const char* neopixel;
+  const char* rainbow;
+  const char* color;
+  
+  // Écrans
+  const char* full_test;
+  const char* oled_screen;
+  const char* i2c_pins;
+  const char* i2c_address;
+  const char* no_device;
+  const char* pin_config;
+  const char* apply_redetect;
+  const char* changes_pins;
+  const char* custom_message;
+  const char* show_message;
+  const char* no_detected;
+  const char* check_wiring;
+  const char* oled_step_welcome;
+  const char* oled_step_big_text;
+  const char* oled_step_text_sizes;
+  const char* oled_step_shapes;
+  const char* oled_step_horizontal_lines;
+  const char* oled_step_diagonals;
+  const char* oled_step_moving_square;
+  const char* oled_step_progress_bar;
+  const char* oled_step_scroll_text;
+  const char* oled_step_final_message;
+  const char* oled_step_executed_prefix;
+  const char* oled_step_unavailable;
+  const char* oled_step_unknown;
+  
+  // Tests avancés
+  const char* adc_test;
+  const char* touch_test;
+  const char* pwm_test;
+  const char* spi_bus;
+  const char* flash_partitions;
+  const char* list_partitions;
+  const char* click_button;
+  const char* memory_stress;
+  const char* start_stress;
+  
+  // GPIO
+  const char* gpio_test;
+  const char* test_all_gpio;
+  const char* click_to_test;
+  
+  // WiFi Scanner
+  const char* wifi_scanner;
+  const char* scan_networks;
+  
+  // Performance
+  const char* performance_bench;
+  const char* run_benchmarks;
+  const char* cpu_benchmark;
+  const char* memory_benchmark;
+  const char* cpu_performance;
+  const char* memory_speed;
+  const char* not_tested;
+  
+  // Export
+  const char* data_export;
+  const char* txt_file;
+  const char* readable_report;
+  const char* download_txt;
+  const char* json_file;
+  const char* structured_format;
+  const char* download_json;
+  const char* csv_file;
+  const char* for_excel;
+  const char* download_csv;
+  const char* printable_version;
+  const char* pdf_format;
+  const char* open;
+  
+    // Nouveaux champs pour les exports
+  const char* export_report;
+  const char* export_generated;
+  const char* export_after_boot;
+  const char* category;
+  const char* parameter;
+  const char* value;
+  const char* model;
+  const char* revision;
+  const char* frequency;
+  const char* real;
+  const char* board;
+  const char* psram_mb;
+  const char* detected;
+  const char* sram_kb;
+  const char* connected;
+  const char* signal;
+  const char* list;
+  const char* days;
+  const char* hours;
+  
+  // Statuts et messages
+  const char* ok;
+  const char* fail;
+  const char* excellent;
+  const char* very_good;
+  const char* good;
+  const char* warning;
+  const char* critical;
+  const char* weak;
+  const char* very_weak;
+  const char* none;
+  const char* unknown;
+  const char* testing;
+  const char* completed;
+  const char* scan;
+  const char* scanning;
+  
+  // Unités
+  const char* cores;
+  const char* pins;
+  const char* devices;
+  const char* networks;
+  const char* tested;
+  const char* channels;
+  
+  // Actions
+  const char* poweron;
+  const char* software_reset;
+  const char* deepsleep_exit;
+  const char* brownout;
+  const char* other;
+};
+
+// Textes français
+const Translations FRENCH_TEXTS = {
+  // Titres
+  "ESP32 Diagnostic Exhaustif",
+  "v",
+  "Accès",
+  "ou",
+  
+  // Navigation
+  "Vue d'ensemble",
+  "LEDs",
+  "Écrans",
+  "Tests Avancés",
+  "GPIO",
+  "WiFi",
+  "Performance",
+  "Export",
+  
+  // Chip
+  "Informations Chip Détaillées",
+  "Modèle Complet",
+  "Coeurs CPU",
+  "Adresse MAC WiFi",
+  "Raison Dernier Reset",
+  "Fonctionnalités Chip",
+  "Version SDK",
+  "Version ESP-IDF",
+  "Uptime",
+  "Température CPU",
+  
+  // Mémoire
+  "Mémoire Détaillée",
+  "Flash Memory",
+  "Taille Réelle (carte)",
+  "Configurée (IDE)",
+  "Configuration",
+  "Correcte",
+  "À corriger",
+  "Type Flash",
+  "Vitesse Flash",
+  "Action Requise",
+  
+  "PSRAM (Mémoire Externe)",
+  "Statut Hardware",
+  "Détectée et active",
+  "Support détecté (désactivée dans l'IDE)",
+  "Configuration IDE",
+  "Activée",
+  "Taille Totale",
+  "Libre",
+  "Utilisée",
+  "Plus Gros Bloc",
+  "Test Intégrité",
+  "Non détectée",
+  "Désactivée",
+  "Utilisation PSRAM",
+  "Activez la PSRAM %TYPE% dans l'IDE Arduino (Outils → PSRAM).",
+  
+  "SRAM Interne",
+  "Min Libre (Record)",
+  "Max Allocation",
+  
+  "Analyse Globale",
+  "Fragmentation Mémoire",
+  "État Mémoire",
+  "RAM Totale (SRAM+PSRAM)",
+  "RAM Libre Totale",
+  "Actualiser Mémoire",
+  
+  // WiFi
+  "Connexion WiFi Détaillée",
+  "SSID Connecté",
+  "Puissance Signal (RSSI)",
+  "Qualité Signal",
+  "Adresse IP",
+  "Masque Sous-réseau",
+  "Passerelle",
+  "DNS",
+  "Canal WiFi",
+  
+  // GPIO
+  "GPIO et Interfaces",
+  "Total GPIO",
+  "Liste GPIO",
+  "Périphériques I2C",
+  "Nombre de Périphériques",
+  "Adresses Détectées",
+  "Re-scanner I2C",
+  
+  // LEDs
+  "LED Intégrée",
+  "GPIO",
+  "Statut",
+  "Config",
+  "Test",
+  "Blink",
+  "Fade",
+  "Off",
+  "NeoPixel",
+  "Rainbow",
+  "Couleur",
+  
+  // Écrans
+  "Test Complet",
+  "Écran OLED 0.96\" I2C",
+  "Pins I2C",
+  "Adresse I2C",
+  "aucun périphérique",
+  "Configuration Pins I2C",
+  "Appliquer et Re-détecter",
+  "Modifie les pins I2C et relance la détection",
+  "Message personnalisé",
+  "Afficher Message",
+  "Aucun écran OLED détecté. Vérifiez le câblage et les pins I2C ci-dessus.",
+  "Vérifiez le câblage et les pins I2C",
+  "Accueil",
+  "Texte grand format",
+  "Tailles de texte",
+  "Formes géométriques",
+  "Lignes horizontales",
+  "Lignes diagonales",
+  "Carré en mouvement",
+  "Barre de progression",
+  "Texte défilant",
+  "Message final",
+  "Étape exécutée :",
+  "OLED non disponible",
+  "Étape inconnue",
+  
+  // Tests
+  "Test ADC",
+  "Test Touch Pads",
+  "Test PWM",
+  "Bus SPI",
+  "Partitions Flash",
+  "Lister Partitions",
+  "Cliquez sur le bouton",
+  "Stress Test Mémoire",
+  "Lancer Stress Test",
+  
+  // GPIO
+  "Test GPIO",
+  "Tester Tous les GPIO",
+  "Cliquez pour tester",
+  
+  // WiFi
+  "Scanner WiFi",
+  "Scanner Réseaux WiFi",
+  
+  // Performance
+  "Benchmarks de Performance",
+  "Lancer Benchmarks",
+  "CPU Benchmark",
+  "Mémoire Benchmark",
+  "Performance CPU",
+  "Vitesse Mémoire",
+  "Non testé",
+  
+  // Export
+  "Export des Données",
+  "Fichier TXT",
+  "Rapport texte lisible",
+  "Télécharger TXT",
+  "Fichier JSON",
+  "Format structuré",
+  "Télécharger JSON",
+  "Fichier CSV",
+  "Pour Excel",
+  "Télécharger CSV",
+  "Version Imprimable",
+  "Format PDF",
+  "Ouvrir",
+
+  // Nouveaux champs exports
+  "Rapport de diagnostic",
+  "Rapport généré le",
+  "secondes après démarrage",
+  "Catégorie",
+  "Paramètre",
+  "Valeur",
+  "Modèle",
+  "Révision",
+  "Fréquence",
+  "Réel",
+  "Carte",
+  "PSRAM MB",
+  "Détecté",
+  "SRAM KB",
+  "Connecté",
+  "Signal",
+  "Liste",
+  "jours",
+  "heures",
+  
+  // Statuts
+  "OK",
+  "FAIL",
+  "Excellent",
+  "Très bon",
+  "Bon",
+  "Attention",
+  "Critique",
+  "Faible",
+  "Très faible",
+  "Aucune",
+  "Inconnu",
+  "Test...",
+  "Terminé",
+  "Scan...",
+  "Scan...",
+  
+  // Unités
+  "coeurs",
+  "broches",
+  "périphérique(s)",
+  "réseaux",
+  "testé(s)",
+  "canaux",
+  
+  // Reset
+  "Mise sous tension",
+  "Reset logiciel",
+  "Sortie de deep sleep",
+  "Brownout",
+  "Autre"
+};
+
+// Fonction pour obtenir le texte traduit
+const Translations& T() {
+  return FRENCH_TEXTS;
+}
+
 
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
@@ -1758,7 +2210,7 @@ void handleExportJSON() {
   json += "\"system\":{";
   json += "\"uptime_ms\":" + String(diagnosticData.uptime) + ",";
   json += "\"reset_reason\":\"" + getResetReason() + "\",";
-  json += "\"language\":\"" + String(currentLanguage == LANG_FR ? "fr" : "en") + "\"";
+  json += "\"language\":\"fr\"";
   json += "}";
   
   json += "}";
@@ -1978,56 +2430,7 @@ void handlePrintVersion() {
   server.send(200, "text/html; charset=utf-8", html);
 }
 
-// ========== HANDLER CHANGEMENT DE LANGUE ==========
-void handleSetLanguage() {
-  if (server.hasArg("lang")) {
-    String lang = server.arg("lang");
-    if (lang == "fr") {
-      setLanguage(LANG_FR);
-    } else if (lang == "en") {
-      setLanguage(LANG_EN);
-    }
-    server.send(200, "application/json", "{\"success\":true,\"lang\":\"" + lang + "\"}");
-  } else {
-    server.send(400, "application/json", "{\"success\":false}");
-  }
-}
-
-void handleGetTranslations() {
-  // Envoie toutes les traductions en JSON pour mise à jour dynamique
-  String json = "{";
-  json += "\"title\":\"" + String(T().title) + "\",";
-  json += "\"nav_overview\":\"" + String(T().nav_overview) + "\",";
-  json += "\"nav_leds\":\"" + String(T().nav_leds) + "\",";
-  json += "\"nav_screens\":\"" + String(T().nav_screens) + "\",";
-  json += "\"nav_tests\":\"" + String(T().nav_tests) + "\",";
-  json += "\"nav_gpio\":\"" + String(T().nav_gpio) + "\",";
-  json += "\"nav_wifi\":\"" + String(T().nav_wifi) + "\",";
-  json += "\"nav_benchmark\":\"" + String(T().nav_benchmark) + "\",";
-  json += "\"nav_export\":\"" + String(T().nav_export) + "\",";
-  json += "\"chip_info\":\"" + String(T().chip_info) + "\",";
-  json += "\"memory_details\":\"" + String(T().memory_details) + "\",";
-  json += "\"wifi_connection\":\"" + String(T().wifi_connection) + "\",";
-  json += "\"gpio_interfaces\":\"" + String(T().gpio_interfaces) + "\",";
-  json += "\"i2c_peripherals\":\"" + String(T().i2c_peripherals) + "\",";
-  json += "\"builtin_led\":\"" + String(T().builtin_led) + "\",";
-  json += "\"oled_screen\":\"" + String(T().oled_screen) + "\",";
-  json += "\"adc_test\":\"" + String(T().adc_test) + "\",";
-  json += "\"touch_test\":\"" + String(T().touch_test) + "\",";
-  json += "\"pwm_test\":\"" + String(T().pwm_test) + "\",";
-  json += "\"spi_bus\":\"" + String(T().spi_bus) + "\",";
-  json += "\"flash_partitions\":\"" + String(T().flash_partitions) + "\",";
-  json += "\"memory_stress\":\"" + String(T().memory_stress) + "\",";
-  json += "\"gpio_test\":\"" + String(T().gpio_test) + "\",";
-  json += "\"wifi_scanner\":\"" + String(T().wifi_scanner) + "\",";
-  json += "\"performance_bench\":\"" + String(T().performance_bench) + "\",";
-  json += "\"data_export\":\"" + String(T().data_export) + "\"";
-  json += "}";
-  
-  server.send(200, "application/json", json);
-}
-
-// ========== INTERFACE WEB PRINCIPALE MULTILINGUE ==========
+// ========== INTERFACE WEB PRINCIPALE ==========
 void handleRoot() {
   collectDiagnosticInfo();
   collectDetailedMemory();
@@ -2036,9 +2439,7 @@ void handleRoot() {
   server.send(200, "text/html; charset=utf-8", "");
   
   // CHUNK 1: HEAD + CSS
-  String chunk = "<!DOCTYPE html><html lang='";
-  chunk += (currentLanguage == LANG_FR) ? "fr" : "en";
-  chunk += "'><head>";
+  String chunk = "<!DOCTYPE html><html lang='fr'><head>";
   chunk += "<meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>";
   chunk += "<title>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</title>";
   chunk += "<style>";
@@ -2047,10 +2448,6 @@ void handleRoot() {
   chunk += ".container{max-width:1400px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}";
   chunk += ".header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:30px;text-align:center;position:relative}";
   chunk += ".header h1{font-size:2.5em;margin-bottom:10px}";
-  chunk += ".lang-switcher{position:absolute;top:20px;right:20px;display:flex;gap:5px}";
-  chunk += ".lang-btn{padding:8px 15px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
-  chunk += ".lang-btn:hover{background:rgba(255,255,255,.3)}";
-  chunk += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
   chunk += ".nav{display:flex;justify-content:center;gap:10px;margin-top:20px;flex-wrap:wrap}";
   chunk += ".nav-btn{padding:10px 20px;background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;cursor:pointer;font-weight:bold}";
   chunk += ".nav-btn:hover{background:rgba(255,255,255,.3)}";
@@ -2085,16 +2482,12 @@ void handleRoot() {
   chunk += ".wifi-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;border-left:4px solid #667eea}";
   chunk += ".status-live{padding:10px;background:#f0f0f0;border-radius:5px;text-align:center;font-weight:bold;margin:10px 0}";
   chunk += "input[type='number'],input[type='color'],input[type='text']{padding:10px;border:2px solid #ddd;border-radius:5px;font-size:1em}";
-  chunk += "@media print{.nav,.btn,.lang-switcher{display:none}}";
+  chunk += "@media print{.nav,.btn{display:none}}";
   chunk += "</style></head><body>";
   server.sendContent(chunk);
   
   // CHUNK 2: HEADER + NAV
   chunk = "<div class='container'><div class='header'>";
-  chunk += "<div class='lang-switcher'>";
-  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_FR ? "active" : "") + "' onclick='changeLang(\"fr\")'>FR</button>";
-  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_EN ? "active" : "") + "' onclick='changeLang(\"en\")'>EN</button>";
-  chunk += "</div>";
   chunk += "<h1 id='main-title'>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1>";
   chunk += "<div style='font-size:1.2em;margin:10px 0'>" + diagnosticData.chipModel + "</div>";
   chunk += "<div style='font-size:.9em;opacity:.9;margin:10px 0'>";
@@ -2362,23 +2755,6 @@ void handleRoot() {
   server.sendContent(chunk);
   // CHUNK 11: JavaScript complet
   chunk = "<script>";
-  chunk += "let currentLang='" + String(currentLanguage == LANG_FR ? "fr" : "en") + "';";
-  
-  // Changement de langue
-  chunk += "function changeLang(lang){";
-  chunk += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
-  chunk += "if(d.success){currentLang=lang;";
-  chunk += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
-  chunk += "event.target.classList.add('active');";
-  chunk += "updateTranslations()}});}";
-  
-  // Mise à jour traductions
-  chunk += "function updateTranslations(){";
-  chunk += "fetch('/api/get-translations').then(r=>r.json()).then(tr=>{";
-  chunk += "document.getElementById('main-title').textContent=tr.title+' v" + String(DIAGNOSTIC_VERSION) + "';";
-  chunk += "document.querySelectorAll('[data-i18n]').forEach(el=>{";
-  chunk += "const key=el.getAttribute('data-i18n');";
-  chunk += "if(tr[key])el.textContent=tr[key]})});}";
   
   // Navigation onglets
   chunk += "function showTab(t){";
@@ -2476,8 +2852,8 @@ void setup() {
   delay(1000);
   
   Serial.println("\r\n===============================================");
-  Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 2.4 - FR/EN");
+  Serial.println("     DIAGNOSTIC ESP32 FRANCOPHONE");
+  Serial.println("     Version 3.0.0-dev");
   Serial.println("     Optimise Arduino Core 3.1.3");
   Serial.println("===============================================\r\n");
   
@@ -2540,10 +2916,6 @@ void setup() {
   // ========== ROUTES SERVEUR ==========
   server.on("/", handleRoot);
   
-  // **NOUVELLES ROUTES MULTILINGUES**
-  server.on("/api/set-language", handleSetLanguage);
-  server.on("/api/get-translations", handleGetTranslations);
-  
   // GPIO & WiFi
   server.on("/api/test-gpio", handleTestGPIO);
   server.on("/api/wifi-scan", handleWiFiScan);
@@ -2588,8 +2960,8 @@ void setup() {
   Serial.println("Serveur Web OK!");
   Serial.println("\r\n===============================================");
   Serial.println("            PRET - En attente");
-  Serial.println("   Langue par defaut: FRANCAIS");
-  Serial.println("   Changement dynamique via interface web");
+  Serial.println("   Interface web en français");
+  Serial.println("   Système multilingue désactivé");
   Serial.println("===============================================\r\n");
 }
 
