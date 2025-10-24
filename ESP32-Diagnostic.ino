@@ -1,23 +1,18 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
- * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
- * Optimisé pour ESP32 Arduino Core 3.1.3
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v3.0.x
+ * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
+ * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v2.6.0:
- * - Suppression complète du support des écrans TFT SPI
- * - Ajout de commandes individuelles pour chaque étape du test OLED
- * - Amélioration de l'interface web OLED avec reconfiguration I2C simplifiée
- *
- * Nouveautés v2.5:
- * - Traduction des exports (Français/Anglais)
- * 
- * Nouveautés v2.4:
- * - Interface multilingue (Français/Anglais)
- * - Changement de langue dynamique sans rechargement
- * - Toutes fonctionnalités v2.3 préservées
+ * Nouveautés v3.0.x:
+ * - Migration complète vers Arduino Core 3.3.2 (WiFi & I2C actualisés)
+ * - Analyse avancée du scan WiFi (bandes, PHY, largeur de bande)
+ * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
+
+// Version de dev : 3.0.03-dev - Rotation OLED ajustable et messages inline
+// Version de dev : 3.0.02-dev - Correction API scan WiFi pour core 3.3.2
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -28,6 +23,7 @@
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
+#include <esp_wifi.h>
 #include <soc/soc.h>
 #include <soc/rtc.h>
 #include <Wire.h>
@@ -36,18 +32,63 @@
 #include <Adafruit_SSD1306.h>
 #include <vector>
 
-// Configuration WiFi
-#include "wifi-config.h"
+// --- [NEW FEATURE] Inclusion automatique de la configuration WiFi ---
+#if defined(__has_include)
+  #if __has_include("wifi-config.h")
+    #include "wifi-config.h"
+  #elif __has_include("wifi-config-example.h")
+    #include "wifi-config-example.h"
+  #else
+    #error "Aucun fichier de configuration WiFi disponible"
+  #endif
+#else
+  #include "wifi-config.h"
+#endif
 
 // Système de traduction
 #include "languages.h"
 
+#if defined(__has_include)
+  #if __has_include(<esp_arduino_version.h>)
+    #include <esp_arduino_version.h>
+  #endif
+#endif
+
+#ifndef ESP_ARDUINO_VERSION_VAL
+#define ESP_ARDUINO_VERSION_VAL(major, minor, patch) ((major << 16) | (minor << 8) | (patch))
+#endif
+
+#ifndef ESP_ARDUINO_VERSION
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && defined(ESP_ARDUINO_VERSION_MINOR) && defined(ESP_ARDUINO_VERSION_PATCH)
+#define ESP_ARDUINO_VERSION ESP_ARDUINO_VERSION_VAL(ESP_ARDUINO_VERSION_MAJOR, ESP_ARDUINO_VERSION_MINOR, ESP_ARDUINO_VERSION_PATCH)
+#else
+#define ESP_ARDUINO_VERSION ESP_ARDUINO_VERSION_VAL(0, 0, 0)
+#endif
+#endif
+
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.6.0"
+#define DIAGNOSTIC_VERSION "3.0.03-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
 #define MDNS_HOSTNAME "esp32-diagnostic"
+
+// --- [NEW FEATURE] Références texte partagées pour l'interface web ---
+const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
+const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
+
+// --- [NEW FEATURE] Aide pour afficher la version du core Arduino ---
+String getArduinoCoreVersionString() {
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && defined(ESP_ARDUINO_VERSION_MINOR) && defined(ESP_ARDUINO_VERSION_PATCH)
+  return String(ESP_ARDUINO_VERSION_MAJOR) + "." + String(ESP_ARDUINO_VERSION_MINOR) + "." + String(ESP_ARDUINO_VERSION_PATCH);
+#else
+  uint32_t value = ESP_ARDUINO_VERSION;
+  int major = (value >> 16) & 0xFF;
+  int minor = (value >> 8) & 0xFF;
+  int patch = value & 0xFF;
+  return String(major) + "." + String(minor) + "." + String(patch);
+#endif
+}
 
 // Pins I2C pour OLED (modifiables via web)
 int I2C_SCL = 20;
@@ -58,6 +99,9 @@ int I2C_SDA = 21;
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
 #define SCREEN_ADDRESS 0x3C
+
+// --- [NEW FEATURE] Orientation OLED paramétrable ---
+uint8_t oledRotation = 0;
 
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
@@ -180,6 +224,10 @@ struct WiFiNetwork {
   int channel;
   String encryption;
   String bssid;
+  int freqMHz;
+  String band;
+  String bandwidth;
+  String phyModes;
 };
 
 std::vector<WiFiNetwork> wifiNetworks;
@@ -295,6 +343,126 @@ String getWiFiSignalQuality() {
   else if (diagnosticData.wifiRSSI >= -70) return T().good;
   else if (diagnosticData.wifiRSSI >= -80) return T().weak;
   else return T().very_weak;
+}
+
+// --- [NEW FEATURE] Utilitaires WiFi avancés compatibles Arduino 3.3.2 ---
+String wifiAuthModeToString(wifi_auth_mode_t mode) {
+  switch (mode) {
+    case WIFI_AUTH_OPEN: return "Ouvert";
+#ifdef WIFI_AUTH_WEP
+    case WIFI_AUTH_WEP: return "WEP";
+#endif
+    case WIFI_AUTH_WPA_PSK: return "WPA-PSK";
+    case WIFI_AUTH_WPA2_PSK: return "WPA2-PSK";
+    case WIFI_AUTH_WPA_WPA2_PSK: return "WPA/WPA2";
+#ifdef WIFI_AUTH_WPA2_ENTERPRISE
+    case WIFI_AUTH_WPA2_ENTERPRISE: return "WPA2-ENT";
+#endif
+#ifdef WIFI_AUTH_WPA3_PSK
+    case WIFI_AUTH_WPA3_PSK: return "WPA3-PSK";
+#endif
+#ifdef WIFI_AUTH_WPA2_WPA3_PSK
+    case WIFI_AUTH_WPA2_WPA3_PSK: return "WPA2/WPA3";
+#endif
+#ifdef WIFI_AUTH_WAPI_PSK
+    case WIFI_AUTH_WAPI_PSK: return "WAPI-PSK";
+#endif
+#ifdef WIFI_AUTH_OWE
+    case WIFI_AUTH_OWE: return "OWE";
+#endif
+    default: return "Inconnu";
+  }
+}
+
+#if defined(WIFI_CIPHER_TYPE_NONE)
+String wifiCipherToString(wifi_cipher_type_t cipher) {
+  switch (cipher) {
+    case WIFI_CIPHER_TYPE_NONE: return "None";
+    case WIFI_CIPHER_TYPE_WEP40: return "WEP40";
+    case WIFI_CIPHER_TYPE_WEP104: return "WEP104";
+    case WIFI_CIPHER_TYPE_TKIP: return "TKIP";
+    case WIFI_CIPHER_TYPE_CCMP: return "CCMP";
+    case WIFI_CIPHER_TYPE_TKIP_CCMP: return "TKIP/CCMP";
+#ifdef WIFI_CIPHER_TYPE_GCMP
+    case WIFI_CIPHER_TYPE_GCMP: return "GCMP";
+#endif
+#ifdef WIFI_CIPHER_TYPE_GCMP256
+    case WIFI_CIPHER_TYPE_GCMP256: return "GCMP256";
+#endif
+#ifdef WIFI_CIPHER_TYPE_AES_CMAC128
+    case WIFI_CIPHER_TYPE_AES_CMAC128: return "CMAC128";
+#endif
+#ifdef WIFI_CIPHER_TYPE_SMS4
+    case WIFI_CIPHER_TYPE_SMS4: return "SMS4";
+#endif
+    default: return "-";
+  }
+}
+#endif
+
+String wifiBandwidthToString(wifi_second_chan_t secondary) {
+  switch (secondary) {
+    case WIFI_SECOND_CHAN_NONE: return "20 MHz";
+    case WIFI_SECOND_CHAN_ABOVE:
+    case WIFI_SECOND_CHAN_BELOW: return "40 MHz";
+    default: return "Auto";
+  }
+}
+
+String wifiChannelToBand(int channel) {
+  if (channel <= 0) return "?";
+  if (channel <= 14) return "2.4 GHz";
+  if (channel >= 180) return "6 GHz";
+  return "5 GHz";
+}
+
+int wifiChannelToFrequency(int channel) {
+  if (channel <= 0) return 0;
+  if (channel <= 14) return 2407 + channel * 5;
+  if (channel >= 180) return 5950 + channel * 5;
+  return 5000 + channel * 5;
+}
+
+String wifiPhyModesToString(const wifi_ap_record_t& record) {
+  String modes = "";
+  if (record.phy_11b) {
+    if (modes.length()) modes += "/";
+    modes += "11b";
+  }
+  if (record.phy_11g) {
+    if (modes.length()) modes += "/";
+    modes += "11g";
+  }
+  if (record.phy_11n) {
+    if (modes.length()) modes += "/";
+    modes += "11n";
+  }
+#ifdef CONFIG_ESP_WIFI_80211AC_SUPPORT
+  if (record.phy_11ac) {
+    if (modes.length()) modes += "/";
+    modes += "11ac";
+  }
+#endif
+#ifdef CONFIG_ESP_WIFI_80211AX_SUPPORT
+  if (record.phy_11ax) {
+    if (modes.length()) modes += "/";
+    modes += "11ax";
+  }
+#endif
+#ifdef CONFIG_ESP_WIFI_80211BE_SUPPORT
+  if (record.phy_11be) {
+    if (modes.length()) modes += "/";
+    modes += "11be";
+  }
+#endif
+  if (record.phy_lr) {
+    if (modes.length()) modes += "/";
+    modes += "LR";
+  }
+  if (modes.length() == 0) {
+    modes = "-";
+  }
+  return modes;
 }
 
 String getGPIOList() {
@@ -534,11 +702,23 @@ unsigned long benchmarkMemory() {
 }
 
 // ========== SCAN I2C ==========
+// --- [NEW FEATURE] Réinitialisation I2C compatible core 3.3.2 ---
+void ensureI2CBusConfigured() {
+  Wire.end();
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
+  Wire.setPins(I2C_SDA, I2C_SCL);
+  Wire.begin();
+#else
+  Wire.begin(I2C_SDA, I2C_SCL);
+#endif
+  Wire.setClock(400000);
+}
+
 void scanI2C() {
   if (!ENABLE_I2C_SCAN) return;
-  
+
   Serial.println("\r\n=== SCAN I2C ===");
-  Wire.begin(I2C_SDA, I2C_SCL);
+  ensureI2CBusConfigured();
   Serial.printf("I2C: SDA=%d, SCL=%d\r\n", I2C_SDA, I2C_SCL);
   
   diagnosticData.i2cDevices = "";
@@ -565,30 +745,76 @@ void scanI2C() {
 void scanWiFiNetworks() {
   Serial.println("\r\n=== SCAN WIFI ===");
   wifiNetworks.clear();
-  
+
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
+  int n = WiFi.scanNetworks(false, true, true);
+#else
   int n = WiFi.scanNetworks();
+#endif
+
+  if (n < 0) {
+    Serial.println("WiFi: scan en echec");
+    return;
+  }
+
   for (int i = 0; i < n; i++) {
     WiFiNetwork net;
-    net.ssid = WiFi.SSID(i);
-    net.rssi = WiFi.RSSI(i);
-    net.channel = WiFi.channel(i);
-    
-    uint8_t* bssid = WiFi.BSSID(i);
-    char bssidStr[18];
-    sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",
-            bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
-    net.bssid = String(bssidStr);
-    
-    wifi_auth_mode_t auth = WiFi.encryptionType(i);
-    switch (auth) {
-      case WIFI_AUTH_OPEN: net.encryption = "Ouvert"; break;
-      case WIFI_AUTH_WPA2_PSK: net.encryption = "WPA2-PSK"; break;
-      case WIFI_AUTH_WPA3_PSK: net.encryption = "WPA3-PSK"; break;
-      default: net.encryption = "WPA/WPA2"; break;
+
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
+    // --- [NEW FEATURE] Analyse avancée du scan WiFi ---
+    // --- [NEW FEATURE] Compatibilite API WiFiScan core 3.3.2 ---
+    wifi_ap_record_t* info = static_cast<wifi_ap_record_t*>(WiFi.getScanInfoByIndex(i));
+    if (info != nullptr) {
+      net.ssid = String(reinterpret_cast<const char*>(info->ssid));
+      net.rssi = info->rssi;
+      net.channel = info->primary;
+
+      char bssidStr[18];
+      sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",
+              info->bssid[0], info->bssid[1], info->bssid[2], info->bssid[3], info->bssid[4], info->bssid[5]);
+      net.bssid = String(bssidStr);
+
+      net.encryption = wifiAuthModeToString(info->authmode);
+#if defined(WIFI_CIPHER_TYPE_NONE)
+      String pairwise = wifiCipherToString(info->pairwise_cipher);
+      String group = wifiCipherToString(info->group_cipher);
+      if ((pairwise != "-" && pairwise != "None") || (group != "-" && group != "None")) {
+        net.encryption += " (" + pairwise + "/" + group + ")";
+      }
+#endif
+      net.bandwidth = wifiBandwidthToString(info->second);
+      net.band = wifiChannelToBand(info->primary);
+      net.freqMHz = wifiChannelToFrequency(info->primary);
+      net.phyModes = wifiPhyModesToString(*info);
+    } else
+#endif
+    {
+      net.ssid = WiFi.SSID(i);
+      net.rssi = WiFi.RSSI(i);
+      net.channel = WiFi.channel(i);
+
+      uint8_t* bssid = WiFi.BSSID(i);
+      char bssidFallback[18];
+      sprintf(bssidFallback, "%02X:%02X:%02X:%02X:%02X:%02X",
+              bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
+      net.bssid = String(bssidFallback);
+
+      wifi_auth_mode_t auth = WiFi.encryptionType(i);
+      net.encryption = wifiAuthModeToString(auth);
+      net.band = wifiChannelToBand(net.channel);
+      net.bandwidth = "-";
+      net.freqMHz = wifiChannelToFrequency(net.channel);
+      net.phyModes = "-";
     }
-    
+
+    if (net.bandwidth.length() == 0) net.bandwidth = "-";
     wifiNetworks.push_back(net);
   }
+
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
+  WiFi.scanDelete();
+#endif
+
   Serial.printf("WiFi: %d reseaux trouves\r\n", n);
 }
 
@@ -803,17 +1029,23 @@ void neopixelFade(uint32_t color) {
   strip->setBrightness(255);
 }
 
+// --- [NEW FEATURE] Application centralisée de la rotation OLED ---
+void applyOLEDOrientation() {
+  oled.setRotation(oledRotation & 0x03);
+}
+
 // ========== OLED 0.96" ==========
 void detectOLED() {
   Serial.println("\r\n=== DETECTION OLED ===");
-  Wire.begin(I2C_SDA, I2C_SCL);
+  ensureI2CBusConfigured();
   Serial.printf("I2C: SDA=%d, SCL=%d\r\n", I2C_SDA, I2C_SCL);
-  
+
   Wire.beginTransmission(SCREEN_ADDRESS);
   bool i2cDetected = (Wire.endTransmission() == 0);
-  
+
   if(i2cDetected && oled.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     oledAvailable = true;
+    applyOLEDOrientation();
     oledTestResult = "Detecte a 0x" + String(SCREEN_ADDRESS, HEX);
     Serial.println("OLED: Detecte!\r\n");
   } else {
@@ -829,6 +1061,7 @@ void detectOLED() {
 
 void oledStepWelcome() {
   if (!oledAvailable) return;
+  applyOLEDOrientation();
   oled.clearDisplay();
   oled.setTextSize(1);
   oled.setTextColor(SSD1306_WHITE);
@@ -844,6 +1077,7 @@ void oledStepWelcome() {
 
 void oledStepBigText() {
   if (!oledAvailable) return;
+  applyOLEDOrientation();
   oled.clearDisplay();
   oled.setTextSize(2);
   oled.setTextColor(SSD1306_WHITE);
@@ -855,6 +1089,7 @@ void oledStepBigText() {
 
 void oledStepTextSizes() {
   if (!oledAvailable) return;
+  applyOLEDOrientation();
   oled.clearDisplay();
   oled.setTextSize(1);
   oled.setTextColor(SSD1306_WHITE);
@@ -870,6 +1105,7 @@ void oledStepTextSizes() {
 
 void oledStepShapes() {
   if (!oledAvailable) return;
+  applyOLEDOrientation();
   oled.clearDisplay();
   oled.drawRect(10, 10, 30, 20, SSD1306_WHITE);
   oled.fillRect(50, 10, 30, 20, SSD1306_WHITE);
@@ -882,6 +1118,7 @@ void oledStepShapes() {
 
 void oledStepHorizontalLines() {
   if (!oledAvailable) return;
+  applyOLEDOrientation();
   oled.clearDisplay();
   for (int i = 0; i < SCREEN_HEIGHT; i += 4) {
     oled.drawLine(0, i, SCREEN_WIDTH, i, SSD1306_WHITE);
@@ -892,6 +1129,7 @@ void oledStepHorizontalLines() {
 
 void oledStepDiagonals() {
   if (!oledAvailable) return;
+  applyOLEDOrientation();
   oled.clearDisplay();
   for (int i = 0; i < SCREEN_WIDTH; i += 8) {
     oled.drawLine(0, 0, i, SCREEN_HEIGHT - 1, SSD1306_WHITE);
@@ -903,6 +1141,7 @@ void oledStepDiagonals() {
 
 void oledStepMovingSquare() {
   if (!oledAvailable) return;
+  applyOLEDOrientation();
   for (int x = 0; x < SCREEN_WIDTH - 20; x += 4) {
     oled.clearDisplay();
     oled.fillRect(x, 22, 20, 20, SSD1306_WHITE);
@@ -913,6 +1152,7 @@ void oledStepMovingSquare() {
 
 void oledStepProgressBar() {
   if (!oledAvailable) return;
+  applyOLEDOrientation();
   oled.clearDisplay();
   oled.setTextSize(1);
   oled.setTextColor(SSD1306_WHITE);
@@ -935,6 +1175,7 @@ void oledStepProgressBar() {
 
 void oledStepScrollText() {
   if (!oledAvailable) return;
+  applyOLEDOrientation();
   String scrollText = "  DIAGNOSTIC ESP32 COMPLET - OLED 0.96 pouces I2C  ";
   for (int offset = 0; offset < scrollText.length() * 6; offset += 2) {
     oled.clearDisplay();
@@ -949,6 +1190,7 @@ void oledStepScrollText() {
 
 void oledStepFinalMessage() {
   if (!oledAvailable) return;
+  applyOLEDOrientation();
   oled.clearDisplay();
   oled.setTextSize(1);
   oled.setTextColor(SSD1306_WHITE);
@@ -1038,6 +1280,7 @@ void resetOLEDTest() {
 
 void oledShowMessage(String message) {
   if (!oledAvailable) return;
+  applyOLEDOrientation();
   oled.clearDisplay();
   oled.setTextSize(1);
   oled.setTextColor(SSD1306_WHITE);
@@ -1305,9 +1548,11 @@ void handleWiFiScan() {
   String json = "{\"networks\":[";
   for (size_t i = 0; i < wifiNetworks.size(); i++) {
     if (i > 0) json += ",";
-    json += "{\"ssid\":\"" + wifiNetworks[i].ssid + "\",\"rssi\":" + String(wifiNetworks[i].rssi) + 
-            ",\"channel\":" + String(wifiNetworks[i].channel) + ",\"encryption\":\"" + wifiNetworks[i].encryption + 
-            "\",\"bssid\":\"" + wifiNetworks[i].bssid + "\"}";
+    json += "{\"ssid\":\"" + wifiNetworks[i].ssid + "\",\"rssi\":" + String(wifiNetworks[i].rssi) +
+            ",\"channel\":" + String(wifiNetworks[i].channel) + ",\"encryption\":\"" + wifiNetworks[i].encryption +
+            "\",\"bssid\":\"" + wifiNetworks[i].bssid + "\",\"band\":\"" + wifiNetworks[i].band +
+            "\",\"bandwidth\":\"" + wifiNetworks[i].bandwidth + "\",\"phy\":\"" + wifiNetworks[i].phyModes +
+            "\",\"freq\":" + String(wifiNetworks[i].freqMHz) + "}";
   }
   json += "]}";
   server.send(200, "application/json", json);
@@ -1460,21 +1705,33 @@ void handleNeoPixelColor() {
 }
 
 void handleOLEDConfig() {
-  if (server.hasArg("sda") && server.hasArg("scl")) {
+  if (server.hasArg("sda") && server.hasArg("scl") && server.hasArg("rotation")) {
     int newSDA = server.arg("sda").toInt();
     int newSCL = server.arg("scl").toInt();
-    
-    if (newSDA >= 0 && newSDA <= 48 && newSCL >= 0 && newSCL <= 48) {
+    int newRotation = server.arg("rotation").toInt();
+
+    if (newSDA >= 0 && newSDA <= 48 && newSCL >= 0 && newSCL <= 48 && newRotation >= 0 && newRotation <= 3) {
+      bool pinsChanged = (I2C_SDA != newSDA) || (I2C_SCL != newSCL);
+      bool rotationChanged = (oledRotation != static_cast<uint8_t>(newRotation));
+
       I2C_SDA = newSDA;
       I2C_SCL = newSCL;
-      resetOLEDTest();
-      Wire.end();
-      detectOLED();
-      server.send(200, "application/json", "{\"success\":true,\"message\":\"I2C reconfigure: SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "\"}");
+      oledRotation = static_cast<uint8_t>(newRotation);
+
+      if (pinsChanged || rotationChanged) {
+        resetOLEDTest();
+        Wire.end();
+        detectOLED();
+      } else if (oledAvailable) {
+        applyOLEDOrientation();
+      }
+
+      String message = "I2C reconfigure: SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + " Rot:" + String(oledRotation);
+      server.send(200, "application/json", "{\"success\":true,\"message\":\"" + message + "\",\"sda\":" + String(I2C_SDA) + ",\"scl\":" + String(I2C_SCL) + ",\"rotation\":" + String(oledRotation) + "}");
       return;
     }
   }
-  server.send(400, "application/json", "{\"success\":false,\"message\":\"Pins invalides\"}");
+  server.send(400, "application/json", "{\"success\":false,\"message\":\"Configuration invalide\"}");
 }
 
 void handleOLEDTest() {
@@ -1940,7 +2197,7 @@ void handlePrintVersion() {
   html += "<h2>GPIO et Périphériques</h2>";
   html += "<div class='grid'>";
   html += "<div class='row'><b>GPIO Total:</b><span>" + String(diagnosticData.totalGPIO) + " broches</span></div>";
-  html += "<div class='row'><b>I2C:</b><span>" + String(diagnosticData.i2cCount) + " périphérique(s) - " + diagnosticData.i2cDevices + "</span></div>";
+  html += "<div class='row'><b>I2C:</b><span id='i2c-summary'>" + String(diagnosticData.i2cCount) + " périphérique(s) - " + diagnosticData.i2cDevices + "</span></div>";
   html += "<div class='row'><b>SPI:</b><span>" + spiInfo + "</span></div>";
   html += "</div></div>";
   
@@ -2084,6 +2341,8 @@ void handleRoot() {
   chunk += ".wifi-list{max-height:400px;overflow-y:auto}";
   chunk += ".wifi-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;border-left:4px solid #667eea}";
   chunk += ".status-live{padding:10px;background:#f0f0f0;border-radius:5px;text-align:center;font-weight:bold;margin:10px 0}";
+  chunk += ".status-live.success{background:#d4edda;color:#155724}";
+  chunk += ".status-live.error{background:#f8d7da;color:#721c24}";
   chunk += "input[type='number'],input[type='color'],input[type='text']{padding:10px;border:2px solid #ddd;border-radius:5px;font-size:1em}";
   chunk += "@media print{.nav,.btn,.lang-switcher{display:none}}";
   chunk += "</style></head><body>";
@@ -2237,10 +2496,16 @@ void handleRoot() {
   chunk = "<div id='screens' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().oled_screen) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='oled-status'>" + oledTestResult + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().i2c_pins) + "</div><div class='info-value'>SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().i2c_pins) + "</div><div class='info-value' id='oled-pins'>SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String(T().rotation) + "</div><div class='info-value' id='oled-rotation-display'>" + String(oledRotation) + "</div></div>";
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "SDA: <input type='number' id='oledSDA' value='" + String(I2C_SDA) + "' min='0' max='48' style='width:70px'> ";
   chunk += "SCL: <input type='number' id='oledSCL' value='" + String(I2C_SCL) + "' min='0' max='48' style='width:70px'> ";
+  chunk += String(T().rotation) + ": <select id='oledRotation' style='padding:10px;border:2px solid #ddd;border-radius:5px'>";
+  for (int rot = 0; rot < 4; rot++) {
+    chunk += "<option value='" + String(rot) + "'" + String(oledRotation == rot ? " selected" : "") + ">" + String(rot) + "</option>";
+  }
+  chunk += "</select> ";
   chunk += "<button class='btn btn-info' onclick='configOLED()'>" + String(T().apply_redetect) + "</button>";
   if (oledAvailable) {
     chunk += "<div style='margin-top:15px'>";
@@ -2268,6 +2533,11 @@ void handleRoot() {
   
   // CHUNK 6: TAB Tests
   chunk = "<div id='tests' class='tab-content'>";
+  chunk += "<div class='section'><h2>" + String(T().i2c_peripherals) + "</h2>";
+  chunk += "<div style='text-align:center;margin:20px 0'>";
+  chunk += "<button class='btn btn-primary' onclick='scanI2C()'>" + String(T().rescan_i2c) + "</button>";
+  chunk += "<div id='i2c-status' class='status-live'>" + String(T().click_button) + "</div>";
+  chunk += "</div></div>";
   chunk += "<div class='section'><h2>" + String(T().adc_test) + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testADC()'>" + String(T().test) + "</button>";
@@ -2363,6 +2633,7 @@ void handleRoot() {
   // CHUNK 11: JavaScript complet
   chunk = "<script>";
   chunk += "let currentLang='" + String(currentLanguage == LANG_FR ? "fr" : "en") + "';";
+  chunk += "function updateStatus(id,text,state){const el=document.getElementById(id);if(!el)return;el.textContent=text;el.classList.remove('success','error');if(state){el.classList.add(state);}}";
   
   // Changement de langue
   chunk += "function changeLang(lang){";
@@ -2388,35 +2659,47 @@ void handleRoot() {
   chunk += "event.target.classList.add('active');}";
   
   // LED intégrée
-  chunk += "function configBuiltinLED(){fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value)";
-  chunk += ".then(r=>r.json()).then(d=>{document.getElementById('builtin-led-status').innerHTML=d.message;alert(d.message)})}";
-  chunk += "function testBuiltinLED(){document.getElementById('builtin-led-status').innerHTML='Test...';";
-  chunk += "fetch('/api/builtin-led-test').then(r=>r.json()).then(d=>{document.getElementById('builtin-led-status').innerHTML=d.result;alert(d.result)})}";
-  chunk += "function ledBlink(){fetch('/api/builtin-led-control?action=blink').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
-  chunk += "function ledFade(){fetch('/api/builtin-led-control?action=fade').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
-  chunk += "function ledOff(){fetch('/api/builtin-led-control?action=off').then(r=>r.json()).then(d=>document.getElementById('builtin-led-status').innerHTML=d.message)}";
+  chunk += "function configBuiltinLED(){updateStatus('builtin-led-status','Configuration...',null);";
+  chunk += "fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value)";
+  chunk += ".then(r=>r.json()).then(d=>{const state=d.success?'success':'error';updateStatus('builtin-led-status',d.message||'GPIO invalide',state);}).catch(e=>updateStatus('builtin-led-status','Erreur: '+e,'error'));}";
+  chunk += "function testBuiltinLED(){updateStatus('builtin-led-status','Test...',null);";
+  chunk += "fetch('/api/builtin-led-test').then(r=>r.json()).then(d=>{const state=d.success?'success':'error';updateStatus('builtin-led-status',d.result||'Test en echec',state);}).catch(e=>updateStatus('builtin-led-status','Erreur: '+e,'error'));}";
+  chunk += "function ledBlink(){fetch('/api/builtin-led-control?action=blink').then(r=>r.json()).then(d=>updateStatus('builtin-led-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('builtin-led-status','Erreur: '+e,'error'));}";
+  chunk += "function ledFade(){fetch('/api/builtin-led-control?action=fade').then(r=>r.json()).then(d=>updateStatus('builtin-led-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('builtin-led-status','Erreur: '+e,'error'));}";
+  chunk += "function ledOff(){fetch('/api/builtin-led-control?action=off').then(r=>r.json()).then(d=>updateStatus('builtin-led-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('builtin-led-status','Erreur: '+e,'error'));}";
   
   // NeoPixel
-  chunk += "function configNeoPixel(){fetch('/api/neopixel-config?gpio='+document.getElementById('neoGPIO').value+'&count='+document.getElementById('neoCount').value)";
-  chunk += ".then(r=>r.json()).then(d=>{document.getElementById('neopixel-status').innerHTML=d.message;alert(d.message)})}";
-  chunk += "function testNeoPixel(){fetch('/api/neopixel-test').then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.result)}";
-  chunk += "function neoPattern(p){fetch('/api/neopixel-pattern?pattern='+p).then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.message)}";
+  chunk += "function configNeoPixel(){updateStatus('neopixel-status','Configuration...',null);";
+  chunk += "fetch('/api/neopixel-config?gpio='+document.getElementById('neoGPIO').value+'&count='+document.getElementById('neoCount').value)";
+  chunk += ".then(r=>r.json()).then(d=>updateStatus('neopixel-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('neopixel-status','Erreur: '+e,'error'));}";
+  chunk += "function testNeoPixel(){updateStatus('neopixel-status','Test...',null);";
+  chunk += "fetch('/api/neopixel-test').then(r=>r.json()).then(d=>updateStatus('neopixel-status',d.result,d.success?'success':'error')).catch(e=>updateStatus('neopixel-status','Erreur: '+e,'error'));}";
+  chunk += "function neoPattern(p){fetch('/api/neopixel-pattern?pattern='+p).then(r=>r.json()).then(d=>updateStatus('neopixel-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('neopixel-status','Erreur: '+e,'error'));}";
   chunk += "function neoCustomColor(){const c=document.getElementById('neoColor').value;";
   chunk += "const r=parseInt(c.substr(1,2),16),g=parseInt(c.substr(3,2),16),b=parseInt(c.substr(5,2),16);";
-  chunk += "fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b).then(r=>r.json()).then(d=>document.getElementById('neopixel-status').innerHTML=d.message)}";
+  chunk += "updateStatus('neopixel-status','RGB('+r+','+g+','+b+')...',null);";
+  chunk += "fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b).then(r=>r.json()).then(d=>updateStatus('neopixel-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('neopixel-status','Erreur: '+e,'error'));}";
   
   // OLED
-  chunk += "function testOLED(){document.getElementById('oled-status').innerHTML='Test en cours (25s)...';";
-  chunk += "fetch('/api/oled-test').then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.result)}";
-  chunk += "function oledStep(step){document.getElementById('oled-status').innerHTML='" + String(T().testing) + "';";
-  chunk += "fetch('/api/oled-step?step='+step).then(r=>r.json()).then(d=>{document.getElementById('oled-status').innerHTML=d.message;if(!d.success){alert(d.message)}})}";
-  chunk += "function oledMessage(){fetch('/api/oled-message?message='+encodeURIComponent(document.getElementById('oledMsg').value))";
-  chunk += ".then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.message)}";
-  chunk += "function configOLED(){document.getElementById('oled-status').innerHTML='Reconfiguration...';";
-  chunk += "fetch('/api/oled-config?sda='+document.getElementById('oledSDA').value+'&scl='+document.getElementById('oledSCL').value)";
-  chunk += ".then(r=>r.json()).then(d=>{if(d.success){alert(d.message);location.reload()}else{alert('Erreur: '+d.message)}})}";
-  
-  // Tests avancés
+  chunk += "function testOLED(){updateStatus('oled-status','Test en cours (25s)...',null);";
+  chunk += "fetch('/api/oled-test').then(r=>r.json()).then(d=>updateStatus('oled-status',d.result,d.success?'success':'error')).catch(e=>updateStatus('oled-status','Erreur: '+e,'error'));}";
+  chunk += "function oledStep(step){updateStatus('oled-status','" + String(T().testing) + "',null);";
+  chunk += "fetch('/api/oled-step?step='+step).then(r=>r.json()).then(d=>updateStatus('oled-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('oled-status','Erreur: '+e,'error'));}";
+  chunk += "function oledMessage(){const msg=document.getElementById('oledMsg').value;";
+  chunk += "if(!msg){updateStatus('oled-status','" + String(T().custom_message) + "','error');return;}";
+  chunk += "updateStatus('oled-status','Transmission...',null);";
+  chunk += "fetch('/api/oled-message?message='+encodeURIComponent(msg))";
+  chunk += ".then(r=>r.json()).then(d=>updateStatus('oled-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('oled-status','Erreur: '+e,'error'));}";
+  chunk += "function configOLED(){updateStatus('oled-status','Reconfiguration...',null);";
+  chunk += "const params='sda='+document.getElementById('oledSDA').value+'&scl='+document.getElementById('oledSCL').value+'&rotation='+document.getElementById('oledRotation').value;";
+  chunk += "fetch('/api/oled-config?'+params)";
+  chunk += ".then(r=>r.json()).then(d=>{const state=d.success?'success':'error';updateStatus('oled-status',d.message||'Configuration invalide',state);";
+  chunk += "if(d.success&&typeof d.sda!=='undefined'){document.getElementById('oledSDA').value=d.sda;}";
+  chunk += "if(d.success){const pins=document.getElementById('oled-pins');if(pins){pins.textContent='SDA:'+d.sda+' SCL:'+d.scl;}}";
+  chunk += "if(d.success){const rotDisplay=document.getElementById('oled-rotation-display');if(rotDisplay){rotDisplay.textContent=d.rotation;}}";
+  chunk += "}).catch(e=>updateStatus('oled-status','Erreur: '+e,'error'));";
+
+// Tests avancés
   chunk += "function testADC(){document.getElementById('adc-status').innerHTML='Test...';";
   chunk += "fetch('/api/adc-test').then(r=>r.json()).then(data=>{let h='';";
   chunk += "data.readings.forEach(a=>{h+='<div class=\"info-item\"><div class=\"info-label\">GPIO '+a.pin+'</div><div class=\"info-value\">'+a.raw+' ('+a.voltage.toFixed(2)+'V)</div></div>'});";
@@ -2446,12 +2729,16 @@ void handleRoot() {
   chunk += "function scanWiFi(){document.getElementById('wifi-status').innerHTML='Scan...';";
   chunk += "fetch('/api/wifi-scan').then(r=>r.json()).then(data=>{let h='';";
   chunk += "data.networks.forEach(n=>{let s=n.rssi>=-60?'🟢':n.rssi>=-70?'🟡':'🔴';";
-  chunk += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+n.bssid+' | Ch'+n.channel+' | '+n.encryption+'</small></div>';";
+  chunk += "const freq=(n.freq&&n.freq>0)?n.freq+' MHz':'';";
+  chunk += "const pieces=[n.bssid,'Ch'+n.channel,n.band,freq,n.bandwidth,n.phy,n.encryption].filter(v=>v&&v.length>0&&v!=='-').join(' | ');";
+  chunk += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+pieces+'</small></div>';";
   chunk += "h+='<div style=\"font-size:1.2em;font-weight:bold\">'+n.rssi+' dBm</div></div></div>'});";
   chunk += "document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' reseaux detectes'})}";
   
   // I2C
-  chunk += "function scanI2C(){fetch('/api/i2c-scan').then(r=>r.json()).then(d=>{alert('I2C: '+d.count+' peripherique(s)\\n'+d.devices);location.reload()})}";
+  chunk += "function scanI2C(){updateStatus('i2c-status','Scan...',null);";
+  chunk += "fetch('/api/i2c-scan').then(r=>r.json()).then(d=>{const msg='I2C: '+d.count+' peripherique(s)';updateStatus('i2c-status',msg,'success');";
+  chunk += "const summary=document.getElementById('i2c-summary');if(summary){summary.textContent=d.count+' peripherique(s) - '+d.devices;}}).catch(e=>updateStatus('i2c-status','Erreur: '+e,'error'));}";
   
   // Benchmarks
   chunk += "function runBenchmarks(){";
@@ -2474,16 +2761,27 @@ void handleRoot() {
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  
+
   Serial.println("\r\n===============================================");
   Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 2.4 - FR/EN");
-  Serial.println("     Optimise Arduino Core 3.1.3");
+  Serial.printf("     Version %s - FR/EN\r\n", DIAGNOSTIC_VERSION_STR);
+  Serial.printf("     Arduino Core %s\r\n", getArduinoCoreVersionString().c_str());
   Serial.println("===============================================\r\n");
-  
+
   printPSRAMDiagnostic();
-  
+
   // WiFi
+  // --- [NEW FEATURE] Préconfiguration WiFi pour le core 3.3.2 ---
+  WiFi.mode(WIFI_STA);
+  WiFi.persistent(false);
+  WiFi.setHostname(MDNS_HOSTNAME_STR);
+  WiFi.setSleep(false);
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
+  WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+#ifdef WIFI_CONNECT_AP_BY_SIGNAL
+  WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+#endif
+#endif
   wifiMulti.addAP(WIFI_SSID_1, WIFI_PASS_1);
   wifiMulti.addAP(WIFI_SSID_2, WIFI_PASS_2);
   
