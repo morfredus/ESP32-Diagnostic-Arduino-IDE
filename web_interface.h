@@ -141,8 +141,8 @@ String generateHTML() {
   html += "<div class='container'>";
   html += "<div class='header'>";
   html += "<div class='lang-switcher'>";
-  html += "<button class='lang-btn active' onclick='changeLang(\"fr\")'>FR</button>";
-  html += "<button class='lang-btn' onclick='changeLang(\"en\")'>EN</button>";
+  html += "<button class='lang-btn active' onclick='changeLang(\"fr\",this)'>FR</button>";
+  html += "<button class='lang-btn' onclick='changeLang(\"en\",this)'>EN</button>";
   html += "</div>";
   html += "<h1 id='main-title'>";
   html += "<span class='status-indicator status-online' id='statusIndicator'></span>";
@@ -161,14 +161,14 @@ String generateHTML() {
   html += diagnosticData.ipAddress;
   html += "</strong></div>";
   html += "<div class='nav'>";
-  html += "<button class='nav-btn active' data-tab='overview' onclick='showTab(\"overview\",this)'>Vue d'ensemble</button>";
-  html += "<button class='nav-btn' data-tab='leds' onclick='showTab(\"leds\",this)'>LEDs</button>";
-  html += "<button class='nav-btn' data-tab='screens' onclick='showTab(\"screens\",this)'>Écrans</button>";
-  html += "<button class='nav-btn' data-tab='tests' onclick='showTab(\"tests\",this)'>Tests</button>";
-  html += "<button class='nav-btn' data-tab='gpio' onclick='showTab(\"gpio\",this)'>GPIO</button>";
-  html += "<button class='nav-btn' data-tab='wifi' onclick='showTab(\"wifi\",this)'>WiFi</button>";
-  html += "<button class='nav-btn' data-tab='benchmark' onclick='showTab(\"benchmark\",this)'>Performance</button>";
-  html += "<button class='nav-btn' data-tab='export' onclick='showTab(\"export\",this)'>Export</button>";
+  html += "<button type='button' class='nav-btn active' data-tab='overview'>Vue d'ensemble</button>";
+  html += "<button type='button' class='nav-btn' data-tab='leds'>LEDs</button>";
+  html += "<button type='button' class='nav-btn' data-tab='screens'>Écrans</button>";
+  html += "<button type='button' class='nav-btn' data-tab='tests'>Tests</button>";
+  html += "<button type='button' class='nav-btn' data-tab='gpio'>GPIO</button>";
+  html += "<button type='button' class='nav-btn' data-tab='wifi'>WiFi</button>";
+  html += "<button type='button' class='nav-btn' data-tab='benchmark'>Performance</button>";
+  html += "<button type='button' class='nav-btn' data-tab='export'>Export</button>";
   html += "</div>";
   html += "</div>";
   html += "<div class='content'>";
@@ -192,11 +192,15 @@ String generateJavaScript() {
   js += "let isConnected=true;";
 
   // Initialisation - CORRIGÉE
+  // --- [BUGFIX] Navigation onglets : écouteurs et activation initiale ---
   js += "document.addEventListener('DOMContentLoaded',function(){";
   js += "console.log('Interface chargée');";
+  js += "const navButtons=document.querySelectorAll('.nav-btn');";
+  js += "navButtons.forEach(btn=>btn.addEventListener('click',e=>{e.preventDefault();const target=btn.getAttribute('data-tab');showTab(target,btn);}));";
+  js += "const initialBtn=document.querySelector('.nav-btn.active')||navButtons[0];";
+  js += "if(initialBtn){showTab(initialBtn.getAttribute('data-tab'),initialBtn);}else{showTab('overview');}";
   js += "loadAllData();";
   js += "startAutoUpdate();";
-  js += "showTab('overview');";
   js += "});";
 
   // Auto-update
@@ -622,12 +626,12 @@ js += "function buildScreens(d){";
   js += "}";
 
   // Changement de langue
-  js += "function changeLang(lang){";
+  js += "function changeLang(lang,btn){";
   js += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
   js += "if(d.success){";
   js += "currentLang=lang;";
   js += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
-  js += "document.querySelectorAll('.lang-btn').forEach(b=>{if(b.textContent.toLowerCase()===lang)b.classList.add('active');});";
+  js += "if(btn){btn.classList.add('active');}else{document.querySelectorAll('.lang-btn').forEach(b=>{if(b.textContent.toLowerCase()===lang)b.classList.add('active');});}";
   js += "return fetch('/api/get-translations');";
   js += "}}").then(r=>r.json()).then(translations=>{";
   js += "updateInterfaceTexts(translations);";
