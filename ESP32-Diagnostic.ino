@@ -218,6 +218,8 @@ BluetoothStatus bluetoothStatus;
 static const char* DIAGNOSTIC_BLE_SERVICE_UUID = "4dcde8b2-3d0a-4c9f-9a47-312d9a7f8e21";
 static const char* DIAGNOSTIC_BLE_CHARACTERISTIC_UUID = "4dcde8b2-3d0a-4c9f-9a47-312d9a7f8e22";
 
+String getBluetoothLastEventText();
+
 #if defined(CONFIG_BT_ENABLED)
 BLEServer* diagnosticBLEServer = nullptr;
 BLEService* diagnosticBLEService = nullptr;
