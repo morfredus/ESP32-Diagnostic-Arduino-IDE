@@ -1,7 +1,7 @@
 /*
  * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v2.6.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3
- * Optimisé pour ESP32 Arduino Core 3.1.3
+ * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
@@ -12,12 +12,13 @@
  *
  * Nouveautés v2.5:
  * - Traduction des exports (Français/Anglais)
- * 
+ *
  * Nouveautés v2.4:
  * - Interface multilingue (Français/Anglais)
  * - Changement de langue dynamique sans rechargement
  * - Toutes fonctionnalités v2.3 préservées
  */
+// Version de dev : 3.0.04-dev - Retrait du système de traduction
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -28,8 +29,10 @@
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
+#include <esp_system.h>
 #include <soc/soc.h>
 #include <soc/rtc.h>
+#include "esp32-hal-ledc.h"
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_GFX.h>
@@ -39,11 +42,8 @@
 // Configuration WiFi
 #include "wifi-config.h"
 
-// Système de traduction
-#include "languages.h"
-
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "2.6.0"
+#define DIAGNOSTIC_VERSION "3.0.04-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -68,6 +68,13 @@ Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 int LED_PIN = CUSTOM_LED_PIN;
 int LED_COUNT = CUSTOM_LED_COUNT;
 Adafruit_NeoPixel *strip = nullptr;
+
+// --- [NEW FEATURE] Paramètres LEDC pour la LED intégrée (compatibilité core 3.3.2) ---
+const int BUILTIN_LED_LEDC_CHANNEL = 7;
+// --- [FIX] Canal LEDC dédié au test PWM pour éviter les conflits et assurer la compilation ---
+const int TEST_PWM_LEDC_CHANNEL = 6;
+const uint32_t BUILTIN_LED_LEDC_FREQ = 5000;
+const uint8_t BUILTIN_LED_LEDC_RESOLUTION = 8;
 
 bool neopixelTested = false;
 bool neopixelAvailable = false;
@@ -236,7 +243,7 @@ String getChipFeatures() {
   if (features.length() > 0) {
     features = features.substring(0, features.length() - 2);
   } else {
-    features = T().none;
+    features = "Aucune";
   }
   
   return features;
@@ -252,7 +259,7 @@ String getFlashType() {
   #elif defined(CONFIG_ESPTOOLPY_FLASHMODE_DOUT)
     return "DOUT";
   #else
-    return T().unknown;
+    return "Inconnu";
   #endif
 }
 
@@ -266,35 +273,75 @@ String getFlashSpeed() {
   #elif defined(CONFIG_ESPTOOLPY_FLASHFREQ_20M)
     return "20 MHz";
   #else
-    return T().unknown;
+    return "Inconnu";
   #endif
 }
 
 String getResetReason() {
   esp_reset_reason_t reason = esp_reset_reason();
   switch (reason) {
-    case ESP_RST_POWERON: return T().poweron;
-    case ESP_RST_SW: return T().software_reset;
-    case ESP_RST_DEEPSLEEP: return T().deepsleep_exit;
-    case ESP_RST_BROWNOUT: return T().brownout;
-    default: return T().other;
+    case ESP_RST_POWERON: return "Mise sous tension";
+    case ESP_RST_SW: return "Reset logiciel";
+    case ESP_RST_DEEPSLEEP: return "Sortie de deep sleep";
+    case ESP_RST_BROWNOUT: return "Brownout";
+    default: return "Autre";
   }
 }
 
 String getMemoryStatus() {
   float heapUsagePercent = ((float)(diagnosticData.heapSize - diagnosticData.freeHeap) / diagnosticData.heapSize) * 100;
-  if (heapUsagePercent < 50) return T().excellent;
-  else if (heapUsagePercent < 70) return T().good;
-  else if (heapUsagePercent < 85) return T().warning;
-  else return T().critical;
+  if (heapUsagePercent < 50) return "Excellent";
+  else if (heapUsagePercent < 70) return "Bon";
+  else if (heapUsagePercent < 85) return "Attention";
+  else return "Critique";
 }
 
 String getWiFiSignalQuality() {
-  if (diagnosticData.wifiRSSI >= -50) return T().excellent;
-  else if (diagnosticData.wifiRSSI >= -60) return T().very_good;
-  else if (diagnosticData.wifiRSSI >= -70) return T().good;
-  else if (diagnosticData.wifiRSSI >= -80) return T().weak;
-  else return T().very_weak;
+  if (diagnosticData.wifiRSSI >= -50) return "Excellent";
+  else if (diagnosticData.wifiRSSI >= -60) return "Très bon";
+  else if (diagnosticData.wifiRSSI >= -70) return "Bon";
+  else if (diagnosticData.wifiRSSI >= -80) return "Faible";
+  else return "Très faible";
+}
+
+// --- [NEW FEATURE] Support des nouveaux modes WiFi du core 3.3.2 ---
+String wifiAuthModeToString(wifi_auth_mode_t auth) {
+  switch (auth) {
+    case WIFI_AUTH_OPEN: return "Ouvert";
+#ifdef WIFI_AUTH_WEP
+    case WIFI_AUTH_WEP: return "WEP";
+#endif
+#ifdef WIFI_AUTH_WPA_PSK
+    case WIFI_AUTH_WPA_PSK: return "WPA-PSK";
+#endif
+    case WIFI_AUTH_WPA2_PSK: return "WPA2-PSK";
+#ifdef WIFI_AUTH_WPA_WPA2_PSK
+    case WIFI_AUTH_WPA_WPA2_PSK: return "WPA/WPA2-PSK";
+#endif
+    case WIFI_AUTH_WPA3_PSK: return "WPA3-PSK";
+#ifdef WIFI_AUTH_WPA2_WPA3_PSK
+    case WIFI_AUTH_WPA2_WPA3_PSK: return "WPA2/WPA3-PSK";
+#endif
+#ifdef WIFI_AUTH_WPA2_ENTERPRISE
+    case WIFI_AUTH_WPA2_ENTERPRISE: return "WPA2-Entreprise";
+#endif
+#ifdef WIFI_AUTH_WPA3_ENTERPRISE
+    case WIFI_AUTH_WPA3_ENTERPRISE: return "WPA3-Entreprise";
+#endif
+#ifdef WIFI_AUTH_WPA3_ENTERPRISE_192
+    case WIFI_AUTH_WPA3_ENTERPRISE_192: return "WPA3-Entreprise 192";
+#endif
+#ifdef WIFI_AUTH_OWE
+    case WIFI_AUTH_OWE: return "OWE";
+#endif
+#ifdef WIFI_AUTH_OWE_TRANSITION
+    case WIFI_AUTH_OWE_TRANSITION: return "OWE Transition";
+#endif
+#ifdef WIFI_AUTH_WAPI_PSK
+    case WIFI_AUTH_WAPI_PSK: return "WAPI-PSK";
+#endif
+    default: return String("Inconnu");
+  }
 }
 
 String getGPIOList() {
@@ -437,13 +484,13 @@ void collectDetailedMemory() {
   detailedMemory.psramTestPassed = testPSRAMQuick();
   
   if (detailedMemory.fragmentationPercent < 20) {
-    detailedMemory.memoryStatus = T().excellent;
+    detailedMemory.memoryStatus = "Excellent";
   } else if (detailedMemory.fragmentationPercent < 40) {
-    detailedMemory.memoryStatus = T().good;
+    detailedMemory.memoryStatus = "Bon";
   } else if (detailedMemory.fragmentationPercent < 60) {
     detailedMemory.memoryStatus = "Moyen"; // Pas traduit (statut technique)
   } else {
-    detailedMemory.memoryStatus = T().critical;
+    detailedMemory.memoryStatus = "Critique";
   }
 }
 
@@ -565,28 +612,20 @@ void scanI2C() {
 void scanWiFiNetworks() {
   Serial.println("\r\n=== SCAN WIFI ===");
   wifiNetworks.clear();
-  
+
   int n = WiFi.scanNetworks();
   for (int i = 0; i < n; i++) {
     WiFiNetwork net;
     net.ssid = WiFi.SSID(i);
     net.rssi = WiFi.RSSI(i);
     net.channel = WiFi.channel(i);
-    
-    uint8_t* bssid = WiFi.BSSID(i);
-    char bssidStr[18];
-    sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X",
-            bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
-    net.bssid = String(bssidStr);
-    
+
+    // --- [NEW FEATURE] Récupération du BSSID compatible core 3.3.2 ---
+    net.bssid = WiFi.BSSIDstr(i);
+
     wifi_auth_mode_t auth = WiFi.encryptionType(i);
-    switch (auth) {
-      case WIFI_AUTH_OPEN: net.encryption = "Ouvert"; break;
-      case WIFI_AUTH_WPA2_PSK: net.encryption = "WPA2-PSK"; break;
-      case WIFI_AUTH_WPA3_PSK: net.encryption = "WPA3-PSK"; break;
-      default: net.encryption = "WPA/WPA2"; break;
-    }
-    
+    net.encryption = wifiAuthModeToString(auth);
+
     wifiNetworks.push_back(net);
   }
   Serial.printf("WiFi: %d reseaux trouves\r\n", n);
@@ -641,9 +680,35 @@ void testAllGPIOs() {
 }
 
 // ========== LED INTÉGRÉE ==========
+// --- [NEW FEATURE] Gestion LEDC pour la LED intégrée ---
+void fadeBuiltinLEDWithLEDC(int pin) {
+  if (pin < 0) {
+    return;
+  }
+
+  ledcDetach(pin);
+  if (!ledcAttachChannel(pin, BUILTIN_LED_LEDC_FREQ, BUILTIN_LED_LEDC_RESOLUTION, BUILTIN_LED_LEDC_CHANNEL)) {
+    Serial.println("LEDC: impossible d'attacher la LED integree");
+    return;
+  }
+
+  for (int duty = 0; duty <= 255; duty += 5) {
+    ledcWriteChannel(BUILTIN_LED_LEDC_CHANNEL, duty);
+    delay(10);
+  }
+
+  for (int duty = 255; duty >= 0; duty -= 5) {
+    ledcWriteChannel(BUILTIN_LED_LEDC_CHANNEL, duty);
+    delay(10);
+  }
+
+  ledcWriteChannel(BUILTIN_LED_LEDC_CHANNEL, 0);
+  ledcDetach(pin);
+}
+
 void detectBuiltinLED() {
   String chipModel = detectChipModel();
-  
+
   #ifdef LED_BUILTIN
     BUILTIN_LED_PIN = LED_BUILTIN;
   #else
@@ -659,26 +724,20 @@ void detectBuiltinLED() {
 
 void testBuiltinLED() {
   if (BUILTIN_LED_PIN == -1) return;
-  
+
   Serial.println("\r\n=== TEST LED ===");
   pinMode(BUILTIN_LED_PIN, OUTPUT);
-  
+
   for(int i = 0; i < 5; i++) {
     digitalWrite(BUILTIN_LED_PIN, HIGH);
     delay(200);
     digitalWrite(BUILTIN_LED_PIN, LOW);
     delay(200);
   }
-  
-  for(int i = 0; i <= 255; i += 5) {
-    analogWrite(BUILTIN_LED_PIN, i);
-    delay(10);
-  }
-  for(int i = 255; i >= 0; i -= 5) {
-    analogWrite(BUILTIN_LED_PIN, i);
-    delay(10);
-  }
-  
+
+  // --- [NEW FEATURE] Effet fade via LEDC pour compatibilité core 3.3.2 ---
+  fadeBuiltinLEDWithLEDC(BUILTIN_LED_PIN);
+
   digitalWrite(BUILTIN_LED_PIN, LOW);
   builtinLedAvailable = true;
   builtinLedTestResult = "Test OK - GPIO " + String(BUILTIN_LED_PIN);
@@ -689,7 +748,10 @@ void testBuiltinLED() {
 void resetBuiltinLEDTest() {
   builtinLedTested = false;
   builtinLedAvailable = false;
-  if (BUILTIN_LED_PIN != -1) digitalWrite(BUILTIN_LED_PIN, LOW);
+  if (BUILTIN_LED_PIN != -1) {
+    ledcDetach(BUILTIN_LED_PIN);
+    digitalWrite(BUILTIN_LED_PIN, LOW);
+  }
 }
 
 // ========== NEOPIXEL ==========
@@ -994,16 +1056,16 @@ bool performOLEDStep(const String &stepId) {
 }
 
 String getOLEDStepLabel(const String &stepId) {
-  if (stepId == "welcome") return String(T().oled_step_welcome);
-  if (stepId == "big_text") return String(T().oled_step_big_text);
-  if (stepId == "text_sizes") return String(T().oled_step_text_sizes);
-  if (stepId == "shapes") return String(T().oled_step_shapes);
-  if (stepId == "horizontal_lines") return String(T().oled_step_horizontal_lines);
-  if (stepId == "diagonals") return String(T().oled_step_diagonals);
-  if (stepId == "moving_square") return String(T().oled_step_moving_square);
-  if (stepId == "progress_bar") return String(T().oled_step_progress_bar);
-  if (stepId == "scroll_text") return String(T().oled_step_scroll_text);
-  if (stepId == "final_message") return String(T().oled_step_final_message);
+  if (stepId == "welcome") return String("Accueil");
+  if (stepId == "big_text") return String("Texte grand format");
+  if (stepId == "text_sizes") return String("Tailles de texte");
+  if (stepId == "shapes") return String("Formes géométriques");
+  if (stepId == "horizontal_lines") return String("Lignes horizontales");
+  if (stepId == "diagonals") return String("Lignes diagonales");
+  if (stepId == "moving_square") return String("Carré en mouvement");
+  if (stepId == "progress_bar") return String("Barre de progression");
+  if (stepId == "scroll_text") return String("Texte défilant");
+  if (stepId == "final_message") return String("Message final");
   return stepId;
 }
 
@@ -1126,16 +1188,21 @@ void testPWM() {
   
   Serial.printf("Test PWM sur GPIO%d\r\n", testPin);
   
-  // Nouvelle API pour ESP32 Arduino Core 3.x
-  ledcAttach(testPin, 5000, 8); // pin, freq, resolution
-  
+  // --- [FIX] Utilisation de l'API LEDC moderne pour garantir la compilation ---
+  ledcDetach(testPin);
+  if (!ledcAttachChannel(testPin, 5000, 8, TEST_PWM_LEDC_CHANNEL)) {
+    Serial.println("LEDC: echec de configuration du test PWM");
+    pwmTestResult = "Erreur LEDC";
+    return;
+  }
+
   for(int duty = 0; duty <= 255; duty += 51) {
-    ledcWrite(testPin, duty);
+    ledcWriteChannel(TEST_PWM_LEDC_CHANNEL, duty);
     Serial.printf("PWM duty: %d/255\r\n", duty);
     delay(200);
   }
-  
-  ledcWrite(testPin, 0);
+
+  ledcWriteChannel(TEST_PWM_LEDC_CHANNEL, 0);
   ledcDetach(testPin);
   
   pwmTestResult = "Test OK sur GPIO" + String(testPin);
@@ -1361,14 +1428,8 @@ void handleBuiltinLEDControl() {
     }
     message = "Clignotement OK";
   } else if (action == "fade") {
-    for(int i = 0; i <= 255; i += 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
-    }
-    for(int i = 255; i >= 0; i -= 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
-    }
+    // --- [NEW FEATURE] Contrôle LED fade via LEDC depuis l'API ---
+    fadeBuiltinLEDWithLEDC(BUILTIN_LED_PIN);
     digitalWrite(BUILTIN_LED_PIN, LOW);
     message = "Fade OK";
   } else if (action == "off") {
@@ -1485,25 +1546,25 @@ void handleOLEDTest() {
 
 void handleOLEDStep() {
   if (!server.hasArg("step")) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().oled_step_unknown) + "\"}");
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String("Étape inconnue") + "\"}");
     return;
   }
 
   String stepId = server.arg("step");
 
   if (!oledAvailable) {
-    server.send(200, "application/json", "{\"success\":false,\"message\":\"" + String(T().oled_step_unavailable) + "\"}");
+    server.send(200, "application/json", "{\"success\":false,\"message\":\"" + String("OLED non disponible") + "\"}");
     return;
   }
 
   bool ok = performOLEDStep(stepId);
   if (!ok) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().oled_step_unknown) + "\"}");
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String("Étape inconnue") + "\"}");
     return;
   }
 
   String label = getOLEDStepLabel(stepId);
-  server.send(200, "application/json", "{\"success\":true,\"message\":\"" + String(T().oled_step_executed_prefix) + " " + label + "\"}");
+  server.send(200, "application/json", "{\"success\":true,\"message\":\"" + String("Étape exécutée :") + " " + label + "\"}");
 }
 
 void handleOLEDMessage() {
@@ -1592,61 +1653,61 @@ void handleExportTXT() {
   collectDetailedMemory();
   
   String txt = "========================================\r\n";
-  txt += String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "\r\n";
+  txt += String("ESP32 Diagnostic Exhaustif") + " " + String("v") + String(DIAGNOSTIC_VERSION) + "\r\n";
   txt += "========================================\r\n\r\n";
   
   txt += "=== CHIP ===\r\n";
-  txt += String(T().model) + ": " + diagnosticData.chipModel + " " + String(T().revision) + diagnosticData.chipRevision + "\r\n";
-  txt += "CPU: " + String(diagnosticData.cpuCores) + " " + String(T().cores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz\r\n";
+  txt += String("Modèle") + ": " + diagnosticData.chipModel + " " + String("Révision") + diagnosticData.chipRevision + "\r\n";
+  txt += "CPU: " + String(diagnosticData.cpuCores) + " " + String("coeurs") + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz\r\n";
   txt += "MAC WiFi: " + diagnosticData.macAddress + "\r\n";
   txt += "SDK: " + diagnosticData.sdkVersion + "\r\n";
   txt += "ESP-IDF: " + diagnosticData.idfVersion + "\r\n";
   if (diagnosticData.temperature != -999) {
-    txt += String(T().cpu_temp) + ": " + String(diagnosticData.temperature, 1) + " °C\r\n";
+    txt += String("Température CPU") + ": " + String(diagnosticData.temperature, 1) + " °C\r\n";
   }
   txt += "\r\n";
   
-  txt += "=== " + String(T().memory_details) + " ===\r\n";
-  txt += "Flash (" + String(T().board) + "): " + String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB\r\n";
+  txt += "=== " + String("Mémoire Détaillée") + " ===\r\n";
+  txt += "Flash (" + String("Carte") + "): " + String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB\r\n";
   txt += "Flash (IDE): " + String(detailedMemory.flashSizeChip / 1048576.0, 2) + " MB\r\n";
-  txt += String(T().flash_type) + ": " + getFlashType() + " @ " + getFlashSpeed() + "\r\n";
+  txt += String("Type Flash") + ": " + getFlashType() + " @ " + getFlashSpeed() + "\r\n";
   txt += "PSRAM: " + String(detailedMemory.psramTotal / 1048576.0, 2) + " MB";
   if (detailedMemory.psramAvailable) {
-    txt += " (" + String(T().free) + ": " + String(detailedMemory.psramFree / 1048576.0, 2) + " MB)\r\n";
+    txt += " (" + String("Libre") + ": " + String(detailedMemory.psramFree / 1048576.0, 2) + " MB)\r\n";
   } else if (detailedMemory.psramBoardSupported) {
-    String psramHint = String(T().enable_psram_hint);
+    String psramHint = String("Activez la PSRAM %TYPE% dans l'IDE Arduino (Outils → PSRAM).");
     psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
-    txt += " (" + String(T().supported_not_enabled) + " - " + psramHint + ")\r\n";
+    txt += " (" + String("Support détecté (désactivée dans l'IDE)") + " - " + psramHint + ")\r\n";
   } else {
-    txt += " (" + String(T().not_detected) + ")\r\n";
+    txt += " (" + String("Non détectée") + ")\r\n";
   }
   txt += "SRAM: " + String(detailedMemory.sramTotal / 1024.0, 2) + " KB";
-  txt += " (" + String(T().free) + ": " + String(detailedMemory.sramFree / 1024.0, 2) + " KB)\r\n";
-  txt += String(T().memory_fragmentation) + ": " + String(detailedMemory.fragmentationPercent, 1) + "%\r\n";
-  txt += String(T().memory_status) + ": " + detailedMemory.memoryStatus + "\r\n";
+  txt += " (" + String("Libre") + ": " + String(detailedMemory.sramFree / 1024.0, 2) + " KB)\r\n";
+  txt += String("Fragmentation Mémoire") + ": " + String(detailedMemory.fragmentationPercent, 1) + "%\r\n";
+  txt += String("État Mémoire") + ": " + detailedMemory.memoryStatus + "\r\n";
   txt += "\r\n";
   
   txt += "=== WIFI ===\r\n";
   txt += "SSID: " + diagnosticData.wifiSSID + "\r\n";
   txt += "RSSI: " + String(diagnosticData.wifiRSSI) + " dBm (" + getWiFiSignalQuality() + ")\r\n";
   txt += "IP: " + diagnosticData.ipAddress + "\r\n";
-  txt += String(T().subnet_mask) + ": " + WiFi.subnetMask().toString() + "\r\n";
-  txt += String(T().gateway) + ": " + WiFi.gatewayIP().toString() + "\r\n";
+  txt += String("Masque Sous-réseau") + ": " + WiFi.subnetMask().toString() + "\r\n";
+  txt += String("Passerelle") + ": " + WiFi.gatewayIP().toString() + "\r\n";
   txt += "DNS: " + WiFi.dnsIP().toString() + "\r\n";
   txt += "\r\n";
   
   txt += "=== GPIO ===\r\n";
-  txt += String(T().total_gpio) + ": " + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "\r\n";
-  txt += String(T().gpio_list) + ": " + diagnosticData.gpioList + "\r\n";
+  txt += String("Total GPIO") + ": " + String(diagnosticData.totalGPIO) + " " + String("broches") + "\r\n";
+  txt += String("Liste GPIO") + ": " + diagnosticData.gpioList + "\r\n";
   txt += "\r\n";
   
-  txt += "=== " + String(T().i2c_peripherals) + " ===\r\n";
-  txt += String(T().device_count) + ": " + String(diagnosticData.i2cCount) + " - " + diagnosticData.i2cDevices + "\r\n";
+  txt += "=== " + String("Périphériques I2C") + " ===\r\n";
+  txt += String("Nombre de Périphériques") + ": " + String(diagnosticData.i2cCount) + " - " + diagnosticData.i2cDevices + "\r\n";
   txt += "SPI: " + spiInfo + "\r\n";
   txt += "\r\n";
   
-  txt += "=== " + String(T().test) + " ===\r\n";
-  txt += String(T().builtin_led) + ": " + builtinLedTestResult + "\r\n";
+  txt += "=== " + String("Test") + " ===\r\n";
+  txt += String("LED Intégrée") + ": " + builtinLedTestResult + "\r\n";
   txt += "NeoPixel: " + neopixelTestResult + "\r\n";
   txt += "OLED: " + oledTestResult + "\r\n";
   txt += "ADC: " + adcTestResult + "\r\n";
@@ -1654,12 +1715,12 @@ void handleExportTXT() {
   txt += "PWM: " + pwmTestResult + "\r\n";
   txt += "\r\n";
   
-  txt += "=== " + String(T().performance_bench) + " ===\r\n";
+  txt += "=== " + String("Benchmarks de Performance") + " ===\r\n";
   if (diagnosticData.cpuBenchmark > 0) {
     txt += "CPU: " + String(diagnosticData.cpuBenchmark) + " us (" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + " MFLOPS)\r\n";
-    txt += String(T().memory_benchmark) + ": " + String(diagnosticData.memBenchmark) + " us\r\n";
+    txt += String("Mémoire Benchmark") + ": " + String(diagnosticData.memBenchmark) + " us\r\n";
   } else {
-    txt += String(T().not_tested) + "\r\n";
+    txt += String("Non testé") + "\r\n";
   }
   txt += "Stress test: " + stressTestResult + "\r\n";
   txt += "\r\n";
@@ -1669,11 +1730,11 @@ void handleExportTXT() {
   unsigned long hours = minutes / 60;
   unsigned long days = hours / 24;
   txt += "=== SYSTEM ===\r\n";
-  txt += String(T().uptime) + ": " + String(days) + "d " + String(hours % 24) + "h " + String(minutes % 60) + "m\r\n";
-  txt += String(T().last_reset) + ": " + getResetReason() + "\r\n";
+  txt += String("Uptime") + ": " + String(days) + "d " + String(hours % 24) + "h " + String(minutes % 60) + "m\r\n";
+  txt += String("Raison Dernier Reset") + ": " + getResetReason() + "\r\n";
   txt += "\r\n";
   txt += "========================================\r\n";
-  txt += String(T().export_generated) + " " + String(millis()/1000) + "s " + String(T().export_after_boot) + "\r\n";
+  txt += String("Rapport généré le") + " " + String(millis()/1000) + "s " + String("secondes après démarrage") + "\r\n";
   txt += "========================================\r\n";
   
   server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v"+ String(DIAGNOSTIC_VERSION) +".txt");
@@ -1758,7 +1819,6 @@ void handleExportJSON() {
   json += "\"system\":{";
   json += "\"uptime_ms\":" + String(diagnosticData.uptime) + ",";
   json += "\"reset_reason\":\"" + getResetReason() + "\",";
-  json += "\"language\":\"" + String(currentLanguage == LANG_FR ? "fr" : "en") + "\"";
   json += "}";
   
   json += "}";
@@ -1771,60 +1831,60 @@ void handleExportCSV() {
   collectDiagnosticInfo();
   collectDetailedMemory();
   
-  String csv = String(T().category) + "," + String(T().parameter) + "," + String(T().value) + "\r\n";
+  String csv = String("Catégorie") + "," + String("Paramètre") + "," + String("Valeur") + "\r\n";
   
-  csv += "Chip," + String(T().model) + "," + diagnosticData.chipModel + "\r\n";
-  csv += "Chip," + String(T().revision) + "," + diagnosticData.chipRevision + "\r\n";
-  csv += "Chip,CPU " + String(T().cores) + "," + String(diagnosticData.cpuCores) + "\r\n";
-  csv += "Chip," + String(T().frequency) + " MHz," + String(diagnosticData.cpuFreqMHz) + "\r\n";
+  csv += "Chip," + String("Modèle") + "," + diagnosticData.chipModel + "\r\n";
+  csv += "Chip," + String("Révision") + "," + diagnosticData.chipRevision + "\r\n";
+  csv += "Chip,CPU " + String("coeurs") + "," + String(diagnosticData.cpuCores) + "\r\n";
+  csv += "Chip," + String("Fréquence") + " MHz," + String(diagnosticData.cpuFreqMHz) + "\r\n";
   csv += "Chip,MAC," + diagnosticData.macAddress + "\r\n";
   if (diagnosticData.temperature != -999) {
-    csv += "Chip," + String(T().cpu_temp) + " C," + String(diagnosticData.temperature, 1) + "\r\n";
+    csv += "Chip," + String("Température CPU") + " C," + String(diagnosticData.temperature, 1) + "\r\n";
   }
   
-  csv += String(T().memory_details) + ",Flash MB (" + String(T().board) + ")," + String(detailedMemory.flashSizeReal / 1048576.0, 2) + "\r\n";
-  csv += String(T().memory_details) + ",Flash MB (config)," + String(detailedMemory.flashSizeChip / 1048576.0, 2) + "\r\n";
-  csv += String(T().memory_details) + "," + String(T().flash_type) + "," + getFlashType() + "\r\n";
-  csv += String(T().memory_details) + ",PSRAM MB," + String(detailedMemory.psramTotal / 1048576.0, 2) + "\r\n";
-  csv += String(T().memory_details) + ",PSRAM " + String(T().free) + " MB," + String(detailedMemory.psramFree / 1048576.0, 2) + "\r\n";
-  String psramStatus = detailedMemory.psramAvailable ? String(T().detected_active)
-                                                    : (detailedMemory.psramBoardSupported ? String(T().supported_not_enabled)
-                                                                                        : String(T().not_detected));
-  csv += String(T().memory_details) + ",PSRAM Statut,\"" + psramStatus + "\"\r\n";
+  csv += String("Mémoire Détaillée") + ",Flash MB (" + String("Carte") + ")," + String(detailedMemory.flashSizeReal / 1048576.0, 2) + "\r\n";
+  csv += String("Mémoire Détaillée") + ",Flash MB (config)," + String(detailedMemory.flashSizeChip / 1048576.0, 2) + "\r\n";
+  csv += String("Mémoire Détaillée") + "," + String("Type Flash") + "," + getFlashType() + "\r\n";
+  csv += String("Mémoire Détaillée") + ",PSRAM MB," + String(detailedMemory.psramTotal / 1048576.0, 2) + "\r\n";
+  csv += String("Mémoire Détaillée") + ",PSRAM " + String("Libre") + " MB," + String(detailedMemory.psramFree / 1048576.0, 2) + "\r\n";
+  String psramStatus = detailedMemory.psramAvailable ? String("Détectée et active")
+                                                    : (detailedMemory.psramBoardSupported ? String("Support détecté (désactivée dans l'IDE)")
+                                                                                        : String("Non détectée"));
+  csv += String("Mémoire Détaillée") + ",PSRAM Statut,\"" + psramStatus + "\"\r\n";
   if (!detailedMemory.psramAvailable && detailedMemory.psramBoardSupported) {
-    String psramHint = String(T().enable_psram_hint);
+    String psramHint = String("Activez la PSRAM %TYPE% dans l'IDE Arduino (Outils → PSRAM).");
     psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
     psramHint.replace("\"", "'");
-    csv += String(T().memory_details) + ",PSRAM Conseils,\"" + psramHint + "\"\r\n";
+    csv += String("Mémoire Détaillée") + ",PSRAM Conseils,\"" + psramHint + "\"\r\n";
   }
-  csv += String(T().memory_details) + ",SRAM KB," + String(detailedMemory.sramTotal / 1024.0, 2) + "\r\n";
-  csv += String(T().memory_details) + ",SRAM " + String(T().free) + " KB," + String(detailedMemory.sramFree / 1024.0, 2) + "\r\n";
-  csv += String(T().memory_details) + "," + String(T().memory_fragmentation) + " %," + String(detailedMemory.fragmentationPercent, 1) + "\r\n";
+  csv += String("Mémoire Détaillée") + ",SRAM KB," + String(detailedMemory.sramTotal / 1024.0, 2) + "\r\n";
+  csv += String("Mémoire Détaillée") + ",SRAM " + String("Libre") + " KB," + String(detailedMemory.sramFree / 1024.0, 2) + "\r\n";
+  csv += String("Mémoire Détaillée") + "," + String("Fragmentation Mémoire") + " %," + String(detailedMemory.fragmentationPercent, 1) + "\r\n";
   
   csv += "WiFi,SSID," + diagnosticData.wifiSSID + "\r\n";
   csv += "WiFi,RSSI dBm," + String(diagnosticData.wifiRSSI) + "\r\n";
   csv += "WiFi,IP," + diagnosticData.ipAddress + "\r\n";
-  csv += "WiFi," + String(T().gateway) + "," + WiFi.gatewayIP().toString() + "\r\n";
+  csv += "WiFi," + String("Passerelle") + "," + WiFi.gatewayIP().toString() + "\r\n";
   
-  csv += "GPIO," + String(T().total_gpio) + "," + String(diagnosticData.totalGPIO) + "\r\n";
+  csv += "GPIO," + String("Total GPIO") + "," + String(diagnosticData.totalGPIO) + "\r\n";
   
-  csv += String(T().i2c_peripherals) + "," + String(T().device_count) + "," + String(diagnosticData.i2cCount) + "\r\n";
-  csv += String(T().i2c_peripherals) + "," + String(T().devices) + "," + diagnosticData.i2cDevices + "\r\n";
+  csv += String("Périphériques I2C") + "," + String("Nombre de Périphériques") + "," + String(diagnosticData.i2cCount) + "\r\n";
+  csv += String("Périphériques I2C") + "," + String("périphérique(s)") + "," + diagnosticData.i2cDevices + "\r\n";
   
-  csv += String(T().test) + "," + String(T().builtin_led) + "," + builtinLedTestResult + "\r\n";
-  csv += String(T().test) + ",NeoPixel," + neopixelTestResult + "\r\n";
-  csv += String(T().test) + ",OLED," + oledTestResult + "\r\n";
-  csv += String(T().test) + ",ADC," + adcTestResult + "\r\n";
-  csv += String(T().test) + ",Touch," + touchTestResult + "\r\n";
-  csv += String(T().test) + ",PWM," + pwmTestResult + "\r\n";
+  csv += String("Test") + "," + String("LED Intégrée") + "," + builtinLedTestResult + "\r\n";
+  csv += String("Test") + ",NeoPixel," + neopixelTestResult + "\r\n";
+  csv += String("Test") + ",OLED," + oledTestResult + "\r\n";
+  csv += String("Test") + ",ADC," + adcTestResult + "\r\n";
+  csv += String("Test") + ",Touch," + touchTestResult + "\r\n";
+  csv += String("Test") + ",PWM," + pwmTestResult + "\r\n";
   
   if (diagnosticData.cpuBenchmark > 0) {
-    csv += String(T().performance_bench) + ",CPU us," + String(diagnosticData.cpuBenchmark) + "\r\n";
-    csv += String(T().performance_bench) + "," + String(T().memory_benchmark) + " us," + String(diagnosticData.memBenchmark) + "\r\n";
+    csv += String("Benchmarks de Performance") + ",CPU us," + String(diagnosticData.cpuBenchmark) + "\r\n";
+    csv += String("Benchmarks de Performance") + "," + String("Mémoire Benchmark") + " us," + String(diagnosticData.memBenchmark) + "\r\n";
   }
   
-  csv += "System," + String(T().uptime) + " ms," + String(diagnosticData.uptime) + "\r\n";
-  csv += "System," + String(T().last_reset) + "," + getResetReason() + "\r\n";
+  csv += "System," + String("Uptime") + " ms," + String(diagnosticData.uptime) + "\r\n";
+  csv += "System," + String("Raison Dernier Reset") + "," + getResetReason() + "\r\n";
   
   server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v" + String(DIAGNOSTIC_VERSION) + ".csv");
   server.send(200, "text/csv; charset=utf-8", csv);
@@ -1834,7 +1894,7 @@ void handlePrintVersion() {
   collectDiagnosticInfo();
   collectDetailedMemory();
   
-  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</title>";
+  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>" + String("ESP32 Diagnostic Exhaustif") + " " + String("v") + String(DIAGNOSTIC_VERSION) + "</title>";
   html += "<style>";
   html += "@page{size:A4;margin:10mm}";
   html += "body{font:11px Arial;margin:10px;color:#333}";
@@ -1856,9 +1916,9 @@ void handlePrintVersion() {
   html += "<body onload='window.print()'>";
   
   // Header traduit
-  html += "<h1>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1>";
+  html += "<h1>" + String("ESP32 Diagnostic Exhaustif") + " " + String("v") + String(DIAGNOSTIC_VERSION) + "</h1>";
   html += "<div style='margin:10px 0;font-size:12px;color:#666'>";
-  html += String(T().export_generated) + " " + String(millis()/1000) + "s " + String(T().export_after_boot) + " | IP: " + diagnosticData.ipAddress;
+  html += String("Rapport généré le") + " " + String(millis()/1000) + "s " + String("secondes après démarrage") + " | IP: " + diagnosticData.ipAddress;
   html += "</div>";
   
   // Chip
@@ -1904,9 +1964,9 @@ void handlePrintVersion() {
     html += "<td><span class='badge badge-success'>Détectée</span></td>";
   } else if (detailedMemory.psramBoardSupported) {
     html += "<td>-</td><td>-</td>";
-    String psramHint = String(T().enable_psram_hint);
+    String psramHint = String("Activez la PSRAM %TYPE% dans l'IDE Arduino (Outils → PSRAM).");
     psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
-    html += "<td><span class='badge badge-warning'>" + String(T().supported_not_enabled) + "</span><br><small>" + psramHint + "</small></td>";
+    html += "<td><span class='badge badge-warning'>" + String("Support détecté (désactivée dans l'IDE)") + "</span><br><small>" + psramHint + "</small></td>";
   } else {
     html += "<td>-</td><td>-</td>";
     html += "<td><span class='badge badge-danger'>Non détectée</span></td>";
@@ -1978,56 +2038,7 @@ void handlePrintVersion() {
   server.send(200, "text/html; charset=utf-8", html);
 }
 
-// ========== HANDLER CHANGEMENT DE LANGUE ==========
-void handleSetLanguage() {
-  if (server.hasArg("lang")) {
-    String lang = server.arg("lang");
-    if (lang == "fr") {
-      setLanguage(LANG_FR);
-    } else if (lang == "en") {
-      setLanguage(LANG_EN);
-    }
-    server.send(200, "application/json", "{\"success\":true,\"lang\":\"" + lang + "\"}");
-  } else {
-    server.send(400, "application/json", "{\"success\":false}");
-  }
-}
-
-void handleGetTranslations() {
-  // Envoie toutes les traductions en JSON pour mise à jour dynamique
-  String json = "{";
-  json += "\"title\":\"" + String(T().title) + "\",";
-  json += "\"nav_overview\":\"" + String(T().nav_overview) + "\",";
-  json += "\"nav_leds\":\"" + String(T().nav_leds) + "\",";
-  json += "\"nav_screens\":\"" + String(T().nav_screens) + "\",";
-  json += "\"nav_tests\":\"" + String(T().nav_tests) + "\",";
-  json += "\"nav_gpio\":\"" + String(T().nav_gpio) + "\",";
-  json += "\"nav_wifi\":\"" + String(T().nav_wifi) + "\",";
-  json += "\"nav_benchmark\":\"" + String(T().nav_benchmark) + "\",";
-  json += "\"nav_export\":\"" + String(T().nav_export) + "\",";
-  json += "\"chip_info\":\"" + String(T().chip_info) + "\",";
-  json += "\"memory_details\":\"" + String(T().memory_details) + "\",";
-  json += "\"wifi_connection\":\"" + String(T().wifi_connection) + "\",";
-  json += "\"gpio_interfaces\":\"" + String(T().gpio_interfaces) + "\",";
-  json += "\"i2c_peripherals\":\"" + String(T().i2c_peripherals) + "\",";
-  json += "\"builtin_led\":\"" + String(T().builtin_led) + "\",";
-  json += "\"oled_screen\":\"" + String(T().oled_screen) + "\",";
-  json += "\"adc_test\":\"" + String(T().adc_test) + "\",";
-  json += "\"touch_test\":\"" + String(T().touch_test) + "\",";
-  json += "\"pwm_test\":\"" + String(T().pwm_test) + "\",";
-  json += "\"spi_bus\":\"" + String(T().spi_bus) + "\",";
-  json += "\"flash_partitions\":\"" + String(T().flash_partitions) + "\",";
-  json += "\"memory_stress\":\"" + String(T().memory_stress) + "\",";
-  json += "\"gpio_test\":\"" + String(T().gpio_test) + "\",";
-  json += "\"wifi_scanner\":\"" + String(T().wifi_scanner) + "\",";
-  json += "\"performance_bench\":\"" + String(T().performance_bench) + "\",";
-  json += "\"data_export\":\"" + String(T().data_export) + "\"";
-  json += "}";
-  
-  server.send(200, "application/json", json);
-}
-
-// ========== INTERFACE WEB PRINCIPALE MULTILINGUE ==========
+// ========== INTERFACE WEB ==========
 void handleRoot() {
   collectDiagnosticInfo();
   collectDetailedMemory();
@@ -2036,21 +2047,15 @@ void handleRoot() {
   server.send(200, "text/html; charset=utf-8", "");
   
   // CHUNK 1: HEAD + CSS
-  String chunk = "<!DOCTYPE html><html lang='";
-  chunk += (currentLanguage == LANG_FR) ? "fr" : "en";
-  chunk += "'><head>";
+  String chunk = "<!DOCTYPE html><html lang='fr'><head>";
   chunk += "<meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>";
-  chunk += "<title>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</title>";
+  chunk += "<title>" + String("ESP32 Diagnostic Exhaustif") + " " + String("v") + String(DIAGNOSTIC_VERSION) + "</title>";
   chunk += "<style>";
   chunk += "*{margin:0;padding:0;box-sizing:border-box}";
   chunk += "body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:20px}";
   chunk += ".container{max-width:1400px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}";
   chunk += ".header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:30px;text-align:center;position:relative}";
   chunk += ".header h1{font-size:2.5em;margin-bottom:10px}";
-  chunk += ".lang-switcher{position:absolute;top:20px;right:20px;display:flex;gap:5px}";
-  chunk += ".lang-btn{padding:8px 15px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
-  chunk += ".lang-btn:hover{background:rgba(255,255,255,.3)}";
-  chunk += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
   chunk += ".nav{display:flex;justify-content:center;gap:10px;margin-top:20px;flex-wrap:wrap}";
   chunk += ".nav-btn{padding:10px 20px;background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;cursor:pointer;font-weight:bold}";
   chunk += ".nav-btn:hover{background:rgba(255,255,255,.3)}";
@@ -2085,30 +2090,26 @@ void handleRoot() {
   chunk += ".wifi-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;border-left:4px solid #667eea}";
   chunk += ".status-live{padding:10px;background:#f0f0f0;border-radius:5px;text-align:center;font-weight:bold;margin:10px 0}";
   chunk += "input[type='number'],input[type='color'],input[type='text']{padding:10px;border:2px solid #ddd;border-radius:5px;font-size:1em}";
-  chunk += "@media print{.nav,.btn,.lang-switcher{display:none}}";
+  chunk += "@media print{.nav,.btn{display:none}}";
   chunk += "</style></head><body>";
   server.sendContent(chunk);
-  
+
   // CHUNK 2: HEADER + NAV
   chunk = "<div class='container'><div class='header'>";
-  chunk += "<div class='lang-switcher'>";
-  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_FR ? "active" : "") + "' onclick='changeLang(\"fr\")'>FR</button>";
-  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_EN ? "active" : "") + "' onclick='changeLang(\"en\")'>EN</button>";
-  chunk += "</div>";
-  chunk += "<h1 id='main-title'>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1>";
+  chunk += "<h1 id='main-title'>" + String("ESP32 Diagnostic Exhaustif") + " " + String("v") + String(DIAGNOSTIC_VERSION) + "</h1>";
   chunk += "<div style='font-size:1.2em;margin:10px 0'>" + diagnosticData.chipModel + "</div>";
   chunk += "<div style='font-size:.9em;opacity:.9;margin:10px 0'>";
-  chunk += String(T().access) + ": <a href='http://" + String(MDNS_HOSTNAME) + ".local' style='color:#fff;text-decoration:underline'><strong>http://" + String(MDNS_HOSTNAME) + ".local</strong></a> " + String(T().or_text) + " <strong>" + diagnosticData.ipAddress + "</strong>";
+  chunk += String("Accès") + ": <a href='http://" + String(MDNS_HOSTNAME) + ".local' style='color:#fff;text-decoration:underline'><strong>http://" + String(MDNS_HOSTNAME) + ".local</strong></a> " + String("ou") + " <strong>" + diagnosticData.ipAddress + "</strong>";
   chunk += "</div>";
   chunk += "<div class='nav'>";
-  chunk += "<button class='nav-btn active' onclick='showTab(\"overview\")' data-i18n='nav_overview'>" + String(T().nav_overview) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"leds\")' data-i18n='nav_leds'>" + String(T().nav_leds) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"screens\")' data-i18n='nav_screens'>" + String(T().nav_screens) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"tests\")' data-i18n='nav_tests'>" + String(T().nav_tests) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"gpio\")' data-i18n='nav_gpio'>" + String(T().nav_gpio) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"wifi\")' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"benchmark\")' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</button>";
-  chunk += "<button class='nav-btn' onclick='showTab(\"export\")' data-i18n='nav_export'>" + String(T().nav_export) + "</button>";
+  chunk += "<button class='nav-btn active' onclick='showTab(\"overview\")'>" + String("Vue d'ensemble") + "</button>";
+  chunk += "<button class='nav-btn' onclick='showTab(\"leds\")'>" + String("LEDs") + "</button>";
+  chunk += "<button class='nav-btn' onclick='showTab(\"screens\")'>" + String("Écrans") + "</button>";
+  chunk += "<button class='nav-btn' onclick='showTab(\"tests\")'>" + String("Tests Avancés") + "</button>";
+  chunk += "<button class='nav-btn' onclick='showTab(\"gpio\")'>" + String("GPIO") + "</button>";
+  chunk += "<button class='nav-btn' onclick='showTab(\"wifi\")'>" + String("WiFi") + "</button>";
+  chunk += "<button class='nav-btn' onclick='showTab(\"benchmark\")'>" + String("Performance") + "</button>";
+  chunk += "<button class='nav-btn' onclick='showTab(\"export\")'>" + String("Export") + "</button>";
   chunk += "</div></div><div class='content'>";
   server.sendContent(chunk);
   
@@ -2116,88 +2117,88 @@ void handleRoot() {
   chunk = "<div id='overview' class='tab-content active'>";
   
   // Chip Info
-  chunk += "<div class='section'><h2>" + String(T().chip_info) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().full_model) + "</div><div class='info-value'>" + diagnosticData.chipModel + " Rev" + diagnosticData.chipRevision + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_cores) + "</div><div class='info-value'>" + String(diagnosticData.cpuCores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().mac_wifi) + "</div><div class='info-value'>" + diagnosticData.macAddress + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().last_reset) + "</div><div class='info-value'>" + getResetReason() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().chip_features) + "</div><div class='info-value'>" + getChipFeatures() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().sdk_version) + "</div><div class='info-value'>" + diagnosticData.sdkVersion + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().idf_version) + "</div><div class='info-value'>" + diagnosticData.idfVersion + "</div></div>";
+  chunk += "<div class='section'><h2>" + String("Informations Chip Détaillées") + "</h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Modèle Complet") + "</div><div class='info-value'>" + diagnosticData.chipModel + " Rev" + diagnosticData.chipRevision + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Coeurs CPU") + "</div><div class='info-value'>" + String(diagnosticData.cpuCores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Adresse MAC WiFi") + "</div><div class='info-value'>" + diagnosticData.macAddress + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Raison Dernier Reset") + "</div><div class='info-value'>" + getResetReason() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Fonctionnalités Chip") + "</div><div class='info-value'>" + getChipFeatures() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Version SDK") + "</div><div class='info-value'>" + diagnosticData.sdkVersion + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Version ESP-IDF") + "</div><div class='info-value'>" + diagnosticData.idfVersion + "</div></div>";
   
   unsigned long seconds = diagnosticData.uptime / 1000;
   unsigned long minutes = seconds / 60;
   unsigned long hours = minutes / 60;
   unsigned long days = hours / 24;
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().uptime) + "</div><div class='info-value'>" + String(days) + "j " + String(hours % 24) + "h " + String(minutes % 60) + "m</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Uptime") + "</div><div class='info-value'>" + String(days) + "j " + String(hours % 24) + "h " + String(minutes % 60) + "m</div></div>";
   
   if (diagnosticData.temperature != -999) {
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_temp) + "</div><div class='info-value'>" + String(diagnosticData.temperature, 1) + " °C</div></div>";
+    chunk += "<div class='info-item'><div class='info-label'>" + String("Température CPU") + "</div><div class='info-value'>" + String(diagnosticData.temperature, 1) + " °C</div></div>";
   }
   chunk += "</div></div>";
   server.sendContent(chunk);
   
   // Memory - Flash
-  chunk = "<div class='section'><h2>" + String(T().memory_details) + "</h2>";
-  chunk += "<h3>" + String(T().flash_memory) + "</h3><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().real_size) + "</div><div class='info-value'>" + String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().configured_ide) + "</div><div class='info-value'>" + String(detailedMemory.flashSizeChip / 1048576.0, 2) + " MB</div></div>";
+  chunk = "<div class='section'><h2>" + String("Mémoire Détaillée") + "</h2>";
+  chunk += "<h3>" + String("Flash Memory") + "</h3><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Taille Réelle (carte)") + "</div><div class='info-value'>" + String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Configurée (IDE)") + "</div><div class='info-value'>" + String(detailedMemory.flashSizeChip / 1048576.0, 2) + " MB</div></div>";
   
   bool flashMatch = (detailedMemory.flashSizeReal == detailedMemory.flashSizeChip);
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().configuration) + "</div><div class='info-value'><span class='badge ";
-  chunk += flashMatch ? "badge-success'>" + String(T().correct) : "badge-warning'>" + String(T().to_fix);
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Configuration") + "</div><div class='info-value'><span class='badge ";
+  chunk += flashMatch ? "badge-success'>" + String("Correcte") : "badge-warning'>" + String("À corriger");
   chunk += "</span></div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().flash_type) + "</div><div class='info-value'>" + getFlashType() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().flash_speed) + "</div><div class='info-value'>" + getFlashSpeed() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Type Flash") + "</div><div class='info-value'>" + getFlashType() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Vitesse Flash") + "</div><div class='info-value'>" + getFlashSpeed() + "</div></div>";
   chunk += "</div>";
   server.sendContent(chunk);
   
   // Memory - PSRAM
-  chunk = "<h3>" + String(T().psram_external) + "</h3><div class='info-grid'>";
+  chunk = "<h3>" + String("PSRAM (Mémoire Externe)") + "</h3><div class='info-grid'>";
   if (detailedMemory.psramAvailable) {
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-success'>" + String(T().detected_active) + "</span></div></div>";
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().total_size) + "</div><div class='info-value'>" + String(detailedMemory.psramTotal / 1048576.0, 2) + " MB</div></div>";
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().free) + "</div><div class='info-value'>" + String(detailedMemory.psramFree / 1048576.0, 2) + " MB</div></div>";
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().used) + "</div><div class='info-value'>" + String(detailedMemory.psramUsed / 1048576.0, 2) + " MB</div></div>";
+    chunk += "<div class='info-item'><div class='info-label'>" + String("Statut Hardware") + "</div><div class='info-value'><span class='badge badge-success'>" + String("Détectée et active") + "</span></div></div>";
+    chunk += "<div class='info-item'><div class='info-label'>" + String("Taille Totale") + "</div><div class='info-value'>" + String(detailedMemory.psramTotal / 1048576.0, 2) + " MB</div></div>";
+    chunk += "<div class='info-item'><div class='info-label'>" + String("Libre") + "</div><div class='info-value'>" + String(detailedMemory.psramFree / 1048576.0, 2) + " MB</div></div>";
+    chunk += "<div class='info-item'><div class='info-label'>" + String("Utilisée") + "</div><div class='info-value'>" + String(detailedMemory.psramUsed / 1048576.0, 2) + " MB</div></div>";
   } else if (detailedMemory.psramBoardSupported) {
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-warning'>" + String(T().supported_not_enabled) + "</span></div></div>";
-    String psramHint = String(T().enable_psram_hint);
+    chunk += "<div class='info-item'><div class='info-label'>" + String("Statut Hardware") + "</div><div class='info-value'><span class='badge badge-warning'>" + String("Support détecté (désactivée dans l'IDE)") + "</span></div></div>";
+    String psramHint = String("Activez la PSRAM %TYPE% dans l'IDE Arduino (Outils → PSRAM).");
     psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
-    chunk += "<div class='info-item' style='grid-column:1/-1'><div class='info-label'>" + String(T().ide_config) + "</div><div class='info-value'>" + psramHint + "</div></div>";
+    chunk += "<div class='info-item' style='grid-column:1/-1'><div class='info-label'>" + String("Configuration IDE") + "</div><div class='info-value'>" + psramHint + "</div></div>";
   } else {
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-danger'>" + String(T().not_detected) + "</span></div></div>";
+    chunk += "<div class='info-item'><div class='info-label'>" + String("Statut Hardware") + "</div><div class='info-value'><span class='badge badge-danger'>" + String("Non détectée") + "</span></div></div>";
   }
   chunk += "</div>";
   server.sendContent(chunk);
   
   // Memory - SRAM
-  chunk = "<h3>" + String(T().internal_sram) + "</h3><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().total_size) + "</div><div class='info-value'>" + String(detailedMemory.sramTotal / 1024.0, 2) + " KB</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().free) + "</div><div class='info-value'>" + String(detailedMemory.sramFree / 1024.0, 2) + " KB</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().used) + "</div><div class='info-value'>" + String(detailedMemory.sramUsed / 1024.0, 2) + " KB</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_fragmentation) + "</div><div class='info-value'>" + String(detailedMemory.fragmentationPercent, 1) + "%</div></div>";
+  chunk = "<h3>" + String("SRAM Interne") + "</h3><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Taille Totale") + "</div><div class='info-value'>" + String(detailedMemory.sramTotal / 1024.0, 2) + " KB</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Libre") + "</div><div class='info-value'>" + String(detailedMemory.sramFree / 1024.0, 2) + " KB</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Utilisée") + "</div><div class='info-value'>" + String(detailedMemory.sramUsed / 1024.0, 2) + " KB</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Fragmentation Mémoire") + "</div><div class='info-value'>" + String(detailedMemory.fragmentationPercent, 1) + "%</div></div>";
   chunk += "</div>";
-  chunk += "<div style='text-align:center;margin-top:15px'><button class='btn btn-info' onclick='location.reload()'>" + String(T().refresh_memory) + "</button></div></div>";
+  chunk += "<div style='text-align:center;margin-top:15px'><button class='btn btn-info' onclick='location.reload()'>" + String("Actualiser Mémoire") + "</button></div></div>";
   server.sendContent(chunk);
   
   // WiFi
-  chunk = "<div class='section'><h2>" + String(T().wifi_connection) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().connected_ssid) + "</div><div class='info-value'>" + diagnosticData.wifiSSID + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_power) + "</div><div class='info-value'>" + String(diagnosticData.wifiRSSI) + " dBm</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_quality) + "</div><div class='info-value'>" + getWiFiSignalQuality() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().ip_address) + "</div><div class='info-value'>" + diagnosticData.ipAddress + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().subnet_mask) + "</div><div class='info-value'>" + WiFi.subnetMask().toString() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().gateway) + "</div><div class='info-value'>" + WiFi.gatewayIP().toString() + "</div></div>";
+  chunk = "<div class='section'><h2>" + String("Connexion WiFi Détaillée") + "</h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("SSID Connecté") + "</div><div class='info-value'>" + diagnosticData.wifiSSID + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Puissance Signal (RSSI)") + "</div><div class='info-value'>" + String(diagnosticData.wifiRSSI) + " dBm</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Qualité Signal") + "</div><div class='info-value'>" + getWiFiSignalQuality() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Adresse IP") + "</div><div class='info-value'>" + diagnosticData.ipAddress + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Masque Sous-réseau") + "</div><div class='info-value'>" + WiFi.subnetMask().toString() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Passerelle") + "</div><div class='info-value'>" + WiFi.gatewayIP().toString() + "</div></div>";
   chunk += "</div></div>";
   server.sendContent(chunk);
   
   // GPIO et I2C
-  chunk = "<div class='section'><h2>" + String(T().gpio_interfaces) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().total_gpio) + "</div><div class='info-value'>" + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "</div></div>";
+  chunk = "<div class='section'><h2>" + String("GPIO et Interfaces") + "</h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Total GPIO") + "</div><div class='info-value'>" + String(diagnosticData.totalGPIO) + " " + String("broches") + "</div></div>";
   if (ENABLE_I2C_SCAN) {
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().i2c_peripherals) + "</div><div class='info-value'>" + String(diagnosticData.i2cCount) + " " + String(T().devices) + "</div></div>";
+    chunk += "<div class='info-item'><div class='info-label'>" + String("Périphériques I2C") + "</div><div class='info-value'>" + String(diagnosticData.i2cCount) + " " + String("périphérique(s)") + "</div></div>";
     if (diagnosticData.i2cCount > 0) {
-      chunk += "<div class='info-item' style='grid-column:1/-1'><div class='info-label'>" + String(T().detected_addresses) + "</div><div class='info-value'>" + diagnosticData.i2cDevices + "</div></div>";
+      chunk += "<div class='info-item' style='grid-column:1/-1'><div class='info-label'>" + String("Adresses Détectées") + "</div><div class='info-value'>" + diagnosticData.i2cDevices + "</div></div>";
     }
   }
   chunk += "</div></div>";
@@ -2206,61 +2207,61 @@ void handleRoot() {
 
   // CHUNK 4: TAB LEDs
   chunk = "<div id='leds' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().builtin_led) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().gpio) + "</div><div class='info-value'>GPIO " + String(BUILTIN_LED_PIN) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='builtin-led-status'>" + builtinLedTestResult + "</div></div>";
+  chunk += "<div class='section'><h2>" + String("LED Intégrée") + "</h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("GPIO") + "</div><div class='info-value'>GPIO " + String(BUILTIN_LED_PIN) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Statut") + "</div><div class='info-value' id='builtin-led-status'>" + builtinLedTestResult + "</div></div>";
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "<input type='number' id='ledGPIO' value='" + String(BUILTIN_LED_PIN) + "' min='0' max='48' style='width:80px'>";
-  chunk += "<button class='btn btn-info' onclick='configBuiltinLED()'>" + String(T().config) + "</button>";
-  chunk += "<button class='btn btn-primary' onclick='testBuiltinLED()'>" + String(T().test) + "</button>";
-  chunk += "<button class='btn btn-success' onclick='ledBlink()'>" + String(T().blink) + "</button>";
-  chunk += "<button class='btn btn-info' onclick='ledFade()'>" + String(T().fade) + "</button>";
-  chunk += "<button class='btn btn-danger' onclick='ledOff()'>" + String(T().off) + "</button>";
+  chunk += "<button class='btn btn-info' onclick='configBuiltinLED()'>" + String("Config") + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='testBuiltinLED()'>" + String("Test") + "</button>";
+  chunk += "<button class='btn btn-success' onclick='ledBlink()'>" + String("Blink") + "</button>";
+  chunk += "<button class='btn btn-info' onclick='ledFade()'>" + String("Fade") + "</button>";
+  chunk += "<button class='btn btn-danger' onclick='ledOff()'>" + String("Off") + "</button>";
   chunk += "</div></div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().neopixel) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().gpio) + "</div><div class='info-value'>GPIO " + String(LED_PIN) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='neopixel-status'>" + neopixelTestResult + "</div></div>";
+  chunk += "<div class='section'><h2>" + String("NeoPixel") + "</h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("GPIO") + "</div><div class='info-value'>GPIO " + String(LED_PIN) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Statut") + "</div><div class='info-value' id='neopixel-status'>" + neopixelTestResult + "</div></div>";
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "<input type='number' id='neoGPIO' value='" + String(LED_PIN) + "' min='0' max='48' style='width:80px'>";
   chunk += "<input type='number' id='neoCount' value='" + String(LED_COUNT) + "' min='1' max='100' style='width:80px'>";
-  chunk += "<button class='btn btn-info' onclick='configNeoPixel()'>" + String(T().config) + "</button>";
-  chunk += "<button class='btn btn-primary' onclick='testNeoPixel()'>" + String(T().test) + "</button>";
-  chunk += "<button class='btn btn-primary' onclick='neoPattern(\"rainbow\")'>" + String(T().rainbow) + "</button>";
+  chunk += "<button class='btn btn-info' onclick='configNeoPixel()'>" + String("Config") + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='testNeoPixel()'>" + String("Test") + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='neoPattern(\"rainbow\")'>" + String("Rainbow") + "</button>";
   chunk += "<input type='color' id='neoColor' value='#ff0000' style='height:48px'>";
-  chunk += "<button class='btn btn-primary' onclick='neoCustomColor()'>" + String(T().color) + "</button>";
-  chunk += "<button class='btn btn-danger' onclick='neoPattern(\"off\")'>" + String(T().off) + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='neoCustomColor()'>" + String("Couleur") + "</button>";
+  chunk += "<button class='btn btn-danger' onclick='neoPattern(\"off\")'>" + String("Off") + "</button>";
   chunk += "</div></div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 5: TAB Screens
   chunk = "<div id='screens' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().oled_screen) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='oled-status'>" + oledTestResult + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().i2c_pins) + "</div><div class='info-value'>SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "</div></div>";
+  chunk += "<div class='section'><h2>" + String("Écran OLED 0.96\" I2C") + "</h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Statut") + "</div><div class='info-value' id='oled-status'>" + oledTestResult + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Pins I2C") + "</div><div class='info-value'>SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "</div></div>";
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "SDA: <input type='number' id='oledSDA' value='" + String(I2C_SDA) + "' min='0' max='48' style='width:70px'> ";
   chunk += "SCL: <input type='number' id='oledSCL' value='" + String(I2C_SCL) + "' min='0' max='48' style='width:70px'> ";
-  chunk += "<button class='btn btn-info' onclick='configOLED()'>" + String(T().apply_redetect) + "</button>";
+  chunk += "<button class='btn btn-info' onclick='configOLED()'>" + String("Appliquer et Re-détecter") + "</button>";
   if (oledAvailable) {
     chunk += "<div style='margin-top:15px'>";
-    chunk += "<button class='btn btn-primary' onclick='testOLED()'>" + String(T().full_test) + "</button>";
+    chunk += "<button class='btn btn-primary' onclick='testOLED()'>" + String("Test Complet") + "</button>";
     chunk += "</div>";
     chunk += "<div class='oled-step-grid' style='margin-top:15px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px'>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"welcome\")'>" + String(T().oled_step_welcome) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"big_text\")'>" + String(T().oled_step_big_text) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"text_sizes\")'>" + String(T().oled_step_text_sizes) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"shapes\")'>" + String(T().oled_step_shapes) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"horizontal_lines\")'>" + String(T().oled_step_horizontal_lines) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"diagonals\")'>" + String(T().oled_step_diagonals) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"moving_square\")'>" + String(T().oled_step_moving_square) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"progress_bar\")'>" + String(T().oled_step_progress_bar) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"scroll_text\")'>" + String(T().oled_step_scroll_text) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"final_message\")'>" + String(T().oled_step_final_message) + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"welcome\")'>" + String("Accueil") + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"big_text\")'>" + String("Texte grand format") + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"text_sizes\")'>" + String("Tailles de texte") + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"shapes\")'>" + String("Formes géométriques") + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"horizontal_lines\")'>" + String("Lignes horizontales") + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"diagonals\")'>" + String("Lignes diagonales") + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"moving_square\")'>" + String("Carré en mouvement") + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"progress_bar\")'>" + String("Barre de progression") + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"scroll_text\")'>" + String("Texte défilant") + "</button>";
+    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"final_message\")'>" + String("Message final") + "</button>";
     chunk += "</div>";
     chunk += "<div style='margin-top:15px'>";
-    chunk += "<input type='text' id='oledMsg' placeholder='" + String(T().custom_message) + "' style='width:250px;margin:0 5px'>";
-    chunk += "<button class='btn btn-success' onclick='oledMessage()'>" + String(T().show_message) + "</button>";
+    chunk += "<input type='text' id='oledMsg' placeholder='" + String("Message personnalisé") + "' style='width:250px;margin:0 5px'>";
+    chunk += "<button class='btn btn-success' onclick='oledMessage()'>" + String("Afficher Message") + "</button>";
     chunk += "</div>";
   }
   chunk += "</div></div></div></div>";
@@ -2268,117 +2269,100 @@ void handleRoot() {
   
   // CHUNK 6: TAB Tests
   chunk = "<div id='tests' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().adc_test) + "</h2>";
+  chunk += "<div class='section'><h2>" + String("Test ADC") + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='testADC()'>" + String(T().test) + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='testADC()'>" + String("Test") + "</button>";
   chunk += "<div id='adc-status' class='status-live'>" + adcTestResult + "</div>";
   chunk += "</div><div id='adc-results' class='info-grid'></div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().touch_test) + "</h2>";
+  chunk += "<div class='section'><h2>" + String("Test Touch Pads") + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='testTouch()'>" + String(T().test) + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='testTouch()'>" + String("Test") + "</button>";
   chunk += "<div id='touch-status' class='status-live'>" + touchTestResult + "</div>";
   chunk += "</div><div id='touch-results' class='info-grid'></div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().pwm_test) + "</h2>";
+  chunk += "<div class='section'><h2>" + String("Test PWM") + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='testPWM()'>" + String(T().test) + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='testPWM()'>" + String("Test") + "</button>";
   chunk += "<div id='pwm-status' class='status-live'>" + pwmTestResult + "</div>";
   chunk += "</div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().spi_bus) + "</h2>";
+  chunk += "<div class='section'><h2>" + String("Bus SPI") + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='scanSPI()'>" + String(T().scan) + "</button>";
-  chunk += "<div id='spi-status' class='status-live'>" + (spiInfo.length() > 0 ? spiInfo : String(T().click_button)) + "</div>";
+  chunk += "<button class='btn btn-primary' onclick='scanSPI()'>" + String("Scan...") + "</button>";
+  chunk += "<div id='spi-status' class='status-live'>" + (spiInfo.length() > 0 ? spiInfo : String("Cliquez sur le bouton")) + "</div>";
   chunk += "</div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().flash_partitions) + "</h2>";
+  chunk += "<div class='section'><h2>" + String("Partitions Flash") + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='listPartitions()'>" + String(T().list_partitions) + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='listPartitions()'>" + String("Lister Partitions") + "</button>";
   chunk += "</div><div id='partitions-results' style='background:#fff;padding:15px;border-radius:10px;font-family:monospace;white-space:pre-wrap;font-size:0.85em'>";
-  chunk += partitionsInfo.length() > 0 ? partitionsInfo : String(T().click_button);
+  chunk += partitionsInfo.length() > 0 ? partitionsInfo : String("Cliquez sur le bouton");
   chunk += "</div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().memory_stress) + "</h2>";
+  chunk += "<div class='section'><h2>" + String("Stress Test Mémoire") + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-danger' onclick='stressTest()'>" + String(T().start_stress) + "</button>";
+  chunk += "<button class='btn btn-danger' onclick='stressTest()'>" + String("Lancer Stress Test") + "</button>";
   chunk += "<div id='stress-status' class='status-live'>" + stressTestResult + "</div>";
   chunk += "</div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 7: TAB GPIO
   chunk = "<div id='gpio' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().gpio_test) + "</h2>";
+  chunk += "<div class='section'><h2>" + String("Test GPIO") + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='testAllGPIO()'>" + String(T().test_all_gpio) + "</button>";
-  chunk += "<div id='gpio-status' class='status-live'>" + String(T().click_to_test) + "</div>";
+  chunk += "<button class='btn btn-primary' onclick='testAllGPIO()'>" + String("Tester Tous les GPIO") + "</button>";
+  chunk += "<div id='gpio-status' class='status-live'>" + String("Cliquez pour tester") + "</div>";
   chunk += "</div><div id='gpio-results' class='gpio-grid'></div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 8: TAB WiFi
   chunk = "<div id='wifi' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().wifi_scanner) + "</h2>";
+  chunk += "<div class='section'><h2>" + String("Scanner WiFi") + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='scanWiFi()'>" + String(T().scan_networks) + "</button>";
-  chunk += "<div id='wifi-status' class='status-live'>" + String(T().click_to_test) + "</div>";
+  chunk += "<button class='btn btn-primary' onclick='scanWiFi()'>" + String("Scanner Réseaux WiFi") + "</button>";
+  chunk += "<div id='wifi-status' class='status-live'>" + String("Cliquez pour tester") + "</div>";
   chunk += "</div><div id='wifi-results' class='wifi-list'></div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 9: TAB Benchmark
   chunk = "<div id='benchmark' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().performance_bench) + "</h2>";
+  chunk += "<div class='section'><h2>" + String("Benchmarks de Performance") + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='runBenchmarks()'>" + String(T().run_benchmarks) + "</button>";
+  chunk += "<button class='btn btn-primary' onclick='runBenchmarks()'>" + String("Lancer Benchmarks") + "</button>";
   chunk += "</div><div id='benchmark-results' class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_benchmark) + "</div><div class='info-value' id='cpu-bench'>" + String(T().not_tested) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_benchmark) + "</div><div class='info-value' id='mem-bench'>" + String(T().not_tested) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_performance) + "</div><div class='info-value' id='cpu-perf'>-</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_speed) + "</div><div class='info-value' id='mem-speed'>-</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("CPU Benchmark") + "</div><div class='info-value' id='cpu-bench'>" + String("Non testé") + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Mémoire Benchmark") + "</div><div class='info-value' id='mem-bench'>" + String("Non testé") + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Performance CPU") + "</div><div class='info-value' id='cpu-perf'>-</div></div>";
+  chunk += "<div class='info-item'><div class='info-label'>" + String("Vitesse Mémoire") + "</div><div class='info-value' id='mem-speed'>-</div></div>";
   chunk += "</div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 10: TAB Export
   chunk = "<div id='export' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().data_export) + "</h2>";
+  chunk += "<div class='section'><h2>" + String("Export des Données") + "</h2>";
   chunk += "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-top:20px'>";
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #667eea'>";
-  chunk += "<h3 style='color:#667eea;margin-bottom:15px'>" + String(T().txt_file) + "</h3>";
-  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String(T().readable_report) + "</p>";
-  chunk += "<a href='/export/txt' class='btn btn-primary'>" + String(T().download_txt) + "</a></div>";
+  chunk += "<h3 style='color:#667eea;margin-bottom:15px'>" + String("Fichier TXT") + "</h3>";
+  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String("Rapport texte lisible") + "</p>";
+  chunk += "<a href='/export/txt' class='btn btn-primary'>" + String("Télécharger TXT") + "</a></div>";
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #3a7bd5'>";
-  chunk += "<h3 style='color:#3a7bd5;margin-bottom:15px'>" + String(T().json_file) + "</h3>";
-  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String(T().structured_format) + "</p>";
-  chunk += "<a href='/export/json' class='btn btn-info'>" + String(T().download_json) + "</a></div>";
+  chunk += "<h3 style='color:#3a7bd5;margin-bottom:15px'>" + String("Fichier JSON") + "</h3>";
+  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String("Format structuré") + "</p>";
+  chunk += "<a href='/export/json' class='btn btn-info'>" + String("Télécharger JSON") + "</a></div>";
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #56ab2f'>";
-  chunk += "<h3 style='color:#56ab2f;margin-bottom:15px'>" + String(T().csv_file) + "</h3>";
-  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String(T().for_excel) + "</p>";
-  chunk += "<a href='/export/csv' class='btn btn-success'>" + String(T().download_csv) + "</a></div>";
+  chunk += "<h3 style='color:#56ab2f;margin-bottom:15px'>" + String("Fichier CSV") + "</h3>";
+  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String("Pour Excel") + "</p>";
+  chunk += "<a href='/export/csv' class='btn btn-success'>" + String("Télécharger CSV") + "</a></div>";
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #667eea'>";
-  chunk += "<h3 style='color:#667eea;margin-bottom:15px'>" + String(T().printable_version) + "</h3>";
-  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String(T().pdf_format) + "</p>";
-  chunk += "<a href='/print' target='_blank' class='btn btn-primary'>" + String(T().open) + "</a></div>";
+  chunk += "<h3 style='color:#667eea;margin-bottom:15px'>" + String("Version Imprimable") + "</h3>";
+  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String("Format PDF") + "</p>";
+  chunk += "<a href='/print' target='_blank' class='btn btn-primary'>" + String("Ouvrir") + "</a></div>";
   chunk += "</div></div></div>";
   chunk += "</div></div>"; // Fermeture content + container
   server.sendContent(chunk);
   // CHUNK 11: JavaScript complet
   chunk = "<script>";
-  chunk += "let currentLang='" + String(currentLanguage == LANG_FR ? "fr" : "en") + "';";
-  
-  // Changement de langue
-  chunk += "function changeLang(lang){";
-  chunk += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
-  chunk += "if(d.success){currentLang=lang;";
-  chunk += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
-  chunk += "event.target.classList.add('active');";
-  chunk += "updateTranslations()}});}";
-  
-  // Mise à jour traductions
-  chunk += "function updateTranslations(){";
-  chunk += "fetch('/api/get-translations').then(r=>r.json()).then(tr=>{";
-  chunk += "document.getElementById('main-title').textContent=tr.title+' v" + String(DIAGNOSTIC_VERSION) + "';";
-  chunk += "document.querySelectorAll('[data-i18n]').forEach(el=>{";
-  chunk += "const key=el.getAttribute('data-i18n');";
-  chunk += "if(tr[key])el.textContent=tr[key]})});}";
   
   // Navigation onglets
   chunk += "function showTab(t){";
@@ -2408,7 +2392,7 @@ void handleRoot() {
   // OLED
   chunk += "function testOLED(){document.getElementById('oled-status').innerHTML='Test en cours (25s)...';";
   chunk += "fetch('/api/oled-test').then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.result)}";
-  chunk += "function oledStep(step){document.getElementById('oled-status').innerHTML='" + String(T().testing) + "';";
+  chunk += "function oledStep(step){document.getElementById('oled-status').innerHTML='" + String("Test...") + "';";
   chunk += "fetch('/api/oled-step?step='+step).then(r=>r.json()).then(d=>{document.getElementById('oled-status').innerHTML=d.message;if(!d.success){alert(d.message)}})}";
   chunk += "function oledMessage(){fetch('/api/oled-message?message='+encodeURIComponent(document.getElementById('oledMsg').value))";
   chunk += ".then(r=>r.json()).then(d=>document.getElementById('oled-status').innerHTML=d.message)}";
@@ -2476,14 +2460,17 @@ void setup() {
   delay(1000);
   
   Serial.println("\r\n===============================================");
-  Serial.println("     DIAGNOSTIC ESP32 MULTILINGUE");
-  Serial.println("     Version 2.4 - FR/EN");
-  Serial.println("     Optimise Arduino Core 3.1.3");
+  Serial.println("     DIAGNOSTIC ESP32 COMPLET");
+  // --- [NEW FEATURE] Journalisation de la version de développement ---
+  Serial.println("     Version 3.0.04-dev - Interface FR statique");
+  Serial.println("     Optimise Arduino Core 3.3.2");
   Serial.println("===============================================\r\n");
-  
+
   printPSRAMDiagnostic();
-  
+
   // WiFi
+  // --- [NEW FEATURE] Configuration explicite du mode station pour le core 3.3.2 ---
+  WiFi.mode(WIFI_STA);
   wifiMulti.addAP(WIFI_SSID_1, WIFI_PASS_1);
   wifiMulti.addAP(WIFI_SSID_2, WIFI_PASS_2);
   
@@ -2540,10 +2527,6 @@ void setup() {
   // ========== ROUTES SERVEUR ==========
   server.on("/", handleRoot);
   
-  // **NOUVELLES ROUTES MULTILINGUES**
-  server.on("/api/set-language", handleSetLanguage);
-  server.on("/api/get-translations", handleGetTranslations);
-  
   // GPIO & WiFi
   server.on("/api/test-gpio", handleTestGPIO);
   server.on("/api/wifi-scan", handleWiFiScan);
@@ -2588,8 +2571,7 @@ void setup() {
   Serial.println("Serveur Web OK!");
   Serial.println("\r\n===============================================");
   Serial.println("            PRET - En attente");
-  Serial.println("   Langue par defaut: FRANCAIS");
-  Serial.println("   Changement dynamique via interface web");
+  Serial.println("   Interface web en français fixe");
   Serial.println("===============================================\r\n");
 }
 
