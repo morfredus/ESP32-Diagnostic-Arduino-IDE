@@ -196,7 +196,10 @@ String generateJavaScript() {
   js += "document.addEventListener('DOMContentLoaded',function(){";
   js += "console.log('Interface chargée');";
   js += "const navButtons=document.querySelectorAll('.nav-btn');";
-  js += "navButtons.forEach(btn=>btn.addEventListener('click',e=>{e.preventDefault();const target=btn.getAttribute('data-tab');showTab(target,btn);}));";
+  js += "for(let i=0;i<navButtons.length;i++){";
+  js += "const btn=navButtons[i];";
+  js += "btn.addEventListener('click',e=>{e.preventDefault();const target=btn.getAttribute('data-tab');showTab(target,btn);});";
+  js += "}";
   js += "const initialBtn=document.querySelector('.nav-btn.active')||navButtons[0];";
   js += "if(initialBtn){showTab(initialBtn.getAttribute('data-tab'),initialBtn);}else{showTab('overview');}";
   js += "loadAllData();";
