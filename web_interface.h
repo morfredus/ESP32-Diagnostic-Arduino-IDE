@@ -164,7 +164,7 @@ String generateHTML() {
   html += "<button class='nav-btn' onclick='showTab(\"screens\",event)'>Écrans</button>";
   html += "<button class='nav-btn' onclick='showTab(\"tests\",event)'>Tests</button>";
   html += "<button class='nav-btn' onclick='showTab(\"gpio\",event)'>GPIO</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"wifi\",event)'>WiFi</button>";
+  html += "<button class='nav-btn' onclick='showTab(\"wifi\",event)'>Sans fil</button>";
   html += "<button class='nav-btn' onclick='showTab(\"benchmark\",event)'>Performance</button>";
   html += "<button class='nav-btn' onclick='showTab(\"export\",event)'>Export</button>";
   html += "</div>";
@@ -303,6 +303,17 @@ String generateJavaScript() {
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Qualité Signal</div><div class=\"info-value\">'+d.wifi.quality+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Adresse IP</div><div class=\"info-value\">'+d.wifi.ip+'</div></div>';";
   js += "h+='</div></div>';";
+  js += "if(d.bluetooth){";
+  js += "h+='<div class=\"section\"><h2>🟦 Bluetooth</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut contrôleur</div><div class=\"info-value\">'+d.bluetooth.controller_status+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Support Classique</div><div class=\"info-value\">'+(d.bluetooth.classic_support?'Pris en charge':'Non détecté')+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Support BLE</div><div class=\"info-value\">'+(d.bluetooth.ble_support?'Pris en charge':'Non détecté')+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">MAC Bluetooth</div><div class=\"info-value\">'+d.bluetooth.mac+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">MAC BLE</div><div class=\"info-value\">'+d.bluetooth.ble_mac+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Nom</div><div class=\"info-value\">'+d.bluetooth.device_name+'</div></div>';";
+  js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1\"><div class=\"info-label\">Note</div><div class=\"info-value\">'+d.bluetooth.note+'</div></div>';";
+  js += "h+='</div></div>';";
+  js += "}";
 
   js += "h+='<div class=\"section\"><h2>🔌 GPIO et Interfaces</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Total GPIO</div><div class=\"info-value\">'+d.gpio.total+'</div></div>';";
@@ -402,10 +413,25 @@ js += "function buildScreens(d){";
 
   // Build WiFi
   js += "function buildWifi(){";
-  js += "let h='<div class=\"section\"><h2>📡 Scanner WiFi</h2>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"scanWiFi()\">🔍 Scanner les réseaux</button>';";
-  js += "h+='<div id=\"wifi-status\" class=\"status-live\">Cliquez pour scanner</div></div>';";
+  js += "let h='<div class=\"section\"><h2>📡 Connexion WiFi</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">SSID</div><div class=\"info-value\" id=\"wifi-ssid\"></div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">RSSI</div><div class=\"info-value\" id=\"wifi-rssi\"></div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Qualité</div><div class=\"info-value\" id=\"wifi-quality\"></div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Adresse IP</div><div class=\"info-value\" id=\"wifi-ip\"></div></div>';";
+  js += "h+='</div></div>';";
+  js += "h+='<div class=\"section\"><h2>📡 WiFi</h2>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"scanWiFi()\">🔍 Scanner les réseaux</button></div>';";
+  js += "h+='<div id=\"wifi-status\" class=\"status-live\">Cliquez pour scanner</div>';";
   js += "h+='<div id=\"wifi-results\" class=\"wifi-list\"></div></div>';";
+  js += "h+='<div class=\"section\"><h2>🟦 Bluetooth</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut contrôleur</div><div class=\"info-value\" id=\"bt-status\"></div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Support Classique</div><div class=\"info-value\" id=\"bt-classic\"></div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Support BLE</div><div class=\"info-value\" id=\"bt-ble\"></div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">MAC Bluetooth</div><div class=\"info-value\" id=\"bt-mac\"></div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">MAC BLE</div><div class=\"info-value\" id=\"bt-ble-mac\"></div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Nom</div><div class=\"info-value\" id=\"bt-name\"></div></div>';";
+  js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1\"><div class=\"info-label\">Note</div><div class=\"info-value\" id=\"bt-note\"></div></div>';";
+  js += "h+='</div></div>';";
   js += "return h;";
   js += "}";
 

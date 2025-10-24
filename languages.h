@@ -90,7 +90,27 @@ struct Translations {
   const char* gateway;
   const char* dns;
   const char* wifi_channel;
-  
+
+  // Bluetooth
+  const char* bluetooth_section;
+  const char* bluetooth_controller_status;
+  const char* bluetooth_classic_support;
+  const char* bluetooth_ble_support;
+  const char* bluetooth_mac;
+  const char* bluetooth_ble_mac;
+  const char* bluetooth_device_name;
+  const char* bluetooth_note;
+  const char* bluetooth_status_idle;
+  const char* bluetooth_status_inited;
+  const char* bluetooth_status_enabled;
+  const char* bluetooth_status_disabled;
+  const char* bluetooth_not_supported;
+  const char* bluetooth_not_compiled;
+  const char* bluetooth_enable_hint;
+  const char* bluetooth_ready;
+  const char* bluetooth_controller_inactive;
+  const char* bluetooth_not_available;
+
   // GPIO et périphériques
   const char* gpio_interfaces;
   const char* total_gpio;
@@ -252,7 +272,7 @@ const Translations LANG_FR_TEXTS = {
   "Écrans",
   "Tests Avancés",
   "GPIO",
-  "WiFi",
+  "Sans fil",
   "Performance",
   "Export",
   
@@ -317,7 +337,27 @@ const Translations LANG_FR_TEXTS = {
   "Passerelle",
   "DNS",
   "Canal WiFi",
-  
+
+  // Bluetooth
+  "Bluetooth",
+  "Statut du contrôleur",
+  "Support Bluetooth Classique",
+  "Support Bluetooth Low Energy",
+  "Adresse MAC Bluetooth",
+  "Adresse MAC BLE",
+  "Nom de l'appareil",
+  "Note",
+  "Contrôleur inactif",
+  "Contrôleur initialisé",
+  "Contrôleur actif",
+  "Contrôleur désactivé",
+  "Non pris en charge sur cette carte",
+  "Bluetooth désactivé dans le firmware",
+  "Initialisez BluetoothSerial ou le contrôleur BLE pour l'activer",
+  "Contrôleur prêt",
+  "Contrôleur non initialisé",
+  "Bluetooth indisponible",
+
   // GPIO
   "GPIO et Interfaces",
   "Total GPIO",
@@ -384,7 +424,7 @@ const Translations LANG_FR_TEXTS = {
   "Cliquez pour tester",
   
   // WiFi
-  "Scanner WiFi",
+  "WiFi",
   "Scanner Réseaux WiFi",
   
   // Performance
@@ -479,7 +519,7 @@ const Translations LANG_EN_TEXTS = {
   "Screens",
   "Advanced Tests",
   "GPIO",
-  "WiFi",
+  "Wireless",
   "Performance",
   "Export",
   
@@ -544,7 +584,27 @@ const Translations LANG_EN_TEXTS = {
   "Gateway",
   "DNS",
   "WiFi Channel",
-  
+
+  // Bluetooth
+  "Bluetooth",
+  "Controller Status",
+  "Bluetooth Classic Support",
+  "Bluetooth Low Energy Support",
+  "Bluetooth MAC Address",
+  "BLE MAC Address",
+  "Device Name",
+  "Note",
+  "Controller idle",
+  "Controller initialized",
+  "Controller enabled",
+  "Controller disabled",
+  "Not supported on this board",
+  "Bluetooth disabled in firmware",
+  "Start BluetoothSerial or BLE controller to enable",
+  "Controller ready",
+  "Controller not initialized",
+  "Bluetooth unavailable",
+
   // GPIO
   "GPIO and Interfaces",
   "Total GPIO",
@@ -611,7 +671,7 @@ const Translations LANG_EN_TEXTS = {
   "Click to test",
   
   // WiFi
-  "WiFi Scanner",
+  "WiFi",
   "Scan WiFi Networks",
   
   // Performance
