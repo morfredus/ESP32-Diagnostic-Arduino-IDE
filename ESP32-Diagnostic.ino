@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.15-dev - Gestion Bluetooth & onglet Sans fil
 // Version de dev : 3.0.14-dev - Menu horizontal sticky & reset alertes
 // Version de dev : 3.0.13-dev - Correction JSON traductions dynamiques
 // Version de dev : 3.0.12-dev - Navigation hash + compatibilité JS
@@ -41,6 +42,16 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#if (defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_BLE_ENABLED) && CONFIG_BT_ENABLED && CONFIG_BT_BLE_ENABLED)
+  // --- [NEW FEATURE] Support Bluetooth Low Energy ---
+  #include <BLEDevice.h>
+  #include <BLEServer.h>
+  #include <BLEUtils.h>
+  #include <BLE2902.h>
+  #define BLE_STACK_SUPPORTED 1
+#else
+  #define BLE_STACK_SUPPORTED 0
+#endif
 #include <vector>
 
 // --- [NEW FEATURE] Inclusion automatique de la configuration WiFi ---
@@ -78,7 +89,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.14-dev"
+#define DIAGNOSTIC_VERSION "3.0.15-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -117,6 +128,17 @@ uint8_t oledRotation = 0;
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
 WiFiMulti wifiMulti;
+#if BLE_STACK_SUPPORTED
+BLEServer* bluetoothServer = nullptr;
+BLEService* bluetoothService = nullptr;
+BLECharacteristic* bluetoothCharacteristic = nullptr;
+#endif
+// --- [NEW FEATURE] Gestion Bluetooth Low Energy ---
+bool bluetoothCapable = false;
+bool bluetoothEnabled = false;
+bool bluetoothAdvertising = false;
+String bluetoothDeviceName = "";
+String defaultBluetoothName = "";
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // NeoPixel
@@ -169,7 +191,11 @@ struct DiagnosticInfo {
   String wifiSSID;
   int wifiRSSI;
   String ipAddress;
-  
+  bool bluetoothEnabled;
+  bool bluetoothAdvertising;
+  String bluetoothName;
+  String bluetoothAddress;
+
   String gpioList;
   int totalGPIO;
   
@@ -1507,6 +1533,7 @@ void collectDiagnosticInfo() {
   diagnosticData.hasWiFi = (chip_info.features & CHIP_FEATURE_WIFI_BGN);
   diagnosticData.hasBT = (chip_info.features & CHIP_FEATURE_BT);
   diagnosticData.hasBLE = (chip_info.features & CHIP_FEATURE_BLE);
+  bluetoothCapable = diagnosticData.hasBLE && BLE_STACK_SUPPORTED;
   
   if (WiFi.status() == WL_CONNECTED) {
     diagnosticData.wifiSSID = WiFi.SSID();
@@ -1534,7 +1561,9 @@ void collectDiagnosticInfo() {
   diagnosticData.oledTested = oledTested;
   diagnosticData.oledAvailable = oledAvailable;
   diagnosticData.oledResult = oledTestResult;
-  
+
+  syncBluetoothDiagnostics();
+
   heapHistory[historyIndex] = (float)diagnosticData.freeHeap / 1024.0;
   if (diagnosticData.temperature != -999) {
     tempHistory[historyIndex] = diagnosticData.temperature;
@@ -1902,7 +1931,18 @@ void handleExportTXT() {
   txt += String(T().gateway) + ": " + WiFi.gatewayIP().toString() + "\r\n";
   txt += "DNS: " + WiFi.dnsIP().toString() + "\r\n";
   txt += "\r\n";
-  
+
+  txt += "=== BLUETOOTH ===\r\n";
+  if (!bluetoothCapable) {
+    txt += String(T().bluetooth_not_supported) + "\r\n";
+  } else {
+    txt += String(T().bluetooth_status) + ": " + getBluetoothStateLabel() + "\r\n";
+    txt += String(T().bluetooth_name) + ": " + bluetoothDeviceName + "\r\n";
+    txt += String(T().bluetooth_mac) + ": " + diagnosticData.bluetoothAddress + "\r\n";
+    txt += String(T().bluetooth_advertising) + ": " + String((bluetoothCapable && bluetoothAdvertising) ? "ON" : "OFF") + "\r\n";
+  }
+  txt += "\r\n";
+
   txt += "=== GPIO ===\r\n";
   txt += String(T().total_gpio) + ": " + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "\r\n";
   txt += String(T().gpio_list) + ": " + diagnosticData.gpioList + "\r\n";
@@ -1991,6 +2031,16 @@ void handleExportJSON() {
   json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",";
   json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
   json += "},";
+
+  json += "\"bluetooth\":{";
+  json += "\"supported\":" + String(bluetoothCapable ? "true" : "false") + ",";
+  json += "\"enabled\":" + String((bluetoothCapable && bluetoothEnabled) ? "true" : "false") + ",";
+  json += "\"advertising\":" + String((bluetoothCapable && bluetoothAdvertising) ? "true" : "false") + ",";
+  json += "\"name\":\"" + jsonEscape(bluetoothDeviceName.c_str()) + "\",";
+  json += "\"mac\":\"" + jsonEscape(diagnosticData.bluetoothAddress.c_str()) + "\",";
+  String btStatus = getBluetoothStateLabel();
+  json += "\"status\":\"" + jsonEscape(btStatus.c_str()) + "\"";
+  json += "},";
   
   json += "\"gpio\":{";
   json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
@@ -2073,7 +2123,12 @@ void handleExportCSV() {
   csv += "WiFi,RSSI dBm," + String(diagnosticData.wifiRSSI) + "\r\n";
   csv += "WiFi,IP," + diagnosticData.ipAddress + "\r\n";
   csv += "WiFi," + String(T().gateway) + "," + WiFi.gatewayIP().toString() + "\r\n";
-  
+
+  csv += "Bluetooth," + String(T().bluetooth_status) + "," + getBluetoothStateLabel() + "\r\n";
+  csv += "Bluetooth," + String(T().bluetooth_name) + "," + bluetoothDeviceName + "\r\n";
+  csv += "Bluetooth," + String(T().bluetooth_mac) + "," + diagnosticData.bluetoothAddress + "\r\n";
+  csv += "Bluetooth," + String(T().bluetooth_advertising) + "," + String((bluetoothCapable && bluetoothAdvertising) ? "ON" : "OFF") + "\r\n";
+
   csv += "GPIO," + String(T().total_gpio) + "," + String(diagnosticData.totalGPIO) + "\r\n";
   
   csv += String(T().i2c_peripherals) + "," + String(T().device_count) + "," + String(diagnosticData.i2cCount) + "\r\n";
@@ -2202,7 +2257,17 @@ void handlePrintVersion() {
   html += "<div class='row'><b>Passerelle:</b><span>" + WiFi.gatewayIP().toString() + "</span></div>";
   html += "<div class='row'><b>DNS:</b><span>" + WiFi.dnsIP().toString() + "</span></div>";
   html += "</div></div>";
-  
+
+  html += "<div class='section'>";
+  html += "<h2>Bluetooth</h2>";
+  html += "<div class='grid'>";
+  html += "<div class='row'><b>" + String(T().bluetooth_status) + ":</b><span>" + htmlEscape(getBluetoothStateLabel()) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_name) + ":</b><span>" + htmlEscape(bluetoothDeviceName) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_mac) + ":</b><span>" + htmlEscape(diagnosticData.bluetoothAddress) + "</span></div>";
+  String printAdvertising = bluetoothCapable && bluetoothAdvertising ? String(T().bluetooth_advertising) : String(T().bluetooth_not_advertising);
+  html += "<div class='row'><b>" + String(T().bluetooth_advertising) + ":</b><span>" + htmlEscape(printAdvertising) + "</span></div>";
+  html += "</div></div>";
+
   // GPIO et Périphériques
   html += "<div class='section'>";
   html += "<h2>GPIO et Périphériques</h2>";
@@ -2261,6 +2326,36 @@ void handleSetLanguage() {
   }
 }
 
+// --- [NEW FEATURE] Échappement HTML sécurisé ---
+String htmlEscape(const String& raw) {
+  String escaped;
+  escaped.reserve(raw.length());
+  for (size_t i = 0; i < raw.length(); ++i) {
+    char c = raw[i];
+    switch (c) {
+      case '&':
+        escaped += "&amp;";
+        break;
+      case '<':
+        escaped += "&lt;";
+        break;
+      case '>':
+        escaped += "&gt;";
+        break;
+      case '\"':
+        escaped += "&quot;";
+        break;
+      case '\'':
+        escaped += "&#39;";
+        break;
+      default:
+        escaped += c;
+        break;
+    }
+  }
+  return escaped;
+}
+
 // --- [BUGFIX] Échappement JSON pour l'API de traduction ---
 String jsonEscape(const char* raw) {
   if (raw == nullptr) {
@@ -2304,6 +2399,190 @@ String jsonField(const char* key, const char* value, bool last = false) {
   return field;
 }
 
+String sanitizeBluetoothName(const String& raw) {
+  String cleaned;
+  cleaned.reserve(raw.length());
+  for (size_t i = 0; i < raw.length(); ++i) {
+    char c = raw[i];
+    if (c >= 32 && c != 127) {
+      cleaned += c;
+    }
+    if (cleaned.length() >= 29) {
+      break;
+    }
+  }
+  cleaned.trim();
+  return cleaned;
+}
+
+void ensureBluetoothName() {
+  if (bluetoothDeviceName.length() == 0) {
+    bluetoothDeviceName = defaultBluetoothName.length() > 0 ? defaultBluetoothName : String("ESP32 Diagnostic");
+  }
+}
+
+void syncBluetoothDiagnostics() {
+  ensureBluetoothName();
+
+  bool supported = bluetoothCapable;
+  bool hasRadio = diagnosticData.hasBLE || diagnosticData.hasBT;
+  diagnosticData.bluetoothName = bluetoothDeviceName;
+  diagnosticData.bluetoothEnabled = supported && bluetoothEnabled;
+  diagnosticData.bluetoothAdvertising = supported && bluetoothAdvertising;
+
+  if (hasRadio) {
+    uint8_t mac[6] = {0};
+    if (esp_read_mac(mac, ESP_MAC_BT) == ESP_OK) {
+      char macStr[18];
+      sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X",
+              mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+      diagnosticData.bluetoothAddress = String(macStr);
+    } else {
+      diagnosticData.bluetoothAddress = String("--:--:--:--:--:--");
+    }
+  } else {
+    diagnosticData.bluetoothAddress = String("--:--:--:--:--:--");
+  }
+}
+
+String getBluetoothStateLabel() {
+  if (!bluetoothCapable) {
+    return String(T().bluetooth_not_supported);
+  }
+  if (!bluetoothEnabled) {
+    return String(T().bluetooth_disabled);
+  }
+  if (bluetoothAdvertising) {
+    return String(T().bluetooth_advertising);
+  }
+  return String(T().bluetooth_not_advertising);
+}
+
+String getBluetoothSummaryLabel() {
+  if (!bluetoothCapable) {
+    return String(T().bluetooth_not_supported);
+  }
+  if (!bluetoothEnabled) {
+    return String(T().bluetooth_disabled);
+  }
+
+  ensureBluetoothName();
+  String summary = bluetoothDeviceName;
+  summary += " • ";
+  summary += bluetoothAdvertising ? String(T().bluetooth_advertising) : String(T().bluetooth_not_advertising);
+  return summary;
+}
+
+String buildBluetoothJSON(bool success, const String& message) {
+  syncBluetoothDiagnostics();
+
+  String json = "{";
+  json += "\"success\":" + String(success ? "true" : "false") + ",";
+  json += "\"supported\":" + String(bluetoothCapable ? "true" : "false") + ",";
+  json += "\"enabled\":" + String((bluetoothCapable && bluetoothEnabled) ? "true" : "false") + ",";
+  json += "\"advertising\":" + String((bluetoothCapable && bluetoothAdvertising) ? "true" : "false") + ",";
+  json += "\"name\":\"" + jsonEscape(bluetoothDeviceName.c_str()) + "\",";
+  json += "\"mac\":\"" + jsonEscape(diagnosticData.bluetoothAddress.c_str()) + "\",";
+  String status = getBluetoothStateLabel();
+  json += "\"status\":\"" + jsonEscape(status.c_str()) + "\",";
+  String summary = getBluetoothSummaryLabel();
+  json += "\"summary\":\"" + jsonEscape(summary.c_str()) + "\",";
+  json += "\"message\":\"" + jsonEscape(message.c_str()) + "\"";
+  json += "}";
+  return json;
+}
+
+bool startBluetooth() {
+  ensureBluetoothName();
+
+  if (!bluetoothCapable || !BLE_STACK_SUPPORTED) {
+    bluetoothEnabled = false;
+    bluetoothAdvertising = false;
+    return false;
+  }
+
+#if BLE_STACK_SUPPORTED
+  if (bluetoothAdvertising) {
+    bluetoothEnabled = true;
+    return true;
+  }
+
+  BLEDevice::init(bluetoothDeviceName.c_str());
+  bluetoothServer = BLEDevice::createServer();
+  if (!bluetoothServer) {
+    bluetoothEnabled = false;
+    bluetoothAdvertising = false;
+    return false;
+  }
+
+  bluetoothService = bluetoothServer->createService(BLEUUID((uint16_t)0x180A));
+  if (!bluetoothService) {
+    BLEDevice::deinit(true);
+    bluetoothServer = nullptr;
+    bluetoothEnabled = false;
+    bluetoothAdvertising = false;
+    return false;
+  }
+
+  bluetoothCharacteristic = bluetoothService->createCharacteristic(
+      BLEUUID((uint16_t)0x2A29),
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
+  if (bluetoothCharacteristic) {
+    bluetoothCharacteristic->setValue("ESP32 Diagnostic");
+    bluetoothCharacteristic->addDescriptor(new BLE2902());
+  }
+
+  bluetoothService->start();
+  BLEAdvertising* advertising = BLEDevice::getAdvertising();
+  if (!advertising) {
+    bluetoothService->stop();
+    BLEDevice::deinit(true);
+    bluetoothServer = nullptr;
+    bluetoothService = nullptr;
+    bluetoothCharacteristic = nullptr;
+    bluetoothEnabled = false;
+    bluetoothAdvertising = false;
+    return false;
+  }
+
+  advertising->addServiceUUID(bluetoothService->getUUID());
+  advertising->setScanResponse(true);
+  advertising->start();
+
+  bluetoothEnabled = true;
+  bluetoothAdvertising = true;
+  return true;
+#else
+  return false;
+#endif
+}
+
+void stopBluetooth() {
+#if BLE_STACK_SUPPORTED
+  if (bluetoothAdvertising) {
+    BLEAdvertising* advertising = BLEDevice::getAdvertising();
+    if (advertising) {
+      advertising->stop();
+    }
+  }
+
+  if (bluetoothService) {
+    bluetoothService->stop();
+  }
+  if (bluetoothServer) {
+    bluetoothServer->disconnect(0);
+  }
+
+  BLEDevice::deinit(true);
+  bluetoothServer = nullptr;
+  bluetoothService = nullptr;
+  bluetoothCharacteristic = nullptr;
+#endif
+
+  bluetoothEnabled = false;
+  bluetoothAdvertising = false;
+}
+
 void handleGetTranslations() {
   // Envoie toutes les traductions en JSON pour mise à jour dynamique
   String json = "{";
@@ -2314,12 +2593,30 @@ void handleGetTranslations() {
   json += jsonField("nav_screens", T().nav_screens);
   json += jsonField("nav_tests", T().nav_tests);
   json += jsonField("nav_gpio", T().nav_gpio);
-  json += jsonField("nav_wifi", T().nav_wifi);
+  json += jsonField("nav_wireless", T().nav_wireless);
   json += jsonField("nav_benchmark", T().nav_benchmark);
   json += jsonField("nav_export", T().nav_export);
   json += jsonField("chip_info", T().chip_info);
   json += jsonField("memory_details", T().memory_details);
   json += jsonField("wifi_connection", T().wifi_connection);
+  json += jsonField("bluetooth_section", T().bluetooth_section);
+  json += jsonField("bluetooth_status", T().bluetooth_status);
+  json += jsonField("bluetooth_name", T().bluetooth_name);
+  json += jsonField("bluetooth_mac", T().bluetooth_mac);
+  json += jsonField("bluetooth_actions", T().bluetooth_actions);
+  json += jsonField("bluetooth_enable", T().bluetooth_enable);
+  json += jsonField("bluetooth_disable", T().bluetooth_disable);
+  json += jsonField("bluetooth_rename", T().bluetooth_rename);
+  json += jsonField("bluetooth_reset", T().bluetooth_reset);
+  json += jsonField("bluetooth_placeholder", T().bluetooth_placeholder);
+  json += jsonField("bluetooth_not_supported", T().bluetooth_not_supported);
+  json += jsonField("bluetooth_disabled", T().bluetooth_disabled);
+  json += jsonField("bluetooth_enabled", T().bluetooth_enabled);
+  json += jsonField("bluetooth_advertising", T().bluetooth_advertising);
+  json += jsonField("bluetooth_not_advertising", T().bluetooth_not_advertising);
+  json += jsonField("bluetooth_updated", T().bluetooth_updated);
+  json += jsonField("bluetooth_error", T().bluetooth_error);
+  json += jsonField("bluetooth_reset_done", T().bluetooth_reset_done);
   json += jsonField("gpio_interfaces", T().gpio_interfaces);
   json += jsonField("i2c_peripherals", T().i2c_peripherals);
   json += jsonField("builtin_led", T().builtin_led);
@@ -2335,8 +2632,110 @@ void handleGetTranslations() {
   json += jsonField("performance_bench", T().performance_bench);
   json += jsonField("data_export", T().data_export, true);
   json += "}";
-  
+
   server.send(200, "application/json", json);
+}
+
+// --- [NEW FEATURE] API de contrôle Bluetooth ---
+void handleBluetoothStatus() {
+  String message = getBluetoothStateLabel();
+  server.send(200, "application/json", buildBluetoothJSON(true, message));
+}
+
+void handleBluetoothToggle() {
+  if (!server.hasArg("state")) {
+    server.send(400, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
+    return;
+  }
+
+  String state = server.arg("state");
+  state.toLowerCase();
+  bool enable = (state == "on" || state == "1" || state == "true");
+
+  bool supported = bluetoothCapable && BLE_STACK_SUPPORTED;
+  bool success = false;
+  String message;
+
+  if (!supported) {
+    message = String(T().bluetooth_not_supported);
+  } else if (enable) {
+    success = startBluetooth();
+    message = success ? String(T().bluetooth_enabled) : String(T().bluetooth_error);
+  } else {
+    stopBluetooth();
+    success = true;
+    message = String(T().bluetooth_disabled);
+  }
+
+  if (!supported) {
+    success = false;
+  }
+
+  server.send(200, "application/json", buildBluetoothJSON(success, message));
+}
+
+void handleBluetoothName() {
+  if (!server.hasArg("name")) {
+    server.send(400, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
+    return;
+  }
+
+  String candidate = sanitizeBluetoothName(server.arg("name"));
+  if (candidate.length() == 0) {
+    server.send(200, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
+    return;
+  }
+
+  bool supported = bluetoothCapable && BLE_STACK_SUPPORTED;
+  bool wasActive = supported && bluetoothEnabled;
+  bool success = true;
+
+  if (wasActive) {
+    stopBluetooth();
+  }
+
+  bluetoothDeviceName = candidate;
+
+  if (wasActive) {
+    success = startBluetooth();
+  }
+
+  String message;
+  if (!supported) {
+    message = String(T().bluetooth_not_supported);
+    success = false;
+  } else {
+    message = success ? String(T().bluetooth_updated) : String(T().bluetooth_error);
+  }
+
+  server.send(200, "application/json", buildBluetoothJSON(success, message));
+}
+
+void handleBluetoothReset() {
+  ensureBluetoothName();
+  bool supported = bluetoothCapable && BLE_STACK_SUPPORTED;
+  bool wasActive = supported && bluetoothEnabled;
+  bool success = true;
+
+  if (wasActive) {
+    stopBluetooth();
+  }
+
+  bluetoothDeviceName = defaultBluetoothName.length() > 0 ? defaultBluetoothName : String("ESP32 Diagnostic");
+
+  if (wasActive) {
+    success = startBluetooth();
+  }
+
+  String message;
+  if (!supported) {
+    message = String(T().bluetooth_not_supported);
+    success = false;
+  } else {
+    message = success ? String(T().bluetooth_reset_done) : String(T().bluetooth_error);
+  }
+
+  server.send(200, "application/json", buildBluetoothJSON(success, message));
 }
 
 // ========== INTERFACE WEB PRINCIPALE MULTILINGUE ==========
@@ -2780,6 +3179,11 @@ a{color:inherit;}
   if (diagnosticData.wifiSSID.length() > 0 && WiFi.status() == WL_CONNECTED) {
     wifiSummary = diagnosticData.wifiSSID + " (" + String(diagnosticData.wifiRSSI) + " dBm)";
   }
+  String bluetoothSummary = getBluetoothSummaryLabel();
+  String bluetoothStatusText = getBluetoothStateLabel();
+  String bluetoothNameDisplay = diagnosticData.bluetoothName.length() > 0 ? diagnosticData.bluetoothName : defaultBluetoothName;
+  String bluetoothDisableAttr = bluetoothCapable ? "" : " disabled";
+  String bluetoothFeedbackText = bluetoothCapable ? "" : String(T().bluetooth_not_supported);
   String accessSummary = "<a href='http://" + String(MDNS_HOSTNAME) + ".local' target='_blank' style='color:inherit;text-decoration:none'>http://" + String(MDNS_HOSTNAME) + ".local</a><br>" + diagnosticData.ipAddress;
 
   chunk = "<div class='app-shell'>";
@@ -2802,6 +3206,7 @@ a{color:inherit;}
   chunk += "<div class='header-info'>";
   chunk += "<div class='header-card'><strong data-i18n='chip_info'>" + String(T().chip_info) + "</strong><span>" + diagnosticData.chipModel + "</span></div>";
   chunk += "<div class='header-card'><strong data-i18n='wifi_connection'>" + String(T().wifi_connection) + "</strong><span>" + wifiSummary + "</span></div>";
+  chunk += "<div class='header-card'><strong data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</strong><span id='bluetoothSummary'>" + htmlEscape(bluetoothSummary) + "</span></div>";
   chunk += "<div class='header-card'><strong data-i18n='access'>" + String(T().access) + "</strong><span>" + accessSummary + "</span></div>";
   chunk += "<div class='header-card'><strong>Arduino Core</strong><span>" + getArduinoCoreVersionString() + "</span></div>";
   chunk += "</div>";
@@ -2814,7 +3219,7 @@ a{color:inherit;}
   chunk += "<a href='#screens' class='nav-link' data-target='screens' onclick=\"return showTab('screens',this);\"><span class='label' data-i18n='nav_screens'>" + String(T().nav_screens) + "</span><span class='icon'>🖥️</span></a>";
   chunk += "<a href='#tests' class='nav-link' data-target='tests' onclick=\"return showTab('tests',this);\"><span class='label' data-i18n='nav_tests'>" + String(T().nav_tests) + "</span><span class='icon'>🧪</span></a>";
   chunk += "<a href='#gpio' class='nav-link' data-target='gpio' onclick=\"return showTab('gpio',this);\"><span class='label' data-i18n='nav_gpio'>" + String(T().nav_gpio) + "</span><span class='icon'>🔌</span></a>";
-  chunk += "<a href='#wifi' class='nav-link' data-target='wifi' onclick=\"return showTab('wifi',this);\"><span class='label' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</span><span class='icon'>📡</span></a>";
+  chunk += "<a href='#wireless' class='nav-link' data-target='wireless' onclick=\"return showTab('wireless',this);\"><span class='label' data-i18n='nav_wireless'>" + String(T().nav_wireless) + "</span><span class='icon'>📡</span></a>";
   chunk += "<a href='#benchmark' class='nav-link' data-target='benchmark' onclick=\"return showTab('benchmark',this);\"><span class='label' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</span><span class='icon'>⚡</span></a>";
   chunk += "<a href='#export' class='nav-link' data-target='export' onclick=\"return showTab('export',this);\"><span class='label' data-i18n='nav_export'>" + String(T().nav_export) + "</span><span class='icon'>💾</span></a>";
   chunk += "</nav>";
@@ -2899,6 +3304,8 @@ a{color:inherit;}
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().ip_address) + "</div><div class='info-value'>" + diagnosticData.ipAddress + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().subnet_mask) + "</div><div class='info-value'>" + WiFi.subnetMask().toString() + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().gateway) + "</div><div class='info-value'>" + WiFi.gatewayIP().toString() + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</div><div class='info-value'>" + htmlEscape(bluetoothSummary) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_mac'>" + String(T().bluetooth_mac) + "</div><div class='info-value'>" + diagnosticData.bluetoothAddress + "</div></div>";
   chunk += "</div></div>";
   server.sendContent(chunk);
   
@@ -3037,13 +3444,30 @@ a{color:inherit;}
   chunk += "</div><div id='gpio-results' class='gpio-grid'></div></div></div>";
   server.sendContent(chunk);
   
-  // CHUNK 8: TAB WiFi
-  chunk = "<div id='wifi' class='tab-content'>";
+  // CHUNK 8: TAB Wireless
+  chunk = "<div id='wireless' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().wifi_scanner) + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='scanWiFi()'>" + String(T().scan_networks) + "</button>";
   chunk += "<div id='wifi-status' class='status-live'>" + String(T().click_to_test) + "</div>";
-  chunk += "</div><div id='wifi-results' class='wifi-list'></div></div></div>";
+  chunk += "</div><div id='wifi-results' class='wifi-list'></div></div>";
+  chunk += "<div class='section'><h2 data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</h2>";
+  chunk += "<div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_status'>" + String(T().bluetooth_status) + "</div><div class='info-value' id='bluetooth-status'>" + htmlEscape(bluetoothStatusText) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_name'>" + String(T().bluetooth_name) + "</div><div class='info-value' id='bluetooth-name'>" + htmlEscape(bluetoothNameDisplay) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_mac'>" + String(T().bluetooth_mac) + "</div><div class='info-value' id='bluetooth-mac'>" + diagnosticData.bluetoothAddress + "</div></div>";
+  chunk += "</div>";
+  chunk += "<div class='card' style='margin-top:20px'>";
+  chunk += "<h3 data-i18n='bluetooth_actions'>" + String(T().bluetooth_actions) + "</h3>";
+  chunk += "<div style='display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:15px'>";
+  chunk += "<button type='button' class='btn btn-success' data-i18n='bluetooth_enable' onclick=\"toggleBluetooth(true)\" data-bt-control='1'" + bluetoothDisableAttr + ">" + String(T().bluetooth_enable) + "</button>";
+  chunk += "<button type='button' class='btn btn-warning' data-i18n='bluetooth_disable' onclick=\"toggleBluetooth(false)\" data-bt-control='1'" + bluetoothDisableAttr + ">" + String(T().bluetooth_disable) + "</button>";
+  chunk += "<input type='text' id='bluetoothNameInput' data-bt-control='1' value='" + htmlEscape(bluetoothNameDisplay) + "' placeholder='" + String(T().bluetooth_placeholder) + "'" + bluetoothDisableAttr + ">";
+  chunk += "<button type='button' class='btn btn-info' data-i18n='bluetooth_rename' onclick=\"renameBluetooth()\" data-bt-control='1'" + bluetoothDisableAttr + ">" + String(T().bluetooth_rename) + "</button>";
+  chunk += "<button type='button' class='btn btn-danger' data-i18n='bluetooth_reset' onclick=\"resetBluetooth()\" data-bt-control='1'" + bluetoothDisableAttr + ">" + String(T().bluetooth_reset) + "</button>";
+  chunk += "</div>";
+  chunk += "<div id='bluetooth-feedback' class='status-live'>" + htmlEscape(bluetoothFeedbackText) + "</div>";
+  chunk += "</div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 9: TAB Benchmark
@@ -3098,6 +3522,13 @@ a{color:inherit;}
   chunk += "function connectionLabelText(online){return online?(currentLang==='fr'?'En ligne':'Online'):(currentLang==='fr'?'Hors ligne':'Offline');}";
   chunk += "function updateStatusIndicator(online){connectionState=!!online;var indicator=document.getElementById('statusIndicator');var label=document.getElementById('connectionLabel');if(indicator){indicator.classList.remove('status-online','status-offline');indicator.classList.add(online?'status-online':'status-offline');}if(label){label.textContent=connectionLabelText(online);}if(!online){showInlineMessage(connectionLabelText(false)+' — '+(currentLang==='fr'?'Vérifiez le réseau.':'Check the network.'),'error');}else{clearInlineMessage();}}";
 
+  chunk += "function updateBluetoothFeedback(message,state,notify){var box=document.getElementById('bluetooth-feedback');if(!box){return;}if(typeof message==='undefined'||message===null){message='';}box.textContent=message;box.classList.remove('success','error');if(state){box.classList.add(state);}if(notify&&message){if(state==='error'){showInlineMessage(message,'error');}else if(state==='success'){showInlineMessage(message,'success');}}else if(notify&&!message){clearInlineMessage();}}";
+  chunk += "function applyBluetoothState(data,notify){if(!data){return;}var statusEl=document.getElementById('bluetooth-status');if(statusEl&&typeof data.status!=='undefined'){statusEl.textContent=data.status;}var nameEl=document.getElementById('bluetooth-name');if(nameEl&&typeof data.name!=='undefined'){nameEl.textContent=data.name;}var macEl=document.getElementById('bluetooth-mac');if(macEl&&typeof data.mac!=='undefined'){macEl.textContent=data.mac;}var input=document.getElementById('bluetoothNameInput');if(input&&typeof data.name!=='undefined'){input.value=data.name;}var summary=document.getElementById('bluetoothSummary');if(summary&&typeof data.summary!=='undefined'){summary.textContent=data.summary;}var controls=document.querySelectorAll('[data-bt-control=\"1\"]');if(controls&&controls.length){for(var i=0;i<controls.length;i++){controls[i].disabled=(data.supported===false);}}var message=(typeof data.message==='string')?data.message:'';var state=null;if(typeof data.success!=='undefined'){state=data.success?'success':'error';}if(notify){updateBluetoothFeedback(message,state,true);}else if(data.supported===false){updateBluetoothFeedback(message,'error',false);}else{updateBluetoothFeedback('',null,false);}}";
+  chunk += "function refreshBluetoothStatus(showNotice){fetch('/api/bluetooth/status').then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,showNotice);}).catch(function(err){var message=(currentLang==='fr'?'Erreur Bluetooth: ':'Bluetooth error: ')+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',showNotice);});}";
+  chunk += "function toggleBluetooth(enable){updateBluetoothFeedback(enable?(currentLang==='fr'?'Activation...':'Enabling...'):(currentLang==='fr'?'Désactivation...':'Disabling...'),null,false);fetch('/api/bluetooth/toggle?state='+(enable?'on':'off')).then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,true);}).catch(function(err){var message=(currentLang==='fr'?'Erreur Bluetooth: ':'Bluetooth error: ')+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',true);});return false;}";
+  chunk += "function renameBluetooth(){var input=document.getElementById('bluetoothNameInput');if(!input){return false;}var value=input.value||'';if(!value.trim()){updateBluetoothFeedback(currentLang==='fr'?'Nom Bluetooth invalide':'Invalid Bluetooth name','error',true);return false;}updateBluetoothFeedback(currentLang==='fr'?'Mise à jour...':'Updating...',null,false);fetch('/api/bluetooth/name?name='+encodeURIComponent(value.trim())).then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,true);}).catch(function(err){var message=(currentLang==='fr'?'Erreur Bluetooth: ':'Bluetooth error: ')+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',true);});return false;}";
+  chunk += "function resetBluetooth(){updateBluetoothFeedback(currentLang==='fr'?'Réinitialisation...':'Resetting...',null,false);fetch('/api/bluetooth/reset').then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,true);}).catch(function(err){var message=(currentLang==='fr'?'Erreur Bluetooth: ':'Bluetooth error: ')+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',true);});return false;}";
+
   chunk += "function changeLang(lang,btn){";
   chunk += "fetch('/api/set-language?lang='+lang).then(function(r){return r.json();}).then(function(d){";
   chunk += "if(!d.success){throw new Error(d.message||'lang');}";
@@ -3116,6 +3547,8 @@ a{color:inherit;}
   chunk += "var mainTitle=document.getElementById('main-title');if(mainTitle){mainTitle.textContent=tr.title+' v" + String(DIAGNOSTIC_VERSION) + "';}";
   chunk += "var nodes=document.querySelectorAll('[data-i18n]');";
   chunk += "for(var i=0;i<nodes.length;i++){var key=nodes[i].getAttribute('data-i18n');if(tr[key]){nodes[i].textContent=tr[key];}}";
+  chunk += "var btInput=document.getElementById('bluetoothNameInput');if(btInput&&tr.bluetooth_placeholder){btInput.setAttribute('placeholder',tr.bluetooth_placeholder);}";
+  chunk += "refreshBluetoothStatus(false);";
   chunk += "updateStatusIndicator(connectionState);";
   chunk += "if(showNotice){showInlineMessage(currentLang==='fr'?'Langue mise à jour':'Language updated','success');}";
   chunk += "}).catch(function(err){var message=err&&err.message?err.message:err;showInlineMessage((currentLang==='fr'?'Erreur traduction: ':'Translation error: ')+message,'error');});";
@@ -3123,11 +3556,11 @@ a{color:inherit;}
 
   // --- [NEW FEATURE] Navigation accessible avec repli hash ---
   chunk += "function findNavTrigger(el){while(el&&el.classList&&!el.classList.contains('nav-link')){el=el.parentElement;}if(el&&el.classList&&el.classList.contains('nav-link')){return el;}return null;}";
-  chunk += "function showTab(tabId,trigger,updateHash){if(!tabId){return false;}clearInlineMessage();var tabs=document.querySelectorAll('.tab-content');for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');}var target=document.getElementById(tabId);if(target){target.classList.add('active');if(typeof target.scrollIntoView==='function'){target.scrollIntoView();}}var buttons=document.querySelectorAll('.nav-link');for(var j=0;j<buttons.length;j++){buttons[j].classList.remove('active');buttons[j].removeAttribute('aria-current');}var actual=trigger;if(!actual||!actual.classList){var selector=\".nav-link[data-target='\"+tabId+\"']\";actual=document.querySelector(selector);}if(actual&&actual.classList){actual.classList.add('active');actual.setAttribute('aria-current','page');}if(updateHash!==false){if(window.location.hash!=='#'+tabId){ignoreHashChange=true;window.location.hash=tabId;setTimeout(function(){ignoreHashChange=false;},0);}}return false;}";
+  chunk += "function showTab(tabId,trigger,updateHash){if(!tabId){return false;}if(tabId==='wifi'){tabId='wireless';}clearInlineMessage();var tabs=document.querySelectorAll('.tab-content');for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');}var target=document.getElementById(tabId);if(target){target.classList.add('active');if(typeof target.scrollIntoView==='function'){target.scrollIntoView();}}var buttons=document.querySelectorAll('.nav-link');for(var j=0;j<buttons.length;j++){buttons[j].classList.remove('active');buttons[j].removeAttribute('aria-current');}var actual=trigger;if(!actual||!actual.classList){var selector=\".nav-link[data-target='\"+tabId+\"']\";actual=document.querySelector(selector);}if(actual&&actual.classList){actual.classList.add('active');actual.setAttribute('aria-current','page');}if(updateHash!==false){if(window.location.hash!=='#'+tabId){ignoreHashChange=true;window.location.hash=tabId;setTimeout(function(){ignoreHashChange=false;},0);}}return false;}";
   chunk += "function initStickyNav(){var wrapper=document.querySelector('.nav-wrapper');if(!wrapper||wrapper.getAttribute('data-sticky-init')==='1'){return;}wrapper.setAttribute('data-sticky-init','1');var header=document.querySelector('.app-header');var apply=function(state){if(state){wrapper.classList.add('is-sticky');}else{wrapper.classList.remove('is-sticky');}};";
   chunk += "if('IntersectionObserver' in window&&header){var observer=new IntersectionObserver(function(entries){for(var i=0;i<entries.length;i++){if(entries[i].target===header){apply(!entries[i].isIntersecting);}}},{threshold:0,rootMargin:'-1px 0px 0px 0px'});observer.observe(header);}else{var last=false;window.addEventListener('scroll',function(){var offset=window.pageYOffset||document.documentElement.scrollTop||0;var limit=header?header.offsetHeight:220;var state=offset>limit;if(state!==last){last=state;apply(state);}});} }";
-  chunk += "function initNavigation(){var navs=document.querySelectorAll('.primary-nav');if(navs&&navs.length){for(var n=0;n<navs.length;n++){(function(nav){nav.addEventListener('click',function(evt){var source=evt.target||evt.srcElement;var button=findNavTrigger(source);if(!button){return;}evt.preventDefault();var targetTab=button.getAttribute('data-target');if(targetTab){showTab(targetTab,button);}});})(navs[n]);}}var initial=window.location.hash?window.location.hash.substring(1):null;var defaultButton=document.querySelector('.nav-link.active');if(!initial&&defaultButton){initial=defaultButton.getAttribute('data-target');}if(!initial){var list=document.querySelectorAll('.nav-link');if(list.length>0){initial=list[0].getAttribute('data-target');defaultButton=list[0];}}var initialButton=null;if(initial){initialButton=document.querySelector(\".nav-link[data-target='\"+initial+\"']\");}if(initial){showTab(initial,initialButton,false);}else{showTab('overview',null,false);}initStickyNav();updateStatusIndicator(connectionState);}";
-  chunk += "window.addEventListener('hashchange',function(){if(ignoreHashChange){return;}var target=window.location.hash?window.location.hash.substring(1):'overview';showTab(target,null,false);});";
+  chunk += "function initNavigation(){var navs=document.querySelectorAll('.primary-nav');if(navs&&navs.length){for(var n=0;n<navs.length;n++){(function(nav){nav.addEventListener('click',function(evt){var source=evt.target||evt.srcElement;var button=findNavTrigger(source);if(!button){return;}evt.preventDefault();var targetTab=button.getAttribute('data-target');if(targetTab){showTab(targetTab,button);}});})(navs[n]);}}var initial=window.location.hash?window.location.hash.substring(1):null;var defaultButton=document.querySelector('.nav-link.active');if(initial==='wifi'){initial='wireless';}if(!initial&&defaultButton){initial=defaultButton.getAttribute('data-target');}if(!initial){var list=document.querySelectorAll('.nav-link');if(list.length>0){initial=list[0].getAttribute('data-target');defaultButton=list[0];}}var initialButton=null;if(initial){initialButton=document.querySelector(\".nav-link[data-target='\"+initial+\"']\");}if(initial){showTab(initial,initialButton,false);}else{showTab('overview',null,false);}initStickyNav();updateStatusIndicator(connectionState);refreshBluetoothStatus(false);}";
+  chunk += "window.addEventListener('hashchange',function(){if(ignoreHashChange){return;}var target=window.location.hash?window.location.hash.substring(1):'overview';if(target==='wifi'){target='wireless';}showTab(target,null,false);});";
   chunk += "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initNavigation);}else{initNavigation();}";
 
   chunk += "function configBuiltinLED(){updateStatus('builtin-led-status','Configuration...',null);fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';updateStatus('builtin-led-status',d.message||'GPIO invalide',state);}).catch(function(e){updateStatus('builtin-led-status','Erreur: '+e,'error');});}";
@@ -3178,6 +3611,17 @@ void setup() {
   Serial.printf("     Version %s - FR/EN\r\n", DIAGNOSTIC_VERSION_STR);
   Serial.printf("     Arduino Core %s\r\n", getArduinoCoreVersionString().c_str());
   Serial.println("===============================================\r\n");
+
+  uint8_t btMac[6] = {0};
+  if (esp_read_mac(btMac, ESP_MAC_BT) != ESP_OK) {
+    esp_read_mac(btMac, ESP_MAC_WIFI_STA);
+  }
+  char btSuffix[5];
+  sprintf(btSuffix, "%02X%02X", btMac[4], btMac[5]);
+  defaultBluetoothName = String("ESP32Diag-") + String(btSuffix);
+  bluetoothDeviceName = sanitizeBluetoothName(defaultBluetoothName);
+  bluetoothEnabled = false;
+  bluetoothAdvertising = false;
 
   printPSRAMDiagnostic();
 
@@ -3257,6 +3701,12 @@ void setup() {
   server.on("/api/test-gpio", handleTestGPIO);
   server.on("/api/wifi-scan", handleWiFiScan);
   server.on("/api/i2c-scan", handleI2CScan);
+
+  // Bluetooth
+  server.on("/api/bluetooth/status", handleBluetoothStatus);
+  server.on("/api/bluetooth/toggle", handleBluetoothToggle);
+  server.on("/api/bluetooth/name", handleBluetoothName);
+  server.on("/api/bluetooth/reset", handleBluetoothReset);
   
   // LED intégrée
   server.on("/api/builtin-led-config", handleBuiltinLEDConfig);
