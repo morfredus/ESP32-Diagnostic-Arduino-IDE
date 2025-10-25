@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.26-maint - Correction accents statut I2C
 // Version de dev : 3.0.25-dev - Cartouche Bluetooth & activation auto BLE
 // Version de dev : 3.0.24-dev - Activation universelle des bibliothèques BLE
 // Version de dev : 3.0.23-dev - Service BLE complet & compatibilité automatique
@@ -122,7 +123,8 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.25-dev"
+// --- [MAINTENANCE] Mise à jour version interne ---
+#define DIAGNOSTIC_VERSION "3.0.26-maint"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -841,7 +843,8 @@ void scanI2C() {
   if (diagnosticData.i2cCount == 0) {
     diagnosticData.i2cDevices = "Aucun";
   }
-  Serial.printf("I2C: %d peripherique(s)\r\n", diagnosticData.i2cCount);
+  // --- [MAINTENANCE] Correction libellé I2C série ---
+  Serial.printf("I2C: %d périphérique(s)\r\n", diagnosticData.i2cCount);
 }
 
 // ========== SCAN WIFI ==========
@@ -3985,7 +3988,8 @@ a{color:inherit;}
 
   chunk += "function scanWiFi(){document.getElementById('wifi-status').innerHTML='Scan...';fetch('/api/wifi-scan').then(function(r){return r.json();}).then(function(data){var h='';if(data.networks&&data.networks.forEach){data.networks.forEach(function(n){var s=n.rssi>=-60?'🟢':(n.rssi>=-70?'🟡':'🔴');var freq=(n.freq&&n.freq>0)?n.freq+' MHz':'';var pieces=[];if(n.bssid){pieces.push(n.bssid);}if(n.channel){pieces.push('Ch'+n.channel);}if(n.band){pieces.push(n.band);}if(freq){pieces.push(freq);}if(n.bandwidth){pieces.push(n.bandwidth);}if(n.phy){pieces.push(n.phy);}if(n.encryption&&n.encryption!=='-'){pieces.push(n.encryption);}var details=pieces.join(' | ');h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+details+'</small></div><div style=\"font-size:1.2em;font-weight:bold\">'+n.rssi+' dBm</div></div></div>';});}document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' reseaux detectes';});}";
 
-  chunk += "function scanI2C(){updateStatus('i2c-status','Scan...',null);fetch('/api/i2c-scan').then(function(r){return r.json();}).then(function(d){var msg='I2C: '+d.count+' peripherique(s)';updateStatus('i2c-status',msg,'success');var summary=document.getElementById('i2c-summary');if(summary){summary.textContent=d.count+' peripherique(s) - '+d.devices;}}).catch(function(e){updateStatus('i2c-status','Erreur: '+e,'error');});}";
+  // --- [MAINTENANCE] Correction libellé I2C interface ---
+  chunk += "function scanI2C(){updateStatus('i2c-status','Scan...',null);fetch('/api/i2c-scan').then(function(r){return r.json();}).then(function(d){var msg='I2C: '+d.count+' périphérique(s)';updateStatus('i2c-status',msg,'success');var summary=document.getElementById('i2c-summary');if(summary){summary.textContent=d.count+' périphérique(s) - '+d.devices;}}).catch(function(e){updateStatus('i2c-status','Erreur: '+e,'error');});}";
 
   chunk += "function runBenchmarks(){document.getElementById('cpu-bench').innerHTML='Test...';document.getElementById('mem-bench').innerHTML='Test...';fetch('/api/benchmark').then(function(r){return r.json();}).then(function(data){document.getElementById('cpu-bench').innerHTML=data.cpu+' us';document.getElementById('mem-bench').innerHTML=data.memory+' us';document.getElementById('cpu-perf').innerHTML=data.cpuPerf.toFixed(2)+' MFLOPS';document.getElementById('mem-speed').innerHTML=data.memSpeed.toFixed(2)+' MB/s';});}";
 
