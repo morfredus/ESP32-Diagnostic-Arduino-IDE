@@ -1,291 +1,130 @@
 # Changelog
 
-All notable changes to the ESP32 Complete Diagnostic Tool will be documented in this file.
+Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [3.1.1] - 2025-10-26
+### Corrections
+- Suppression des commentaires obsolètes et marqueurs internes pour clarifier la maintenance du firmware.
+
+### Documentation
+- Mise à jour des guides FR/EN, exports et constantes pour refléter le passage en version 3.1.1.
+
+---
+
+## [3.1.0] - 2025-10-24
+### Points forts
+- Activation automatique du service Bluetooth® Low Energy avec diffusion native sur les cibles compatibles (ESP32, S3, C3, C6, H2).
+- Tableau de bord web enrichi d'une cartouche BLE détaillant l'état, le nom du périphérique et les journaux d'appairage récents.
+- Jeux de documents FR/EN entièrement réécrits couvrant installation, configuration, utilisation, architecture, dépannage et contribution.
+
+### Fonctionnalités
+- Service GATT par défaut avec renommage dynamique du périphérique via l'interface web ou la console série.
+- Nouveaux messages d'état Wi-Fi contextualisés (association, DHCP, authentification, portail captif) affichés dans le bandeau supérieur et l'API REST.
+- Prise en charge initiale assouplie pour les révisions récentes des SoC ESP32 (S3/C3/C6/H2) sur les modules BLE et Wi-Fi.
+
+### Interface & API
+- Navigation par onglets fiabilisée via délégation d'événements JavaScript, évitant les blocages après un rafraîchissement partiel.
+- Menu supérieur responsive avec regroupement monoligne des indicateurs de statut pour les écrans < 768 px.
+- Export TXT/JSON/CSV et aperçu imprimable synchronisés avec les nouveaux états BLE et Wi-Fi.
+
+### Documentation
+- Regroupement des guides dans `docs/` avec renvois croisés vers les versions anglaises et françaises.
+- Ajout d'un guide de contribution détaillé (workflow Git, validation, formatage) et de procédures de dépannage spécifiques BLE/Wi-Fi.
+
+### Corrections
+- Harmonisation des messages BLE entre la console série, l'API `/api/status` et l'interface web.
+- Nettoyage du JSON de traduction dynamique pour éviter les clés orphelines et incohérences de casse.
+- Clarification de la détection des onglets actifs dans le bundle JavaScript, supprimant les doublons d'écouteurs.
+
+---
 
 ## [2.6.0] - 2025-10-15
+### Fonctionnalités
+- Boutons manuels sur l'interface web et endpoints REST associés pour piloter individuellement chaque animation de diagnostic OLED.
+- Possibilité de déclencher et d'arrêter les séquences d'affichage directement depuis la console série.
 
-### Removed
-- Dropped TFT SPI display support, associated libraries, and UI elements.
+### Améliorations
+- Simplification du flux de reconfiguration I²C OLED : sélection des broches SDA/SCL et vitesse directement depuis l'interface.
+- Actualisation du pack de traductions (FR/EN) pour tous les nouveaux libellés OLED et états d'exécution.
 
-### Added
-- Manual step buttons for each OLED diagnostic animation via the web interface and API.
-
-### Changed
-- Simplified OLED I2C reconfiguration workflow and refreshed translations.
+### Corrections
+- Suppression complète de la prise en charge TFT (firmware, dépendances Arduino, fragments UI), réduisant la taille du binaire et les avertissements de compilation.
 
 ---
 
 ## [2.5.1] - 2025-10-10
+### Corrections
+- Statuts PSRAM clarifiés dans le tableau de bord, les exports et les rapports imprimables (valeur détectée, fréquence, mode octal).
+- Ajustement de l'ordre de détection PSRAM pour éviter les faux négatifs sur ESP32-WROVER.
 
-### Changed
-- Clarified PSRAM status messaging across the web interface, printable report, and exports when hardware support exists but PSRAM is disabled in the Arduino IDE.
-
-### Fixed
-- Highlight PSRAM-compatible boards with activation guidance instead of reporting them as missing.
-
----
-
-## [2.5] - 2025-10-08
-
-### Added
-- **Translated exports** in French and English
-- Export language matches selected interface language
-- Consistent terminology across all export formats
-
-### Changed
-- CSV, TXT, and JSON exports now fully translated
-- Print version respects language selection
-- Improved export file naming with version number
-
-### Fixed
-- Missing translations in export files
-- Inconsistent date formats in exports
+### Améliorations
+- Mise en avant des cartes compatibles PSRAM avec rappels pour activer l'option dans l'IDE Arduino et la documentation d'installation.
 
 ---
 
-## [2.4] - 2025-10-07
+## [2.5.0] - 2025-10-08
+### Fonctionnalités
+- Exports TXT/JSON/CSV intégralement traduits (FR/EN) avec inclusion de l'horodatage ISO 8601 et du numéro de build.
+- Prévisualisation imprimable alignée sur la langue sélectionnée et sur les nouveaux blocs de diagnostic.
 
-### 🌐 Added - Multilingual Interface
+### Améliorations
+- Nommage des fichiers d'export enrichi avec le numéro de version, la date et la carte détectée.
+- Révision du workflow d'export REST pour réduire les temps de génération et homogénéiser les intitulés de colonnes.
 
-#### Features
-- **Complete French and English interface**
-- **Dynamic language switching** without page reload
-- **Translation system** via `languages.h`
-- New API endpoints:
-  - `/api/set-language?lang=[fr|en]` - Change interface language
-  - `/api/get-translations` - Get all translations for current language
-- **Persistent language selection** during session
-- Translated sections:
-  - Navigation menu
-  - All page titles and headers
-  - Button labels
-  - Status messages
-  - Memory labels
-  - WiFi information
-  - Test results
-  - Export descriptions
-
-#### Files Added
-- `languages.h` - Complete translation system with 150+ strings
-- Translation structures for French (default) and English
-
-#### Changed
-- Interface defaults to French
-- All user-facing strings now use translation system
-- API responses include language indicator
+### Corrections
+- Harmonisation des formats de date (localisation FR/EN) dans les exports et la vue imprimable.
+- Ajout des traductions manquantes sur les boutons de téléchargement et sur les libellés de sections.
 
 ---
 
-## [2.3] - 2025-10-06
+## [2.4.0] - 2025-10-07
+### Fonctionnalités
+- Interface multilingue complète FR/EN avec bascule à chaud sans rechargement de page.
+- Endpoints `/api/set-language` et `/api/get-translations` permettant aux clients externes de piloter la langue.
+- Fichier `languages.h` regroupant plus de 150 chaînes traduites pour l'interface, les exports et la console série.
 
-### Added - OLED Display Support
-
-#### Features
-- **OLED 0.96" I2C display detection and testing**
-- **Complete test suite** with 10 different tests:
-  1. Welcome text with system info
-  2. Large text display
-  3. Multiple text sizes
-  4. Geometric shapes (rectangles, circles, triangles)
-  5. Horizontal lines pattern
-  6. Diagonal lines pattern
-  7. Moving square animation
-  8. Progress bar with percentage
-  9. Scrolling text animation
-  10. Final success message
-- **Configurable I2C pins** via web interface (SDA/SCL)
-- **Custom message display** feature
-- **Automatic detection** at 0x3C address
-- **Re-detection capability** when changing pins
-
-#### API Endpoints
-- `/api/oled-config?sda=X&scl=Y` - Configure I2C pins
-- `/api/oled-test` - Run complete test suite (25 seconds)
-- `/api/oled-message?message=TEXT` - Display custom message
-
-#### Technical Details
-- Support for SSD1306 128x64 displays
-- I2C bus sharing with other peripherals
-- Pin conflict detection and management
-- Memory-efficient display operations
+### Améliorations
+- Tous les textes (web, API, exports, logs) reposent sur le catalogue de traductions centralisé.
+- Ajout d'un indicateur visuel de langue active et persistance de la préférence dans le stockage local du navigateur.
 
 ---
 
-## [2.2] - 2025-10-05
+## [2.3.0] - 2025-10-06
+### Fonctionnalités
+- Batterie de 10 tests OLED 0,96" I²C (bascule contrastes, inversion, scroll, trames personnalisées) avec messages explicatifs.
+- Reconfiguration dynamique des broches SDA/SCL via l'interface web et l'API pour faciliter le recâblage.
 
-### Added - TFT Display Support
-
-#### Features
-- **TFT SPI display testing** (ST7789/ILI9341)
-- **Color tests** - Red, Green, Blue, White sequence
-- **Checkerboard pattern** test
-- **Resolution detection** (width x height)
-- **Individual test patterns** accessible via web interface
-
-#### API Endpoints
-- `/api/tft-test` - Complete TFT test (15 seconds)
-- `/api/tft-pattern?pattern=[colors|checkerboard|clear]` - Individual patterns
-
-#### Configuration
-- Fixed SPI pins for TFT (CS, DC, RST, MOSI, SCLK, MISO)
-- Support for 240x320 and custom resolutions
-- TFT_eSPI library integration
+### Améliorations
+- Détection automatique de l'écran à l'adresse 0x3C avec relance des tests après connexion.
+- Ajout d'un module de calibration de contraste pour optimiser les OLED selon la tension d'alimentation.
 
 ---
 
-## [2.1] - 2025-10-04
+## [2.2.0] - 2025-10-05
+### Fonctionnalités
+- Support des écrans TFT SPI (ST7789/ILI9341) avec diagnostics dédiés (test couleurs, patterns, fréquence SPI).
+- Assistant de configuration TFT (pinout, rotation, inversion des axes) accessible via l'interface et la console série.
 
-### Added - NeoPixel Support
-
-#### Features
-- **NeoPixel/WS2812 LED strip support**
-- **Auto-detection** for ESP32-S3 (GPIO 48) and ESP32-C3 (GPIO 8)
-- **Configurable GPIO** and LED count via web interface
-- **Multiple patterns**:
-  - Rainbow effect (full HSV spectrum)
-  - Blink pattern (configurable color)
-  - Fade effect (smooth brightness transition)
-  - Custom color with RGB picker
-- **Complete test sequence** (RGB colors + rainbow)
-
-#### API Endpoints
-- `/api/neopixel-config?gpio=X&count=Y` - Configure NeoPixel
-- `/api/neopixel-test` - Run complete test
-- `/api/neopixel-pattern?pattern=[rainbow|blink|fade|off]` - Run pattern
-- `/api/neopixel-color?r=X&g=Y&b=Z` - Set custom color
-
-#### Technical Details
-- Support for 1-100 LEDs
-- NEO_GRB + NEO_KHZ800 configuration
-- Gamma correction for smooth colors
-- Memory-safe implementation with proper cleanup
+### Notes
+- Cette fonctionnalité a été retirée en 2.6.0 pour alléger le firmware et se concentrer sur les OLED.
 
 ---
 
-## [2.0] - 2025-10-03
+## [2.0.0] - 2025-10-03
+### Fonctionnalités
+- Réécriture complète du diagnostic : GPIO, ADC, pads tactiles, PWM, I2C, SPI, PSRAM, partitions, stress test, benchmarks et exports.
+- Support multi-Wi-Fi via `WiFiMulti`, découverte mDNS `ESP32-Diagnostic.local` et interface web modernisée.
+- Ajout de l'API REST (lancement tests, récupération de rapports) et des exports TXT/JSON/CSV.
 
-### Major Rewrite - Complete Diagnostic System
-
-#### Added
-- **Built-in LED testing** with configurable GPIO
-- **LED control features**:
-  - Blink pattern (5 times)
-  - Fade effect (smooth PWM)
-  - Individual on/off control
-- **Detailed memory analysis**:
-  - Flash memory (real size vs configured)
-  - PSRAM detection and testing (OPI/QSPI)
-  - SRAM statistics
-  - Fragmentation analysis
-- **PSRAM diagnostic** with detailed boot log
-- **WiFi network scanner** with full details (RSSI, channel, encryption, BSSID)
-- **I2C peripheral scanner** with address detection
-- **GPIO testing** for all available pins
-- **ADC testing** on all ADC channels
-- **Touch pad testing** (ESP32/S3)
-- **PWM testing** with duty cycle sweep
-- **SPI bus detection**
-- **Flash partition listing** with details
-- **Memory stress test** with max allocation detection
-- **CPU and Memory benchmarks** (MFLOPS, MB/s)
-
-#### Technical Features
-- **Multi-WiFi support** via WiFiMulti
-- **mDNS support** (esp32-diagnostic.local)
-- **Comprehensive logging** via Serial Monitor
-- **Auto-detection** for chip model and features
-- **Memory safety checks** throughout
-- **Real-time monitoring** of temperature and uptime
-
-#### Export Formats
-- **TXT** - Human-readable report with all data
-- **JSON** - Machine-readable structured data
-- **CSV** - Spreadsheet-compatible format
-- **Print** - PDF-ready formatted page
+### Documentation
+- Première version du guide d'utilisation détaillant la configuration réseau, les tests disponibles et la collecte des journaux.
 
 ---
 
-## [1.0] - 2025-10-01
+## [1.0.0] - 2025-10-01
+### Fonctionnalités
+- Première version publique avec interface web basique, rapport mémoire, tests GPIO/ADC élémentaires et console série interactive.
+- Génération d'un tableau de bord unique regroupant la configuration Wi-Fi, les mesures de capteurs et les actions rapides.
 
-### Initial Release
-
-#### Features
-- Basic chip information display
-- WiFi connection
-- Simple web interface
-- Memory statistics (Flash and SRAM only)
-- GPIO list
-- Basic system information
-
-#### Supported Boards
-- ESP32 (original)
-- ESP32-S2
-- ESP32-S3
-- ESP32-C3
-
----
-
-## Development Roadmap
-
-### [3.1] - Planned
-- [ ] WebSocket support for real-time updates without polling
-- [ ] Historical data graphs (memory, temperature over time)
-- [ ] Data export to SD card
-- [ ] Configuration save/restore
-- [ ] OTA firmware update via web interface
-- [ ] Advanced WiFi features (AP mode, WiFi config portal)
-
-### [3.2] - Planned
-- [ ] MQTT support for IoT integration
-- [ ] REST API documentation (Swagger/OpenAPI)
-- [ ] Dark mode theme
-- [ ] Mobile app (PWA support)
-- [ ] Multi-device dashboard
-
-### [4.0] - Future
-- [ ] Sensor support (BME280, DHT22, etc.)
-- [ ] Automation rules and triggers
-- [ ] Data logging and analytics
-- [ ] User authentication
-- [ ] Multi-language expansion (Spanish, German, Italian)
-
----
-
-## Version History Summary
-
-| Version | Date | Key Features |
-|---------|------|--------------|
-| 3.0-dev | 2025-10-09 | Dynamic interface, REST API, real-time updates |
-| 2.5.1 | 2025-10-10 | PSRAM guidance for IDE configuration |
-| 2.5 | 2025-10-08 | Translated exports |
-| 2.4 | 2025-10-07 | Multilingual interface (FR/EN) |
-| 2.3 | 2025-10-06 | OLED display support |
-| 2.2 | 2025-10-05 | TFT display support |
-| 2.1 | 2025-10-04 | NeoPixel support |
-| 2.0 | 2025-10-03 | Complete rewrite with all diagnostics |
-| 1.0 | 2025-10-01 | Initial release |
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
-- Reporting bugs
-- Suggesting features
-- Submitting pull requests
-- Code style guidelines
-
----
-
-## License
-
-This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-**Maintained by**: morfredus
-**Repository**: https://github.com/yourusername/esp32-diagnostic
-**Documentation**: https://github.com/yourusername/esp32-diagnostic/wiki
+### Notes
+- Base de code initiale posant les fondations du système de diagnostics évolutif.
