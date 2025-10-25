@@ -6,6 +6,8 @@
  * Auteur: morfredus
  */
 
+// Version de dev : 3.1.12-dev - Alignement du numéro de version dans le bandeau principal
+
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <WebServer.h>
@@ -89,7 +91,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.1.1"
+#define DIAGNOSTIC_VERSION "3.1.12-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2973,6 +2975,15 @@ a{color:inherit;}
   font-size:2rem;
   margin:0;
   line-height:1.2;
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+}
+.branding .version-tag{
+  font-size:1rem;
+  font-weight:600;
+  color:var(--text-muted);
 }
 .header-actions{
   display:flex;
@@ -3499,8 +3510,8 @@ a{color:inherit;}
   chunk += "</div>";
   chunk += "<header class='app-header'>";
   chunk += "<div class='header-meta'>";
-  chunk += "<div class='branding'><span class='subtitle' data-i18n='title'>" + String(T().title) + "</span>";
-  chunk += "<h1 id='main-title'>" + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1></div>";
+  // --- [NEW FEATURE] Alignement version bandeau principal ---
+  chunk += "<div class='branding'><h1 id='main-title'><span class='title-text' data-i18n='title'>" + String(T().title) + "</span><span class='version-tag'> - " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</span></h1></div>";
   chunk += "<div class='header-actions'>";
   chunk += "<div class='lang-switcher' role='group' aria-label='Langue'>";
   chunk += "<button type='button' class='lang-btn " + String(currentLanguage == LANG_FR ? "active" : "") + "' data-lang='fr' onclick='changeLang(\"fr\",this)'>FR</button>";
@@ -3880,7 +3891,8 @@ a{color:inherit;}
 
   chunk += "function updateTranslations(showNotice){";
   chunk += "fetch('/api/get-translations').then(function(r){return r.json();}).then(function(tr){";
-  chunk += "var mainTitle=document.getElementById('main-title');if(mainTitle){mainTitle.textContent=tr.title+' v" + String(DIAGNOSTIC_VERSION) + "';}";
+  // --- [NEW FEATURE] Alignement version bandeau principal ---
+  chunk += "var mainTitle=document.getElementById('main-title');if(mainTitle){var versionSpan=mainTitle.querySelector('.version-tag');if(versionSpan){var versionLabel=(tr.version||'v');versionSpan.textContent=' - '+versionLabel+'" + String(DIAGNOSTIC_VERSION) + "';}}";
   chunk += "var nodes=document.querySelectorAll('[data-i18n]');";
   chunk += "for(var i=0;i<nodes.length;i++){var key=nodes[i].getAttribute('data-i18n');if(tr[key]){nodes[i].textContent=tr[key];}}";
   chunk += "if(tr.nav_select_label){var navLabel=document.querySelector('label[for=\\'navSelector\\']');if(navLabel){navLabel.textContent=tr.nav_select_label;}if(navDropdown){navDropdown.setAttribute('aria-label',tr.nav_select_label);}}";
