@@ -25,9 +25,10 @@ struct Translations {
   const char* nav_screens;
   const char* nav_tests;
   const char* nav_gpio;
-  const char* nav_wifi;
+  const char* nav_wireless;
   const char* nav_benchmark;
   const char* nav_export;
+  const char* nav_select_label;
   
   // Sections Vue d'ensemble
   const char* chip_info;
@@ -90,6 +91,34 @@ struct Translations {
   const char* gateway;
   const char* dns;
   const char* wifi_channel;
+
+  // Bluetooth
+  const char* bluetooth_section;
+  const char* bluetooth_status;
+  const char* bluetooth_name;
+  const char* bluetooth_mac;
+  const char* bluetooth_actions;
+  const char* bluetooth_enable;
+  const char* bluetooth_disable;
+  const char* bluetooth_rename;
+  const char* bluetooth_reset;
+  const char* bluetooth_placeholder;
+  const char* bluetooth_not_supported;
+  const char* bluetooth_disabled;
+  const char* bluetooth_enabled;
+  const char* bluetooth_advertising;
+  const char* bluetooth_not_advertising;
+  const char* bluetooth_updated;
+  const char* bluetooth_error;
+  const char* bluetooth_reset_done;
+  const char* bluetooth_support_label;
+  const char* bluetooth_support_yes;
+  const char* bluetooth_support_no;
+  const char* bluetooth_advertising_label;
+  const char* bluetooth_connection_label;
+  const char* bluetooth_client_connected;
+  const char* bluetooth_client_disconnected;
+  const char* bluetooth_notifications_label;
   
   // GPIO et périphériques
   const char* gpio_interfaces;
@@ -118,6 +147,7 @@ struct Translations {
   const char* oled_screen;
   const char* i2c_pins;
   const char* i2c_address;
+  const char* rotation;
   const char* no_device;
   const char* pin_config;
   const char* apply_redetect;
@@ -150,16 +180,26 @@ struct Translations {
   const char* click_button;
   const char* memory_stress;
   const char* start_stress;
-  
+  const char* i2c_desc;
+  const char* adc_desc;
+  const char* touch_desc;
+  const char* pwm_desc;
+  const char* spi_desc;
+  const char* partitions_desc;
+  const char* stress_desc;
+
   // GPIO
   const char* gpio_test;
   const char* test_all_gpio;
   const char* click_to_test;
-  
+  const char* gpio_warning;
+  const char* gpio_desc;
+
   // WiFi Scanner
   const char* wifi_scanner;
   const char* scan_networks;
-  
+  const char* wifi_desc;
+
   // Performance
   const char* performance_bench;
   const char* run_benchmarks;
@@ -168,6 +208,7 @@ struct Translations {
   const char* cpu_performance;
   const char* memory_speed;
   const char* not_tested;
+  const char* benchmark_desc;
   
   // Export
   const char* data_export;
@@ -252,9 +293,10 @@ const Translations LANG_FR_TEXTS = {
   "Écrans",
   "Tests Avancés",
   "GPIO",
-  "WiFi",
+  "Sans fil",
   "Performance",
   "Export",
+  "Sélectionner une section",
   
   // Chip
   "Informations Chip Détaillées",
@@ -308,7 +350,7 @@ const Translations LANG_FR_TEXTS = {
   "Actualiser Mémoire",
   
   // WiFi
-  "Connexion WiFi Détaillée",
+  "WiFi",
   "SSID Connecté",
   "Puissance Signal (RSSI)",
   "Qualité Signal",
@@ -317,7 +359,35 @@ const Translations LANG_FR_TEXTS = {
   "Passerelle",
   "DNS",
   "Canal WiFi",
-  
+
+  // Bluetooth
+  "Bluetooth",
+  "Statut Bluetooth",
+  "Nom diffusé",
+  "Adresse MAC Bluetooth",
+  "Actions Bluetooth",
+  "Activer le Bluetooth",
+  "Désactiver le Bluetooth",
+  "Mettre à jour le nom",
+  "Réinitialiser le Bluetooth",
+  "Nom Bluetooth (1-29 caractères)",
+  "Bluetooth non pris en charge",
+  "Bluetooth désactivé",
+  "Bluetooth activé",
+  "Diffusion active",
+  "Diffusion arrêtée",
+  "Paramètres Bluetooth mis à jour",
+  "Erreur Bluetooth",
+  "Nom Bluetooth réinitialisé",
+  "Support Bluetooth",
+  "Pris en charge",
+  "Non pris en charge",
+  "Diffusion BLE",
+  "Connexion BLE",
+  "Client connecté",
+  "Aucun client connecté",
+  "Notifications envoyées",
+
   // GPIO
   "GPIO et Interfaces",
   "Total GPIO",
@@ -345,6 +415,7 @@ const Translations LANG_FR_TEXTS = {
   "Écran OLED 0.96\" I2C",
   "Pins I2C",
   "Adresse I2C",
+  "Rotation",
   "aucun périphérique",
   "Configuration Pins I2C",
   "Appliquer et Re-détecter",
@@ -377,15 +448,25 @@ const Translations LANG_FR_TEXTS = {
   "Cliquez sur le bouton",
   "Stress Test Mémoire",
   "Lancer Stress Test",
+  "Détecte les périphériques reliés au bus I2C.",
+  "Contrôle les entrées analogiques pour valider l'ADC.",
+  "Mesure la réponse des capteurs tactiles capacitifs.",
+  "Vérifie la génération de PWM sur les sorties sélectionnées.",
+  "Inspecte le bus SPI pour repérer les périphériques actifs.",
+  "Affiche la table actuelle des partitions flash.",
+  "Pousse la mémoire pour détecter les instabilités.",
   
   // GPIO
   "Test GPIO",
   "Tester Tous les GPIO",
   "Cliquez pour tester",
-  
+  "Un GPIO en échec peut provenir de la configuration ou d'un périphérique externe : vérifiez câblage et alimentation avant de conclure à un défaut.",
+  "Teste automatiquement l'ensemble des broches GPIO.",
+
   // WiFi
   "Scanner WiFi",
   "Scanner Réseaux WiFi",
+  "Analyse les réseaux WiFi et leurs paramètres radio.",
   
   // Performance
   "Benchmarks de Performance",
@@ -395,6 +476,7 @@ const Translations LANG_FR_TEXTS = {
   "Performance CPU",
   "Vitesse Mémoire",
   "Non testé",
+  "Mesure les performances CPU et mémoire du module.",
   
   // Export
   "Export des Données",
@@ -430,7 +512,7 @@ const Translations LANG_FR_TEXTS = {
   "Signal",
   "Liste",
   "jours",
-  "heures"
+  "heures",
   
   // Statuts
   "OK",
@@ -479,9 +561,10 @@ const Translations LANG_EN_TEXTS = {
   "Screens",
   "Advanced Tests",
   "GPIO",
-  "WiFi",
+  "Wireless",
   "Performance",
   "Export",
+  "Select a section",
   
   // Chip
   "Detailed Chip Information",
@@ -535,7 +618,7 @@ const Translations LANG_EN_TEXTS = {
   "Refresh Memory",
   
   // WiFi
-  "Detailed WiFi Connection",
+  "WiFi",
   "Connected SSID",
   "Signal Power (RSSI)",
   "Signal Quality",
@@ -544,7 +627,35 @@ const Translations LANG_EN_TEXTS = {
   "Gateway",
   "DNS",
   "WiFi Channel",
-  
+
+  // Bluetooth
+  "Bluetooth",
+  "Bluetooth status",
+  "Advertised name",
+  "Bluetooth MAC address",
+  "Bluetooth actions",
+  "Enable Bluetooth",
+  "Disable Bluetooth",
+  "Update name",
+  "Reset Bluetooth",
+  "Bluetooth name (1-29 chars)",
+  "Bluetooth not supported",
+  "Bluetooth disabled",
+  "Bluetooth enabled",
+  "Advertising active",
+  "Advertising stopped",
+  "Bluetooth settings updated",
+  "Bluetooth error",
+  "Bluetooth name reset",
+  "Bluetooth support",
+  "Supported",
+  "Not supported",
+  "BLE advertising",
+  "BLE connection",
+  "Client connected",
+  "No client connected",
+  "Notifications sent",
+
   // GPIO
   "GPIO and Interfaces",
   "Total GPIO",
@@ -572,6 +683,7 @@ const Translations LANG_EN_TEXTS = {
   "OLED Screen 0.96\" I2C",
   "I2C Pins",
   "I2C Address",
+  "Rotation",
   "no device",
   "I2C Pin Configuration",
   "Apply and Re-detect",
@@ -604,15 +716,25 @@ const Translations LANG_EN_TEXTS = {
   "Click the button",
   "Memory Stress Test",
   "Start Stress Test",
+  "Detects peripherals connected on the I2C bus.",
+  "Checks analog inputs to validate the ADC.",
+  "Measures capacitive touch pad response.",
+  "Verifies PWM generation on the selected outputs.",
+  "Inspects the SPI bus to spot active peripherals.",
+  "Displays the current flash partition table.",
+  "Pushes memory usage to uncover instability.",
   
   // GPIO
   "GPIO Test",
   "Test All GPIO",
   "Click to test",
-  
+  "A failed GPIO result may stem from configuration or external hardware—double-check wiring and power before assuming the pin is faulty.",
+  "Automatically exercises every GPIO pin.",
+
   // WiFi
   "WiFi Scanner",
   "Scan WiFi Networks",
+  "Analyzes nearby WiFi networks and radio parameters.",
   
   // Performance
   "Performance Benchmarks",
@@ -622,6 +744,7 @@ const Translations LANG_EN_TEXTS = {
   "CPU Performance",
   "Memory Speed",
   "Not tested",
+  "Measures CPU and memory performance of the module.",
   
   // Export
   "Data Export",
@@ -657,7 +780,7 @@ const Translations LANG_EN_TEXTS = {
   "Signal",
   "List",
   "days",
-  "hours"
+  "hours",
     
   // Status
   "OK",
