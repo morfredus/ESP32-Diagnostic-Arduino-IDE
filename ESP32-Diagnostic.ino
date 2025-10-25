@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.14-dev - Menu horizontal sticky & reset alertes
 // Version de dev : 3.0.13-dev - Correction JSON traductions dynamiques
 // Version de dev : 3.0.12-dev - Navigation hash + compatibilité JS
 // Version de dev : 3.0.11-dev - Refonte UI moderne responsive
@@ -77,7 +78,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.13-dev"
+#define DIAGNOSTIC_VERSION "3.0.14-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2493,24 +2494,38 @@ a{color:inherit;}
 }
 .app-body{
   display:flex;
+  flex-direction:column;
   gap:24px;
   flex:1;
-  flex-wrap:wrap;
+}
+.nav-wrapper{
+  position:sticky;
+  top:0;
+  z-index:90;
+  transition:var(--transition);
+}
+.nav-wrapper.is-sticky{
+  background:rgba(11,17,32,0.92);
+  backdrop-filter:blur(18px);
 }
 .primary-nav{
-  flex:0 0 260px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
   background:var(--bg-surface);
   border-radius:var(--radius);
-  padding:20px;
+  padding:14px 20px;
   border:1px solid var(--border-glow);
   box-shadow:0 25px 60px rgba(15,23,42,.35);
-  display:flex;
-  flex-direction:column;
-  gap:12px;
+  position:relative;
+}
+.nav-wrapper.is-sticky .primary-nav{
+  box-shadow:0 22px 40px rgba(15,23,42,.55);
+  border-color:rgba(148,163,184,0.28);
 }
 .nav-link{
   border:none;
-  text-align:left;
+  text-align:center;
   padding:14px 18px;
   border-radius:14px;
   color:var(--text-primary);
@@ -2519,14 +2534,16 @@ a{color:inherit;}
   cursor:pointer;
   transition:var(--transition);
   display:flex;
-  justify-content:space-between;
+  justify-content:center;
   align-items:center;
+  gap:10px;
   text-decoration:none;
+  flex:1 1 140px;
 }
-.nav-link .icon{font-size:1.2rem;}
+.nav-link .icon{font-size:1.1rem;}
 .nav-link:hover{
   background:rgba(148,163,184,0.16);
-  transform:translateX(4px);
+  transform:translateY(-2px);
 }
 .nav-link.active{
   background:linear-gradient(120deg,#38bdf8,#818cf8);
@@ -2534,8 +2551,6 @@ a{color:inherit;}
   box-shadow:0 18px 30px rgba(56,189,248,.35);
 }
 .app-main{
-  flex:1;
-  min-width:0;
   background:var(--bg-surface);
   border-radius:var(--radius);
   padding:26px;
@@ -2743,14 +2758,14 @@ a{color:inherit;}
 .update-indicator.show{opacity:1;}
 @media(max-width:1100px){
   body{padding:18px;}
-  .app-body{flex-direction:column;}
-  .primary-nav{flex-direction:row;overflow-x:auto;}
-  .nav-link{flex:1;min-width:180px;}
+  .primary-nav{flex-wrap:nowrap;overflow-x:auto;}
+  .nav-link{flex:0 0 auto;min-width:180px;}
 }
 @media(max-width:640px){
   .app-header{padding:24px;}
   .branding h1{font-size:1.8rem;}
   .header-info{grid-template-columns:1fr;}
+  .nav-link{padding:12px 14px;}
   .app-main{padding:20px;}
 }
 )rawliteral");
@@ -2792,6 +2807,7 @@ a{color:inherit;}
   chunk += "</div>";
   chunk += "</header>";
   chunk += "<div class='app-body'>";
+  chunk += "<div class='nav-wrapper'>";
   chunk += "<nav class='primary-nav' data-role='nav'>";
   chunk += "<a href='#overview' class='nav-link active' data-target='overview' onclick=\"return showTab('overview',this);\"><span class='label' data-i18n='nav_overview'>" + String(T().nav_overview) + "</span><span class='icon'>🏠</span></a>";
   chunk += "<a href='#leds' class='nav-link' data-target='leds' onclick=\"return showTab('leds',this);\"><span class='label' data-i18n='nav_leds'>" + String(T().nav_leds) + "</span><span class='icon'>💡</span></a>";
@@ -2802,6 +2818,7 @@ a{color:inherit;}
   chunk += "<a href='#benchmark' class='nav-link' data-target='benchmark' onclick=\"return showTab('benchmark',this);\"><span class='label' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</span><span class='icon'>⚡</span></a>";
   chunk += "<a href='#export' class='nav-link' data-target='export' onclick=\"return showTab('export',this);\"><span class='label' data-i18n='nav_export'>" + String(T().nav_export) + "</span><span class='icon'>💾</span></a>";
   chunk += "</nav>";
+  chunk += "</div>";
   chunk += "<main class='app-main'>";
   chunk += "<div id='inlineMessage' class='inline-message' role='status' aria-live='polite'></div>";
   chunk += "<div id='tabContainer' class='tab-container'>";
@@ -3106,8 +3123,10 @@ a{color:inherit;}
 
   // --- [NEW FEATURE] Navigation accessible avec repli hash ---
   chunk += "function findNavTrigger(el){while(el&&el.classList&&!el.classList.contains('nav-link')){el=el.parentElement;}if(el&&el.classList&&el.classList.contains('nav-link')){return el;}return null;}";
-  chunk += "function showTab(tabId,trigger,updateHash){if(!tabId){return false;}var tabs=document.querySelectorAll('.tab-content');for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');}var target=document.getElementById(tabId);if(target){target.classList.add('active');if(typeof target.scrollIntoView==='function'){target.scrollIntoView();}}var buttons=document.querySelectorAll('.nav-link');for(var j=0;j<buttons.length;j++){buttons[j].classList.remove('active');buttons[j].removeAttribute('aria-current');}var actual=trigger;if(!actual||!actual.classList){var selector=\".nav-link[data-target='\"+tabId+\"']\";actual=document.querySelector(selector);}if(actual&&actual.classList){actual.classList.add('active');actual.setAttribute('aria-current','page');}if(updateHash!==false){if(window.location.hash!=='#'+tabId){ignoreHashChange=true;window.location.hash=tabId;setTimeout(function(){ignoreHashChange=false;},0);}}return false;}";
-  chunk += "function initNavigation(){var navs=document.querySelectorAll('.primary-nav');if(navs&&navs.length){for(var n=0;n<navs.length;n++){(function(nav){nav.addEventListener('click',function(evt){var source=evt.target||evt.srcElement;var button=findNavTrigger(source);if(!button){return;}evt.preventDefault();var targetTab=button.getAttribute('data-target');if(targetTab){showTab(targetTab,button);}});})(navs[n]);}}var initial=window.location.hash?window.location.hash.substring(1):null;var defaultButton=document.querySelector('.nav-link.active');if(!initial&&defaultButton){initial=defaultButton.getAttribute('data-target');}if(!initial){var list=document.querySelectorAll('.nav-link');if(list.length>0){initial=list[0].getAttribute('data-target');defaultButton=list[0];}}var initialButton=null;if(initial){initialButton=document.querySelector(\".nav-link[data-target='\"+initial+\"']\");}if(initial){showTab(initial,initialButton,false);}else{showTab('overview',null,false);}updateStatusIndicator(connectionState);}";
+  chunk += "function showTab(tabId,trigger,updateHash){if(!tabId){return false;}clearInlineMessage();var tabs=document.querySelectorAll('.tab-content');for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');}var target=document.getElementById(tabId);if(target){target.classList.add('active');if(typeof target.scrollIntoView==='function'){target.scrollIntoView();}}var buttons=document.querySelectorAll('.nav-link');for(var j=0;j<buttons.length;j++){buttons[j].classList.remove('active');buttons[j].removeAttribute('aria-current');}var actual=trigger;if(!actual||!actual.classList){var selector=\".nav-link[data-target='\"+tabId+\"']\";actual=document.querySelector(selector);}if(actual&&actual.classList){actual.classList.add('active');actual.setAttribute('aria-current','page');}if(updateHash!==false){if(window.location.hash!=='#'+tabId){ignoreHashChange=true;window.location.hash=tabId;setTimeout(function(){ignoreHashChange=false;},0);}}return false;}";
+  chunk += "function initStickyNav(){var wrapper=document.querySelector('.nav-wrapper');if(!wrapper||wrapper.getAttribute('data-sticky-init')==='1'){return;}wrapper.setAttribute('data-sticky-init','1');var header=document.querySelector('.app-header');var apply=function(state){if(state){wrapper.classList.add('is-sticky');}else{wrapper.classList.remove('is-sticky');}};";
+  chunk += "if('IntersectionObserver' in window&&header){var observer=new IntersectionObserver(function(entries){for(var i=0;i<entries.length;i++){if(entries[i].target===header){apply(!entries[i].isIntersecting);}}},{threshold:0,rootMargin:'-1px 0px 0px 0px'});observer.observe(header);}else{var last=false;window.addEventListener('scroll',function(){var offset=window.pageYOffset||document.documentElement.scrollTop||0;var limit=header?header.offsetHeight:220;var state=offset>limit;if(state!==last){last=state;apply(state);}});} }";
+  chunk += "function initNavigation(){var navs=document.querySelectorAll('.primary-nav');if(navs&&navs.length){for(var n=0;n<navs.length;n++){(function(nav){nav.addEventListener('click',function(evt){var source=evt.target||evt.srcElement;var button=findNavTrigger(source);if(!button){return;}evt.preventDefault();var targetTab=button.getAttribute('data-target');if(targetTab){showTab(targetTab,button);}});})(navs[n]);}}var initial=window.location.hash?window.location.hash.substring(1):null;var defaultButton=document.querySelector('.nav-link.active');if(!initial&&defaultButton){initial=defaultButton.getAttribute('data-target');}if(!initial){var list=document.querySelectorAll('.nav-link');if(list.length>0){initial=list[0].getAttribute('data-target');defaultButton=list[0];}}var initialButton=null;if(initial){initialButton=document.querySelector(\".nav-link[data-target='\"+initial+\"']\");}if(initial){showTab(initial,initialButton,false);}else{showTab('overview',null,false);}initStickyNav();updateStatusIndicator(connectionState);}";
   chunk += "window.addEventListener('hashchange',function(){if(ignoreHashChange){return;}var target=window.location.hash?window.location.hash.substring(1):'overview';showTab(target,null,false);});";
   chunk += "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initNavigation);}else{initNavigation();}";
 
