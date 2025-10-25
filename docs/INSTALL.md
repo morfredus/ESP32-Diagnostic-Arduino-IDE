@@ -18,7 +18,7 @@ Install these libraries via the Arduino Library Manager:
 The following libraries are bundled with the ESP32 core and do not require manual installation: `WiFi`, `WebServer`, `ESPmDNS`, `Wire`, `SPI`, `esp_chip_info`, `esp_flash`, `esp_heap_caps`, `esp_partition`.
 
 ## 3. Get the source code
-1. Download or clone the repository into your Arduino sketchbook directory.
+1. [Fork the repository on GitHub](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/fork) or clone it into your Arduino sketchbook directory.
 2. Ensure the folder is named `ESP32-Diagnostic` and contains `ESP32-Diagnostic.ino` at its root.
 
 ```
