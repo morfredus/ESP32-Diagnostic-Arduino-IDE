@@ -39,5 +39,5 @@ Comprehensive diagnostic firmware for ESP32 microcontrollers featuring an intera
 
 ## Support
 - License: [MIT](LICENSE)
-- Issues & feature requests: open a ticket with reproduction steps and board details.
-- Contributions: see [CONTRIBUTING.md](CONTRIBUTING.md).
+- Issues & feature requests: [Open a GitHub issue](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/issues/new/choose) with reproduction steps and board details.
+- Contributions: [Fork the repository](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/fork) and see [CONTRIBUTING.md](CONTRIBUTING.md).
