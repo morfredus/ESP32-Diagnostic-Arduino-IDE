@@ -1,43 +1,10 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v3.1.x
+ * ESP32 Diagnostic Suite v3.1.1
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
- *
- * Nouveautés v3.1.x:
- * - Service Bluetooth® Low Energy prêt à l'emploi avec diffusion native.
- * - Menu web responsive et navigation par onglets renforcée.
- * - Statuts Wi-Fi clarifiés et exports harmonisés (TXT/JSON/CSV).
  */
-
-// --- [MAINTENANCE] Historique des évolutions récentes ---
-// Version 3.1.0 - Release finale BLE + refonte navigation responsive
-// Version 3.0.26-maint - Corrections mineures interface & API
-// Version 3.0.25-dev - Cartouche Bluetooth & activation auto BLE
-// Version 3.0.24-dev - Activation universelle des bibliothèques BLE
-// Version 3.0.23-dev - Service BLE complet & compatibilité automatique
-// Version 3.0.22-dev - BLE auto pour cibles ESP32-S3/C3/C6/H2
-// Version 3.0.21-dev - Bandeau renommé, descriptions tests & BLE souple
-// Version 3.0.20-dev - Menu responsive sans défilement
-// Version 3.0.19-dev - Menu monoligne & lisibilité partitions
-// Version 3.0.18-dev - Correctif script Bluetooth & compilation
-// Version 3.0.17-dev - Bandeau condensé & navigation calée
-// Version 3.0.16-dev - UI affinée, message inline sticky & avertissement GPIO
-// Version 3.0.15-dev - Gestion Bluetooth & onglet Sans fil
-// Version 3.0.14-dev - Menu horizontal sticky & reset alertes
-// Version 3.0.13-dev - Correction JSON traductions dynamiques
-// Version 3.0.12-dev - Navigation hash + compatibilité JS
-// Version 3.0.11-dev - Refonte UI moderne responsive
-// Version 3.0.10-dev - Restauration clic onglets via double liaison
-// Version 3.0.09-dev - Délégation universelle des clics onglets
-// Version 3.0.08-dev - Correction finale navigation onglets
-// Version 3.0.07-dev - Réactivation complète navigation onglets
-// Version 3.0.06-dev - Correction compilation fallback onglets
-// Version 3.0.05-dev - Onglets web compatibles tous navigateurs
-// Version 3.0.04-dev - Correction navigation onglets principale
-// Version 3.0.03-dev - Rotation OLED ajustable et messages inline
-// Version 3.0.02-dev - Correction API scan WiFi pour core 3.3.2
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -62,7 +29,6 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-// --- [NEW FEATURE] Bibliothèques BLE chargées systématiquement ---
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
@@ -70,7 +36,6 @@
 
 #define BLE_STACK_SUPPORTED 1
 
-// --- [NEW FEATURE] Détection BLE compile-time pour cibles récentes ---
 #if defined(SOC_BLE_SUPPORTED)
   static const bool TARGET_BLE_SUPPORTED = (SOC_BLE_SUPPORTED);
 #elif defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C3) || \
@@ -90,7 +55,6 @@
 #endif
 #include <vector>
 
-// --- [NEW FEATURE] Inclusion automatique de la configuration WiFi ---
 #if defined(__has_include)
   #if __has_include("wifi-config.h")
     #include "wifi-config.h"
@@ -125,18 +89,15 @@
 #endif
 
 // ========== CONFIGURATION ==========
-// --- [MAINTENANCE] Synchronisation de la constante de version ---
-#define DIAGNOSTIC_VERSION "3.1.0"
+#define DIAGNOSTIC_VERSION "3.1.1"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
 #define MDNS_HOSTNAME "esp32-diagnostic"
 
-// --- [NEW FEATURE] Références texte partagées pour l'interface web ---
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
 
-// --- [NEW FEATURE] Aide pour afficher la version du core Arduino ---
 String getArduinoCoreVersionString() {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && defined(ESP_ARDUINO_VERSION_MINOR) && defined(ESP_ARDUINO_VERSION_PATCH)
   return String(ESP_ARDUINO_VERSION_MAJOR) + "." + String(ESP_ARDUINO_VERSION_MINOR) + "." + String(ESP_ARDUINO_VERSION_PATCH);
@@ -159,19 +120,16 @@ int I2C_SDA = 21;
 #define OLED_RESET -1
 #define SCREEN_ADDRESS 0x3C
 
-// --- [NEW FEATURE] Orientation OLED paramétrable ---
 uint8_t oledRotation = 0;
 
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
 WiFiMulti wifiMulti;
-// --- [NEW FEATURE] Objets BLE globaux ---
 #if BLE_STACK_SUPPORTED
 BLEServer* bluetoothServer = nullptr;
 BLEService* bluetoothService = nullptr;
 BLECharacteristic* bluetoothCharacteristic = nullptr;
 #endif
-// --- [NEW FEATURE] Gestion Bluetooth Low Energy ---
 bool bluetoothCapable = false;
 bool bluetoothEnabled = false;
 bool bluetoothAdvertising = false;
@@ -182,7 +140,6 @@ bool bluetoothClientConnected = false;
 uint32_t bluetoothNotifyCounter = 0;
 unsigned long lastBluetoothNotify = 0;
 
-// --- [NEW FEATURE] Service BLE diagnostic ---
 static const char* DIAG_BLE_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 static const char* DIAG_BLE_CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
@@ -197,7 +154,6 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
 
   void onDisconnect(BLEServer* server) override {
     bluetoothClientConnected = false;
-    // --- [MAINTENANCE] Correction du libellé de reprise BLE ---
     Serial.println("[BLE] Client déconnecté. Reprise de la diffusion...");
     if (server) {
       server->startAdvertising();
@@ -453,7 +409,6 @@ String getWiFiSignalQuality() {
   else return T().very_weak;
 }
 
-// --- [NEW FEATURE] Utilitaires WiFi avancés compatibles Arduino 3.3.2 ---
 String wifiAuthModeToString(wifi_auth_mode_t mode) {
   switch (mode) {
     case WIFI_AUTH_OPEN: return "Ouvert";
@@ -810,7 +765,6 @@ unsigned long benchmarkMemory() {
 }
 
 // ========== SCAN I2C ==========
-// --- [NEW FEATURE] Réinitialisation I2C compatible core 3.3.2 ---
 void ensureI2CBusConfigured() {
   Wire.end();
 #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
@@ -869,8 +823,6 @@ void scanWiFiNetworks() {
     WiFiNetwork net;
 
 #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
-    // --- [NEW FEATURE] Analyse avancée du scan WiFi ---
-    // --- [NEW FEATURE] Compatibilite API WiFiScan core 3.3.2 ---
     wifi_ap_record_t* info = static_cast<wifi_ap_record_t*>(WiFi.getScanInfoByIndex(i));
     if (info != nullptr) {
       net.ssid = String(reinterpret_cast<const char*>(info->ssid));
@@ -1137,7 +1089,6 @@ void neopixelFade(uint32_t color) {
   strip->setBrightness(255);
 }
 
-// --- [NEW FEATURE] Application centralisée de la rotation OLED ---
 void applyOLEDOrientation() {
   oled.setRotation(oledRotation & 0x03);
 }
@@ -2433,7 +2384,6 @@ void handleSetLanguage() {
   }
 }
 
-// --- [NEW FEATURE] Échappement HTML sécurisé ---
 String htmlEscape(const String& raw) {
   String escaped;
   escaped.reserve(raw.length());
@@ -2463,7 +2413,6 @@ String htmlEscape(const String& raw) {
   return escaped;
 }
 
-// --- [BUGFIX] Échappement JSON pour l'API de traduction ---
 String jsonEscape(const char* raw) {
   if (raw == nullptr) {
     return "";
@@ -2496,7 +2445,6 @@ String jsonEscape(const char* raw) {
   return escaped;
 }
 
-// --- [BUGFIX] Construction sécurisée des champs JSON de traduction ---
 String jsonField(const char* key, const char* value, bool last = false) {
   String field = "\"";
   field += key;
@@ -2843,7 +2791,6 @@ void handleGetTranslations() {
   server.send(200, "application/json", json);
 }
 
-// --- [NEW FEATURE] API de contrôle Bluetooth ---
 void handleBluetoothStatus() {
   String message = getBluetoothStateLabel();
   server.send(200, "application/json", buildBluetoothJSON(true, message));
@@ -2889,7 +2836,6 @@ void handleBluetoothName() {
 
   String candidate = sanitizeBluetoothName(server.arg("name"));
   if (candidate.length() == 0) {
-    // --- [MAINTENANCE] Normalisation du code retour pour saisie invalide ---
     server.send(400, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
     return;
   }
@@ -3480,7 +3426,6 @@ a{color:inherit;}
   server.sendContent(chunk);
   
 
-// --- [NEW FEATURE] En-tête unifié et navigation responsive ---
   const char* updateLabel = (currentLanguage == LANG_FR) ? "Mise à jour..." : "Updating...";
   const char* connectionLabel = (currentLanguage == LANG_FR) ? "En ligne" : "Online";
   bool wifiConnected = (WiFi.status() == WL_CONNECTED);
@@ -3578,7 +3523,6 @@ a{color:inherit;}
   chunk += "</header>";
   chunk += "<div class='app-body'>";
   chunk += "<div class='nav-wrapper'>";
-  // --- [NEW FEATURE] Message inline collé sous la navigation ---
   chunk += "<nav class='primary-nav' data-role='nav'>";
   chunk += "<a href='#overview' class='nav-link active' data-target='overview' onclick=\"return showTab('overview',this);\"><span class='label' data-i18n='nav_overview'>" + String(T().nav_overview) + "</span><span class='icon'>🏠</span></a>";
   chunk += "<a href='#leds' class='nav-link' data-target='leds' onclick=\"return showTab('leds',this);\"><span class='label' data-i18n='nav_leds'>" + String(T().nav_leds) + "</span><span class='icon'>💡</span></a>";
@@ -3589,7 +3533,6 @@ a{color:inherit;}
   chunk += "<a href='#benchmark' class='nav-link' data-target='benchmark' onclick=\"return showTab('benchmark',this);\"><span class='label' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</span><span class='icon'>⚡</span></a>";
   chunk += "<a href='#export' class='nav-link' data-target='export' onclick=\"return showTab('export',this);\"><span class='label' data-i18n='nav_export'>" + String(T().nav_export) + "</span><span class='icon'>💾</span></a>";
   chunk += "</nav>";
-  // --- [NEW FEATURE] Sélecteur mobile de navigation ---
   chunk += "<div class='nav-select'><label for='navSelector' class='sr-only' data-i18n='nav_select_label'>" + String(T().nav_select_label) + "</label>";
   chunk += "<select id='navSelector' class='nav-dropdown' aria-label='" + String(T().nav_select_label) + "'>";
   chunk += "<option value='overview' data-i18n='nav_overview' selected>" + String(T().nav_overview) + "</option>";
@@ -3687,7 +3630,6 @@ a{color:inherit;}
   chunk += "</div></div>";
   server.sendContent(chunk);
 
-  // --- [NEW FEATURE] Cartouche Bluetooth vue d'ensemble ---
   chunk = "<div class='section'><h2 data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_status'>" + String(T().bluetooth_status) + "</div><div class='info-value'>" + bluetoothStatusEscaped + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_name'>" + String(T().bluetooth_name) + "</div><div class='info-value'>" + bluetoothNameEscaped + "</div></div>";
@@ -3828,7 +3770,6 @@ a{color:inherit;}
   chunk += "<button class='btn btn-primary' onclick='testAllGPIO()'>" + String(T().test_all_gpio) + "</button>";
   chunk += "<div id='gpio-status' class='status-live'>" + String(T().click_to_test) + "</div>";
   chunk += "</div>";
-  // --- [NEW FEATURE] Avertissement contextualisé pour le test GPIO ---
   chunk += "<div class='warning-callout' data-i18n='gpio_warning'>" + String(T().gpio_warning) + "</div>";
   chunk += "<div id='gpio-results' class='gpio-grid'></div></div></div>";
   server.sendContent(chunk);
@@ -3955,7 +3896,6 @@ a{color:inherit;}
   chunk += "}).catch(function(err){var message=err&&err.message?err.message:err;showInlineMessage((currentLang==='fr'?'Erreur traduction: ':'Translation error: ')+message,'error');});";
   chunk += "}";
 
-  // --- [NEW FEATURE] Navigation accessible avec repli hash ---
   chunk += "function findNavTrigger(el){while(el&&el.classList&&!el.classList.contains('nav-link')){el=el.parentElement;}if(el&&el.classList&&el.classList.contains('nav-link')){return el;}return null;}";
   chunk += "function showTab(tabId,trigger,updateHash){if(!tabId){return false;}if(tabId==='wifi'){tabId='wireless';}clearInlineMessage();var tabs=document.querySelectorAll('.tab-content');for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');}var target=document.getElementById(tabId);if(target){target.classList.add('active');var main=document.querySelector('.app-main');if(main){var nav=document.querySelector('.nav-wrapper');var top=main.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop||0);var adjust=nav?nav.offsetHeight:0;var destination=top-adjust-8;if(destination<0){destination=0;}window.scrollTo(0,destination);}else if(typeof target.scrollIntoView==='function'){target.scrollIntoView(true);}}var buttons=document.querySelectorAll('.nav-link');for(var j=0;j<buttons.length;j++){buttons[j].classList.remove('active');buttons[j].removeAttribute('aria-current');}var actual=trigger;if(!actual||!actual.classList){var selector=\".nav-link[data-target='\"+tabId+\"']\";actual=document.querySelector(selector);}if(actual&&actual.classList){actual.classList.add('active');actual.setAttribute('aria-current','page');}if(navDropdown&&navDropdown.value!==tabId){navDropdown.value=tabId;}if(updateHash!==false){if(window.location.hash!=='#'+tabId){ignoreHashChange=true;window.location.hash=tabId;setTimeout(function(){ignoreHashChange=false;},0);}}return false;}";
   chunk += "function initStickyNav(){var wrapper=document.querySelector('.nav-wrapper');if(!wrapper||wrapper.getAttribute('data-sticky-init')==='1'){return;}wrapper.setAttribute('data-sticky-init','1');var header=document.querySelector('.app-header');var apply=function(state){if(state){wrapper.classList.add('is-sticky');}else{wrapper.classList.remove('is-sticky');}};";
@@ -4027,7 +3967,6 @@ void setup() {
   printPSRAMDiagnostic();
 
   // WiFi
-  // --- [NEW FEATURE] Préconfiguration WiFi pour le core 3.3.2 ---
   WiFi.mode(WIFI_STA);
   WiFi.persistent(false);
   WiFi.setHostname(MDNS_HOSTNAME_STR);
@@ -4091,7 +4030,6 @@ void setup() {
   collectDiagnosticInfo();
   collectDetailedMemory();
 
-  // --- [NEW FEATURE] Activation automatique du BLE ---
   bool bleStarted = startBluetooth();
   syncBluetoothDiagnostics();
 #if BLE_STACK_SUPPORTED
