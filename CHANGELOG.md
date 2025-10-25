@@ -2,6 +2,15 @@
 
 Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 2025-10-26
+### Corrections
+- Suppression des commentaires obsolètes et marqueurs internes pour clarifier la maintenance du firmware.
+
+### Documentation
+- Mise à jour des guides FR/EN, exports et constantes pour refléter le passage en version 3.1.1.
+
+---
+
 ## [3.1.0] - 2025-10-24
 ### Points forts
 - Activation automatique du service Bluetooth® Low Energy avec diffusion native sur les cibles compatibles (ESP32, S3, C3, C6, H2).
