@@ -25,7 +25,7 @@ struct Translations {
   const char* nav_screens;
   const char* nav_tests;
   const char* nav_gpio;
-  const char* nav_wifi;
+  const char* nav_wireless;
   const char* nav_benchmark;
   const char* nav_export;
   
@@ -90,6 +90,26 @@ struct Translations {
   const char* gateway;
   const char* dns;
   const char* wifi_channel;
+
+  // Bluetooth
+  const char* bluetooth_section;
+  const char* bluetooth_status;
+  const char* bluetooth_name;
+  const char* bluetooth_mac;
+  const char* bluetooth_actions;
+  const char* bluetooth_enable;
+  const char* bluetooth_disable;
+  const char* bluetooth_rename;
+  const char* bluetooth_reset;
+  const char* bluetooth_placeholder;
+  const char* bluetooth_not_supported;
+  const char* bluetooth_disabled;
+  const char* bluetooth_enabled;
+  const char* bluetooth_advertising;
+  const char* bluetooth_not_advertising;
+  const char* bluetooth_updated;
+  const char* bluetooth_error;
+  const char* bluetooth_reset_done;
   
   // GPIO et périphériques
   const char* gpio_interfaces;
@@ -118,6 +138,7 @@ struct Translations {
   const char* oled_screen;
   const char* i2c_pins;
   const char* i2c_address;
+  const char* rotation;
   const char* no_device;
   const char* pin_config;
   const char* apply_redetect;
@@ -252,7 +273,7 @@ const Translations LANG_FR_TEXTS = {
   "Écrans",
   "Tests Avancés",
   "GPIO",
-  "WiFi",
+  "Sans fil",
   "Performance",
   "Export",
   
@@ -317,7 +338,27 @@ const Translations LANG_FR_TEXTS = {
   "Passerelle",
   "DNS",
   "Canal WiFi",
-  
+
+  // Bluetooth
+  "Bluetooth",
+  "Statut Bluetooth",
+  "Nom diffusé",
+  "Adresse MAC Bluetooth",
+  "Actions Bluetooth",
+  "Activer le Bluetooth",
+  "Désactiver le Bluetooth",
+  "Mettre à jour le nom",
+  "Réinitialiser le Bluetooth",
+  "Nom Bluetooth (1-29 caractères)",
+  "Bluetooth non pris en charge",
+  "Bluetooth désactivé",
+  "Bluetooth activé",
+  "Diffusion active",
+  "Diffusion arrêtée",
+  "Paramètres Bluetooth mis à jour",
+  "Erreur Bluetooth",
+  "Nom Bluetooth réinitialisé",
+
   // GPIO
   "GPIO et Interfaces",
   "Total GPIO",
@@ -345,6 +386,7 @@ const Translations LANG_FR_TEXTS = {
   "Écran OLED 0.96\" I2C",
   "Pins I2C",
   "Adresse I2C",
+  "Rotation",
   "aucun périphérique",
   "Configuration Pins I2C",
   "Appliquer et Re-détecter",
@@ -430,7 +472,7 @@ const Translations LANG_FR_TEXTS = {
   "Signal",
   "Liste",
   "jours",
-  "heures"
+  "heures",
   
   // Statuts
   "OK",
@@ -479,7 +521,7 @@ const Translations LANG_EN_TEXTS = {
   "Screens",
   "Advanced Tests",
   "GPIO",
-  "WiFi",
+  "Wireless",
   "Performance",
   "Export",
   
@@ -544,6 +586,26 @@ const Translations LANG_EN_TEXTS = {
   "Gateway",
   "DNS",
   "WiFi Channel",
+
+  // Bluetooth
+  "Bluetooth",
+  "Bluetooth status",
+  "Advertised name",
+  "Bluetooth MAC address",
+  "Bluetooth actions",
+  "Enable Bluetooth",
+  "Disable Bluetooth",
+  "Update name",
+  "Reset Bluetooth",
+  "Bluetooth name (1-29 chars)",
+  "Bluetooth not supported",
+  "Bluetooth disabled",
+  "Bluetooth enabled",
+  "Advertising active",
+  "Advertising stopped",
+  "Bluetooth settings updated",
+  "Bluetooth error",
+  "Bluetooth name reset",
   
   // GPIO
   "GPIO and Interfaces",
@@ -572,6 +634,7 @@ const Translations LANG_EN_TEXTS = {
   "OLED Screen 0.96\" I2C",
   "I2C Pins",
   "I2C Address",
+  "Rotation",
   "no device",
   "I2C Pin Configuration",
   "Apply and Re-detect",
@@ -657,7 +720,7 @@ const Translations LANG_EN_TEXTS = {
   "Signal",
   "List",
   "days",
-  "hours"
+  "hours",
     
   // Status
   "OK",
