@@ -28,6 +28,7 @@ struct Translations {
   const char* nav_wireless;
   const char* nav_benchmark;
   const char* nav_export;
+  const char* nav_select_label;
   
   // Sections Vue d'ensemble
   const char* chip_info;
@@ -277,6 +278,7 @@ const Translations LANG_FR_TEXTS = {
   "Sans fil",
   "Performance",
   "Export",
+  "Sélectionner une section",
   
   // Chip
   "Informations Chip Détaillées",
@@ -526,6 +528,7 @@ const Translations LANG_EN_TEXTS = {
   "Wireless",
   "Performance",
   "Export",
+  "Select a section",
   
   // Chip
   "Detailed Chip Information",
