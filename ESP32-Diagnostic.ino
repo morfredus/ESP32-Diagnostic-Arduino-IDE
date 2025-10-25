@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.24-dev - Activation universelle des bibliothèques BLE
 // Version de dev : 3.0.23-dev - Service BLE complet & compatibilité automatique
 // Version de dev : 3.0.22-dev - BLE auto pour cibles ESP32-S3/C3/C6/H2
 // Version de dev : 3.0.21-dev - Bandeau renommé, descriptions tests & BLE souple
@@ -57,29 +58,13 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#if defined(__has_include)
-  #if __has_include(<BLEDevice.h>) && __has_include(<BLEServer.h>) && __has_include(<BLEUtils.h>) && __has_include(<BLE2902.h>)
-    #define BLE_HEADERS_AVAILABLE 1
-  #else
-    #define BLE_HEADERS_AVAILABLE 0
-  #endif
-#else
-  #define BLE_HEADERS_AVAILABLE 1
-#endif
+// --- [NEW FEATURE] Bibliothèques BLE chargées systématiquement ---
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
 
-#if BLE_HEADERS_AVAILABLE
-  // --- [NEW FEATURE] Support Bluetooth Low Energy ---
-  #include <BLEDevice.h>
-  #include <BLEServer.h>
-  #include <BLEUtils.h>
-  #include <BLE2902.h>
-#endif
-
-#ifndef BLE_HEADERS_AVAILABLE
-  #define BLE_HEADERS_AVAILABLE 0
-#endif
-
-#define BLE_STACK_SUPPORTED BLE_HEADERS_AVAILABLE
+#define BLE_STACK_SUPPORTED 1
 
 // --- [NEW FEATURE] Détection BLE compile-time pour cibles récentes ---
 #if defined(SOC_BLE_SUPPORTED)
@@ -97,7 +82,7 @@
     static const bool TARGET_BLE_SUPPORTED = true;
   #endif
 #else
-  static const bool TARGET_BLE_SUPPORTED = BLE_HEADERS_AVAILABLE;
+    static const bool TARGET_BLE_SUPPORTED = true;
 #endif
 #include <vector>
 
@@ -136,7 +121,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.23-dev"
+#define DIAGNOSTIC_VERSION "3.0.24-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
