@@ -13,15 +13,16 @@ Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de
 - `languages.h` – catalogue de traductions et sélecteur de langue à chaud.
 - `web_interface.h` – modèles HTML/CSS/JS fournis par le firmware.
 - `wifi-config-example.h` – modèle pour stocker les identifiants Wi-Fi.
+- `docs/` – guides détaillés d'installation, configuration, utilisation et dépannage (FR/EN).
 
 ## Documentation
 | Sujet | Anglais | Français |
 |-------|---------|----------|
-| Installation | [INSTALL.md](INSTALL.md) | [INSTALL_FR.md](INSTALL_FR.md) |
-| Configuration | [CONFIG.md](CONFIG.md) | [CONFIG_FR.md](CONFIG_FR.md) |
-| Guide d'utilisation | [USAGE.md](USAGE.md) | [USAGE_FR.md](USAGE_FR.md) |
-| Architecture du firmware | [ARCHITECTURE.md](ARCHITECTURE.md) | [ARCHITECTURE_FR.md](ARCHITECTURE_FR.md) |
-| Dépannage | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | [TROUBLESHOOTING_FR.md](TROUBLESHOOTING_FR.md) |
+| Installation | [INSTALL.md](docs/INSTALL.md) | [INSTALL_FR.md](docs/INSTALL_FR.md) |
+| Configuration | [CONFIG.md](docs/CONFIG.md) | [CONFIG_FR.md](docs/CONFIG_FR.md) |
+| Guide d'utilisation | [USAGE.md](docs/USAGE.md) | [USAGE_FR.md](docs/USAGE_FR.md) |
+| Architecture du firmware | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | [ARCHITECTURE_FR.md](docs/ARCHITECTURE_FR.md) |
+| Dépannage | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | [TROUBLESHOOTING_FR.md](docs/TROUBLESHOOTING_FR.md) |
 | Contribuer | [CONTRIBUTING.md](CONTRIBUTING.md) | [CONTRIBUTING_FR.md](CONTRIBUTING_FR.md) |
 
 ## Capacités principales
@@ -39,5 +40,5 @@ Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de
 
 ## Support
 - Licence : [MIT](LICENSE)
-- Support & remontées : ouvrir un ticket avec étapes de reproduction et détails carte.
-- Contribution : voir [CONTRIBUTING_FR.md](CONTRIBUTING_FR.md).
+- Support & remontées : [ouvrir un ticket GitHub](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/issues/new/choose) avec étapes de reproduction et détails carte.
+- Contribution : [forkez le dépôt](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/fork) puis consultez [CONTRIBUTING_FR.md](CONTRIBUTING_FR.md).

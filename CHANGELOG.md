@@ -2,7 +2,7 @@
 
 Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Version 3.1.0] - 2025-10-20
+## [Version 3.1.0] - 2025-10-24
 ### Ajouts
 - Activation automatique du service Bluetooth® Low Energy avec diffusion native sur les cibles compatibles.
 - Cartouche dédiée dans l'interface web pour visualiser l'état BLE et renommer le périphérique.
@@ -17,6 +17,7 @@ Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. 
 - Menu supérieur responsive avec bandeau monoligne pour les petits écrans.
 - États Wi-Fi affinés avec messages explicites lors des échecs de connexion.
 - Charge BLE initiale assouplie pour les dernières révisions ESP32 (S3/C3/C6/H2).
+- Documentation bilingue enrichie avec liens directs pour forker le dépôt et signaler les anomalies.
 
 ---
 
