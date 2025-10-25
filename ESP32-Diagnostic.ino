@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.25-dev - Cartouche Bluetooth & activation auto BLE
 // Version de dev : 3.0.24-dev - Activation universelle des bibliothèques BLE
 // Version de dev : 3.0.23-dev - Service BLE complet & compatibilité automatique
 // Version de dev : 3.0.22-dev - BLE auto pour cibles ESP32-S3/C3/C6/H2
@@ -121,7 +122,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.24-dev"
+#define DIAGNOSTIC_VERSION "3.0.25-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2128,6 +2129,15 @@ void handleExportJSON() {
   json += "\"supported\":" + String(bluetoothCapable ? "true" : "false") + ",";
   json += "\"enabled\":" + String((bluetoothCapable && bluetoothEnabled) ? "true" : "false") + ",";
   json += "\"advertising\":" + String((bluetoothCapable && bluetoothAdvertising) ? "true" : "false") + ",";
+#if BLE_STACK_SUPPORTED
+  bool clientConnected = bluetoothClientConnected;
+  uint32_t notifyCount = bluetoothNotifyCounter;
+#else
+  bool clientConnected = false;
+  uint32_t notifyCount = 0;
+#endif
+  json += "\"clientConnected\":" + String((bluetoothCapable && clientConnected) ? "true" : "false") + ",";
+  json += "\"notifyCount\":" + String(notifyCount) + ",";
   json += "\"name\":\"" + jsonEscape(bluetoothDeviceName.c_str()) + "\",";
   json += "\"mac\":\"" + jsonEscape(diagnosticData.bluetoothAddress.c_str()) + "\",";
   String btStatus = getBluetoothStateLabel();
@@ -2788,6 +2798,14 @@ void handleGetTranslations() {
   json += jsonField("bluetooth_updated", T().bluetooth_updated);
   json += jsonField("bluetooth_error", T().bluetooth_error);
   json += jsonField("bluetooth_reset_done", T().bluetooth_reset_done);
+  json += jsonField("bluetooth_support_label", T().bluetooth_support_label);
+  json += jsonField("bluetooth_support_yes", T().bluetooth_support_yes);
+  json += jsonField("bluetooth_support_no", T().bluetooth_support_no);
+  json += jsonField("bluetooth_advertising_label", T().bluetooth_advertising_label);
+  json += jsonField("bluetooth_connection_label", T().bluetooth_connection_label);
+  json += jsonField("bluetooth_client_connected", T().bluetooth_client_connected);
+  json += jsonField("bluetooth_client_disconnected", T().bluetooth_client_disconnected);
+  json += jsonField("bluetooth_notifications_label", T().bluetooth_notifications_label);
   json += jsonField("gpio_interfaces", T().gpio_interfaces);
   json += jsonField("i2c_peripherals", T().i2c_peripherals);
   json += jsonField("builtin_led", T().builtin_led);
@@ -3481,6 +3499,42 @@ a{color:inherit;}
   String bluetoothOnlineCombined = bluetoothStatusEscaped + " • " + bluetoothSummaryEscaped;
   String bluetoothDisplayText = bluetoothActive ? bluetoothOnlineCombined : bluetoothOfflineText;
   String bluetoothNameDisplay = diagnosticData.bluetoothName.length() > 0 ? diagnosticData.bluetoothName : defaultBluetoothName;
+  String bluetoothNameEscaped = htmlEscape(bluetoothNameDisplay);
+  bool bluetoothClientNow = false;
+  uint32_t bluetoothNotifyDisplay = 0;
+#if BLE_STACK_SUPPORTED
+  bluetoothClientNow = bluetoothClientConnected;
+  bluetoothNotifyDisplay = bluetoothNotifyCounter;
+#endif
+  bool bluetoothAdvertisingActive = bluetoothCapable && bluetoothEnabled && (bluetoothAdvertising
+#if BLE_STACK_SUPPORTED
+      || bluetoothClientNow
+#endif
+  );
+  bool bluetoothConnectionActive = bluetoothCapable && bluetoothEnabled && bluetoothClientNow;
+  String bluetoothSupportYes = htmlEscape(String(T().bluetooth_support_yes));
+  String bluetoothSupportNo = htmlEscape(String(T().bluetooth_support_no));
+  String bluetoothSupportValue = bluetoothCapable ? bluetoothSupportYes : bluetoothSupportNo;
+  String bluetoothSupportAttr = bluetoothCapable ? "true" : "false";
+  String bluetoothAdvertisingOn = htmlEscape(String(T().bluetooth_advertising));
+  String bluetoothAdvertisingOff = htmlEscape(String(T().bluetooth_not_advertising));
+  String bluetoothAdvertisingValue = bluetoothCapable ? (bluetoothAdvertisingActive ? bluetoothAdvertisingOn : bluetoothAdvertisingOff)
+                                                      : htmlEscape(String(T().bluetooth_not_supported));
+  String bluetoothAdvertisingAttr = bluetoothAdvertisingActive ? "true" : "false";
+  String bluetoothConnectedLabel = htmlEscape(String(T().bluetooth_client_connected));
+  String bluetoothDisconnectedLabel = htmlEscape(String(T().bluetooth_client_disconnected));
+  String bluetoothConnectionValue = bluetoothConnectionActive ? bluetoothConnectedLabel : bluetoothDisconnectedLabel;
+  String bluetoothConnectionStateAttr;
+  if (!bluetoothCapable) {
+    bluetoothConnectionStateAttr = "unsupported";
+  } else if (!bluetoothEnabled) {
+    bluetoothConnectionStateAttr = "disabled";
+  } else if (bluetoothConnectionActive) {
+    bluetoothConnectionStateAttr = "connected";
+  } else {
+    bluetoothConnectionStateAttr = "idle";
+  }
+  String bluetoothNotificationsValue = htmlEscape(String((unsigned long)bluetoothNotifyDisplay));
   String bluetoothDisableAttr = bluetoothCapable ? "" : " disabled";
   String bluetoothFeedbackText = bluetoothCapable ? "" : String(T().bluetooth_not_supported);
   String accessUrl = "http://" + String(MDNS_HOSTNAME) + ".local";
@@ -3626,7 +3680,15 @@ a{color:inherit;}
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_mac'>" + String(T().bluetooth_mac) + "</div><div class='info-value'>" + diagnosticData.bluetoothAddress + "</div></div>";
   chunk += "</div></div>";
   server.sendContent(chunk);
-  
+
+  // --- [NEW FEATURE] Cartouche Bluetooth vue d'ensemble ---
+  chunk = "<div class='section'><h2 data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</h2><div class='info-grid'>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_status'>" + String(T().bluetooth_status) + "</div><div class='info-value'>" + bluetoothStatusEscaped + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_name'>" + String(T().bluetooth_name) + "</div><div class='info-value'>" + bluetoothNameEscaped + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_mac'>" + String(T().bluetooth_mac) + "</div><div class='info-value'>" + diagnosticData.bluetoothAddress + "</div></div>";
+  chunk += "</div></div>";
+  server.sendContent(chunk);
+
   // GPIO et I2C
   chunk = "<div class='section'><h2>" + String(T().gpio_interfaces) + "</h2><div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().total_gpio) + "</div><div class='info-value'>" + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "</div></div>";
@@ -3775,15 +3837,19 @@ a{color:inherit;}
   chunk += "<div class='section'><h2 data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</h2>";
   chunk += "<div class='info-grid'>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_status'>" + String(T().bluetooth_status) + "</div><div class='info-value' id='bluetooth-status'>" + htmlEscape(bluetoothStatusText) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_name'>" + String(T().bluetooth_name) + "</div><div class='info-value' id='bluetooth-name'>" + htmlEscape(bluetoothNameDisplay) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_name'>" + String(T().bluetooth_name) + "</div><div class='info-value' id='bluetooth-name'>" + bluetoothNameEscaped + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_mac'>" + String(T().bluetooth_mac) + "</div><div class='info-value' id='bluetooth-mac'>" + diagnosticData.bluetoothAddress + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_support_label'>" + String(T().bluetooth_support_label) + "</div><div class='info-value' id='bluetooth-support' data-yes='" + bluetoothSupportYes + "' data-no='" + bluetoothSupportNo + "' data-supported='" + bluetoothSupportAttr + "'>" + bluetoothSupportValue + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_advertising_label'>" + String(T().bluetooth_advertising_label) + "</div><div class='info-value' id='bluetooth-advertising' data-on='" + bluetoothAdvertisingOn + "' data-off='" + bluetoothAdvertisingOff + "' data-active='" + bluetoothAdvertisingAttr + "'>" + bluetoothAdvertisingValue + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_connection_label'>" + String(T().bluetooth_connection_label) + "</div><div class='info-value' id='bluetooth-connection' data-connected='" + bluetoothConnectedLabel + "' data-disconnected='" + bluetoothDisconnectedLabel + "' data-state='" + bluetoothConnectionStateAttr + "'>" + bluetoothConnectionValue + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_notifications_label'>" + String(T().bluetooth_notifications_label) + "</div><div class='info-value' id='bluetooth-notify-count'>" + bluetoothNotificationsValue + "</div></div>";
   chunk += "</div>";
   chunk += "<div class='card' style='margin-top:20px'>";
   chunk += "<h3 data-i18n='bluetooth_actions'>" + String(T().bluetooth_actions) + "</h3>";
   chunk += "<div style='display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:15px'>";
   chunk += "<button type='button' class='btn btn-success' data-i18n='bluetooth_enable' onclick=\"toggleBluetooth(true)\" data-bt-control='1'" + bluetoothDisableAttr + ">" + String(T().bluetooth_enable) + "</button>";
   chunk += "<button type='button' class='btn btn-warning' data-i18n='bluetooth_disable' onclick=\"toggleBluetooth(false)\" data-bt-control='1'" + bluetoothDisableAttr + ">" + String(T().bluetooth_disable) + "</button>";
-  chunk += "<input type='text' id='bluetoothNameInput' data-bt-control='1' value='" + htmlEscape(bluetoothNameDisplay) + "' placeholder='" + String(T().bluetooth_placeholder) + "'" + bluetoothDisableAttr + ">";
+  chunk += "<input type='text' id='bluetoothNameInput' data-bt-control='1' value='" + bluetoothNameEscaped + "' placeholder='" + String(T().bluetooth_placeholder) + "'" + bluetoothDisableAttr + ">";
   chunk += "<button type='button' class='btn btn-info' data-i18n='bluetooth_rename' onclick=\"renameBluetooth()\" data-bt-control='1'" + bluetoothDisableAttr + ">" + String(T().bluetooth_rename) + "</button>";
   chunk += "<button type='button' class='btn btn-danger' data-i18n='bluetooth_reset' onclick=\"resetBluetooth()\" data-bt-control='1'" + bluetoothDisableAttr + ">" + String(T().bluetooth_reset) + "</button>";
   chunk += "</div>";
@@ -3845,7 +3911,7 @@ a{color:inherit;}
   chunk += "function updateStatusIndicator(online){connectionState=!!online;var indicator=document.getElementById('statusIndicator');var label=document.getElementById('connectionLabel');if(indicator){indicator.classList.remove('status-online','status-offline');indicator.classList.add(online?'status-online':'status-offline');}if(label){label.textContent=connectionLabelText(online);}var wifiDot=document.getElementById('wifiStatusDot');if(wifiDot){wifiDot.classList.remove('offline');if(!online){wifiDot.classList.add('offline');}}var wifiValue=document.getElementById('wifiStatusValue');if(wifiValue){var offlineText=wifiValue.getAttribute('data-offline');var onlineText=wifiValue.getAttribute('data-online');if(!online&&offlineText){wifiValue.textContent=offlineText;}else if(online&&onlineText){wifiValue.textContent=onlineText;}}if(!online){showInlineMessage(connectionLabelText(false)+' — '+(currentLang==='fr'?'Vérifiez le réseau.':'Check the network.'),'error');}else{clearInlineMessage();}}";
 
   chunk += "function updateBluetoothFeedback(message,state,notify){var box=document.getElementById('bluetooth-feedback');if(!box){return;}if(typeof message==='undefined'||message===null){message='';}box.textContent=message;box.classList.remove('success','error');if(state){box.classList.add(state);}if(notify&&message){if(state==='error'){showInlineMessage(message,'error');}else if(state==='success'){showInlineMessage(message,'success');}}else if(notify&&!message){clearInlineMessage();}}";
-  chunk += "function applyBluetoothState(data,notify){if(!data){return;}var statusEl=document.getElementById('bluetooth-status');if(statusEl&&typeof data.status!=='undefined'){statusEl.textContent=data.status;}var nameEl=document.getElementById('bluetooth-name');if(nameEl&&typeof data.name!=='undefined'){nameEl.textContent=data.name;}var macEl=document.getElementById('bluetooth-mac');if(macEl&&typeof data.mac!=='undefined'){macEl.textContent=data.mac;}var input=document.getElementById('bluetoothNameInput');if(input&&typeof data.name!=='undefined'){input.value=data.name;}var summary=document.getElementById('bluetoothSummary');if(summary){summary.setAttribute('data-supported',(data.supported===false)?'false':'true');var offlineStored=summary.getAttribute('data-offline')||'';var disabledStored=summary.getAttribute('data-disabled')||offlineStored;var unsupportedStored=summary.getAttribute('data-unsupported')||offlineStored;if(data.supported===false){var unsupportedText=unsupportedStored||disabledStored||offlineStored;summary.textContent=unsupportedText;summary.setAttribute('data-offline',unsupportedText);}else if(data.enabled===false){var disabledText=disabledStored||offlineStored;summary.textContent=disabledText;summary.setAttribute('data-offline',disabledText);}else{var pieces=[];if(typeof data.status==='string'){pieces.push(data.status);}if(typeof data.summary==='string'){pieces.push(data.summary);}if(pieces.length){var combined=pieces.join(' • ');summary.textContent=combined;summary.setAttribute('data-online',combined);summary.setAttribute('data-offline',disabledStored||offlineStored);}}}";
+  chunk += "function applyBluetoothState(data,notify){if(!data){return;}var statusEl=document.getElementById('bluetooth-status');if(statusEl&&typeof data.status!=='undefined'){statusEl.textContent=data.status;}var nameEl=document.getElementById('bluetooth-name');if(nameEl&&typeof data.name!=='undefined'){nameEl.textContent=data.name;}var macEl=document.getElementById('bluetooth-mac');if(macEl&&typeof data.mac!=='undefined'){macEl.textContent=data.mac;}var input=document.getElementById('bluetoothNameInput');if(input&&typeof data.name!=='undefined'){input.value=data.name;}var summary=document.getElementById('bluetoothSummary');if(summary){summary.setAttribute('data-supported',(data.supported===false)?'false':'true');var offlineStored=summary.getAttribute('data-offline')||'';var disabledStored=summary.getAttribute('data-disabled')||offlineStored;var unsupportedStored=summary.getAttribute('data-unsupported')||offlineStored;if(data.supported===false){var unsupportedText=unsupportedStored||disabledStored||offlineStored;summary.textContent=unsupportedText;summary.setAttribute('data-offline',unsupportedText);}else if(data.enabled===false){var disabledText=disabledStored||offlineStored;summary.textContent=disabledText;summary.setAttribute('data-offline',disabledText);}else{var pieces=[];if(typeof data.status==='string'){pieces.push(data.status);}if(typeof data.summary==='string'){pieces.push(data.summary);}if(pieces.length){var combined=pieces.join(' • ');summary.textContent=combined;summary.setAttribute('data-online',combined);summary.setAttribute('data-offline',disabledStored||offlineStored);}}}var supported=(data.supported===false)?false:true;var supportEl=document.getElementById('bluetooth-support');if(supportEl){var yesText=supportEl.getAttribute('data-yes')||'';var noText=supportEl.getAttribute('data-no')||'';supportEl.setAttribute('data-supported',supported?'true':'false');if(supported&&yesText){supportEl.textContent=yesText;}else if(!supported&&noText){supportEl.textContent=noText;}}var advEl=document.getElementById('bluetooth-advertising');if(advEl){var onText=advEl.getAttribute('data-on')||'';var offText=advEl.getAttribute('data-off')||'';var advActive=supported&&data.enabled!==false&&(data.advertising===true||data.clientConnected===true);advEl.setAttribute('data-active',advActive?'true':'false');if(!supported){var unsupportedTextForAdv=(typeof noText!=='undefined'&&noText)?noText:offText;if(unsupportedTextForAdv){advEl.textContent=unsupportedTextForAdv;}}else if(advActive&&onText){advEl.textContent=onText;}else if(offText){advEl.textContent=offText;}}var connectionEl=document.getElementById('bluetooth-connection');if(connectionEl){var connectedText=connectionEl.getAttribute('data-connected')||'';var disconnectedText=connectionEl.getAttribute('data-disconnected')||'';var stateValue='unsupported';if(supported){if(data.enabled===false){stateValue='disabled';}else if(data.clientConnected===true){stateValue='connected';}else{stateValue='idle';}}connectionEl.setAttribute('data-state',stateValue);if(stateValue==='connected'&&connectedText){connectionEl.textContent=connectedText;}else if(disconnectedText){connectionEl.textContent=disconnectedText;}}var notifyEl=document.getElementById('bluetooth-notify-count');if(notifyEl){var count=(typeof data.notifyCount!=='undefined')?data.notifyCount:0;notifyEl.textContent=count;}";
   chunk += "var indicator=document.getElementById('bluetoothStatusDot');if(indicator){indicator.classList.remove('offline');if(data.supported===false||data.enabled===false){indicator.classList.add('offline');}}var controls=document.querySelectorAll('[data-bt-control=\"1\"]');if(controls&&controls.length){for(var i=0;i<controls.length;i++){controls[i].disabled=(data.supported===false);}}var message=(typeof data.message==='string')?data.message:'';var state=null;if(typeof data.success!=='undefined'){state=data.success?'success':'error';}if(notify){updateBluetoothFeedback(message,state,true);}else if(data.supported===false){updateBluetoothFeedback(message,'error',false);}else{updateBluetoothFeedback('',null,false);}}";
   chunk += "function refreshBluetoothStatus(showNotice){fetch('/api/bluetooth/status').then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,showNotice);}).catch(function(err){var message=(currentLang==='fr'?'Erreur Bluetooth: ':'Bluetooth error: ')+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',showNotice);});}";
   chunk += "function toggleBluetooth(enable){updateBluetoothFeedback(enable?(currentLang==='fr'?'Activation...':'Enabling...'):(currentLang==='fr'?'Désactivation...':'Disabling...'),null,false);fetch('/api/bluetooth/toggle?state='+(enable?'on':'off')).then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,true);}).catch(function(err){var message=(currentLang==='fr'?'Erreur Bluetooth: ':'Bluetooth error: ')+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',true);});return false;}";
@@ -3874,6 +3940,9 @@ a{color:inherit;}
   chunk += "var btInput=document.getElementById('bluetoothNameInput');if(btInput&&tr.bluetooth_placeholder){btInput.setAttribute('placeholder',tr.bluetooth_placeholder);}";
   chunk += "var wifiValue=document.getElementById('wifiStatusValue');if(wifiValue&&tr.not_detected){wifiValue.setAttribute('data-offline',tr.not_detected);if(!connectionState){wifiValue.textContent=tr.not_detected;}}";
   chunk += "var btSummary=document.getElementById('bluetoothSummary');if(btSummary){if(tr.bluetooth_disabled){btSummary.setAttribute('data-disabled',tr.bluetooth_disabled);}if(tr.bluetooth_not_supported){btSummary.setAttribute('data-unsupported',tr.bluetooth_not_supported);}var supported=btSummary.getAttribute('data-supported');var btDot=document.getElementById('bluetoothStatusDot');var offlineState=btDot&&btDot.classList.contains('offline');if(offlineState){var offlineText=(supported==='false')?(tr.bluetooth_not_supported||btSummary.getAttribute('data-offline')):(tr.bluetooth_disabled||btSummary.getAttribute('data-offline'));if(offlineText){btSummary.textContent=offlineText;btSummary.setAttribute('data-offline',offlineText);}}}";
+  chunk += "var btSupport=document.getElementById('bluetooth-support');if(btSupport){if(tr.bluetooth_support_yes){btSupport.setAttribute('data-yes',tr.bluetooth_support_yes);}if(tr.bluetooth_support_no){btSupport.setAttribute('data-no',tr.bluetooth_support_no);}var supportState=btSupport.getAttribute('data-supported')==='true';var yesValue=btSupport.getAttribute('data-yes')||'';var noValue=btSupport.getAttribute('data-no')||'';if(supportState&&yesValue){btSupport.textContent=yesValue;}else if(!supportState&&noValue){btSupport.textContent=noValue;}}";
+  chunk += "var btAdvert=document.getElementById('bluetooth-advertising');if(btAdvert){if(tr.bluetooth_advertising){btAdvert.setAttribute('data-on',tr.bluetooth_advertising);}if(tr.bluetooth_not_advertising){btAdvert.setAttribute('data-off',tr.bluetooth_not_advertising);}var advertActive=btAdvert.getAttribute('data-active')==='true';var advertOn=btAdvert.getAttribute('data-on')||'';var advertOff=btAdvert.getAttribute('data-off')||'';if(advertActive&&advertOn){btAdvert.textContent=advertOn;}else if(advertOff){btAdvert.textContent=advertOff;}}";
+  chunk += "var btConnection=document.getElementById('bluetooth-connection');if(btConnection){if(tr.bluetooth_client_connected){btConnection.setAttribute('data-connected',tr.bluetooth_client_connected);}if(tr.bluetooth_client_disconnected){btConnection.setAttribute('data-disconnected',tr.bluetooth_client_disconnected);}var connState=btConnection.getAttribute('data-state');var connectedText=btConnection.getAttribute('data-connected')||'';var disconnectedText=btConnection.getAttribute('data-disconnected')||'';if(connState==='connected'&&connectedText){btConnection.textContent=connectedText;}else if(disconnectedText){btConnection.textContent=disconnectedText;}}";
   chunk += "refreshBluetoothStatus(false);";
   chunk += "updateStatusIndicator(connectionState);";
   chunk += "if(showNotice){showInlineMessage(currentLang==='fr'?'Langue mise à jour':'Language updated','success');}";
@@ -4015,7 +4084,16 @@ void setup() {
   
   collectDiagnosticInfo();
   collectDetailedMemory();
-  
+
+  // --- [NEW FEATURE] Activation automatique du BLE ---
+  bool bleStarted = startBluetooth();
+  syncBluetoothDiagnostics();
+#if BLE_STACK_SUPPORTED
+  Serial.println(bleStarted ? "[BLE] Publicité démarrée" : "[BLE] Service indisponible");
+#else
+  Serial.println("[BLE] Pile BLE non compilée");
+#endif
+
   // ========== ROUTES SERVEUR ==========
   server.on("/", handleRoot);
   

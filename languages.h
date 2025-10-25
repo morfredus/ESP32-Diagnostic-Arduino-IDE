@@ -111,6 +111,14 @@ struct Translations {
   const char* bluetooth_updated;
   const char* bluetooth_error;
   const char* bluetooth_reset_done;
+  const char* bluetooth_support_label;
+  const char* bluetooth_support_yes;
+  const char* bluetooth_support_no;
+  const char* bluetooth_advertising_label;
+  const char* bluetooth_connection_label;
+  const char* bluetooth_client_connected;
+  const char* bluetooth_client_disconnected;
+  const char* bluetooth_notifications_label;
   
   // GPIO et périphériques
   const char* gpio_interfaces;
@@ -371,6 +379,14 @@ const Translations LANG_FR_TEXTS = {
   "Paramètres Bluetooth mis à jour",
   "Erreur Bluetooth",
   "Nom Bluetooth réinitialisé",
+  "Support Bluetooth",
+  "Pris en charge",
+  "Non pris en charge",
+  "Diffusion BLE",
+  "Connexion BLE",
+  "Client connecté",
+  "Aucun client connecté",
+  "Notifications envoyées",
 
   // GPIO
   "GPIO et Interfaces",
@@ -631,7 +647,15 @@ const Translations LANG_EN_TEXTS = {
   "Bluetooth settings updated",
   "Bluetooth error",
   "Bluetooth name reset",
-  
+  "Bluetooth support",
+  "Supported",
+  "Not supported",
+  "BLE advertising",
+  "BLE connection",
+  "Client connected",
+  "No client connected",
+  "Notifications sent",
+
   // GPIO
   "GPIO and Interfaces",
   "Total GPIO",
