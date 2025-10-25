@@ -2708,7 +2708,7 @@ a{color:inherit;}
   .header-info{grid-template-columns:1fr;}
   .app-main{padding:20px;}
 }
-)rawliteral);
+)rawliteral");
   chunk += "</style></head><body>";
   server.sendContent(chunk);
   
