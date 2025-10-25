@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.22-dev - BLE auto pour cibles ESP32-S3/C3/C6/H2
 // Version de dev : 3.0.21-dev - Bandeau renommé, descriptions tests & BLE souple
 // Version de dev : 3.0.20-dev - Menu responsive sans défilement
 // Version de dev : 3.0.19-dev - Menu monoligne & lisibilité partitions
@@ -44,6 +45,13 @@
 #include <esp_wifi.h>
 #include <soc/soc.h>
 #include <soc/rtc.h>
+#if defined(__has_include)
+  #if __has_include(<soc/soc_caps.h>)
+    #include <soc/soc_caps.h>
+  #endif
+#else
+  #include <soc/soc_caps.h>
+#endif
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_GFX.h>
@@ -71,6 +79,16 @@
 #endif
 
 #define BLE_STACK_SUPPORTED BLE_HEADERS_AVAILABLE
+
+// --- [NEW FEATURE] Détection BLE compile-time pour cibles récentes ---
+#if defined(SOC_BLE_SUPPORTED)
+  static const bool TARGET_BLE_SUPPORTED = (SOC_BLE_SUPPORTED);
+#elif defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C3) || \
+      defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2)
+  static const bool TARGET_BLE_SUPPORTED = true;
+#else
+  static const bool TARGET_BLE_SUPPORTED = false;
+#endif
 #include <vector>
 
 // --- [NEW FEATURE] Inclusion automatique de la configuration WiFi ---
@@ -108,7 +126,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.21-dev"
+#define DIAGNOSTIC_VERSION "3.0.22-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -1551,8 +1569,9 @@ void collectDiagnosticInfo() {
   
   diagnosticData.hasWiFi = (chip_info.features & CHIP_FEATURE_WIFI_BGN);
   diagnosticData.hasBT = (chip_info.features & CHIP_FEATURE_BT);
-  diagnosticData.hasBLE = (chip_info.features & CHIP_FEATURE_BLE);
-  bluetoothCapable = diagnosticData.hasBLE && BLE_STACK_SUPPORTED;
+  bool featureBLE = (chip_info.features & CHIP_FEATURE_BLE);
+  diagnosticData.hasBLE = featureBLE || TARGET_BLE_SUPPORTED;
+  bluetoothCapable = (diagnosticData.hasBLE || TARGET_BLE_SUPPORTED) && BLE_STACK_SUPPORTED;
   
   if (WiFi.status() == WL_CONNECTED) {
     diagnosticData.wifiSSID = WiFi.SSID();
@@ -2444,7 +2463,7 @@ void syncBluetoothDiagnostics() {
   ensureBluetoothName();
 
   bool supported = bluetoothCapable;
-  bool hasRadio = diagnosticData.hasBLE || diagnosticData.hasBT;
+  bool hasRadio = bluetoothCapable || diagnosticData.hasBLE || diagnosticData.hasBT;
   diagnosticData.bluetoothName = bluetoothDeviceName;
   diagnosticData.bluetoothEnabled = supported && bluetoothEnabled;
   diagnosticData.bluetoothAdvertising = supported && bluetoothAdvertising;
