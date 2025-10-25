@@ -11,6 +11,8 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// --- [MAINTENANCE] Version de dev mise à jour ---
+// Version de dev : 3.0.26-maint - Corrections mineures interface & API
 // Version de dev : 3.0.25-dev - Cartouche Bluetooth & activation auto BLE
 // Version de dev : 3.0.24-dev - Activation universelle des bibliothèques BLE
 // Version de dev : 3.0.23-dev - Service BLE complet & compatibilité automatique
@@ -122,7 +124,8 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.25-dev"
+// --- [MAINTENANCE] Synchronisation de la constante de version ---
+#define DIAGNOSTIC_VERSION "3.0.26-maint"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -193,7 +196,8 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
 
   void onDisconnect(BLEServer* server) override {
     bluetoothClientConnected = false;
-    Serial.println("[BLE] Client déconnecté. Relance de la publicité...");
+    // --- [MAINTENANCE] Correction du libellé de reprise BLE ---
+    Serial.println("[BLE] Client déconnecté. Reprise de la diffusion...");
     if (server) {
       server->startAdvertising();
     } else {
@@ -2884,7 +2888,8 @@ void handleBluetoothName() {
 
   String candidate = sanitizeBluetoothName(server.arg("name"));
   if (candidate.length() == 0) {
-    server.send(200, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
+    // --- [MAINTENANCE] Normalisation du code retour pour saisie invalide ---
+    server.send(400, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
     return;
   }
 
