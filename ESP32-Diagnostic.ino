@@ -11,6 +11,8 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.12-dev - Navigation hash + compatibilité JS
+// Version de dev : 3.0.11-dev - Refonte UI moderne responsive
 // Version de dev : 3.0.10-dev - Restauration clic onglets via double liaison
 // Version de dev : 3.0.09-dev - Délégation universelle des clics onglets
 // Version de dev : 3.0.08-dev - Correction finale navigation onglets
@@ -74,7 +76,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.10-dev"
+#define DIAGNOSTIC_VERSION "3.0.12-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2305,81 +2307,461 @@ void handleRoot() {
   chunk += "'><head>";
   chunk += "<meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>";
   chunk += "<title>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</title>";
+
+
   chunk += "<style>";
-  chunk += "*{margin:0;padding:0;box-sizing:border-box}";
-  chunk += "body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:20px}";
-  chunk += ".container{max-width:1400px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}";
-  chunk += ".header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:30px;text-align:center;position:relative}";
-  chunk += ".header h1{font-size:2.5em;margin-bottom:10px}";
-  chunk += ".lang-switcher{position:absolute;top:20px;right:20px;display:flex;gap:5px}";
-  chunk += ".lang-btn{padding:8px 15px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
-  chunk += ".lang-btn:hover{background:rgba(255,255,255,.3)}";
-  chunk += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
-  chunk += ".nav{display:flex;justify-content:center;gap:10px;margin-top:20px;flex-wrap:wrap}";
-  chunk += ".nav-btn{padding:10px 20px;background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;cursor:pointer;font-weight:bold}";
-  chunk += ".nav-btn:hover{background:rgba(255,255,255,.3)}";
-  chunk += ".nav-btn.active{background:rgba(255,255,255,.4)}";
-  chunk += ".content{padding:30px}";
-  chunk += ".tab-content{display:none}";
-  chunk += ".tab-content.active{display:block}";
-  chunk += ".section{background:#f8f9fa;border-radius:15px;padding:25px;margin-bottom:20px;border-left:5px solid #667eea}";
-  chunk += ".section h2{color:#667eea;margin-bottom:20px;font-size:1.5em}";
-  chunk += ".section h3{color:#667eea;margin:15px 0 10px;font-size:1.2em}";
-  chunk += ".info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:15px}";
-  chunk += ".info-item{background:#fff;padding:15px;border-radius:10px;border:1px solid #e0e0e0}";
-  chunk += ".info-label{font-weight:bold;color:#667eea;margin-bottom:5px;font-size:.9em}";
-  chunk += ".info-value{font-size:1.1em;color:#333}";
-  chunk += ".badge{display:inline-block;padding:5px 15px;border-radius:20px;font-size:.9em;font-weight:bold}";
-  chunk += ".badge-success{background:#d4edda;color:#155724}";
-  chunk += ".badge-warning{background:#fff3cd;color:#856404}";
-  chunk += ".badge-danger{background:#f8d7da;color:#721c24}";
-  chunk += ".btn{padding:12px 24px;border:none;border-radius:8px;font-size:1em;font-weight:bold;cursor:pointer;margin:5px;text-decoration:none;display:inline-block}";
-  chunk += ".btn-primary{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff}";
-  chunk += ".btn-success{background:linear-gradient(135deg,#56ab2f 0%,#a8e063 100%);color:#fff}";
-  chunk += ".btn-info{background:linear-gradient(135deg,#3a7bd5 0%,#00d2ff 100%);color:#fff}";
-  chunk += ".btn-danger{background:linear-gradient(135deg,#eb3349 0%,#f45c43 100%);color:#fff}";
-  chunk += ".btn:hover{opacity:.9;transform:translateY(-2px);transition:all .3s}";
-  chunk += ".progress-bar{background:#e0e0e0;border-radius:10px;height:20px;overflow:hidden;margin-top:10px}";
-  chunk += ".progress-fill{height:100%;border-radius:10px;transition:width .3s}";
-  chunk += ".gpio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px}";
-  chunk += ".gpio-item{padding:15px;background:#fff;border:2px solid #ddd;border-radius:8px;text-align:center;font-weight:bold}";
-  chunk += ".gpio-ok{border-color:#28a745;background:#d4edda}";
-  chunk += ".gpio-fail{border-color:#dc3545;background:#f8d7da}";
-  chunk += ".wifi-list{max-height:400px;overflow-y:auto}";
-  chunk += ".wifi-item{background:#fff;padding:15px;margin:10px 0;border-radius:10px;border-left:4px solid #667eea}";
-  chunk += ".status-live{padding:10px;background:#f0f0f0;border-radius:5px;text-align:center;font-weight:bold;margin:10px 0}";
-  chunk += ".status-live.success{background:#d4edda;color:#155724}";
-  chunk += ".status-live.error{background:#f8d7da;color:#721c24}";
-  chunk += "input[type='number'],input[type='color'],input[type='text']{padding:10px;border:2px solid #ddd;border-radius:5px;font-size:1em}";
-  chunk += "@media print{.nav,.btn,.lang-switcher{display:none}}";
+  chunk += F(R"rawliteral(
+:root{
+  --gradient:linear-gradient(135deg,#312e81 0%,#7c3aed 100%);
+  --bg-primary:#0f172a;
+  --bg-surface:rgba(15,23,42,0.86);
+  --bg-surface-alt:rgba(30,41,59,0.92);
+  --border-glow:rgba(99,102,241,0.35);
+  --border-muted:rgba(148,163,184,0.22);
+  --text-primary:#f8fafc;
+  --text-muted:#94a3b8;
+  --accent:#38bdf8;
+  --success:#22c55e;
+  --warning:#facc15;
+  --danger:#f87171;
+  --radius:18px;
+  --transition:all .25s ease;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Inter',-apple-system,'Segoe UI',sans-serif;
+  background:var(--gradient);
+  color:var(--text-primary);
+  min-height:100vh;
+  padding:24px;
+}
+a{color:inherit;}
+.app-shell{
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+  min-height:calc(100vh - 48px);
+}
+.app-header{
+  background:var(--bg-surface);
+  border-radius:var(--radius);
+  padding:32px 36px;
+  box-shadow:0 25px 60px rgba(15,23,42,.45);
+  border:1px solid var(--border-glow);
+}
+.header-meta{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:space-between;
+  gap:24px;
+  align-items:center;
+}
+.branding{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.branding .subtitle{
+  text-transform:uppercase;
+  letter-spacing:.3em;
+  font-size:.75rem;
+  color:var(--accent);
+}
+.branding h1{
+  font-size:2.4rem;
+  margin:0;
+}
+.header-actions{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  flex-wrap:wrap;
+}
+.lang-switcher{
+  display:flex;
+  background:rgba(255,255,255,0.06);
+  border-radius:999px;
+  padding:4px;
+  border:1px solid var(--border-muted);
+}
+.lang-btn{
+  border:none;
+  background:transparent;
+  color:var(--text-primary);
+  font-weight:600;
+  padding:8px 18px;
+  border-radius:999px;
+  cursor:pointer;
+  transition:var(--transition);
+}
+.lang-btn.active{
+  background:var(--accent);
+  color:#0f172a;
+  box-shadow:0 10px 25px rgba(56,189,248,.35);
+}
+.status-chip{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:8px 16px;
+  border-radius:999px;
+  background:rgba(56,189,248,0.12);
+  border:1px solid rgba(56,189,248,0.35);
+  font-weight:600;
+}
+.status-indicator{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  display:inline-block;
+  background:var(--success);
+  box-shadow:0 0 18px rgba(34,197,94,.65);
+  transition:var(--transition);
+}
+.status-indicator.status-offline{
+  background:var(--danger);
+  box-shadow:0 0 18px rgba(248,113,113,.6);
+}
+.header-info{
+  margin-top:24px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:18px;
+}
+.header-card{
+  background:var(--bg-surface-alt);
+  border-radius:var(--radius);
+  padding:18px;
+  border:1px solid var(--border-muted);
+}
+.header-card strong{
+  display:block;
+  font-size:.85rem;
+  text-transform:uppercase;
+  letter-spacing:.1em;
+  color:var(--text-muted);
+  margin-bottom:6px;
+}
+.header-card span{
+  font-size:1.05rem;
+  font-weight:600;
+}
+.app-body{
+  display:flex;
+  gap:24px;
+  flex:1;
+  flex-wrap:wrap;
+}
+.primary-nav{
+  flex:0 0 260px;
+  background:var(--bg-surface);
+  border-radius:var(--radius);
+  padding:20px;
+  border:1px solid var(--border-glow);
+  box-shadow:0 25px 60px rgba(15,23,42,.35);
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.nav-link{
+  border:none;
+  text-align:left;
+  padding:14px 18px;
+  border-radius:14px;
+  color:var(--text-primary);
+  background:rgba(148,163,184,0.08);
+  font-weight:600;
+  cursor:pointer;
+  transition:var(--transition);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  text-decoration:none;
+}
+.nav-link .icon{font-size:1.2rem;}
+.nav-link:hover{
+  background:rgba(148,163,184,0.16);
+  transform:translateX(4px);
+}
+.nav-link.active{
+  background:linear-gradient(120deg,#38bdf8,#818cf8);
+  color:#0b1120;
+  box-shadow:0 18px 30px rgba(56,189,248,.35);
+}
+.app-main{
+  flex:1;
+  min-width:0;
+  background:var(--bg-surface);
+  border-radius:var(--radius);
+  padding:26px;
+  border:1px solid var(--border-muted);
+  box-shadow:0 25px 60px rgba(15,23,42,.45);
+}
+.inline-message{
+  min-height:32px;
+  margin-bottom:16px;
+  padding:10px 16px;
+  border-radius:12px;
+  border:1px solid transparent;
+  background:rgba(148,163,184,0.08);
+  color:var(--text-muted);
+  font-size:.95rem;
+  display:none;
+}
+.inline-message.show{display:block;}
+.inline-message.success{
+  border-color:rgba(34,197,94,.45);
+  background:rgba(34,197,94,.12);
+  color:#bbf7d0;
+}
+.inline-message.error{
+  border-color:rgba(248,113,113,.45);
+  background:rgba(248,113,113,.12);
+  color:#fecaca;
+}
+.tab-container{
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+.tab-content:target{display:block;}
+.section{
+  background:var(--bg-surface-alt);
+  border-radius:var(--radius);
+  padding:24px;
+  border:1px solid var(--border-muted);
+  box-shadow:0 12px 40px rgba(15,23,42,.35);
+  margin-bottom:12px;
+}
+.section h2{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-size:1.4rem;
+  margin-bottom:18px;
+  color:var(--accent);
+}
+.section h3{
+  font-size:1.15rem;
+  margin:18px 0 12px;
+  color:var(--text-primary);
+}
+.info-grid{
+  display:grid;
+  gap:16px;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+}
+.info-item{
+  background:rgba(148,163,184,0.12);
+  padding:16px;
+  border-radius:14px;
+  border:1px solid rgba(148,163,184,0.18);
+}
+.info-label{
+  font-size:.8rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text-muted);
+  margin-bottom:6px;
+}
+.info-value{
+  font-size:1.05rem;
+  font-weight:600;
+}
+.status-live{
+  border-radius:12px;
+  padding:12px;
+  text-align:center;
+  font-weight:600;
+  background:rgba(148,163,184,0.12);
+  border:1px solid rgba(148,163,184,0.18);
+  color:var(--text-muted);
+  margin-top:16px;
+}
+.status-live.success{
+  color:#bbf7d0;
+  background:rgba(34,197,94,0.12);
+  border-color:rgba(34,197,94,0.45);
+}
+.status-live.error{
+  color:#fecaca;
+  background:rgba(248,113,113,0.12);
+  border-color:rgba(248,113,113,0.45);
+}
+.btn{
+  border:none;
+  border-radius:12px;
+  padding:12px 18px;
+  font-weight:600;
+  cursor:pointer;
+  transition:var(--transition);
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  color:#0b1120;
+  background:rgba(148,163,184,0.2);
+  margin:6px 4px 0 0;
+}
+.btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 24px rgba(56,189,248,.2);
+}
+.btn-primary{background:linear-gradient(120deg,#38bdf8,#818cf8);}
+.btn-success{background:linear-gradient(120deg,#4ade80,#22c55e);}
+.btn-info{background:linear-gradient(120deg,#22d3ee,#38bdf8);}
+.btn-danger{background:linear-gradient(120deg,#f87171,#ef4444);}
+.btn-warning{background:linear-gradient(120deg,#fbbf24,#f97316);}
+.btn-secondary{background:rgba(148,163,184,0.25);color:var(--text-primary);}
+.progress-bar{
+  background:rgba(148,163,184,0.2);
+  border-radius:999px;
+  height:16px;
+  overflow:hidden;
+  margin-top:12px;
+}
+.progress-fill{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(120deg,#38bdf8,#818cf8);
+  text-align:center;
+  font-size:.75rem;
+  font-weight:600;
+  color:#0b1120;
+}
+.gpio-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(90px,1fr));
+  gap:12px;
+  margin-top:18px;
+}
+.gpio-item{
+  border-radius:12px;
+  padding:14px;
+  text-align:center;
+  font-weight:600;
+  background:rgba(148,163,184,0.18);
+  border:1px solid rgba(148,163,184,0.28);
+}
+.gpio-ok{
+  background:rgba(34,197,94,0.18);
+  border-color:rgba(34,197,94,0.35);
+}
+.gpio-fail{
+  background:rgba(248,113,113,0.18);
+  border-color:rgba(248,113,113,0.35);
+}
+.wifi-list{
+  display:grid;
+  gap:12px;
+  margin-top:18px;
+}
+.wifi-item{
+  padding:16px;
+  border-radius:14px;
+  background:rgba(148,163,184,0.12);
+  border:1px solid rgba(148,163,184,0.2);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  flex-wrap:wrap;
+}
+.card{
+  background:rgba(148,163,184,0.12);
+  border-radius:14px;
+  padding:24px;
+  border:1px solid rgba(148,163,184,0.2);
+  text-align:center;
+}
+.footer{
+  text-align:center;
+  color:var(--text-muted);
+  font-size:.85rem;
+  margin-top:24px;
+}
+.update-indicator{
+  position:fixed;
+  right:24px;
+  bottom:24px;
+  background:linear-gradient(120deg,#38bdf8,#818cf8);
+  color:#0b1120;
+  padding:14px 20px;
+  border-radius:14px;
+  box-shadow:0 20px 40px rgba(56,189,248,.45);
+  opacity:0;
+  pointer-events:none;
+  transition:var(--transition);
+  font-weight:600;
+}
+.update-indicator.show{opacity:1;}
+@media(max-width:1100px){
+  body{padding:18px;}
+  .app-body{flex-direction:column;}
+  .primary-nav{flex-direction:row;overflow-x:auto;}
+  .nav-link{flex:1;min-width:180px;}
+}
+@media(max-width:640px){
+  .app-header{padding:24px;}
+  .branding h1{font-size:1.8rem;}
+  .header-info{grid-template-columns:1fr;}
+  .app-main{padding:20px;}
+}
+)rawliteral);
   chunk += "</style></head><body>";
   server.sendContent(chunk);
   
-  // CHUNK 2: HEADER + NAV
-  chunk = "<div class='container'><div class='header'>";
-  chunk += "<div class='lang-switcher'>";
-  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_FR ? "active" : "") + "' onclick='changeLang(\"fr\",this)'>FR</button>";
-  chunk += "<button class='lang-btn " + String(currentLanguage == LANG_EN ? "active" : "") + "' onclick='changeLang(\"en\",this)'>EN</button>";
+
+// --- [NEW FEATURE] En-tête unifié et navigation responsive ---
+  const char* updateLabel = (currentLanguage == LANG_FR) ? "Mise à jour..." : "Updating...";
+  const char* connectionLabel = (currentLanguage == LANG_FR) ? "En ligne" : "Online";
+  String wifiSummary = String(T().not_detected);
+  if (diagnosticData.wifiSSID.length() > 0 && WiFi.status() == WL_CONNECTED) {
+    wifiSummary = diagnosticData.wifiSSID + " (" + String(diagnosticData.wifiRSSI) + " dBm)";
+  }
+  String accessSummary = "<a href='http://" + String(MDNS_HOSTNAME) + ".local' target='_blank' style='color:inherit;text-decoration:none'>http://" + String(MDNS_HOSTNAME) + ".local</a><br>" + diagnosticData.ipAddress;
+
+  chunk = "<div class='app-shell'>";
+  chunk += "<div id='updateIndicator' class='update-indicator'>";
+  chunk += updateLabel;
   chunk += "</div>";
-  chunk += "<h1 id='main-title'>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1>";
-  chunk += "<div style='font-size:1.2em;margin:10px 0'>" + diagnosticData.chipModel + "</div>";
-  chunk += "<div style='font-size:.9em;opacity:.9;margin:10px 0'>";
-  chunk += String(T().access) + ": <a href='http://" + String(MDNS_HOSTNAME) + ".local' style='color:#fff;text-decoration:underline'><strong>http://" + String(MDNS_HOSTNAME) + ".local</strong></a> " + String(T().or_text) + " <strong>" + diagnosticData.ipAddress + "</strong>";
+  chunk += "<header class='app-header'>";
+  chunk += "<div class='header-meta'>";
+  chunk += "<div class='branding'><span class='subtitle' data-i18n='title'>" + String(T().title) + "</span>";
+  chunk += "<h1 id='main-title'>" + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1></div>";
+  chunk += "<div class='header-actions'>";
+  chunk += "<div class='lang-switcher' role='group' aria-label='Langue'>";
+  chunk += "<button type='button' class='lang-btn " + String(currentLanguage == LANG_FR ? "active" : "") + "' data-lang='fr' onclick='changeLang(\"fr\",this)'>FR</button>";
+  chunk += "<button type='button' class='lang-btn " + String(currentLanguage == LANG_EN ? "active" : "") + "' data-lang='en' onclick='changeLang(\"en\",this)'>EN</button>";
   chunk += "</div>";
-  // --- [BUGFIX] Navigation onglets : boutons dédiés avec double liaison ---
-  chunk += "<div class='nav'>";
-  chunk += "<button type='button' class='nav-btn active' data-tab='overview' data-i18n='nav_overview' onclick=\"showTab('overview',this);\">" + String(T().nav_overview) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='leds' data-i18n='nav_leds' onclick=\"showTab('leds',this);\">" + String(T().nav_leds) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='screens' data-i18n='nav_screens' onclick=\"showTab('screens',this);\">" + String(T().nav_screens) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='tests' data-i18n='nav_tests' onclick=\"showTab('tests',this);\">" + String(T().nav_tests) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='gpio' data-i18n='nav_gpio' onclick=\"showTab('gpio',this);\">" + String(T().nav_gpio) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='wifi' data-i18n='nav_wifi' onclick=\"showTab('wifi',this);\">" + String(T().nav_wifi) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='benchmark' data-i18n='nav_benchmark' onclick=\"showTab('benchmark',this);\">" + String(T().nav_benchmark) + "</button>";
-  chunk += "<button type='button' class='nav-btn' data-tab='export' data-i18n='nav_export' onclick=\"showTab('export',this);\">" + String(T().nav_export) + "</button>";
-  chunk += "</div></div><div class='content'>";
+  chunk += "<div class='status-chip'><span class='status-indicator status-online' id='statusIndicator'></span><span id='connectionLabel'>";
+  chunk += connectionLabel;
+  chunk += "</span></div>";
+  chunk += "</div></div>";
+  chunk += "<div class='header-info'>";
+  chunk += "<div class='header-card'><strong data-i18n='chip_info'>" + String(T().chip_info) + "</strong><span>" + diagnosticData.chipModel + "</span></div>";
+  chunk += "<div class='header-card'><strong data-i18n='wifi_connection'>" + String(T().wifi_connection) + "</strong><span>" + wifiSummary + "</span></div>";
+  chunk += "<div class='header-card'><strong data-i18n='access'>" + String(T().access) + "</strong><span>" + accessSummary + "</span></div>";
+  chunk += "<div class='header-card'><strong>Arduino Core</strong><span>" + getArduinoCoreVersionString() + "</span></div>";
+  chunk += "</div>";
+  chunk += "</header>";
+  chunk += "<div class='app-body'>";
+  chunk += "<nav class='primary-nav' data-role='nav'>";
+  chunk += "<a href='#overview' class='nav-link active' data-target='overview' onclick=\"return showTab('overview',this);\"><span class='label' data-i18n='nav_overview'>" + String(T().nav_overview) + "</span><span class='icon'>🏠</span></a>";
+  chunk += "<a href='#leds' class='nav-link' data-target='leds' onclick=\"return showTab('leds',this);\"><span class='label' data-i18n='nav_leds'>" + String(T().nav_leds) + "</span><span class='icon'>💡</span></a>";
+  chunk += "<a href='#screens' class='nav-link' data-target='screens' onclick=\"return showTab('screens',this);\"><span class='label' data-i18n='nav_screens'>" + String(T().nav_screens) + "</span><span class='icon'>🖥️</span></a>";
+  chunk += "<a href='#tests' class='nav-link' data-target='tests' onclick=\"return showTab('tests',this);\"><span class='label' data-i18n='nav_tests'>" + String(T().nav_tests) + "</span><span class='icon'>🧪</span></a>";
+  chunk += "<a href='#gpio' class='nav-link' data-target='gpio' onclick=\"return showTab('gpio',this);\"><span class='label' data-i18n='nav_gpio'>" + String(T().nav_gpio) + "</span><span class='icon'>🔌</span></a>";
+  chunk += "<a href='#wifi' class='nav-link' data-target='wifi' onclick=\"return showTab('wifi',this);\"><span class='label' data-i18n='nav_wifi'>" + String(T().nav_wifi) + "</span><span class='icon'>📡</span></a>";
+  chunk += "<a href='#benchmark' class='nav-link' data-target='benchmark' onclick=\"return showTab('benchmark',this);\"><span class='label' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</span><span class='icon'>⚡</span></a>";
+  chunk += "<a href='#export' class='nav-link' data-target='export' onclick=\"return showTab('export',this);\"><span class='label' data-i18n='nav_export'>" + String(T().nav_export) + "</span><span class='icon'>💾</span></a>";
+  chunk += "</nav>";
+  chunk += "<main class='app-main'>";
+  chunk += "<div id='inlineMessage' class='inline-message' role='status' aria-live='polite'></div>";
+  chunk += "<div id='tabContainer' class='tab-container'>";
   server.sendContent(chunk);
-  
-// CHUNK 3: OVERVIEW TAB - VERSION UNIQUE COMPLÈTE
+  // CHUNK 3: OVERVIEW TAB - VERSION UNIQUE COMPLÈTE
   chunk = "<div id='overview' class='tab-content active'>";
   
   // Chip Info
@@ -2636,162 +3018,85 @@ void handleRoot() {
   chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String(T().pdf_format) + "</p>";
   chunk += "<a href='/print' target='_blank' class='btn btn-primary'>" + String(T().open) + "</a></div>";
   chunk += "</div></div></div>";
-  chunk += "</div></div>"; // Fermeture content + container
+  chunk += "</div>"; // Fermeture tabContainer
+  chunk += "</main>";
+  chunk += "</div>"; // Fermeture app-body
+  chunk += "<footer class='footer'>ESP32 Diagnostic v" + String(DIAGNOSTIC_VERSION) + " • " + diagnosticData.chipModel + " • MAC " + diagnosticData.macAddress + "</footer>";
+  chunk += "</div>"; // Fermeture app-shell
   server.sendContent(chunk);
   // CHUNK 11: JavaScript complet
   chunk = "<script>";
-  chunk += "let currentLang='" + String(currentLanguage == LANG_FR ? "fr" : "en") + "';";
-  chunk += "function updateStatus(id,text,state){const el=document.getElementById(id);if(!el)return;el.textContent=text;el.classList.remove('success','error');if(state){el.classList.add(state);}}";
-  
-  // Changement de langue
+  chunk += "var currentLang='" + String(currentLanguage == LANG_FR ? "fr" : "en") + "';";
+  chunk += "var connectionState=true;";
+  chunk += "var ignoreHashChange=false;";
+  chunk += "document.documentElement.setAttribute('lang',currentLang);";
+  chunk += "function showInlineMessage(text,state){var holder=document.getElementById('inlineMessage');if(!holder){return;}holder.className='inline-message';if(!text){return;}holder.textContent=text;holder.classList.add('show');if(state){holder.classList.add(state);}}";
+  chunk += "function clearInlineMessage(){var holder=document.getElementById('inlineMessage');if(!holder){return;}holder.className='inline-message';holder.textContent='';}";
+  chunk += "function updateStatus(id,text,state){var el=document.getElementById(id);if(el){el.textContent=text;el.classList.remove('success','error');if(state){el.classList.add(state);}}if(state==='error'||state==='success'){showInlineMessage(text,state);}else if(text===''){clearInlineMessage();}}";
+  chunk += "function connectionLabelText(online){return online?(currentLang==='fr'?'En ligne':'Online'):(currentLang==='fr'?'Hors ligne':'Offline');}";
+  chunk += "function updateStatusIndicator(online){connectionState=!!online;var indicator=document.getElementById('statusIndicator');var label=document.getElementById('connectionLabel');if(indicator){indicator.classList.remove('status-online','status-offline');indicator.classList.add(online?'status-online':'status-offline');}if(label){label.textContent=connectionLabelText(online);}if(!online){showInlineMessage(connectionLabelText(false)+' — '+(currentLang==='fr'?'Vérifiez le réseau.':'Check the network.'),'error');}else{clearInlineMessage();}}";
+
   chunk += "function changeLang(lang,btn){";
-  chunk += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
-  chunk += "if(d.success){currentLang=lang;";
-  chunk += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
+  chunk += "fetch('/api/set-language?lang='+lang).then(function(r){return r.json();}).then(function(d){";
+  chunk += "if(!d.success){throw new Error(d.message||'lang');}";
+  chunk += "currentLang=lang;";
+  chunk += "document.documentElement.setAttribute('lang',lang);";
+  chunk += "var langButtons=document.querySelectorAll('.lang-btn');";
+  chunk += "for(var i=0;i<langButtons.length;i++){langButtons[i].classList.remove('active');}";
   chunk += "if(btn){btn.classList.add('active');}";
-  chunk += "updateTranslations()}});}";
-  
-  // Mise à jour traductions
-  chunk += "function updateTranslations(){";
-  chunk += "fetch('/api/get-translations').then(r=>r.json()).then(tr=>{";
-  chunk += "document.getElementById('main-title').textContent=tr.title+' v" + String(DIAGNOSTIC_VERSION) + "';";
-  chunk += "document.querySelectorAll('[data-i18n]').forEach(el=>{";
-  chunk += "const key=el.getAttribute('data-i18n');";
-  chunk += "if(tr[key])el.textContent=tr[key]})});}";
-  
-  // Navigation onglets
-  // --- [BUGFIX] Navigation onglets : délégation universelle ---
-  chunk += "function showTab(t,btn){";
-  chunk += "var tabs=document.querySelectorAll('.tab-content');";
-  chunk += "for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');}";
-  chunk += "var target=document.getElementById(t);";
-  chunk += "if(target){target.classList.add('active');}";
-  chunk += "var buttons=document.querySelectorAll('.nav-btn');";
-  chunk += "for(var j=0;j<buttons.length;j++){buttons[j].classList.remove('active');}";
-  chunk += "if(btn&&btn.classList){btn.classList.add('active');}else{";
-  chunk += "var selector='.nav-btn[data-tab=\"'+t+'\"]';";
-  chunk += "var fallback=document.querySelector(selector);";
-  chunk += "if(fallback){fallback.classList.add('active');}";
-  chunk += "}";
+  chunk += "updateTranslations(true);";
+  chunk += "}).catch(function(err){var message=err&&err.message?err.message:err;showInlineMessage((currentLang==='fr'?'Erreur changement langue: ':'Language switch error: ')+message,'error');});";
+  chunk += "return false;";
   chunk += "}";
 
-  chunk += "function findNavButton(el){";
-  chunk += "while(el&&el.classList&&!el.classList.contains('nav-btn')){el=el.parentElement;}";
-  chunk += "if(el&&el.classList&&el.classList.contains('nav-btn')){return el;}";
-  chunk += "return null;";
+  chunk += "function updateTranslations(showNotice){";
+  chunk += "fetch('/api/get-translations').then(function(r){return r.json();}).then(function(tr){";
+  chunk += "var mainTitle=document.getElementById('main-title');if(mainTitle){mainTitle.textContent=tr.title+' v" + String(DIAGNOSTIC_VERSION) + "';}";
+  chunk += "var nodes=document.querySelectorAll('[data-i18n]');";
+  chunk += "for(var i=0;i<nodes.length;i++){var key=nodes[i].getAttribute('data-i18n');if(tr[key]){nodes[i].textContent=tr[key];}}";
+  chunk += "updateStatusIndicator(connectionState);";
+  chunk += "if(showNotice){showInlineMessage(currentLang==='fr'?'Langue mise à jour':'Language updated','success');}";
+  chunk += "}).catch(function(err){var message=err&&err.message?err.message:err;showInlineMessage((currentLang==='fr'?'Erreur traduction: ':'Translation error: ')+message,'error');});";
   chunk += "}";
 
-  chunk += "function initNavigation(){";
-  chunk += "var navs=document.querySelectorAll('.nav');";
-  chunk += "if(!navs||!navs.length){showTab('overview',null);return;}";
-  chunk += "for(var n=0;n<navs.length;n++){(function(nav){";
-  chunk += "nav.addEventListener('click',function(evt){";
-  chunk += "var button=findNavButton(evt.target);";
-  chunk += "if(!button){return;}";
-  chunk += "evt.preventDefault();";
-  chunk += "var targetTab=button.getAttribute('data-tab');";
-  chunk += "if(targetTab){showTab(targetTab,button);}";
-  chunk += "});";
-  chunk += "})(navs[n]);}";
-  chunk += "var defaultButton=document.querySelector('.nav-btn.active');";
-  chunk += "if(!defaultButton){var list=document.querySelectorAll('.nav-btn');if(list.length>0){defaultButton=list[0];}}";
-  chunk += "if(defaultButton){showTab(defaultButton.getAttribute('data-tab'),defaultButton);}else{showTab('overview',null);}";
-  chunk += "}";
-
+  // --- [NEW FEATURE] Navigation accessible avec repli hash ---
+  chunk += "function findNavTrigger(el){while(el&&el.classList&&!el.classList.contains('nav-link')){el=el.parentElement;}if(el&&el.classList&&el.classList.contains('nav-link')){return el;}return null;}";
+  chunk += "function showTab(tabId,trigger,updateHash){if(!tabId){return false;}var tabs=document.querySelectorAll('.tab-content');for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');}var target=document.getElementById(tabId);if(target){target.classList.add('active');if(typeof target.scrollIntoView==='function'){target.scrollIntoView();}}var buttons=document.querySelectorAll('.nav-link');for(var j=0;j<buttons.length;j++){buttons[j].classList.remove('active');buttons[j].removeAttribute('aria-current');}var actual=trigger;if(!actual||!actual.classList){var selector=\".nav-link[data-target='\"+tabId+\"']\";actual=document.querySelector(selector);}if(actual&&actual.classList){actual.classList.add('active');actual.setAttribute('aria-current','page');}if(updateHash!==false){if(window.location.hash!=='#'+tabId){ignoreHashChange=true;window.location.hash=tabId;setTimeout(function(){ignoreHashChange=false;},0);}}return false;}";
+  chunk += "function initNavigation(){var navs=document.querySelectorAll('.primary-nav');if(navs&&navs.length){for(var n=0;n<navs.length;n++){(function(nav){nav.addEventListener('click',function(evt){var source=evt.target||evt.srcElement;var button=findNavTrigger(source);if(!button){return;}evt.preventDefault();var targetTab=button.getAttribute('data-target');if(targetTab){showTab(targetTab,button);}});})(navs[n]);}}var initial=window.location.hash?window.location.hash.substring(1):null;var defaultButton=document.querySelector('.nav-link.active');if(!initial&&defaultButton){initial=defaultButton.getAttribute('data-target');}if(!initial){var list=document.querySelectorAll('.nav-link');if(list.length>0){initial=list[0].getAttribute('data-target');defaultButton=list[0];}}var initialButton=null;if(initial){initialButton=document.querySelector(\".nav-link[data-target='\"+initial+\"']\");}if(initial){showTab(initial,initialButton,false);}else{showTab('overview',null,false);}updateStatusIndicator(connectionState);}";
+  chunk += "window.addEventListener('hashchange',function(){if(ignoreHashChange){return;}var target=window.location.hash?window.location.hash.substring(1):'overview';showTab(target,null,false);});";
   chunk += "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initNavigation);}else{initNavigation();}";
 
-  // LED intégrée
-  chunk += "function configBuiltinLED(){updateStatus('builtin-led-status','Configuration...',null);";
-  chunk += "fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value)";
-  chunk += ".then(r=>r.json()).then(d=>{const state=d.success?'success':'error';updateStatus('builtin-led-status',d.message||'GPIO invalide',state);}).catch(e=>updateStatus('builtin-led-status','Erreur: '+e,'error'));}";
-  chunk += "function testBuiltinLED(){updateStatus('builtin-led-status','Test...',null);";
-  chunk += "fetch('/api/builtin-led-test').then(r=>r.json()).then(d=>{const state=d.success?'success':'error';updateStatus('builtin-led-status',d.result||'Test en echec',state);}).catch(e=>updateStatus('builtin-led-status','Erreur: '+e,'error'));}";
-  chunk += "function ledBlink(){fetch('/api/builtin-led-control?action=blink').then(r=>r.json()).then(d=>updateStatus('builtin-led-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('builtin-led-status','Erreur: '+e,'error'));}";
-  chunk += "function ledFade(){fetch('/api/builtin-led-control?action=fade').then(r=>r.json()).then(d=>updateStatus('builtin-led-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('builtin-led-status','Erreur: '+e,'error'));}";
-  chunk += "function ledOff(){fetch('/api/builtin-led-control?action=off').then(r=>r.json()).then(d=>updateStatus('builtin-led-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('builtin-led-status','Erreur: '+e,'error'));}";
-  
-  // NeoPixel
-  chunk += "function configNeoPixel(){updateStatus('neopixel-status','Configuration...',null);";
-  chunk += "fetch('/api/neopixel-config?gpio='+document.getElementById('neoGPIO').value+'&count='+document.getElementById('neoCount').value)";
-  chunk += ".then(r=>r.json()).then(d=>updateStatus('neopixel-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('neopixel-status','Erreur: '+e,'error'));}";
-  chunk += "function testNeoPixel(){updateStatus('neopixel-status','Test...',null);";
-  chunk += "fetch('/api/neopixel-test').then(r=>r.json()).then(d=>updateStatus('neopixel-status',d.result,d.success?'success':'error')).catch(e=>updateStatus('neopixel-status','Erreur: '+e,'error'));}";
-  chunk += "function neoPattern(p){fetch('/api/neopixel-pattern?pattern='+p).then(r=>r.json()).then(d=>updateStatus('neopixel-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('neopixel-status','Erreur: '+e,'error'));}";
-  chunk += "function neoCustomColor(){const c=document.getElementById('neoColor').value;";
-  chunk += "const r=parseInt(c.substr(1,2),16),g=parseInt(c.substr(3,2),16),b=parseInt(c.substr(5,2),16);";
-  chunk += "updateStatus('neopixel-status','RGB('+r+','+g+','+b+')...',null);";
-  chunk += "fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b).then(r=>r.json()).then(d=>updateStatus('neopixel-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('neopixel-status','Erreur: '+e,'error'));}";
-  
-  // OLED
-  chunk += "function testOLED(){updateStatus('oled-status','Test en cours (25s)...',null);";
-  chunk += "fetch('/api/oled-test').then(r=>r.json()).then(d=>updateStatus('oled-status',d.result,d.success?'success':'error')).catch(e=>updateStatus('oled-status','Erreur: '+e,'error'));}";
-  chunk += "function oledStep(step){updateStatus('oled-status','" + String(T().testing) + "',null);";
-  chunk += "fetch('/api/oled-step?step='+step).then(r=>r.json()).then(d=>updateStatus('oled-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('oled-status','Erreur: '+e,'error'));}";
-  chunk += "function oledMessage(){const msg=document.getElementById('oledMsg').value;";
-  chunk += "if(!msg){updateStatus('oled-status','" + String(T().custom_message) + "','error');return;}";
-  chunk += "updateStatus('oled-status','Transmission...',null);";
-  chunk += "fetch('/api/oled-message?message='+encodeURIComponent(msg))";
-  chunk += ".then(r=>r.json()).then(d=>updateStatus('oled-status',d.message,d.success?'success':'error')).catch(e=>updateStatus('oled-status','Erreur: '+e,'error'));}";
-  chunk += "function configOLED(){updateStatus('oled-status','Reconfiguration...',null);";
-  chunk += "const params='sda='+document.getElementById('oledSDA').value+'&scl='+document.getElementById('oledSCL').value+'&rotation='+document.getElementById('oledRotation').value;";
-  chunk += "fetch('/api/oled-config?'+params)";
-  chunk += ".then(r=>r.json()).then(d=>{const state=d.success?'success':'error';updateStatus('oled-status',d.message||'Configuration invalide',state);";
-  chunk += "if(d.success&&typeof d.sda!=='undefined'){document.getElementById('oledSDA').value=d.sda;}";
-  chunk += "if(d.success){const pins=document.getElementById('oled-pins');if(pins){pins.textContent='SDA:'+d.sda+' SCL:'+d.scl;}}";
-  chunk += "if(d.success){const rotDisplay=document.getElementById('oled-rotation-display');if(rotDisplay){rotDisplay.textContent=d.rotation;}}";
-  chunk += "}).catch(e=>updateStatus('oled-status','Erreur: '+e,'error'));";
+  chunk += "function configBuiltinLED(){updateStatus('builtin-led-status','Configuration...',null);fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';updateStatus('builtin-led-status',d.message||'GPIO invalide',state);}).catch(function(e){updateStatus('builtin-led-status','Erreur: '+e,'error');});}";
+  chunk += "function testBuiltinLED(){updateStatus('builtin-led-status','Test...',null);fetch('/api/builtin-led-test').then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';updateStatus('builtin-led-status',d.result||'Test en echec',state);}).catch(function(e){updateStatus('builtin-led-status','Erreur: '+e,'error');});}";
+  chunk += "function ledBlink(){fetch('/api/builtin-led-control?action=blink').then(function(r){return r.json();}).then(function(d){updateStatus('builtin-led-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('builtin-led-status','Erreur: '+e,'error');});}";
+  chunk += "function ledFade(){fetch('/api/builtin-led-control?action=fade').then(function(r){return r.json();}).then(function(d){updateStatus('builtin-led-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('builtin-led-status','Erreur: '+e,'error');});}";
+  chunk += "function ledOff(){fetch('/api/builtin-led-control?action=off').then(function(r){return r.json();}).then(function(d){updateStatus('builtin-led-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('builtin-led-status','Erreur: '+e,'error');});}";
 
-// Tests avancés
-  chunk += "function testADC(){document.getElementById('adc-status').innerHTML='Test...';";
-  chunk += "fetch('/api/adc-test').then(r=>r.json()).then(data=>{let h='';";
-  chunk += "data.readings.forEach(a=>{h+='<div class=\"info-item\"><div class=\"info-label\">GPIO '+a.pin+'</div><div class=\"info-value\">'+a.raw+' ('+a.voltage.toFixed(2)+'V)</div></div>'});";
-  chunk += "document.getElementById('adc-results').innerHTML=h;document.getElementById('adc-status').innerHTML=data.result})}";
-  
-  chunk += "function testTouch(){document.getElementById('touch-status').innerHTML='Test...';";
-  chunk += "fetch('/api/touch-test').then(r=>r.json()).then(data=>{let h='';";
-  chunk += "data.readings.forEach(t=>{h+='<div class=\"info-item\"><div class=\"info-label\">Touch'+t.pin+'</div><div class=\"info-value\">'+t.value+'</div></div>'});";
-  chunk += "document.getElementById('touch-results').innerHTML=h;document.getElementById('touch-status').innerHTML=data.result})}";
-  
-  chunk += "function testPWM(){document.getElementById('pwm-status').innerHTML='Test...';";
-  chunk += "fetch('/api/pwm-test').then(r=>r.json()).then(d=>document.getElementById('pwm-status').innerHTML=d.result)}";
-  chunk += "function scanSPI(){document.getElementById('spi-status').innerHTML='Scan...';";
-  chunk += "fetch('/api/spi-scan').then(r=>r.json()).then(d=>document.getElementById('spi-status').innerHTML=d.info)}";
-  chunk += "function listPartitions(){document.getElementById('partitions-results').innerHTML='Scan...';";
-  chunk += "fetch('/api/partitions-list').then(r=>r.json()).then(d=>document.getElementById('partitions-results').innerHTML=d.partitions)}";
-  chunk += "function stressTest(){document.getElementById('stress-status').innerHTML='Test...';";
-  chunk += "fetch('/api/stress-test').then(r=>r.json()).then(d=>document.getElementById('stress-status').innerHTML=d.result)}";
-  
-  // GPIO
-  chunk += "function testAllGPIO(){document.getElementById('gpio-status').innerHTML='Test...';";
-  chunk += "fetch('/api/test-gpio').then(r=>r.json()).then(data=>{let h='';";
-  chunk += "data.results.forEach(g=>{h+='<div class=\"gpio-item '+(g.working?'gpio-ok':'gpio-fail')+'\">GPIO '+g.pin+'<br>'+(g.working?'OK':'FAIL')+'</div>'});";
-  chunk += "document.getElementById('gpio-results').innerHTML=h;document.getElementById('gpio-status').innerHTML='Termine - '+data.results.length+' GPIO testes'})}";
-  
-  // WiFi
-  chunk += "function scanWiFi(){document.getElementById('wifi-status').innerHTML='Scan...';";
-  chunk += "fetch('/api/wifi-scan').then(r=>r.json()).then(data=>{let h='';";
-  chunk += "data.networks.forEach(n=>{let s=n.rssi>=-60?'🟢':n.rssi>=-70?'🟡':'🔴';";
-  chunk += "const freq=(n.freq&&n.freq>0)?n.freq+' MHz':'';";
-  chunk += "const pieces=[n.bssid,'Ch'+n.channel,n.band,freq,n.bandwidth,n.phy,n.encryption].filter(v=>v&&v.length>0&&v!=='-').join(' | ');";
-  chunk += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+pieces+'</small></div>';";
-  chunk += "h+='<div style=\"font-size:1.2em;font-weight:bold\">'+n.rssi+' dBm</div></div></div>'});";
-  chunk += "document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' reseaux detectes'})}";
-  
-  // I2C
-  chunk += "function scanI2C(){updateStatus('i2c-status','Scan...',null);";
-  chunk += "fetch('/api/i2c-scan').then(r=>r.json()).then(d=>{const msg='I2C: '+d.count+' peripherique(s)';updateStatus('i2c-status',msg,'success');";
-  chunk += "const summary=document.getElementById('i2c-summary');if(summary){summary.textContent=d.count+' peripherique(s) - '+d.devices;}}).catch(e=>updateStatus('i2c-status','Erreur: '+e,'error'));}";
-  
-  // Benchmarks
-  chunk += "function runBenchmarks(){";
-  chunk += "document.getElementById('cpu-bench').innerHTML='Test...';";
-  chunk += "document.getElementById('mem-bench').innerHTML='Test...';";
-  chunk += "fetch('/api/benchmark').then(r=>r.json()).then(data=>{";
-  chunk += "document.getElementById('cpu-bench').innerHTML=data.cpu+' us';";
-  chunk += "document.getElementById('mem-bench').innerHTML=data.memory+' us';";
-  chunk += "document.getElementById('cpu-perf').innerHTML=data.cpuPerf.toFixed(2)+' MFLOPS';";
-  chunk += "document.getElementById('mem-speed').innerHTML=data.memSpeed.toFixed(2)+' MB/s'})}";
-  
+  chunk += "function configNeoPixel(){updateStatus('neopixel-status','Configuration...',null);fetch('/api/neopixel-config?gpio='+document.getElementById('neoGPIO').value+'&count='+document.getElementById('neoCount').value).then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status','Erreur: '+e,'error');});}";
+  chunk += "function testNeoPixel(){updateStatus('neopixel-status','Test...',null);fetch('/api/neopixel-test').then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.result,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status','Erreur: '+e,'error');});}";
+  chunk += "function neoPattern(p){fetch('/api/neopixel-pattern?pattern='+p).then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status','Erreur: '+e,'error');});}";
+  chunk += "function neoCustomColor(){var c=document.getElementById('neoColor').value;var r=parseInt(c.substr(1,2),16);var g=parseInt(c.substr(3,2),16);var b=parseInt(c.substr(5,2),16);updateStatus('neopixel-status','RGB('+r+','+g+','+b+')...',null);fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b).then(function(rsp){return rsp.json();}).then(function(d){updateStatus('neopixel-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status','Erreur: '+e,'error');});}";
+
+  chunk += "function testOLED(){updateStatus('oled-status','Test en cours (25s)...',null);fetch('/api/oled-test').then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.result,d.success?'success':'error');}).catch(function(e){updateStatus('oled-status','Erreur: '+e,'error');});}";
+  chunk += "function oledStep(step){updateStatus('oled-status','" + String(T().testing) + "',null);fetch('/api/oled-step?step='+step).then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('oled-status','Erreur: '+e,'error');});}";
+  chunk += "function oledMessage(){var msg=document.getElementById('oledMsg').value;if(!msg){updateStatus('oled-status','" + String(T().custom_message) + "','error');return;}updateStatus('oled-status','Transmission...',null);fetch('/api/oled-message?message='+encodeURIComponent(msg)).then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('oled-status','Erreur: '+e,'error');});}";
+  chunk += "function configOLED(){updateStatus('oled-status','Reconfiguration...',null);var params='sda='+document.getElementById('oledSDA').value+'&scl='+document.getElementById('oledSCL').value+'&rotation='+document.getElementById('oledRotation').value;fetch('/api/oled-config?'+params).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';updateStatus('oled-status',d.message||'Configuration invalide',state);if(d.success&&typeof d.sda!=='undefined'){document.getElementById('oledSDA').value=d.sda;}if(d.success){var pins=document.getElementById('oled-pins');if(pins){pins.textContent='SDA:'+d.sda+' SCL:'+d.scl;}}if(d.success){var rotDisplay=document.getElementById('oled-rotation-display');if(rotDisplay){rotDisplay.textContent=d.rotation;}}}).catch(function(e){updateStatus('oled-status','Erreur: '+e,'error');});}";
+
+  chunk += "function testADC(){document.getElementById('adc-status').innerHTML='Test...';fetch('/api/adc-test').then(function(r){return r.json();}).then(function(data){var h='';if(data.readings&&data.readings.forEach){data.readings.forEach(function(a){h+='<div class=\"info-item\"><div class=\"info-label\">GPIO '+a.pin+'</div><div class=\"info-value\">'+a.raw+' ('+a.voltage.toFixed(2)+'V)</div></div>';});}document.getElementById('adc-results').innerHTML=h;document.getElementById('adc-status').innerHTML=data.result;});}";
+  chunk += "function testTouch(){document.getElementById('touch-status').innerHTML='Test...';fetch('/api/touch-test').then(function(r){return r.json();}).then(function(data){var h='';if(data.readings&&data.readings.forEach){data.readings.forEach(function(t){h+='<div class=\"info-item\"><div class=\"info-label\">Touch'+t.pin+'</div><div class=\"info-value\">'+t.value+'</div></div>';});}document.getElementById('touch-results').innerHTML=h;document.getElementById('touch-status').innerHTML=data.result;});}";
+  chunk += "function testPWM(){document.getElementById('pwm-status').innerHTML='Test...';fetch('/api/pwm-test').then(function(r){return r.json();}).then(function(d){document.getElementById('pwm-status').innerHTML=d.result;});}";
+  chunk += "function scanSPI(){document.getElementById('spi-status').innerHTML='Scan...';fetch('/api/spi-scan').then(function(r){return r.json();}).then(function(d){document.getElementById('spi-status').innerHTML=d.info;});}";
+  chunk += "function listPartitions(){document.getElementById('partitions-results').innerHTML='Scan...';fetch('/api/partitions-list').then(function(r){return r.json();}).then(function(d){document.getElementById('partitions-results').innerHTML=d.partitions;});}";
+  chunk += "function stressTest(){document.getElementById('stress-status').innerHTML='Test...';fetch('/api/stress-test').then(function(r){return r.json();}).then(function(d){document.getElementById('stress-status').innerHTML=d.result;});}";
+
+  chunk += "function testAllGPIO(){document.getElementById('gpio-status').innerHTML='Test...';fetch('/api/test-gpio').then(function(r){return r.json();}).then(function(data){var h='';if(data.results&&data.results.forEach){data.results.forEach(function(g){h+='<div class=\"gpio-item '+(g.working?'gpio-ok':'gpio-fail')+'\">GPIO '+g.pin+'<br>'+(g.working?'OK':'FAIL')+'</div>';});}document.getElementById('gpio-results').innerHTML=h;document.getElementById('gpio-status').innerHTML='Termine - '+data.results.length+' GPIO testes';});}";
+
+  chunk += "function scanWiFi(){document.getElementById('wifi-status').innerHTML='Scan...';fetch('/api/wifi-scan').then(function(r){return r.json();}).then(function(data){var h='';if(data.networks&&data.networks.forEach){data.networks.forEach(function(n){var s=n.rssi>=-60?'🟢':(n.rssi>=-70?'🟡':'🔴');var freq=(n.freq&&n.freq>0)?n.freq+' MHz':'';var pieces=[];if(n.bssid){pieces.push(n.bssid);}if(n.channel){pieces.push('Ch'+n.channel);}if(n.band){pieces.push(n.band);}if(freq){pieces.push(freq);}if(n.bandwidth){pieces.push(n.bandwidth);}if(n.phy){pieces.push(n.phy);}if(n.encryption&&n.encryption!=='-'){pieces.push(n.encryption);}var details=pieces.join(' | ');h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+details+'</small></div><div style=\"font-size:1.2em;font-weight:bold\">'+n.rssi+' dBm</div></div></div>';});}document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' reseaux detectes';});}";
+
+  chunk += "function scanI2C(){updateStatus('i2c-status','Scan...',null);fetch('/api/i2c-scan').then(function(r){return r.json();}).then(function(d){var msg='I2C: '+d.count+' peripherique(s)';updateStatus('i2c-status',msg,'success');var summary=document.getElementById('i2c-summary');if(summary){summary.textContent=d.count+' peripherique(s) - '+d.devices;}}).catch(function(e){updateStatus('i2c-status','Erreur: '+e,'error');});}";
+
+  chunk += "function runBenchmarks(){document.getElementById('cpu-bench').innerHTML='Test...';document.getElementById('mem-bench').innerHTML='Test...';fetch('/api/benchmark').then(function(r){return r.json();}).then(function(data){document.getElementById('cpu-bench').innerHTML=data.cpu+' us';document.getElementById('mem-bench').innerHTML=data.memory+' us';document.getElementById('cpu-perf').innerHTML=data.cpuPerf.toFixed(2)+' MFLOPS';document.getElementById('mem-speed').innerHTML=data.memSpeed.toFixed(2)+' MB/s';});}";
+
   chunk += "</script></body></html>";
   server.sendContent(chunk);
   
