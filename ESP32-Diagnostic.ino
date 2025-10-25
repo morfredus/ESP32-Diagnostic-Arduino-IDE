@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.16-dev - UI affinée, message inline sticky & avertissement GPIO
 // Version de dev : 3.0.15-dev - Gestion Bluetooth & onglet Sans fil
 // Version de dev : 3.0.14-dev - Menu horizontal sticky & reset alertes
 // Version de dev : 3.0.13-dev - Correction JSON traductions dynamiques
@@ -89,7 +90,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.15-dev"
+#define DIAGNOSTIC_VERSION "3.0.16-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2628,6 +2629,9 @@ void handleGetTranslations() {
   json += jsonField("flash_partitions", T().flash_partitions);
   json += jsonField("memory_stress", T().memory_stress);
   json += jsonField("gpio_test", T().gpio_test);
+  json += jsonField("test_all_gpio", T().test_all_gpio);
+  json += jsonField("click_to_test", T().click_to_test);
+  json += jsonField("gpio_warning", T().gpio_warning);
   json += jsonField("wifi_scanner", T().wifi_scanner);
   json += jsonField("performance_bench", T().performance_bench);
   json += jsonField("data_export", T().data_export, true);
@@ -2778,7 +2782,7 @@ body{
   background:var(--gradient);
   color:var(--text-primary);
   min-height:100vh;
-  padding:24px;
+  padding:20px;
 }
 a{color:inherit;}
 .app-shell{
@@ -2790,7 +2794,7 @@ a{color:inherit;}
 .app-header{
   background:var(--bg-surface);
   border-radius:var(--radius);
-  padding:32px 36px;
+  padding:22px 26px;
   box-shadow:0 25px 60px rgba(15,23,42,.45);
   border:1px solid var(--border-glow);
 }
@@ -2868,7 +2872,7 @@ a{color:inherit;}
   box-shadow:0 0 18px rgba(248,113,113,.6);
 }
 .header-info{
-  margin-top:24px;
+  margin-top:18px;
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
   gap:18px;
@@ -2902,10 +2906,16 @@ a{color:inherit;}
   top:0;
   z-index:90;
   transition:var(--transition);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding-top:6px;
+  padding-bottom:6px;
 }
 .nav-wrapper.is-sticky{
   background:rgba(11,17,32,0.92);
   backdrop-filter:blur(18px);
+  padding-top:12px;
 }
 .primary-nav{
   display:flex;
@@ -2913,7 +2923,7 @@ a{color:inherit;}
   gap:12px;
   background:var(--bg-surface);
   border-radius:var(--radius);
-  padding:14px 20px;
+  padding:10px 16px;
   border:1px solid var(--border-glow);
   box-shadow:0 25px 60px rgba(15,23,42,.35);
   position:relative;
@@ -2925,7 +2935,7 @@ a{color:inherit;}
 .nav-link{
   border:none;
   text-align:center;
-  padding:14px 18px;
+  padding:10px 16px;
   border-radius:14px;
   color:var(--text-primary);
   background:rgba(148,163,184,0.08);
@@ -2958,7 +2968,7 @@ a{color:inherit;}
 }
 .inline-message{
   min-height:32px;
-  margin-bottom:16px;
+  margin:0;
   padding:10px 16px;
   border-radius:12px;
   border:1px solid transparent;
@@ -2966,6 +2976,10 @@ a{color:inherit;}
   color:var(--text-muted);
   font-size:.95rem;
   display:none;
+}
+.nav-wrapper .inline-message{
+  border:1px solid rgba(148,163,184,0.18);
+  background:rgba(148,163,184,0.14);
 }
 .inline-message.show{display:block;}
 .inline-message.success{
@@ -2977,6 +2991,16 @@ a{color:inherit;}
   border-color:rgba(248,113,113,.45);
   background:rgba(248,113,113,.12);
   color:#fecaca;
+}
+.warning-callout{
+  border-radius:12px;
+  border:1px solid rgba(250,204,21,0.35);
+  background:rgba(250,204,21,0.12);
+  color:#facc15;
+  padding:12px 16px;
+  margin:0 0 18px 0;
+  font-size:.9rem;
+  line-height:1.4;
 }
 .tab-container{
   display:flex;
@@ -3161,7 +3185,7 @@ a{color:inherit;}
   .nav-link{flex:0 0 auto;min-width:180px;}
 }
 @media(max-width:640px){
-  .app-header{padding:24px;}
+  .app-header{padding:20px;}
   .branding h1{font-size:1.8rem;}
   .header-info{grid-template-columns:1fr;}
   .nav-link{padding:12px 14px;}
@@ -3213,6 +3237,7 @@ a{color:inherit;}
   chunk += "</header>";
   chunk += "<div class='app-body'>";
   chunk += "<div class='nav-wrapper'>";
+  // --- [NEW FEATURE] Message inline collé sous la navigation ---
   chunk += "<nav class='primary-nav' data-role='nav'>";
   chunk += "<a href='#overview' class='nav-link active' data-target='overview' onclick=\"return showTab('overview',this);\"><span class='label' data-i18n='nav_overview'>" + String(T().nav_overview) + "</span><span class='icon'>🏠</span></a>";
   chunk += "<a href='#leds' class='nav-link' data-target='leds' onclick=\"return showTab('leds',this);\"><span class='label' data-i18n='nav_leds'>" + String(T().nav_leds) + "</span><span class='icon'>💡</span></a>";
@@ -3223,9 +3248,9 @@ a{color:inherit;}
   chunk += "<a href='#benchmark' class='nav-link' data-target='benchmark' onclick=\"return showTab('benchmark',this);\"><span class='label' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</span><span class='icon'>⚡</span></a>";
   chunk += "<a href='#export' class='nav-link' data-target='export' onclick=\"return showTab('export',this);\"><span class='label' data-i18n='nav_export'>" + String(T().nav_export) + "</span><span class='icon'>💾</span></a>";
   chunk += "</nav>";
+  chunk += "<div id='inlineMessage' class='inline-message' role='status' aria-live='polite'></div>";
   chunk += "</div>";
   chunk += "<main class='app-main'>";
-  chunk += "<div id='inlineMessage' class='inline-message' role='status' aria-live='polite'></div>";
   chunk += "<div id='tabContainer' class='tab-container'>";
   server.sendContent(chunk);
   // CHUNK 3: OVERVIEW TAB - VERSION UNIQUE COMPLÈTE
@@ -3441,7 +3466,10 @@ a{color:inherit;}
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testAllGPIO()'>" + String(T().test_all_gpio) + "</button>";
   chunk += "<div id='gpio-status' class='status-live'>" + String(T().click_to_test) + "</div>";
-  chunk += "</div><div id='gpio-results' class='gpio-grid'></div></div></div>";
+  chunk += "</div>";
+  // --- [NEW FEATURE] Avertissement contextualisé pour le test GPIO ---
+  chunk += "<div class='warning-callout' data-i18n='gpio_warning'>" + String(T().gpio_warning) + "</div>";
+  chunk += "<div id='gpio-results' class='gpio-grid'></div></div></div>";
   server.sendContent(chunk);
   
   // CHUNK 8: TAB Wireless
