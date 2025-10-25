@@ -104,6 +104,8 @@ String generateHTML() {
   html += "@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}";
   html += ".status-live{padding:15px;background:#f0f0f0;border-radius:10px;text-align:center;";
   html += "font-weight:bold;margin:15px 0;border-left:4px solid #667eea}";
+  html += ".status-live.success{background:#d4edda;color:#155724}";
+  html += ".status-live.error{background:#f8d7da;color:#721c24}";
   html += ".gpio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));";
   html += "gap:10px;margin-top:15px}";
   html += ".gpio-item{padding:15px;background:#fff;border:2px solid #ddd;border-radius:8px;";
@@ -139,8 +141,8 @@ String generateHTML() {
   html += "<div class='container'>";
   html += "<div class='header'>";
   html += "<div class='lang-switcher'>";
-  html += "<button class='lang-btn active' onclick='changeLang(\"fr\")'>FR</button>";
-  html += "<button class='lang-btn' onclick='changeLang(\"en\")'>EN</button>";
+  html += "<button class='lang-btn active' onclick='changeLang(\"fr\",this)'>FR</button>";
+  html += "<button class='lang-btn' onclick='changeLang(\"en\",this)'>EN</button>";
   html += "</div>";
   html += "<h1 id='main-title'>";
   html += "<span class='status-indicator status-online' id='statusIndicator'></span>";
@@ -159,14 +161,14 @@ String generateHTML() {
   html += diagnosticData.ipAddress;
   html += "</strong></div>";
   html += "<div class='nav'>";
-  html += "<button class='nav-btn active' onclick='showTab(\"overview\",event)'>Vue d'ensemble</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"leds\",event)'>LEDs</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"screens\",event)'>Écrans</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"tests\",event)'>Tests</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"gpio\",event)'>GPIO</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"wifi\",event)'>WiFi</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"benchmark\",event)'>Performance</button>";
-  html += "<button class='nav-btn' onclick='showTab(\"export\",event)'>Export</button>";
+  html += "<button type='button' class='nav-btn active' data-tab='overview' onclick=\"showTab('overview',this);\">Vue d'ensemble</button>";
+  html += "<button type='button' class='nav-btn' data-tab='leds' onclick=\"showTab('leds',this);\">LEDs</button>";
+  html += "<button type='button' class='nav-btn' data-tab='screens' onclick=\"showTab('screens',this);\">Écrans</button>";
+  html += "<button type='button' class='nav-btn' data-tab='tests' onclick=\"showTab('tests',this);\">Tests</button>";
+  html += "<button type='button' class='nav-btn' data-tab='gpio' onclick=\"showTab('gpio',this);\">GPIO</button>";
+  html += "<button type='button' class='nav-btn' data-tab='wifi' onclick=\"showTab('wifi',this);\">WiFi</button>";
+  html += "<button type='button' class='nav-btn' data-tab='benchmark' onclick=\"showTab('benchmark',this);\">Performance</button>";
+  html += "<button type='button' class='nav-btn' data-tab='export' onclick=\"showTab('export',this);\">Export</button>";
   html += "</div>";
   html += "</div>";
   html += "<div class='content'>";
@@ -190,11 +192,12 @@ String generateJavaScript() {
   js += "let isConnected=true;";
 
   // Initialisation - CORRIGÉE
+  // --- [BUGFIX] Navigation onglets : délégation dès le chargement ---
   js += "document.addEventListener('DOMContentLoaded',function(){";
   js += "console.log('Interface chargée');";
+  js += "initNavigation();";
   js += "loadAllData();";
   js += "startAutoUpdate();";
-  js += "loadTab('overview');";
   js += "});";
 
   // Auto-update
@@ -233,13 +236,45 @@ String generateJavaScript() {
   js += "async function updateWiFiInfo(){await fetch('/api/wifi-info');}";
   js += "async function updatePeripheralsInfo(){await fetch('/api/peripherals');}";
 
-  // Tab navigation - CORRIGÉ
-  js += "function showTab(tabName,evt){";
-  js += "document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));";
-  js += "document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));";
-  js += "if(evt&&evt.target)evt.target.classList.add('active');";
-  js += "const tab=document.getElementById(tabName);";
+  // --- [BUGFIX] Navigation onglets : délégation universelle ---
+  js += "function showTab(tabName,btn){";
+  js += "var contents=document.querySelectorAll('.tab-content');";
+  js += "for(var i=0;i<contents.length;i++){contents[i].classList.remove('active');}";
+  js += "var tab=document.getElementById(tabName);";
   js += "if(tab){tab.classList.add('active');}else{loadTab(tabName);}";
+  js += "setActiveTabButton(tabName,btn);";
+  js += "}";
+
+  js += "function setActiveTabButton(tabName,btn){";
+  js += "var buttons=document.querySelectorAll('.nav-btn');";
+  js += "for(var i=0;i<buttons.length;i++){buttons[i].classList.remove('active');}";
+  js += "if(btn&&btn.classList){btn.classList.add('active');return;}";
+  js += "var selector='.nav-btn[data-tab=\"'+tabName+'\"]';";
+  js += "var fallback=document.querySelector(selector);";
+  js += "if(fallback){fallback.classList.add('active');}";
+  js += "}";
+
+  js += "function findNavButton(el){";
+  js += "while(el&&el.classList&&!el.classList.contains('nav-btn')){el=el.parentElement;}";
+  js += "if(el&&el.classList&&el.classList.contains('nav-btn')){return el;}";
+  js += "return null;";
+  js += "}";
+
+  js += "function initNavigation(){";
+  js += "var navs=document.querySelectorAll('.nav');";
+  js += "if(!navs||!navs.length){showTab('overview');return;}";
+  js += "for(var n=0;n<navs.length;n++){(function(nav){";
+  js += "nav.addEventListener('click',function(e){";
+  js += "var btn=findNavButton(e.target);";
+  js += "if(!btn){return;}";
+  js += "e.preventDefault();";
+  js += "var target=btn.getAttribute('data-tab');";
+  js += "if(target){showTab(target,btn);}";
+  js += "});";
+  js += "})(navs[n]);}";
+  js += "var active=document.querySelector('.nav-btn.active');";
+  js += "if(!active){var list=document.querySelectorAll('.nav-btn');if(list.length>0){active=list[0];}}";
+  js += "if(active){showTab(active.getAttribute('data-tab'),active);}else{showTab('overview');}";
   js += "}";
 
   // Load tab
@@ -350,12 +385,17 @@ String generateJavaScript() {
   js += "}";
 
 js += "function buildScreens(d){";
+  js += "const rotation=(typeof d.oled.rotation!=='undefined')?d.oled.rotation:0;";
   js += "let h='<div class=\"section\"><h2>🖥️ Écran OLED 0.96\\\" I2C</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"oled-status\">'+d.oled.status+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Pins I2C</div><div class=\"info-value\">SDA:'+d.oled.pins.sda+' SCL:'+d.oled.pins.scl+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Pins I2C</div><div class=\"info-value\" id=\"oled-pins\">SDA:'+d.oled.pins.sda+' SCL:'+d.oled.pins.scl+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Rotation</div><div class=\"info-value\" id=\"oled-rotation-display\">'+rotation+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
   js += "h+='SDA: <input type=\"number\" id=\"oledSDA\" value=\"'+d.oled.pins.sda+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
   js += "h+='SCL: <input type=\"number\" id=\"oledSCL\" value=\"'+d.oled.pins.scl+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
+  js += "h+='Rotation: <select id=\"oledRotation\" style=\"width:90px;padding:10px;border:2px solid #ddd;border-radius:5px\">';";
+  js += "for(let i=0;i<4;i++){h+='<option value=\\''+i+'\\''+(i===rotation?' selected':'')+'>'+i+'</option>';};";
+  js += "h+='</select> ';";
   js += "h+='<button class=\"btn btn-info\" onclick=\"configOLED()\">🔄 Reconfigurer</button>';";
   js += "h+='<div style=\"margin-top:15px\"><button class=\"btn btn-primary\" onclick=\"testOLED()\">🧪 Test complet (25s)</button></div>';";
   js += "h+='<div class=\"oled-step-grid\" style=\"margin-top:15px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px\">';";
@@ -442,9 +482,9 @@ js += "function buildScreens(d){";
 
   // FONCTIONS API - LED
   js += "async function testBuiltinLED(){";
-  js += "document.getElementById('builtin-led-status').textContent='Test en cours...';";
+  js += "setStatus('builtin-led-status','Test en cours...',null);";
   js += "const r=await fetch('/api/builtin-led-test');const d=await r.json();";
-  js += "document.getElementById('builtin-led-status').textContent=d.result;alert(d.result);";
+  js += "setStatus('builtin-led-status',d.result,d.success?'success':'error');";
   js += "}";
   js += "async function ledBlink(){";
   js += "const r=await fetch('/api/builtin-led-control?action=blink');const d=await r.json();";
@@ -493,29 +533,29 @@ js += "function buildScreens(d){";
   js += "document.getElementById('oled-status').textContent=d.result;";
   js += "}";
   js += "async function oledStep(step){";
-  js += "document.getElementById('oled-status').textContent='Étape en cours...';";
-  js += "const r=await fetch('/api/oled-step?step='+step);const d=await r.json();";
-  js += "document.getElementById('oled-status').textContent=d.message;";
-  js += "if(!d.success){alert(d.message);}";
+  js += "setStatus('oled-status','Étape en cours...',null);";
+  js += "try{const r=await fetch('/api/oled-step?step='+step);const d=await r.json();setStatus('oled-status',d.message,d.success?'success':'error');}catch(e){setStatus('oled-status','Erreur: '+e,'error');}";
   js += "}";
 
   // FONCTIONS API - Affichage texte OLED
   js += "async function oledDisplayText(){";
   js += "const text=document.getElementById('oledText').value;";
-  js += "if(!text){alert('Entrez un message!');return;}";
-  js += "document.getElementById('oled-status').textContent='Affichage en cours...';";
-  js += "const r=await fetch('/api/oled-message?message='+encodeURIComponent(text));";
-  js += "const d=await r.json();";
-  js += "document.getElementById('oled-status').textContent=d.message;";
+  js += "if(!text){setStatus('oled-status','Message requis','error');return;}";
+  js += "setStatus('oled-status','Affichage en cours...',null);";
+  js += "try{const r=await fetch('/api/oled-message?message='+encodeURIComponent(text));const d=await r.json();setStatus('oled-status',d.message,d.success?'success':'error');}catch(e){setStatus('oled-status','Erreur: '+e,'error');}";
   js += "}";
   js += "async function configOLED(){";
-  js += "document.getElementById('oled-status').textContent='Reconfiguration...';";
+  js += "setStatus('oled-status','Reconfiguration...',null);";
   js += "const sda=document.getElementById('oledSDA').value;";
   js += "const scl=document.getElementById('oledSCL').value;";
-  js += "const r=await fetch('/api/oled-config?sda='+sda+'&scl='+scl);";
+  js += "const rotation=document.getElementById('oledRotation').value;";
+  js += "try{";
+  js += "const r=await fetch('/api/oled-config?sda='+sda+'&scl='+scl+'&rotation='+rotation);";
   js += "const d=await r.json();";
-  js += "document.getElementById('oled-status').textContent=d.message;";
-  js += "if(d.success){alert(d.message);location.reload();}else{alert('Erreur: '+d.message);}";
+  js += "setStatus('oled-status',d.message||'Configuration invalide',d.success?'success':'error');";
+  js += "if(d.success){if(typeof d.sda!=='undefined'){document.getElementById('oledSDA').value=d.sda;document.getElementById('oledSCL').value=d.scl;}";
+  js += "const pins=document.getElementById('oled-pins');if(pins){pins.textContent='SDA:'+d.sda+' SCL:'+d.scl;}const rotDisplay=document.getElementById('oled-rotation-display');if(rotDisplay){rotDisplay.textContent=d.rotation;}if(document.getElementById('oledRotation')){document.getElementById('oledRotation').value=d.rotation;}}";
+  js += "}catch(e){setStatus('oled-status','Erreur: '+e,'error');}";
   js += "}";
 
   // FONCTIONS API - Tests
@@ -589,6 +629,8 @@ js += "function buildScreens(d){";
   js += "else{i.classList.remove('status-online');i.classList.add('status-offline');}";
   js += "}";
 
+  js += "function setStatus(id,text,state){const el=document.getElementById(id);if(!el)return;el.textContent=text;el.classList.remove('success','error');if(state){el.classList.add(state);}}";
+
   js += "function updateRealtimeValues(d){";
   js += "const u=document.getElementById('uptime');if(u)u.textContent=formatUptime(d.uptime);";
   js += "const t=document.getElementById('temperature');if(t&&d.temperature!==-999)t.textContent=d.temperature.toFixed(1)+' °C';";
@@ -606,23 +648,23 @@ js += "function buildScreens(d){";
   js += "}";
 
   // Changement de langue
-  js += "function changeLang(lang){";
+  js += "function changeLang(lang,btn){";
   js += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
   js += "if(d.success){";
   js += "currentLang=lang;";
   js += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
-  js += "document.querySelectorAll('.lang-btn').forEach(b=>{if(b.textContent.toLowerCase()===lang)b.classList.add('active');});";
+  js += "if(btn){btn.classList.add('active');}else{document.querySelectorAll('.lang-btn').forEach(b=>{if(b.textContent.toLowerCase()===lang)b.classList.add('active');});}";
   js += "return fetch('/api/get-translations');";
-  js += "}).then(r=>r.json()).then(translations=>{";
+  js += "}}").then(r=>r.json()).then(translations=>{";
   js += "updateInterfaceTexts(translations);";
-  js += "alert('Langue changée : '+lang.toUpperCase());";
-  js += "}).catch(e=>alert('Erreur changement langue: '+e));";
+  js += "const ind=document.getElementById('updateIndicator');if(ind){ind.textContent='Langue changée : '+lang.toUpperCase();showUpdateIndicator();hideUpdateIndicator();}";
+  js += "}).catch(e=>{const ind=document.getElementById('updateIndicator');if(ind){ind.textContent='Erreur changement langue: '+e;showUpdateIndicator();hideUpdateIndicator();}});";
   js += "}";
 
   js += "function updateInterfaceTexts(t){";
-  js += "const tabs=['overview','leds','screens','tests','gpio','wifi','benchmark','export'];";
+  // --- [BUGFIX] Traductions alignées sur les onglets dynamiques ---
   js += "const btns=document.querySelectorAll('.nav-btn');";
-  js += "btns.forEach((btn,i)=>{if(t[tabs[i]])btn.textContent=t[tabs[i]];});";
+  js += "btns.forEach(btn=>{const key=btn.dataset.tab;if(key&&t[key])btn.textContent=t[key];});";
   js += "}";
 
   return js;
