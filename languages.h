@@ -172,17 +172,26 @@ struct Translations {
   const char* click_button;
   const char* memory_stress;
   const char* start_stress;
-  
+  const char* i2c_desc;
+  const char* adc_desc;
+  const char* touch_desc;
+  const char* pwm_desc;
+  const char* spi_desc;
+  const char* partitions_desc;
+  const char* stress_desc;
+
   // GPIO
   const char* gpio_test;
   const char* test_all_gpio;
   const char* click_to_test;
   const char* gpio_warning;
-  
+  const char* gpio_desc;
+
   // WiFi Scanner
   const char* wifi_scanner;
   const char* scan_networks;
-  
+  const char* wifi_desc;
+
   // Performance
   const char* performance_bench;
   const char* run_benchmarks;
@@ -191,6 +200,7 @@ struct Translations {
   const char* cpu_performance;
   const char* memory_speed;
   const char* not_tested;
+  const char* benchmark_desc;
   
   // Export
   const char* data_export;
@@ -332,7 +342,7 @@ const Translations LANG_FR_TEXTS = {
   "Actualiser Mémoire",
   
   // WiFi
-  "Connexion WiFi Détaillée",
+  "WiFi",
   "SSID Connecté",
   "Puissance Signal (RSSI)",
   "Qualité Signal",
@@ -422,16 +432,25 @@ const Translations LANG_FR_TEXTS = {
   "Cliquez sur le bouton",
   "Stress Test Mémoire",
   "Lancer Stress Test",
+  "Détecte les périphériques reliés au bus I2C.",
+  "Contrôle les entrées analogiques pour valider l'ADC.",
+  "Mesure la réponse des capteurs tactiles capacitifs.",
+  "Vérifie la génération de PWM sur les sorties sélectionnées.",
+  "Inspecte le bus SPI pour repérer les périphériques actifs.",
+  "Affiche la table actuelle des partitions flash.",
+  "Pousse la mémoire pour détecter les instabilités.",
   
   // GPIO
   "Test GPIO",
   "Tester Tous les GPIO",
   "Cliquez pour tester",
   "Un GPIO en échec peut provenir de la configuration ou d'un périphérique externe : vérifiez câblage et alimentation avant de conclure à un défaut.",
+  "Teste automatiquement l'ensemble des broches GPIO.",
 
   // WiFi
   "Scanner WiFi",
   "Scanner Réseaux WiFi",
+  "Analyse les réseaux WiFi et leurs paramètres radio.",
   
   // Performance
   "Benchmarks de Performance",
@@ -441,6 +460,7 @@ const Translations LANG_FR_TEXTS = {
   "Performance CPU",
   "Vitesse Mémoire",
   "Non testé",
+  "Mesure les performances CPU et mémoire du module.",
   
   // Export
   "Export des Données",
@@ -582,7 +602,7 @@ const Translations LANG_EN_TEXTS = {
   "Refresh Memory",
   
   // WiFi
-  "Detailed WiFi Connection",
+  "WiFi",
   "Connected SSID",
   "Signal Power (RSSI)",
   "Signal Quality",
@@ -672,16 +692,25 @@ const Translations LANG_EN_TEXTS = {
   "Click the button",
   "Memory Stress Test",
   "Start Stress Test",
+  "Detects peripherals connected on the I2C bus.",
+  "Checks analog inputs to validate the ADC.",
+  "Measures capacitive touch pad response.",
+  "Verifies PWM generation on the selected outputs.",
+  "Inspects the SPI bus to spot active peripherals.",
+  "Displays the current flash partition table.",
+  "Pushes memory usage to uncover instability.",
   
   // GPIO
   "GPIO Test",
   "Test All GPIO",
   "Click to test",
   "A failed GPIO result may stem from configuration or external hardware—double-check wiring and power before assuming the pin is faulty.",
+  "Automatically exercises every GPIO pin.",
 
   // WiFi
   "WiFi Scanner",
   "Scan WiFi Networks",
+  "Analyzes nearby WiFi networks and radio parameters.",
   
   // Performance
   "Performance Benchmarks",
@@ -691,6 +720,7 @@ const Translations LANG_EN_TEXTS = {
   "CPU Performance",
   "Memory Speed",
   "Not tested",
+  "Measures CPU and memory performance of the module.",
   
   // Export
   "Data Export",

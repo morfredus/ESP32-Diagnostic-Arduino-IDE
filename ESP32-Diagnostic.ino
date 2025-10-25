@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.21-dev - Bandeau renommé, descriptions tests & BLE souple
 // Version de dev : 3.0.20-dev - Menu responsive sans défilement
 // Version de dev : 3.0.19-dev - Menu monoligne & lisibilité partitions
 // Version de dev : 3.0.18-dev - Correctif script Bluetooth & compilation
@@ -47,16 +48,29 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#if (defined(CONFIG_BT_ENABLED) && defined(CONFIG_BT_BLE_ENABLED) && CONFIG_BT_ENABLED && CONFIG_BT_BLE_ENABLED)
+#if defined(__has_include)
+  #if __has_include(<BLEDevice.h>) && __has_include(<BLEServer.h>) && __has_include(<BLEUtils.h>) && __has_include(<BLE2902.h>)
+    #define BLE_HEADERS_AVAILABLE 1
+  #else
+    #define BLE_HEADERS_AVAILABLE 0
+  #endif
+#else
+  #define BLE_HEADERS_AVAILABLE 1
+#endif
+
+#if BLE_HEADERS_AVAILABLE
   // --- [NEW FEATURE] Support Bluetooth Low Energy ---
   #include <BLEDevice.h>
   #include <BLEServer.h>
   #include <BLEUtils.h>
   #include <BLE2902.h>
-  #define BLE_STACK_SUPPORTED 1
-#else
-  #define BLE_STACK_SUPPORTED 0
 #endif
+
+#ifndef BLE_HEADERS_AVAILABLE
+  #define BLE_HEADERS_AVAILABLE 0
+#endif
+
+#define BLE_STACK_SUPPORTED BLE_HEADERS_AVAILABLE
 #include <vector>
 
 // --- [NEW FEATURE] Inclusion automatique de la configuration WiFi ---
@@ -94,7 +108,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.20-dev"
+#define DIAGNOSTIC_VERSION "3.0.21-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2500,7 +2514,7 @@ String buildBluetoothJSON(bool success, const String& message) {
 bool startBluetooth() {
   ensureBluetoothName();
 
-  if (!bluetoothCapable || !BLE_STACK_SUPPORTED) {
+  if (!bluetoothCapable) {
     bluetoothEnabled = false;
     bluetoothAdvertising = false;
     return false;
@@ -2637,6 +2651,16 @@ void handleGetTranslations() {
   json += jsonField("test_all_gpio", T().test_all_gpio);
   json += jsonField("click_to_test", T().click_to_test);
   json += jsonField("gpio_warning", T().gpio_warning);
+  json += jsonField("i2c_desc", T().i2c_desc);
+  json += jsonField("adc_desc", T().adc_desc);
+  json += jsonField("touch_desc", T().touch_desc);
+  json += jsonField("pwm_desc", T().pwm_desc);
+  json += jsonField("spi_desc", T().spi_desc);
+  json += jsonField("partitions_desc", T().partitions_desc);
+  json += jsonField("stress_desc", T().stress_desc);
+  json += jsonField("gpio_desc", T().gpio_desc);
+  json += jsonField("wifi_desc", T().wifi_desc);
+  json += jsonField("benchmark_desc", T().benchmark_desc);
   json += jsonField("wifi_scanner", T().wifi_scanner);
   json += jsonField("performance_bench", T().performance_bench);
   json += jsonField("data_export", T().data_export, true);
@@ -2661,7 +2685,7 @@ void handleBluetoothToggle() {
   state.toLowerCase();
   bool enable = (state == "on" || state == "1" || state == "true");
 
-  bool supported = bluetoothCapable && BLE_STACK_SUPPORTED;
+  bool supported = bluetoothCapable;
   bool success = false;
   String message;
 
@@ -2695,7 +2719,7 @@ void handleBluetoothName() {
     return;
   }
 
-  bool supported = bluetoothCapable && BLE_STACK_SUPPORTED;
+  bool supported = bluetoothCapable;
   bool wasActive = supported && bluetoothEnabled;
   bool success = true;
 
@@ -2722,7 +2746,7 @@ void handleBluetoothName() {
 
 void handleBluetoothReset() {
   ensureBluetoothName();
-  bool supported = bluetoothCapable && BLE_STACK_SUPPORTED;
+  bool supported = bluetoothCapable;
   bool wasActive = supported && bluetoothEnabled;
   bool success = true;
 
@@ -3102,8 +3126,13 @@ a{color:inherit;}
   align-items:center;
   gap:12px;
   font-size:1.4rem;
-  margin-bottom:18px;
+  margin-bottom:12px;
   color:var(--accent);
+}
+.section-description{
+  margin:-4px 0 18px;
+  color:var(--text-muted);
+  font-size:.92rem;
 }
 .section h3{
   font-size:1.15rem;
@@ -3530,43 +3559,43 @@ a{color:inherit;}
   
   // CHUNK 6: TAB Tests
   chunk = "<div id='tests' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().i2c_peripherals) + "</h2>";
+  chunk += "<div class='section'><h2>" + String(T().i2c_peripherals) + "</h2><p class='section-description' data-i18n='i2c_desc'>" + String(T().i2c_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='scanI2C()'>" + String(T().rescan_i2c) + "</button>";
   chunk += "<div id='i2c-status' class='status-live'>" + String(T().click_button) + "</div>";
   chunk += "</div></div>";
-  chunk += "<div class='section'><h2>" + String(T().adc_test) + "</h2>";
+  chunk += "<div class='section'><h2>" + String(T().adc_test) + "</h2><p class='section-description' data-i18n='adc_desc'>" + String(T().adc_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testADC()'>" + String(T().test) + "</button>";
   chunk += "<div id='adc-status' class='status-live'>" + adcTestResult + "</div>";
   chunk += "</div><div id='adc-results' class='info-grid'></div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().touch_test) + "</h2>";
+  chunk += "<div class='section'><h2>" + String(T().touch_test) + "</h2><p class='section-description' data-i18n='touch_desc'>" + String(T().touch_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testTouch()'>" + String(T().test) + "</button>";
   chunk += "<div id='touch-status' class='status-live'>" + touchTestResult + "</div>";
   chunk += "</div><div id='touch-results' class='info-grid'></div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().pwm_test) + "</h2>";
+  chunk += "<div class='section'><h2>" + String(T().pwm_test) + "</h2><p class='section-description' data-i18n='pwm_desc'>" + String(T().pwm_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testPWM()'>" + String(T().test) + "</button>";
   chunk += "<div id='pwm-status' class='status-live'>" + pwmTestResult + "</div>";
   chunk += "</div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().spi_bus) + "</h2>";
+  chunk += "<div class='section'><h2>" + String(T().spi_bus) + "</h2><p class='section-description' data-i18n='spi_desc'>" + String(T().spi_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='scanSPI()'>" + String(T().scan) + "</button>";
   chunk += "<div id='spi-status' class='status-live'>" + (spiInfo.length() > 0 ? spiInfo : String(T().click_button)) + "</div>";
   chunk += "</div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().flash_partitions) + "</h2>";
+  chunk += "<div class='section'><h2>" + String(T().flash_partitions) + "</h2><p class='section-description' data-i18n='partitions_desc'>" + String(T().partitions_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='listPartitions()'>" + String(T().list_partitions) + "</button>";
   chunk += "</div><div id='partitions-results' style='background:#fff;color:#0b1120;padding:15px;border-radius:10px;font-family:monospace;white-space:pre-wrap;font-size:0.85em'>";
   chunk += partitionsInfo.length() > 0 ? partitionsInfo : String(T().click_button);
   chunk += "</div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().memory_stress) + "</h2>";
+  chunk += "<div class='section'><h2>" + String(T().memory_stress) + "</h2><p class='section-description' data-i18n='stress_desc'>" + String(T().stress_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-danger' onclick='stressTest()'>" + String(T().start_stress) + "</button>";
   chunk += "<div id='stress-status' class='status-live'>" + stressTestResult + "</div>";
@@ -3575,7 +3604,7 @@ a{color:inherit;}
   
   // CHUNK 7: TAB GPIO
   chunk = "<div id='gpio' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().gpio_test) + "</h2>";
+  chunk += "<div class='section'><h2>" + String(T().gpio_test) + "</h2><p class='section-description' data-i18n='gpio_desc'>" + String(T().gpio_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testAllGPIO()'>" + String(T().test_all_gpio) + "</button>";
   chunk += "<div id='gpio-status' class='status-live'>" + String(T().click_to_test) + "</div>";
@@ -3587,7 +3616,7 @@ a{color:inherit;}
   
   // CHUNK 8: TAB Wireless
   chunk = "<div id='wireless' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().wifi_scanner) + "</h2>";
+  chunk += "<div class='section'><h2>" + String(T().wifi_scanner) + "</h2><p class='section-description' data-i18n='wifi_desc'>" + String(T().wifi_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='scanWiFi()'>" + String(T().scan_networks) + "</button>";
   chunk += "<div id='wifi-status' class='status-live'>" + String(T().click_to_test) + "</div>";
@@ -3613,7 +3642,7 @@ a{color:inherit;}
   
   // CHUNK 9: TAB Benchmark
   chunk = "<div id='benchmark' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().performance_bench) + "</h2>";
+  chunk += "<div class='section'><h2>" + String(T().performance_bench) + "</h2><p class='section-description' data-i18n='benchmark_desc'>" + String(T().benchmark_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='runBenchmarks()'>" + String(T().run_benchmarks) + "</button>";
   chunk += "</div><div id='benchmark-results' class='info-grid'>";
