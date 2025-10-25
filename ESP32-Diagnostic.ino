@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.17-dev - Bandeau condensé & navigation calée
 // Version de dev : 3.0.16-dev - UI affinée, message inline sticky & avertissement GPIO
 // Version de dev : 3.0.15-dev - Gestion Bluetooth & onglet Sans fil
 // Version de dev : 3.0.14-dev - Menu horizontal sticky & reset alertes
@@ -90,7 +91,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.16-dev"
+#define DIAGNOSTIC_VERSION "3.0.17-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2794,43 +2795,47 @@ a{color:inherit;}
 .app-header{
   background:var(--bg-surface);
   border-radius:var(--radius);
-  padding:22px 26px;
+  padding:16px 22px;
   box-shadow:0 25px 60px rgba(15,23,42,.45);
   border:1px solid var(--border-glow);
+  display:flex;
+  flex-direction:column;
+  gap:14px;
 }
 .header-meta{
   display:flex;
   flex-wrap:wrap;
   justify-content:space-between;
-  gap:24px;
-  align-items:center;
+  gap:16px;
+  align-items:flex-start;
 }
 .branding{
   display:flex;
   flex-direction:column;
-  gap:8px;
+  gap:6px;
 }
 .branding .subtitle{
   text-transform:uppercase;
-  letter-spacing:.3em;
-  font-size:.75rem;
+  letter-spacing:.28em;
+  font-size:.7rem;
   color:var(--accent);
 }
 .branding h1{
-  font-size:2.4rem;
+  font-size:2rem;
   margin:0;
+  line-height:1.2;
 }
 .header-actions{
   display:flex;
   align-items:center;
-  gap:16px;
+  gap:12px;
   flex-wrap:wrap;
 }
 .lang-switcher{
   display:flex;
   background:rgba(255,255,255,0.06);
   border-radius:999px;
-  padding:4px;
+  padding:3px;
   border:1px solid var(--border-muted);
 }
 .lang-btn{
@@ -2838,62 +2843,96 @@ a{color:inherit;}
   background:transparent;
   color:var(--text-primary);
   font-weight:600;
-  padding:8px 18px;
+  padding:6px 14px;
   border-radius:999px;
   cursor:pointer;
   transition:var(--transition);
+  font-size:.9rem;
 }
 .lang-btn.active{
   background:var(--accent);
   color:#0f172a;
-  box-shadow:0 10px 25px rgba(56,189,248,.35);
+  box-shadow:0 8px 20px rgba(56,189,248,.3);
 }
 .status-chip{
   display:flex;
   align-items:center;
-  gap:10px;
-  padding:8px 16px;
+  gap:8px;
+  padding:6px 12px;
   border-radius:999px;
   background:rgba(56,189,248,0.12);
   border:1px solid rgba(56,189,248,0.35);
   font-weight:600;
+  font-size:.9rem;
 }
 .status-indicator{
-  width:12px;
-  height:12px;
+  width:11px;
+  height:11px;
   border-radius:50%;
   display:inline-block;
   background:var(--success);
-  box-shadow:0 0 18px rgba(34,197,94,.65);
+  box-shadow:0 0 16px rgba(34,197,94,.55);
   transition:var(--transition);
 }
 .status-indicator.status-offline{
   background:var(--danger);
-  box-shadow:0 0 18px rgba(248,113,113,.6);
+  box-shadow:0 0 16px rgba(248,113,113,.5);
 }
-.header-info{
-  margin-top:18px;
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
-  gap:18px;
+.header-status{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
 }
-.header-card{
+.status-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
   background:var(--bg-surface-alt);
-  border-radius:var(--radius);
-  padding:18px;
+  border-radius:12px;
+  padding:8px 12px;
   border:1px solid var(--border-muted);
+  min-height:40px;
 }
-.header-card strong{
-  display:block;
-  font-size:.85rem;
+.status-item .status-label{
+  font-size:.72rem;
   text-transform:uppercase;
-  letter-spacing:.1em;
+  letter-spacing:.08em;
   color:var(--text-muted);
-  margin-bottom:6px;
-}
-.header-card span{
-  font-size:1.05rem;
   font-weight:600;
+}
+.status-item .status-value{
+  font-weight:600;
+  color:var(--text-primary);
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.status-dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:var(--success);
+  box-shadow:0 0 12px rgba(34,197,94,.45);
+  transition:var(--transition);
+}
+.status-dot.offline{
+  background:var(--danger);
+  box-shadow:0 0 12px rgba(248,113,113,.45);
+}
+.status-item a{
+  color:var(--accent);
+  text-decoration:none;
+}
+.status-item a:hover{
+  text-decoration:underline;
+}
+.status-item .separator{
+  opacity:.45;
+}
+.status-item.status-access{
+  flex:1 1 280px;
 }
 .app-body{
   display:flex;
@@ -2908,24 +2947,23 @@ a{color:inherit;}
   transition:var(--transition);
   display:flex;
   flex-direction:column;
-  gap:10px;
-  padding-top:6px;
-  padding-bottom:6px;
+  gap:8px;
+  padding:6px 0 10px;
 }
 .nav-wrapper.is-sticky{
   background:rgba(11,17,32,0.92);
   backdrop-filter:blur(18px);
-  padding-top:12px;
+  padding:10px 0 12px;
 }
 .primary-nav{
   display:flex;
   flex-wrap:wrap;
-  gap:12px;
+  gap:10px;
   background:var(--bg-surface);
   border-radius:var(--radius);
-  padding:10px 16px;
+  padding:8px 14px;
   border:1px solid var(--border-glow);
-  box-shadow:0 25px 60px rgba(15,23,42,.35);
+  box-shadow:0 20px 48px rgba(15,23,42,.35);
   position:relative;
 }
 .nav-wrapper.is-sticky .primary-nav{
@@ -2935,8 +2973,8 @@ a{color:inherit;}
 .nav-link{
   border:none;
   text-align:center;
-  padding:10px 16px;
-  border-radius:14px;
+  padding:8px 14px;
+  border-radius:12px;
   color:var(--text-primary);
   background:rgba(148,163,184,0.08);
   font-weight:600;
@@ -2947,7 +2985,7 @@ a{color:inherit;}
   align-items:center;
   gap:10px;
   text-decoration:none;
-  flex:1 1 140px;
+  flex:1 1 150px;
 }
 .nav-link .icon{font-size:1.1rem;}
 .nav-link:hover{
@@ -2962,19 +3000,19 @@ a{color:inherit;}
 .app-main{
   background:var(--bg-surface);
   border-radius:var(--radius);
-  padding:26px;
+  padding:24px;
   border:1px solid var(--border-muted);
   box-shadow:0 25px 60px rgba(15,23,42,.45);
 }
 .inline-message{
-  min-height:32px;
+  min-height:30px;
   margin:0;
-  padding:10px 16px;
+  padding:8px 14px;
   border-radius:12px;
   border:1px solid transparent;
   background:rgba(148,163,184,0.08);
   color:var(--text-muted);
-  font-size:.95rem;
+  font-size:.9rem;
   display:none;
 }
 .nav-wrapper .inline-message{
@@ -3182,14 +3220,15 @@ a{color:inherit;}
 @media(max-width:1100px){
   body{padding:18px;}
   .primary-nav{flex-wrap:nowrap;overflow-x:auto;}
-  .nav-link{flex:0 0 auto;min-width:180px;}
+  .nav-link{flex:0 0 auto;min-width:170px;}
 }
 @media(max-width:640px){
-  .app-header{padding:20px;}
-  .branding h1{font-size:1.8rem;}
-  .header-info{grid-template-columns:1fr;}
-  .nav-link{padding:12px 14px;}
-  .app-main{padding:20px;}
+  .app-header{padding:18px;}
+  .branding h1{font-size:1.6rem;}
+  .header-status{flex-direction:column;align-items:stretch;}
+  .status-item{width:100%;}
+  .nav-link{padding:10px 12px;}
+  .app-main{padding:18px;}
 }
 )rawliteral");
   chunk += "</style></head><body>";
@@ -3199,16 +3238,34 @@ a{color:inherit;}
 // --- [NEW FEATURE] En-tête unifié et navigation responsive ---
   const char* updateLabel = (currentLanguage == LANG_FR) ? "Mise à jour..." : "Updating...";
   const char* connectionLabel = (currentLanguage == LANG_FR) ? "En ligne" : "Online";
+  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
   String wifiSummary = String(T().not_detected);
-  if (diagnosticData.wifiSSID.length() > 0 && WiFi.status() == WL_CONNECTED) {
+  if (diagnosticData.wifiSSID.length() > 0 && wifiConnected) {
     wifiSummary = diagnosticData.wifiSSID + " (" + String(diagnosticData.wifiRSSI) + " dBm)";
   }
+  String wifiSummaryEscaped = htmlEscape(wifiSummary);
+  String wifiOfflineEscaped = htmlEscape(String(T().not_detected));
+  String wifiValueDisplay = wifiConnected ? wifiSummaryEscaped : wifiOfflineEscaped;
+  String wifiDotClass = wifiConnected ? "status-dot" : "status-dot offline";
   String bluetoothSummary = getBluetoothSummaryLabel();
+  String bluetoothSummaryEscaped = htmlEscape(bluetoothSummary);
   String bluetoothStatusText = getBluetoothStateLabel();
+  String bluetoothStatusEscaped = htmlEscape(bluetoothStatusText);
+  bool bluetoothActive = bluetoothCapable && bluetoothEnabled;
+  String bluetoothDotClass = bluetoothActive ? "status-dot" : "status-dot offline";
+  String bluetoothSupportedAttr = bluetoothCapable ? "true" : "false";
+  String bluetoothDisabledText = htmlEscape(String(T().bluetooth_disabled));
+  String bluetoothUnsupportedText = htmlEscape(String(T().bluetooth_not_supported));
+  String bluetoothOfflineText = bluetoothCapable ? bluetoothDisabledText : bluetoothUnsupportedText;
+  String bluetoothOnlineCombined = bluetoothStatusEscaped + " • " + bluetoothSummaryEscaped;
+  String bluetoothDisplayText = bluetoothActive ? bluetoothOnlineCombined : bluetoothOfflineText;
   String bluetoothNameDisplay = diagnosticData.bluetoothName.length() > 0 ? diagnosticData.bluetoothName : defaultBluetoothName;
   String bluetoothDisableAttr = bluetoothCapable ? "" : " disabled";
   String bluetoothFeedbackText = bluetoothCapable ? "" : String(T().bluetooth_not_supported);
-  String accessSummary = "<a href='http://" + String(MDNS_HOSTNAME) + ".local' target='_blank' style='color:inherit;text-decoration:none'>http://" + String(MDNS_HOSTNAME) + ".local</a><br>" + diagnosticData.ipAddress;
+  String accessUrl = "http://" + String(MDNS_HOSTNAME) + ".local";
+  String accessUrlEscaped = htmlEscape(accessUrl);
+  String ipDisplay = diagnosticData.ipAddress.length() > 0 ? diagnosticData.ipAddress : String(T().not_detected);
+  String ipDisplayEscaped = htmlEscape(ipDisplay);
 
   chunk = "<div class='app-shell'>";
   chunk += "<div id='updateIndicator' class='update-indicator'>";
@@ -3227,12 +3284,15 @@ a{color:inherit;}
   chunk += connectionLabel;
   chunk += "</span></div>";
   chunk += "</div></div>";
-  chunk += "<div class='header-info'>";
-  chunk += "<div class='header-card'><strong data-i18n='chip_info'>" + String(T().chip_info) + "</strong><span>" + diagnosticData.chipModel + "</span></div>";
-  chunk += "<div class='header-card'><strong data-i18n='wifi_connection'>" + String(T().wifi_connection) + "</strong><span>" + wifiSummary + "</span></div>";
-  chunk += "<div class='header-card'><strong data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</strong><span id='bluetoothSummary'>" + htmlEscape(bluetoothSummary) + "</span></div>";
-  chunk += "<div class='header-card'><strong data-i18n='access'>" + String(T().access) + "</strong><span>" + accessSummary + "</span></div>";
-  chunk += "<div class='header-card'><strong>Arduino Core</strong><span>" + getArduinoCoreVersionString() + "</span></div>";
+  chunk += "<div class='header-status'>";
+  chunk += "<div class='status-item'><span class='status-label' data-i18n='wifi_connection'>" + String(T().wifi_connection) + "</span>";
+  chunk += "<span id='wifiStatusDot' class='" + wifiDotClass + "' aria-hidden='true'></span>";
+  chunk += "<span class='status-value' id='wifiStatusValue' data-online='" + wifiSummaryEscaped + "' data-offline='" + wifiOfflineEscaped + "'>" + wifiValueDisplay + "</span></div>";
+  chunk += "<div class='status-item'><span class='status-label' data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</span>";
+  chunk += "<span id='bluetoothStatusDot' class='" + bluetoothDotClass + "' aria-hidden='true'></span>";
+  chunk += "<span class='status-value' id='bluetoothSummary' data-online='" + bluetoothOnlineCombined + "' data-offline='" + bluetoothOfflineText + "' data-disabled='" + bluetoothDisabledText + "' data-unsupported='" + bluetoothUnsupportedText + "' data-supported='" + bluetoothSupportedAttr + "'>" + bluetoothDisplayText + "</span></div>";
+  chunk += "<div class='status-item status-access'><span class='status-label' data-i18n='access'>" + String(T().access) + "</span>";
+  chunk += "<span class='status-value'><a href='" + accessUrl + "' target='_blank' rel='noopener'>" + accessUrlEscaped + "</a><span class='separator'>•</span><span id='ipAddressDisplay'>" + ipDisplayEscaped + "</span></span></div>";
   chunk += "</div>";
   chunk += "</header>";
   chunk += "<div class='app-body'>";
@@ -3329,7 +3389,7 @@ a{color:inherit;}
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().ip_address) + "</div><div class='info-value'>" + diagnosticData.ipAddress + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().subnet_mask) + "</div><div class='info-value'>" + WiFi.subnetMask().toString() + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label'>" + String(T().gateway) + "</div><div class='info-value'>" + WiFi.gatewayIP().toString() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</div><div class='info-value'>" + htmlEscape(bluetoothSummary) + "</div></div>";
+  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</div><div class='info-value'>" + bluetoothSummaryEscaped + "</div></div>";
   chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_mac'>" + String(T().bluetooth_mac) + "</div><div class='info-value'>" + diagnosticData.bluetoothAddress + "</div></div>";
   chunk += "</div></div>";
   server.sendContent(chunk);
@@ -3548,10 +3608,11 @@ a{color:inherit;}
   chunk += "function clearInlineMessage(){var holder=document.getElementById('inlineMessage');if(!holder){return;}holder.className='inline-message';holder.textContent='';}";
   chunk += "function updateStatus(id,text,state){var el=document.getElementById(id);if(el){el.textContent=text;el.classList.remove('success','error');if(state){el.classList.add(state);}}if(state==='error'||state==='success'){showInlineMessage(text,state);}else if(text===''){clearInlineMessage();}}";
   chunk += "function connectionLabelText(online){return online?(currentLang==='fr'?'En ligne':'Online'):(currentLang==='fr'?'Hors ligne':'Offline');}";
-  chunk += "function updateStatusIndicator(online){connectionState=!!online;var indicator=document.getElementById('statusIndicator');var label=document.getElementById('connectionLabel');if(indicator){indicator.classList.remove('status-online','status-offline');indicator.classList.add(online?'status-online':'status-offline');}if(label){label.textContent=connectionLabelText(online);}if(!online){showInlineMessage(connectionLabelText(false)+' — '+(currentLang==='fr'?'Vérifiez le réseau.':'Check the network.'),'error');}else{clearInlineMessage();}}";
+  chunk += "function updateStatusIndicator(online){connectionState=!!online;var indicator=document.getElementById('statusIndicator');var label=document.getElementById('connectionLabel');if(indicator){indicator.classList.remove('status-online','status-offline');indicator.classList.add(online?'status-online':'status-offline');}if(label){label.textContent=connectionLabelText(online);}var wifiDot=document.getElementById('wifiStatusDot');if(wifiDot){wifiDot.classList.remove('offline');if(!online){wifiDot.classList.add('offline');}}var wifiValue=document.getElementById('wifiStatusValue');if(wifiValue){var offlineText=wifiValue.getAttribute('data-offline');var onlineText=wifiValue.getAttribute('data-online');if(!online&&offlineText){wifiValue.textContent=offlineText;}else if(online&&onlineText){wifiValue.textContent=onlineText;}}if(!online){showInlineMessage(connectionLabelText(false)+' — '+(currentLang==='fr'?'Vérifiez le réseau.':'Check the network.'),'error');}else{clearInlineMessage();}}";
 
   chunk += "function updateBluetoothFeedback(message,state,notify){var box=document.getElementById('bluetooth-feedback');if(!box){return;}if(typeof message==='undefined'||message===null){message='';}box.textContent=message;box.classList.remove('success','error');if(state){box.classList.add(state);}if(notify&&message){if(state==='error'){showInlineMessage(message,'error');}else if(state==='success'){showInlineMessage(message,'success');}}else if(notify&&!message){clearInlineMessage();}}";
-  chunk += "function applyBluetoothState(data,notify){if(!data){return;}var statusEl=document.getElementById('bluetooth-status');if(statusEl&&typeof data.status!=='undefined'){statusEl.textContent=data.status;}var nameEl=document.getElementById('bluetooth-name');if(nameEl&&typeof data.name!=='undefined'){nameEl.textContent=data.name;}var macEl=document.getElementById('bluetooth-mac');if(macEl&&typeof data.mac!=='undefined'){macEl.textContent=data.mac;}var input=document.getElementById('bluetoothNameInput');if(input&&typeof data.name!=='undefined'){input.value=data.name;}var summary=document.getElementById('bluetoothSummary');if(summary&&typeof data.summary!=='undefined'){summary.textContent=data.summary;}var controls=document.querySelectorAll('[data-bt-control=\"1\"]');if(controls&&controls.length){for(var i=0;i<controls.length;i++){controls[i].disabled=(data.supported===false);}}var message=(typeof data.message==='string')?data.message:'';var state=null;if(typeof data.success!=='undefined'){state=data.success?'success':'error';}if(notify){updateBluetoothFeedback(message,state,true);}else if(data.supported===false){updateBluetoothFeedback(message,'error',false);}else{updateBluetoothFeedback('',null,false);}}";
+  chunk += "function applyBluetoothState(data,notify){if(!data){return;}var statusEl=document.getElementById('bluetooth-status');if(statusEl&&typeof data.status!=='undefined'){statusEl.textContent=data.status;}var nameEl=document.getElementById('bluetooth-name');if(nameEl&&typeof data.name!=='undefined'){nameEl.textContent=data.name;}var macEl=document.getElementById('bluetooth-mac');if(macEl&&typeof data.mac!=='undefined'){macEl.textContent=data.mac;}var input=document.getElementById('bluetoothNameInput');if(input&&typeof data.name!=='undefined'){input.value=data.name;}var summary=document.getElementById('bluetoothSummary');if(summary){summary.setAttribute('data-supported',(data.supported===false)?'false':'true');var offlineStored=summary.getAttribute('data-offline')||'';var disabledStored=summary.getAttribute('data-disabled')||offlineStored;var unsupportedStored=summary.getAttribute('data-unsupported')||offlineStored;if(data.supported===false){var unsupportedText=unsupportedStored||disabledStored||offlineStored;summary.textContent=unsupportedText;summary.setAttribute('data-offline',unsupportedText);}else if(data.enabled===false){var disabledText=disabledStored||offlineStored;summary.textContent=disabledText;summary.setAttribute('data-offline',disabledText);}else{var pieces=[];if(typeof data.status==='string'){pieces.push(data.status);}if(typeof data.summary==='string'){pieces.push(data.summary);}if(pieces.length){var combined=pieces.join(' • ');summary.textContent=combined;summary.setAttribute('data-online',combined);summary.setAttribute('data-offline',disabledStored||offlineStored);}}}
+var indicator=document.getElementById('bluetoothStatusDot');if(indicator){indicator.classList.remove('offline');if(data.supported===false||data.enabled===false){indicator.classList.add('offline');}}var controls=document.querySelectorAll('[data-bt-control=\"1\"]');if(controls&&controls.length){for(var i=0;i<controls.length;i++){controls[i].disabled=(data.supported===false);}}var message=(typeof data.message==='string')?data.message:'';var state=null;if(typeof data.success!=='undefined'){state=data.success?'success':'error';}if(notify){updateBluetoothFeedback(message,state,true);}else if(data.supported===false){updateBluetoothFeedback(message,'error',false);}else{updateBluetoothFeedback('',null,false);}}";
   chunk += "function refreshBluetoothStatus(showNotice){fetch('/api/bluetooth/status').then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,showNotice);}).catch(function(err){var message=(currentLang==='fr'?'Erreur Bluetooth: ':'Bluetooth error: ')+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',showNotice);});}";
   chunk += "function toggleBluetooth(enable){updateBluetoothFeedback(enable?(currentLang==='fr'?'Activation...':'Enabling...'):(currentLang==='fr'?'Désactivation...':'Disabling...'),null,false);fetch('/api/bluetooth/toggle?state='+(enable?'on':'off')).then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,true);}).catch(function(err){var message=(currentLang==='fr'?'Erreur Bluetooth: ':'Bluetooth error: ')+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',true);});return false;}";
   chunk += "function renameBluetooth(){var input=document.getElementById('bluetoothNameInput');if(!input){return false;}var value=input.value||'';if(!value.trim()){updateBluetoothFeedback(currentLang==='fr'?'Nom Bluetooth invalide':'Invalid Bluetooth name','error',true);return false;}updateBluetoothFeedback(currentLang==='fr'?'Mise à jour...':'Updating...',null,false);fetch('/api/bluetooth/name?name='+encodeURIComponent(value.trim())).then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,true);}).catch(function(err){var message=(currentLang==='fr'?'Erreur Bluetooth: ':'Bluetooth error: ')+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',true);});return false;}";
@@ -3576,6 +3637,8 @@ a{color:inherit;}
   chunk += "var nodes=document.querySelectorAll('[data-i18n]');";
   chunk += "for(var i=0;i<nodes.length;i++){var key=nodes[i].getAttribute('data-i18n');if(tr[key]){nodes[i].textContent=tr[key];}}";
   chunk += "var btInput=document.getElementById('bluetoothNameInput');if(btInput&&tr.bluetooth_placeholder){btInput.setAttribute('placeholder',tr.bluetooth_placeholder);}";
+  chunk += "var wifiValue=document.getElementById('wifiStatusValue');if(wifiValue&&tr.not_detected){wifiValue.setAttribute('data-offline',tr.not_detected);if(!connectionState){wifiValue.textContent=tr.not_detected;}}";
+  chunk += "var btSummary=document.getElementById('bluetoothSummary');if(btSummary){if(tr.bluetooth_disabled){btSummary.setAttribute('data-disabled',tr.bluetooth_disabled);}if(tr.bluetooth_not_supported){btSummary.setAttribute('data-unsupported',tr.bluetooth_not_supported);}var supported=btSummary.getAttribute('data-supported');var btDot=document.getElementById('bluetoothStatusDot');var offlineState=btDot&&btDot.classList.contains('offline');if(offlineState){var offlineText=(supported==='false')?(tr.bluetooth_not_supported||btSummary.getAttribute('data-offline')):(tr.bluetooth_disabled||btSummary.getAttribute('data-offline'));if(offlineText){btSummary.textContent=offlineText;btSummary.setAttribute('data-offline',offlineText);}}}";
   chunk += "refreshBluetoothStatus(false);";
   chunk += "updateStatusIndicator(connectionState);";
   chunk += "if(showNotice){showInlineMessage(currentLang==='fr'?'Langue mise à jour':'Language updated','success');}";
@@ -3584,7 +3647,7 @@ a{color:inherit;}
 
   // --- [NEW FEATURE] Navigation accessible avec repli hash ---
   chunk += "function findNavTrigger(el){while(el&&el.classList&&!el.classList.contains('nav-link')){el=el.parentElement;}if(el&&el.classList&&el.classList.contains('nav-link')){return el;}return null;}";
-  chunk += "function showTab(tabId,trigger,updateHash){if(!tabId){return false;}if(tabId==='wifi'){tabId='wireless';}clearInlineMessage();var tabs=document.querySelectorAll('.tab-content');for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');}var target=document.getElementById(tabId);if(target){target.classList.add('active');if(typeof target.scrollIntoView==='function'){target.scrollIntoView();}}var buttons=document.querySelectorAll('.nav-link');for(var j=0;j<buttons.length;j++){buttons[j].classList.remove('active');buttons[j].removeAttribute('aria-current');}var actual=trigger;if(!actual||!actual.classList){var selector=\".nav-link[data-target='\"+tabId+\"']\";actual=document.querySelector(selector);}if(actual&&actual.classList){actual.classList.add('active');actual.setAttribute('aria-current','page');}if(updateHash!==false){if(window.location.hash!=='#'+tabId){ignoreHashChange=true;window.location.hash=tabId;setTimeout(function(){ignoreHashChange=false;},0);}}return false;}";
+  chunk += "function showTab(tabId,trigger,updateHash){if(!tabId){return false;}if(tabId==='wifi'){tabId='wireless';}clearInlineMessage();var tabs=document.querySelectorAll('.tab-content');for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');}var target=document.getElementById(tabId);if(target){target.classList.add('active');var main=document.querySelector('.app-main');if(main){var nav=document.querySelector('.nav-wrapper');var top=main.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop||0);var adjust=nav?nav.offsetHeight:0;var destination=top-adjust-8;if(destination<0){destination=0;}window.scrollTo(0,destination);}else if(typeof target.scrollIntoView==='function'){target.scrollIntoView(true);}}var buttons=document.querySelectorAll('.nav-link');for(var j=0;j<buttons.length;j++){buttons[j].classList.remove('active');buttons[j].removeAttribute('aria-current');}var actual=trigger;if(!actual||!actual.classList){var selector=\".nav-link[data-target='\"+tabId+\"']\";actual=document.querySelector(selector);}if(actual&&actual.classList){actual.classList.add('active');actual.setAttribute('aria-current','page');}if(updateHash!==false){if(window.location.hash!=='#'+tabId){ignoreHashChange=true;window.location.hash=tabId;setTimeout(function(){ignoreHashChange=false;},0);}}return false;}";
   chunk += "function initStickyNav(){var wrapper=document.querySelector('.nav-wrapper');if(!wrapper||wrapper.getAttribute('data-sticky-init')==='1'){return;}wrapper.setAttribute('data-sticky-init','1');var header=document.querySelector('.app-header');var apply=function(state){if(state){wrapper.classList.add('is-sticky');}else{wrapper.classList.remove('is-sticky');}};";
   chunk += "if('IntersectionObserver' in window&&header){var observer=new IntersectionObserver(function(entries){for(var i=0;i<entries.length;i++){if(entries[i].target===header){apply(!entries[i].isIntersecting);}}},{threshold:0,rootMargin:'-1px 0px 0px 0px'});observer.observe(header);}else{var last=false;window.addEventListener('scroll',function(){var offset=window.pageYOffset||document.documentElement.scrollTop||0;var limit=header?header.offsetHeight:220;var state=offset>limit;if(state!==last){last=state;apply(state);}});} }";
   chunk += "function initNavigation(){var navs=document.querySelectorAll('.primary-nav');if(navs&&navs.length){for(var n=0;n<navs.length;n++){(function(nav){nav.addEventListener('click',function(evt){var source=evt.target||evt.srcElement;var button=findNavTrigger(source);if(!button){return;}evt.preventDefault();var targetTab=button.getAttribute('data-target');if(targetTab){showTab(targetTab,button);}});})(navs[n]);}}var initial=window.location.hash?window.location.hash.substring(1):null;var defaultButton=document.querySelector('.nav-link.active');if(initial==='wifi'){initial='wireless';}if(!initial&&defaultButton){initial=defaultButton.getAttribute('data-target');}if(!initial){var list=document.querySelectorAll('.nav-link');if(list.length>0){initial=list[0].getAttribute('data-target');defaultButton=list[0];}}var initialButton=null;if(initial){initialButton=document.querySelector(\".nav-link[data-target='\"+initial+\"']\");}if(initial){showTab(initial,initialButton,false);}else{showTab('overview',null,false);}initStickyNav();updateStatusIndicator(connectionState);refreshBluetoothStatus(false);}";
