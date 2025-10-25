@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.13-dev - Correction JSON traductions dynamiques
 // Version de dev : 3.0.12-dev - Navigation hash + compatibilité JS
 // Version de dev : 3.0.11-dev - Refonte UI moderne responsive
 // Version de dev : 3.0.10-dev - Restauration clic onglets via double liaison
@@ -76,7 +77,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.12-dev"
+#define DIAGNOSTIC_VERSION "3.0.13-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2259,35 +2260,79 @@ void handleSetLanguage() {
   }
 }
 
+// --- [BUGFIX] Échappement JSON pour l'API de traduction ---
+String jsonEscape(const char* raw) {
+  if (raw == nullptr) {
+    return "";
+  }
+
+  String escaped;
+  while (*raw) {
+    char c = *raw++;
+    switch (c) {
+      case '\\':
+        escaped += "\\\\";
+        break;
+      case '"':
+        escaped += "\\\"";
+        break;
+      case '\n':
+        escaped += "\\n";
+        break;
+      case '\r':
+        escaped += "\\r";
+        break;
+      case '\t':
+        escaped += "\\t";
+        break;
+      default:
+        escaped += c;
+        break;
+    }
+  }
+  return escaped;
+}
+
+// --- [BUGFIX] Construction sécurisée des champs JSON de traduction ---
+String jsonField(const char* key, const char* value, bool last = false) {
+  String field = "\"";
+  field += key;
+  field += "\":\"";
+  field += jsonEscape(value);
+  field += last ? "\"" : "\",";
+  return field;
+}
+
 void handleGetTranslations() {
   // Envoie toutes les traductions en JSON pour mise à jour dynamique
   String json = "{";
-  json += "\"title\":\"" + String(T().title) + "\",";
-  json += "\"nav_overview\":\"" + String(T().nav_overview) + "\",";
-  json += "\"nav_leds\":\"" + String(T().nav_leds) + "\",";
-  json += "\"nav_screens\":\"" + String(T().nav_screens) + "\",";
-  json += "\"nav_tests\":\"" + String(T().nav_tests) + "\",";
-  json += "\"nav_gpio\":\"" + String(T().nav_gpio) + "\",";
-  json += "\"nav_wifi\":\"" + String(T().nav_wifi) + "\",";
-  json += "\"nav_benchmark\":\"" + String(T().nav_benchmark) + "\",";
-  json += "\"nav_export\":\"" + String(T().nav_export) + "\",";
-  json += "\"chip_info\":\"" + String(T().chip_info) + "\",";
-  json += "\"memory_details\":\"" + String(T().memory_details) + "\",";
-  json += "\"wifi_connection\":\"" + String(T().wifi_connection) + "\",";
-  json += "\"gpio_interfaces\":\"" + String(T().gpio_interfaces) + "\",";
-  json += "\"i2c_peripherals\":\"" + String(T().i2c_peripherals) + "\",";
-  json += "\"builtin_led\":\"" + String(T().builtin_led) + "\",";
-  json += "\"oled_screen\":\"" + String(T().oled_screen) + "\",";
-  json += "\"adc_test\":\"" + String(T().adc_test) + "\",";
-  json += "\"touch_test\":\"" + String(T().touch_test) + "\",";
-  json += "\"pwm_test\":\"" + String(T().pwm_test) + "\",";
-  json += "\"spi_bus\":\"" + String(T().spi_bus) + "\",";
-  json += "\"flash_partitions\":\"" + String(T().flash_partitions) + "\",";
-  json += "\"memory_stress\":\"" + String(T().memory_stress) + "\",";
-  json += "\"gpio_test\":\"" + String(T().gpio_test) + "\",";
-  json += "\"wifi_scanner\":\"" + String(T().wifi_scanner) + "\",";
-  json += "\"performance_bench\":\"" + String(T().performance_bench) + "\",";
-  json += "\"data_export\":\"" + String(T().data_export) + "\"";
+  json.reserve(1024);
+  json += jsonField("title", T().title);
+  json += jsonField("nav_overview", T().nav_overview);
+  json += jsonField("nav_leds", T().nav_leds);
+  json += jsonField("nav_screens", T().nav_screens);
+  json += jsonField("nav_tests", T().nav_tests);
+  json += jsonField("nav_gpio", T().nav_gpio);
+  json += jsonField("nav_wifi", T().nav_wifi);
+  json += jsonField("nav_benchmark", T().nav_benchmark);
+  json += jsonField("nav_export", T().nav_export);
+  json += jsonField("chip_info", T().chip_info);
+  json += jsonField("memory_details", T().memory_details);
+  json += jsonField("wifi_connection", T().wifi_connection);
+  json += jsonField("gpio_interfaces", T().gpio_interfaces);
+  json += jsonField("i2c_peripherals", T().i2c_peripherals);
+  json += jsonField("builtin_led", T().builtin_led);
+  json += jsonField("oled_screen", T().oled_screen);
+  json += jsonField("adc_test", T().adc_test);
+  json += jsonField("touch_test", T().touch_test);
+  json += jsonField("pwm_test", T().pwm_test);
+  json += jsonField("spi_bus", T().spi_bus);
+  json += jsonField("flash_partitions", T().flash_partitions);
+  json += jsonField("memory_stress", T().memory_stress);
+  json += jsonField("gpio_test", T().gpio_test);
+  json += jsonField("wifi_scanner", T().wifi_scanner);
+  json += jsonField("performance_bench", T().performance_bench);
+  json += jsonField("data_export", T().data_export, true);
   json += "}";
   
   server.send(200, "application/json", json);
