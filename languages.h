@@ -176,6 +176,7 @@ struct Translations {
   const char* gpio_test;
   const char* test_all_gpio;
   const char* click_to_test;
+  const char* gpio_warning;
   
   // WiFi Scanner
   const char* wifi_scanner;
@@ -424,7 +425,8 @@ const Translations LANG_FR_TEXTS = {
   "Test GPIO",
   "Tester Tous les GPIO",
   "Cliquez pour tester",
-  
+  "Un GPIO en échec peut provenir de la configuration ou d'un périphérique externe : vérifiez câblage et alimentation avant de conclure à un défaut.",
+
   // WiFi
   "Scanner WiFi",
   "Scanner Réseaux WiFi",
@@ -672,7 +674,8 @@ const Translations LANG_EN_TEXTS = {
   "GPIO Test",
   "Test All GPIO",
   "Click to test",
-  
+  "A failed GPIO result may stem from configuration or external hardware—double-check wiring and power before assuming the pin is faulty.",
+
   // WiFi
   "WiFi Scanner",
   "Scan WiFi Networks",
