@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.19-dev - Menu monoligne & lisibilité partitions
 // Version de dev : 3.0.18-dev - Correctif script Bluetooth & compilation
 // Version de dev : 3.0.17-dev - Bandeau condensé & navigation calée
 // Version de dev : 3.0.16-dev - UI affinée, message inline sticky & avertissement GPIO
@@ -92,7 +93,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.18-dev"
+#define DIAGNOSTIC_VERSION "3.0.19-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2958,7 +2959,7 @@ a{color:inherit;}
 }
 .primary-nav{
   display:flex;
-  flex-wrap:wrap;
+  flex-wrap:nowrap;
   gap:10px;
   background:var(--bg-surface);
   border-radius:var(--radius);
@@ -2966,6 +2967,8 @@ a{color:inherit;}
   border:1px solid var(--border-glow);
   box-shadow:0 20px 48px rgba(15,23,42,.35);
   position:relative;
+  overflow-x:auto;
+  scrollbar-width:thin;
 }
 .nav-wrapper.is-sticky .primary-nav{
   box-shadow:0 22px 40px rgba(15,23,42,.55);
@@ -2986,7 +2989,8 @@ a{color:inherit;}
   align-items:center;
   gap:10px;
   text-decoration:none;
-  flex:1 1 150px;
+  flex:0 0 auto;
+  min-width:150px;
 }
 .nav-link .icon{font-size:1.1rem;}
 .nav-link:hover{
@@ -3220,8 +3224,8 @@ a{color:inherit;}
 .update-indicator.show{opacity:1;}
 @media(max-width:1100px){
   body{padding:18px;}
-  .primary-nav{flex-wrap:nowrap;overflow-x:auto;}
-  .nav-link{flex:0 0 auto;min-width:170px;}
+  .primary-nav{padding:8px 10px;}
+  .nav-link{min-width:140px;}
 }
 @media(max-width:640px){
   .app-header{padding:18px;}
@@ -3510,7 +3514,7 @@ a{color:inherit;}
   chunk += "<div class='section'><h2>" + String(T().flash_partitions) + "</h2>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='listPartitions()'>" + String(T().list_partitions) + "</button>";
-  chunk += "</div><div id='partitions-results' style='background:#fff;padding:15px;border-radius:10px;font-family:monospace;white-space:pre-wrap;font-size:0.85em'>";
+  chunk += "</div><div id='partitions-results' style='background:#fff;color:#0b1120;padding:15px;border-radius:10px;font-family:monospace;white-space:pre-wrap;font-size:0.85em'>";
   chunk += partitionsInfo.length() > 0 ? partitionsInfo : String(T().click_button);
   chunk += "</div></div>";
   
