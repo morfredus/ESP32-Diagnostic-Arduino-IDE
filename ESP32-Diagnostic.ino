@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.20-dev - Menu responsive sans défilement
 // Version de dev : 3.0.19-dev - Menu monoligne & lisibilité partitions
 // Version de dev : 3.0.18-dev - Correctif script Bluetooth & compilation
 // Version de dev : 3.0.17-dev - Bandeau condensé & navigation calée
@@ -93,7 +94,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.19-dev"
+#define DIAGNOSTIC_VERSION "3.0.20-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -2600,6 +2601,7 @@ void handleGetTranslations() {
   json += jsonField("nav_wireless", T().nav_wireless);
   json += jsonField("nav_benchmark", T().nav_benchmark);
   json += jsonField("nav_export", T().nav_export);
+  json += jsonField("nav_select_label", T().nav_select_label);
   json += jsonField("chip_info", T().chip_info);
   json += jsonField("memory_details", T().memory_details);
   json += jsonField("wifi_connection", T().wifi_connection);
@@ -2960,24 +2962,56 @@ a{color:inherit;}
 .primary-nav{
   display:flex;
   flex-wrap:nowrap;
-  gap:10px;
+  gap:8px;
   background:var(--bg-surface);
   border-radius:var(--radius);
-  padding:8px 14px;
+  padding:6px 10px;
   border:1px solid var(--border-glow);
   box-shadow:0 20px 48px rgba(15,23,42,.35);
   position:relative;
-  overflow-x:auto;
-  scrollbar-width:thin;
 }
 .nav-wrapper.is-sticky .primary-nav{
   box-shadow:0 22px 40px rgba(15,23,42,.55);
   border-color:rgba(148,163,184,0.28);
 }
+.nav-select{
+  display:none;
+  width:100%;
+}
+.nav-dropdown{
+  width:100%;
+  border-radius:12px;
+  padding:10px 14px;
+  background:var(--bg-surface);
+  border:1px solid var(--border-glow);
+  color:var(--text-primary);
+  font-weight:600;
+  box-shadow:0 18px 32px rgba(15,23,42,.4);
+}
+.nav-dropdown:focus{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+.sr-only{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
+@media (max-width:900px){
+  .primary-nav{display:none;}
+  .nav-select{display:block;}
+  .nav-wrapper{padding:8px 0 10px;}
+}
 .nav-link{
   border:none;
   text-align:center;
-  padding:8px 14px;
+  padding:6px 10px;
   border-radius:12px;
   color:var(--text-primary);
   background:rgba(148,163,184,0.08);
@@ -2987,12 +3021,14 @@ a{color:inherit;}
   display:flex;
   justify-content:center;
   align-items:center;
-  gap:10px;
+  gap:6px;
   text-decoration:none;
   flex:0 0 auto;
-  min-width:150px;
+  min-width:118px;
+  font-size:.85rem;
+  line-height:1.2;
 }
-.nav-link .icon{font-size:1.1rem;}
+.nav-link .icon{font-size:1rem;}
 .nav-link:hover{
   background:rgba(148,163,184,0.16);
   transform:translateY(-2px);
@@ -3313,6 +3349,18 @@ a{color:inherit;}
   chunk += "<a href='#benchmark' class='nav-link' data-target='benchmark' onclick=\"return showTab('benchmark',this);\"><span class='label' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</span><span class='icon'>⚡</span></a>";
   chunk += "<a href='#export' class='nav-link' data-target='export' onclick=\"return showTab('export',this);\"><span class='label' data-i18n='nav_export'>" + String(T().nav_export) + "</span><span class='icon'>💾</span></a>";
   chunk += "</nav>";
+  // --- [NEW FEATURE] Sélecteur mobile de navigation ---
+  chunk += "<div class='nav-select'><label for='navSelector' class='sr-only' data-i18n='nav_select_label'>" + String(T().nav_select_label) + "</label>";
+  chunk += "<select id='navSelector' class='nav-dropdown' aria-label='" + String(T().nav_select_label) + "'>";
+  chunk += "<option value='overview' data-i18n='nav_overview' selected>" + String(T().nav_overview) + "</option>";
+  chunk += "<option value='leds' data-i18n='nav_leds'>" + String(T().nav_leds) + "</option>";
+  chunk += "<option value='screens' data-i18n='nav_screens'>" + String(T().nav_screens) + "</option>";
+  chunk += "<option value='tests' data-i18n='nav_tests'>" + String(T().nav_tests) + "</option>";
+  chunk += "<option value='gpio' data-i18n='nav_gpio'>" + String(T().nav_gpio) + "</option>";
+  chunk += "<option value='wireless' data-i18n='nav_wireless'>" + String(T().nav_wireless) + "</option>";
+  chunk += "<option value='benchmark' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</option>";
+  chunk += "<option value='export' data-i18n='nav_export'>" + String(T().nav_export) + "</option>";
+  chunk += "</select></div>";
   chunk += "<div id='inlineMessage' class='inline-message' role='status' aria-live='polite'></div>";
   chunk += "</div>";
   chunk += "<main class='app-main'>";
@@ -3608,6 +3656,7 @@ a{color:inherit;}
   chunk += "var currentLang='" + String(currentLanguage == LANG_FR ? "fr" : "en") + "';";
   chunk += "var connectionState=true;";
   chunk += "var ignoreHashChange=false;";
+  chunk += "var navDropdown=null;";
   chunk += "document.documentElement.setAttribute('lang',currentLang);";
   chunk += "function showInlineMessage(text,state){var holder=document.getElementById('inlineMessage');if(!holder){return;}holder.className='inline-message';if(!text){return;}holder.textContent=text;holder.classList.add('show');if(state){holder.classList.add(state);}}";
   chunk += "function clearInlineMessage(){var holder=document.getElementById('inlineMessage');if(!holder){return;}holder.className='inline-message';holder.textContent='';}";
@@ -3641,6 +3690,7 @@ a{color:inherit;}
   chunk += "var mainTitle=document.getElementById('main-title');if(mainTitle){mainTitle.textContent=tr.title+' v" + String(DIAGNOSTIC_VERSION) + "';}";
   chunk += "var nodes=document.querySelectorAll('[data-i18n]');";
   chunk += "for(var i=0;i<nodes.length;i++){var key=nodes[i].getAttribute('data-i18n');if(tr[key]){nodes[i].textContent=tr[key];}}";
+  chunk += "if(tr.nav_select_label){var navLabel=document.querySelector('label[for=\\'navSelector\\']');if(navLabel){navLabel.textContent=tr.nav_select_label;}if(navDropdown){navDropdown.setAttribute('aria-label',tr.nav_select_label);}}";
   chunk += "var btInput=document.getElementById('bluetoothNameInput');if(btInput&&tr.bluetooth_placeholder){btInput.setAttribute('placeholder',tr.bluetooth_placeholder);}";
   chunk += "var wifiValue=document.getElementById('wifiStatusValue');if(wifiValue&&tr.not_detected){wifiValue.setAttribute('data-offline',tr.not_detected);if(!connectionState){wifiValue.textContent=tr.not_detected;}}";
   chunk += "var btSummary=document.getElementById('bluetoothSummary');if(btSummary){if(tr.bluetooth_disabled){btSummary.setAttribute('data-disabled',tr.bluetooth_disabled);}if(tr.bluetooth_not_supported){btSummary.setAttribute('data-unsupported',tr.bluetooth_not_supported);}var supported=btSummary.getAttribute('data-supported');var btDot=document.getElementById('bluetoothStatusDot');var offlineState=btDot&&btDot.classList.contains('offline');if(offlineState){var offlineText=(supported==='false')?(tr.bluetooth_not_supported||btSummary.getAttribute('data-offline')):(tr.bluetooth_disabled||btSummary.getAttribute('data-offline'));if(offlineText){btSummary.textContent=offlineText;btSummary.setAttribute('data-offline',offlineText);}}}";
@@ -3652,10 +3702,10 @@ a{color:inherit;}
 
   // --- [NEW FEATURE] Navigation accessible avec repli hash ---
   chunk += "function findNavTrigger(el){while(el&&el.classList&&!el.classList.contains('nav-link')){el=el.parentElement;}if(el&&el.classList&&el.classList.contains('nav-link')){return el;}return null;}";
-  chunk += "function showTab(tabId,trigger,updateHash){if(!tabId){return false;}if(tabId==='wifi'){tabId='wireless';}clearInlineMessage();var tabs=document.querySelectorAll('.tab-content');for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');}var target=document.getElementById(tabId);if(target){target.classList.add('active');var main=document.querySelector('.app-main');if(main){var nav=document.querySelector('.nav-wrapper');var top=main.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop||0);var adjust=nav?nav.offsetHeight:0;var destination=top-adjust-8;if(destination<0){destination=0;}window.scrollTo(0,destination);}else if(typeof target.scrollIntoView==='function'){target.scrollIntoView(true);}}var buttons=document.querySelectorAll('.nav-link');for(var j=0;j<buttons.length;j++){buttons[j].classList.remove('active');buttons[j].removeAttribute('aria-current');}var actual=trigger;if(!actual||!actual.classList){var selector=\".nav-link[data-target='\"+tabId+\"']\";actual=document.querySelector(selector);}if(actual&&actual.classList){actual.classList.add('active');actual.setAttribute('aria-current','page');}if(updateHash!==false){if(window.location.hash!=='#'+tabId){ignoreHashChange=true;window.location.hash=tabId;setTimeout(function(){ignoreHashChange=false;},0);}}return false;}";
+  chunk += "function showTab(tabId,trigger,updateHash){if(!tabId){return false;}if(tabId==='wifi'){tabId='wireless';}clearInlineMessage();var tabs=document.querySelectorAll('.tab-content');for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');}var target=document.getElementById(tabId);if(target){target.classList.add('active');var main=document.querySelector('.app-main');if(main){var nav=document.querySelector('.nav-wrapper');var top=main.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop||0);var adjust=nav?nav.offsetHeight:0;var destination=top-adjust-8;if(destination<0){destination=0;}window.scrollTo(0,destination);}else if(typeof target.scrollIntoView==='function'){target.scrollIntoView(true);}}var buttons=document.querySelectorAll('.nav-link');for(var j=0;j<buttons.length;j++){buttons[j].classList.remove('active');buttons[j].removeAttribute('aria-current');}var actual=trigger;if(!actual||!actual.classList){var selector=\".nav-link[data-target='\"+tabId+\"']\";actual=document.querySelector(selector);}if(actual&&actual.classList){actual.classList.add('active');actual.setAttribute('aria-current','page');}if(navDropdown&&navDropdown.value!==tabId){navDropdown.value=tabId;}if(updateHash!==false){if(window.location.hash!=='#'+tabId){ignoreHashChange=true;window.location.hash=tabId;setTimeout(function(){ignoreHashChange=false;},0);}}return false;}";
   chunk += "function initStickyNav(){var wrapper=document.querySelector('.nav-wrapper');if(!wrapper||wrapper.getAttribute('data-sticky-init')==='1'){return;}wrapper.setAttribute('data-sticky-init','1');var header=document.querySelector('.app-header');var apply=function(state){if(state){wrapper.classList.add('is-sticky');}else{wrapper.classList.remove('is-sticky');}};";
   chunk += "if('IntersectionObserver' in window&&header){var observer=new IntersectionObserver(function(entries){for(var i=0;i<entries.length;i++){if(entries[i].target===header){apply(!entries[i].isIntersecting);}}},{threshold:0,rootMargin:'-1px 0px 0px 0px'});observer.observe(header);}else{var last=false;window.addEventListener('scroll',function(){var offset=window.pageYOffset||document.documentElement.scrollTop||0;var limit=header?header.offsetHeight:220;var state=offset>limit;if(state!==last){last=state;apply(state);}});} }";
-  chunk += "function initNavigation(){var navs=document.querySelectorAll('.primary-nav');if(navs&&navs.length){for(var n=0;n<navs.length;n++){(function(nav){nav.addEventListener('click',function(evt){var source=evt.target||evt.srcElement;var button=findNavTrigger(source);if(!button){return;}evt.preventDefault();var targetTab=button.getAttribute('data-target');if(targetTab){showTab(targetTab,button);}});})(navs[n]);}}var initial=window.location.hash?window.location.hash.substring(1):null;var defaultButton=document.querySelector('.nav-link.active');if(initial==='wifi'){initial='wireless';}if(!initial&&defaultButton){initial=defaultButton.getAttribute('data-target');}if(!initial){var list=document.querySelectorAll('.nav-link');if(list.length>0){initial=list[0].getAttribute('data-target');defaultButton=list[0];}}var initialButton=null;if(initial){initialButton=document.querySelector(\".nav-link[data-target='\"+initial+\"']\");}if(initial){showTab(initial,initialButton,false);}else{showTab('overview',null,false);}initStickyNav();updateStatusIndicator(connectionState);refreshBluetoothStatus(false);}";
+  chunk += "function initNavigation(){var navs=document.querySelectorAll('.primary-nav');if(navs&&navs.length){for(var n=0;n<navs.length;n++){(function(nav){nav.addEventListener('click',function(evt){var source=evt.target||evt.srcElement;var button=findNavTrigger(source);if(!button){return;}evt.preventDefault();var targetTab=button.getAttribute('data-target');if(targetTab){showTab(targetTab,button);}});})(navs[n]);}}var select=document.getElementById('navSelector');navDropdown=select;if(select){select.addEventListener('change',function(evt){var value=evt.target.value;if(value){showTab(value,null);}});}var initial=window.location.hash?window.location.hash.substring(1):null;var defaultButton=document.querySelector('.nav-link.active');if(initial==='wifi'){initial='wireless';}if(!initial&&defaultButton){initial=defaultButton.getAttribute('data-target');}if(!initial){var list=document.querySelectorAll('.nav-link');if(list.length>0){initial=list[0].getAttribute('data-target');defaultButton=list[0];}}var initialButton=null;if(initial){initialButton=document.querySelector(\".nav-link[data-target='\"+initial+\"']\");}if(initial){showTab(initial,initialButton,false);}else{showTab('overview',null,false);}initStickyNav();updateStatusIndicator(connectionState);refreshBluetoothStatus(false);}";
   chunk += "window.addEventListener('hashchange',function(){if(ignoreHashChange){return;}var target=window.location.hash?window.location.hash.substring(1):'overview';if(target==='wifi'){target='wireless';}showTab(target,null,false);});";
   chunk += "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initNavigation);}else{initNavigation();}";
 
