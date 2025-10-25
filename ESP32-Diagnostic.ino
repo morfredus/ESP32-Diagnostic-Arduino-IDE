@@ -11,6 +11,7 @@
  * - Réinitialisation I2C résiliente et auto-détection mise à jour
  */
 
+// Version de dev : 3.0.23-dev - Service BLE complet & compatibilité automatique
 // Version de dev : 3.0.22-dev - BLE auto pour cibles ESP32-S3/C3/C6/H2
 // Version de dev : 3.0.21-dev - Bandeau renommé, descriptions tests & BLE souple
 // Version de dev : 3.0.20-dev - Menu responsive sans défilement
@@ -86,8 +87,17 @@
 #elif defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C3) || \
       defined(CONFIG_IDF_TARGET_ESP32C6) || defined(CONFIG_IDF_TARGET_ESP32H2)
   static const bool TARGET_BLE_SUPPORTED = true;
-#else
+#elif defined(CONFIG_IDF_TARGET_ESP32S2)
   static const bool TARGET_BLE_SUPPORTED = false;
+#elif defined(ARDUINO_ARCH_ESP32)
+  #if defined(ARDUINO_ESP32S2_DEV) || defined(ARDUINO_LOLIN_S2_MINI) || defined(ARDUINO_LILYGO_T_DISPLAY_S2) || \
+      defined(ARDUINO_TINYPICO_S2) || defined(ARDUINO_TINYS2) || defined(ARDUINO_QTPY_ESP32S2)
+    static const bool TARGET_BLE_SUPPORTED = false;
+  #else
+    static const bool TARGET_BLE_SUPPORTED = true;
+  #endif
+#else
+  static const bool TARGET_BLE_SUPPORTED = BLE_HEADERS_AVAILABLE;
 #endif
 #include <vector>
 
@@ -126,7 +136,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.0.22-dev"
+#define DIAGNOSTIC_VERSION "3.0.23-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -165,6 +175,7 @@ uint8_t oledRotation = 0;
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
 WiFiMulti wifiMulti;
+// --- [NEW FEATURE] Objets BLE globaux ---
 #if BLE_STACK_SUPPORTED
 BLEServer* bluetoothServer = nullptr;
 BLEService* bluetoothService = nullptr;
@@ -176,6 +187,38 @@ bool bluetoothEnabled = false;
 bool bluetoothAdvertising = false;
 String bluetoothDeviceName = "";
 String defaultBluetoothName = "";
+#if BLE_STACK_SUPPORTED
+bool bluetoothClientConnected = false;
+uint32_t bluetoothNotifyCounter = 0;
+unsigned long lastBluetoothNotify = 0;
+
+// --- [NEW FEATURE] Service BLE diagnostic ---
+static const char* DIAG_BLE_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+static const char* DIAG_BLE_CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+
+class DiagnosticBLECallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer* server) override {
+    bluetoothClientConnected = true;
+    bluetoothAdvertising = false;
+    Serial.println("[BLE] Client connecté.");
+    bluetoothNotifyCounter = 0;
+    lastBluetoothNotify = millis();
+  }
+
+  void onDisconnect(BLEServer* server) override {
+    bluetoothClientConnected = false;
+    Serial.println("[BLE] Client déconnecté. Relance de la publicité...");
+    if (server) {
+      server->startAdvertising();
+    } else {
+      BLEDevice::startAdvertising();
+    }
+    bluetoothNotifyCounter = 0;
+    lastBluetoothNotify = millis();
+    bluetoothAdvertising = true;
+  }
+};
+#endif
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // NeoPixel
@@ -1570,8 +1613,34 @@ void collectDiagnosticInfo() {
   diagnosticData.hasWiFi = (chip_info.features & CHIP_FEATURE_WIFI_BGN);
   diagnosticData.hasBT = (chip_info.features & CHIP_FEATURE_BT);
   bool featureBLE = (chip_info.features & CHIP_FEATURE_BLE);
-  diagnosticData.hasBLE = featureBLE || TARGET_BLE_SUPPORTED;
-  bluetoothCapable = (diagnosticData.hasBLE || TARGET_BLE_SUPPORTED) && BLE_STACK_SUPPORTED;
+  bool runtimeBLE = featureBLE || TARGET_BLE_SUPPORTED;
+#ifdef CHIP_ESP32S2
+  if (chip_info.model == CHIP_ESP32S2) {
+    runtimeBLE = false;
+  }
+#endif
+#ifdef CHIP_ESP32S3
+  if (chip_info.model == CHIP_ESP32S3) {
+    runtimeBLE = true;
+  }
+#endif
+#ifdef CHIP_ESP32C3
+  if (chip_info.model == CHIP_ESP32C3) {
+    runtimeBLE = true;
+  }
+#endif
+#ifdef CHIP_ESP32C6
+  if (chip_info.model == CHIP_ESP32C6) {
+    runtimeBLE = true;
+  }
+#endif
+#ifdef CHIP_ESP32H2
+  if (chip_info.model == CHIP_ESP32H2) {
+    runtimeBLE = true;
+  }
+#endif
+  diagnosticData.hasBLE = runtimeBLE;
+  bluetoothCapable = runtimeBLE && BLE_STACK_SUPPORTED;
   
   if (WiFi.status() == WL_CONNECTED) {
     diagnosticData.wifiSSID = WiFi.SSID();
@@ -2466,7 +2535,11 @@ void syncBluetoothDiagnostics() {
   bool hasRadio = bluetoothCapable || diagnosticData.hasBLE || diagnosticData.hasBT;
   diagnosticData.bluetoothName = bluetoothDeviceName;
   diagnosticData.bluetoothEnabled = supported && bluetoothEnabled;
-  diagnosticData.bluetoothAdvertising = supported && bluetoothAdvertising;
+  diagnosticData.bluetoothAdvertising = supported && (bluetoothAdvertising
+#if BLE_STACK_SUPPORTED
+      || bluetoothClientConnected
+#endif
+  );
 
   if (hasRadio) {
     uint8_t mac[6] = {0};
@@ -2490,6 +2563,11 @@ String getBluetoothStateLabel() {
   if (!bluetoothEnabled) {
     return String(T().bluetooth_disabled);
   }
+#if BLE_STACK_SUPPORTED
+  if (bluetoothClientConnected) {
+    return String(T().bluetooth_enabled);
+  }
+#endif
   if (bluetoothAdvertising) {
     return String(T().bluetooth_advertising);
   }
@@ -2507,7 +2585,14 @@ String getBluetoothSummaryLabel() {
   ensureBluetoothName();
   String summary = bluetoothDeviceName;
   summary += " • ";
-  summary += bluetoothAdvertising ? String(T().bluetooth_advertising) : String(T().bluetooth_not_advertising);
+#if BLE_STACK_SUPPORTED
+  if (bluetoothClientConnected) {
+    summary += String(T().bluetooth_enabled);
+  } else
+#endif
+  {
+    summary += bluetoothAdvertising ? String(T().bluetooth_advertising) : String(T().bluetooth_not_advertising);
+  }
   return summary;
 }
 
@@ -2530,12 +2615,53 @@ String buildBluetoothJSON(bool success, const String& message) {
   return json;
 }
 
+#if BLE_STACK_SUPPORTED
+void dispatchBluetoothTelemetry() {
+  if (!bluetoothEnabled || !bluetoothClientConnected || !bluetoothCharacteristic) {
+    return;
+  }
+
+  unsigned long now = millis();
+  if (now - lastBluetoothNotify < 2000) {
+    return;
+  }
+
+  lastBluetoothNotify = now;
+  bluetoothNotifyCounter++;
+
+  unsigned long uptimeSeconds = diagnosticData.uptime / 1000UL;
+  char payload[96];
+  int written = snprintf(payload, sizeof(payload),
+                         "Diag %lu | Uptime %lus",
+                         static_cast<unsigned long>(bluetoothNotifyCounter),
+                         static_cast<unsigned long>(uptimeSeconds));
+  if (written < 0) {
+    return;
+  }
+
+  size_t length = (written >= static_cast<int>(sizeof(payload))) ? sizeof(payload) - 1 : static_cast<size_t>(written);
+  if (length == 0) {
+    return;
+  }
+  bluetoothCharacteristic->setValue(reinterpret_cast<uint8_t*>(payload), length);
+  bluetoothCharacteristic->notify();
+  Serial.printf("[BLE] Notification #%lu envoyée (%lus)\n",
+                static_cast<unsigned long>(bluetoothNotifyCounter),
+                static_cast<unsigned long>(uptimeSeconds));
+}
+#endif
+
 bool startBluetooth() {
   ensureBluetoothName();
 
   if (!bluetoothCapable) {
     bluetoothEnabled = false;
     bluetoothAdvertising = false;
+#if BLE_STACK_SUPPORTED
+    bluetoothClientConnected = false;
+    bluetoothNotifyCounter = 0;
+    lastBluetoothNotify = 0;
+#endif
     return false;
   }
 
@@ -2550,23 +2676,31 @@ bool startBluetooth() {
   if (!bluetoothServer) {
     bluetoothEnabled = false;
     bluetoothAdvertising = false;
+    bluetoothClientConnected = false;
+    bluetoothNotifyCounter = 0;
+    lastBluetoothNotify = 0;
     return false;
   }
 
-  bluetoothService = bluetoothServer->createService(BLEUUID((uint16_t)0x180A));
+  bluetoothServer->setCallbacks(new DiagnosticBLECallbacks());
+
+  bluetoothService = bluetoothServer->createService(BLEUUID(DIAG_BLE_SERVICE_UUID));
   if (!bluetoothService) {
     BLEDevice::deinit(true);
     bluetoothServer = nullptr;
     bluetoothEnabled = false;
     bluetoothAdvertising = false;
+    bluetoothClientConnected = false;
+    bluetoothNotifyCounter = 0;
+    lastBluetoothNotify = 0;
     return false;
   }
 
   bluetoothCharacteristic = bluetoothService->createCharacteristic(
-      BLEUUID((uint16_t)0x2A29),
+      BLEUUID(DIAG_BLE_CHARACTERISTIC_UUID),
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
   if (bluetoothCharacteristic) {
-    bluetoothCharacteristic->setValue("ESP32 Diagnostic");
+    bluetoothCharacteristic->setValue("ESP32 Diagnostic prêt");
     bluetoothCharacteristic->addDescriptor(new BLE2902());
   }
 
@@ -2580,15 +2714,24 @@ bool startBluetooth() {
     bluetoothCharacteristic = nullptr;
     bluetoothEnabled = false;
     bluetoothAdvertising = false;
+    bluetoothClientConnected = false;
+    bluetoothNotifyCounter = 0;
+    lastBluetoothNotify = 0;
     return false;
   }
 
-  advertising->addServiceUUID(bluetoothService->getUUID());
+  advertising->addServiceUUID(BLEUUID(DIAG_BLE_SERVICE_UUID));
   advertising->setScanResponse(true);
+  advertising->setMinPreferred(0x06);
+  advertising->setMinPreferred(0x12);
   advertising->start();
+  BLEDevice::startAdvertising();
 
   bluetoothEnabled = true;
   bluetoothAdvertising = true;
+  bluetoothClientConnected = false;
+  bluetoothNotifyCounter = 0;
+  lastBluetoothNotify = millis();
   return true;
 #else
   return false;
@@ -2603,6 +2746,10 @@ void stopBluetooth() {
       advertising->stop();
     }
   }
+
+  bluetoothClientConnected = false;
+  bluetoothNotifyCounter = 0;
+  lastBluetoothNotify = 0;
 
   if (bluetoothService) {
     bluetoothService->stop();
@@ -3949,7 +4096,7 @@ void setup() {
 // ========== LOOP ==========
 void loop() {
   server.handleClient();
-  
+
   static unsigned long lastUpdate = 0;
   if (millis() - lastUpdate > 30000) {
     lastUpdate = millis();
@@ -3963,6 +4110,10 @@ void loop() {
       Serial.printf("Temp: %.1f°C\r\n", diagnosticData.temperature);
     }
   }
-  
+
+#if BLE_STACK_SUPPORTED
+  dispatchBluetoothTelemetry();
+#endif
+
   delay(10);
 }
