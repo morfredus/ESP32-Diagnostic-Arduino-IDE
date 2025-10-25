@@ -1,42 +1,43 @@
 /*
- * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v3.0.x
+ * DIAGNOSTIC COMPLET ESP32 - VERSION MULTILINGUE v3.1.x
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  *
- * Nouveautés v3.0.x:
- * - Migration complète vers Arduino Core 3.3.2 (WiFi & I2C actualisés)
- * - Analyse avancée du scan WiFi (bandes, PHY, largeur de bande)
- * - Réinitialisation I2C résiliente et auto-détection mise à jour
+ * Nouveautés v3.1.x:
+ * - Service Bluetooth® Low Energy prêt à l'emploi avec diffusion native.
+ * - Menu web responsive et navigation par onglets renforcée.
+ * - Statuts Wi-Fi clarifiés et exports harmonisés (TXT/JSON/CSV).
  */
 
-// --- [MAINTENANCE] Version de dev mise à jour ---
-// Version de dev : 3.0.26-maint - Corrections mineures interface & API
-// Version de dev : 3.0.25-dev - Cartouche Bluetooth & activation auto BLE
-// Version de dev : 3.0.24-dev - Activation universelle des bibliothèques BLE
-// Version de dev : 3.0.23-dev - Service BLE complet & compatibilité automatique
-// Version de dev : 3.0.22-dev - BLE auto pour cibles ESP32-S3/C3/C6/H2
-// Version de dev : 3.0.21-dev - Bandeau renommé, descriptions tests & BLE souple
-// Version de dev : 3.0.20-dev - Menu responsive sans défilement
-// Version de dev : 3.0.19-dev - Menu monoligne & lisibilité partitions
-// Version de dev : 3.0.18-dev - Correctif script Bluetooth & compilation
-// Version de dev : 3.0.17-dev - Bandeau condensé & navigation calée
-// Version de dev : 3.0.16-dev - UI affinée, message inline sticky & avertissement GPIO
-// Version de dev : 3.0.15-dev - Gestion Bluetooth & onglet Sans fil
-// Version de dev : 3.0.14-dev - Menu horizontal sticky & reset alertes
-// Version de dev : 3.0.13-dev - Correction JSON traductions dynamiques
-// Version de dev : 3.0.12-dev - Navigation hash + compatibilité JS
-// Version de dev : 3.0.11-dev - Refonte UI moderne responsive
-// Version de dev : 3.0.10-dev - Restauration clic onglets via double liaison
-// Version de dev : 3.0.09-dev - Délégation universelle des clics onglets
-// Version de dev : 3.0.08-dev - Correction finale navigation onglets
-// Version de dev : 3.0.07-dev - Réactivation complète navigation onglets
-// Version de dev : 3.0.06-dev - Correction compilation fallback onglets
-// Version de dev : 3.0.05-dev - Onglets web compatibles tous navigateurs
-// Version de dev : 3.0.04-dev - Correction navigation onglets principale
-// Version de dev : 3.0.03-dev - Rotation OLED ajustable et messages inline
-// Version de dev : 3.0.02-dev - Correction API scan WiFi pour core 3.3.2
+// --- [MAINTENANCE] Historique des évolutions récentes ---
+// Version 3.1.0 - Release finale BLE + refonte navigation responsive
+// Version 3.0.26-maint - Corrections mineures interface & API
+// Version 3.0.25-dev - Cartouche Bluetooth & activation auto BLE
+// Version 3.0.24-dev - Activation universelle des bibliothèques BLE
+// Version 3.0.23-dev - Service BLE complet & compatibilité automatique
+// Version 3.0.22-dev - BLE auto pour cibles ESP32-S3/C3/C6/H2
+// Version 3.0.21-dev - Bandeau renommé, descriptions tests & BLE souple
+// Version 3.0.20-dev - Menu responsive sans défilement
+// Version 3.0.19-dev - Menu monoligne & lisibilité partitions
+// Version 3.0.18-dev - Correctif script Bluetooth & compilation
+// Version 3.0.17-dev - Bandeau condensé & navigation calée
+// Version 3.0.16-dev - UI affinée, message inline sticky & avertissement GPIO
+// Version 3.0.15-dev - Gestion Bluetooth & onglet Sans fil
+// Version 3.0.14-dev - Menu horizontal sticky & reset alertes
+// Version 3.0.13-dev - Correction JSON traductions dynamiques
+// Version 3.0.12-dev - Navigation hash + compatibilité JS
+// Version 3.0.11-dev - Refonte UI moderne responsive
+// Version 3.0.10-dev - Restauration clic onglets via double liaison
+// Version 3.0.09-dev - Délégation universelle des clics onglets
+// Version 3.0.08-dev - Correction finale navigation onglets
+// Version 3.0.07-dev - Réactivation complète navigation onglets
+// Version 3.0.06-dev - Correction compilation fallback onglets
+// Version 3.0.05-dev - Onglets web compatibles tous navigateurs
+// Version 3.0.04-dev - Correction navigation onglets principale
+// Version 3.0.03-dev - Rotation OLED ajustable et messages inline
+// Version 3.0.02-dev - Correction API scan WiFi pour core 3.3.2
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -125,7 +126,7 @@
 
 // ========== CONFIGURATION ==========
 // --- [MAINTENANCE] Synchronisation de la constante de version ---
-#define DIAGNOSTIC_VERSION "3.0.26-maint"
+#define DIAGNOSTIC_VERSION "3.1.0"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true

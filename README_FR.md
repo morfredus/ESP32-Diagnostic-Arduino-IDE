@@ -39,5 +39,5 @@ Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de
 
 ## Support
 - Licence : [MIT](LICENSE)
-- Support & remontées : ouvrir un ticket avec étapes de reproduction et détails carte.
-- Contribution : voir [CONTRIBUTING_FR.md](CONTRIBUTING_FR.md).
+- Support & remontées : [ouvrir un ticket GitHub](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/issues/new/choose) avec étapes de reproduction et détails carte.
+- Contribution : [forkez le dépôt](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/fork) puis consultez [CONTRIBUTING_FR.md](CONTRIBUTING_FR.md).
