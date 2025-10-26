@@ -2,6 +2,21 @@
 
 Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Version 3.1.18] - 2025-10-27
+### Ajouts
+- Néant.
+
+### Corrections
+- Validation de `/api/set-language` pour renvoyer immédiatement HTTP 200 sur `fr`/`en` et HTTP 400 sur les codes non pris en charge, supprimant les réponses ambiguës.
+- Synchronisation des journaux série et exports avec les nouvelles réponses JSON du changement de langue.
+
+### Améliorations
+- Réservation anticipée du tampon de `jsonEscape` afin de réduire les allocations pendant la génération d'exports.
+- Inclusion explicite de `<cstring>` pour assurer la compatibilité des fonctions de chaîne C sur les toolchains Arduino récentes.
+- Documentation FR/EN alignée sur la maintenance 3.1.18 (README, guides d'installation, configuration, utilisation, architecture, contribution et dépannage).
+
+---
+
 ## [Version 3.1.16] - 2025-10-27
 ### Ajouts
 - Bandeau sticky unifié affichant version, statut Wi-Fi/Bluetooth et lien d'accès direct depuis le tableau de bord web.
