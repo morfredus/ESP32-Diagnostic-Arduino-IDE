@@ -7,6 +7,7 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.02-dev - Ajustement du maintien mDNS sans appel update()
 // Version de dev : 3.2.01-dev - Correction de la publication mDNS
 // Version de dev : 3.2.0-doc - Consolidation des guides après la campagne de tests
 // Version de dev : 3.1.19-doc - Scission du changelog FR/EN et rafraîchissement de la documentation
@@ -102,7 +103,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.01-dev"
+#define DIAGNOSTIC_VERSION "3.2.02-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -4056,7 +4057,9 @@ void maintainMDNSResponder() {
   }
 
   // --- [NEW FEATURE] Maintien automatique du service mDNS ---
-  MDNS.update();
+  // La pile ESP-IDF maintient automatiquement le service mDNS lorsqu'il est actif.
+  // Cette fonction conserve le point d'entrée pour d'éventuels contrôles futurs
+  // sans invoquer de méthode inexistante sur la librairie Arduino mDNS.
 }
 
 // ========== SETUP COMPLET ==========
