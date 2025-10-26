@@ -1,174 +1,173 @@
 # Changelog
 
-Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All notable changes to ESP32 Diagnostic Suite are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Version 3.2.0] - 2025-10-28
+### Added
+- None.
+
+### Fixed
+- Updated every guide to reference the bilingual changelog pair (`CHANGELOG.md` and `CHANGELOG_FR.md`) so both languages stay aligned.
+
+### Improved
+- Split the changelog into dedicated English and French files to make maintenance updates easier for each audience.
+- Refreshed the version banner, `DIAGNOSTIC_VERSION`, and release highlights to reference 3.2.0 across the documentation set.
+
+---
+
+## [Version 3.1.18] - 2025-10-27
+### Added
+- None.
+
+### Fixed
+- Validated `/api/set-language` so French/English requests immediately return HTTP 200 while unsupported codes now receive a clear HTTP 400 response.
+- Synchronized serial logs and exports with the new language-switch JSON responses.
+
+### Improved
+- Preallocated the `jsonEscape` buffer to reduce allocations while generating exports.
+- Explicitly included `<cstring>` to guarantee C string helpers remain available on recent Arduino toolchains.
+- Aligned the FR/EN documentation set (README, installation, configuration, usage, architecture, contributing, troubleshooting guides) with the 3.1.18 maintenance pass.
+
+---
 
 ## [Version 3.1.16] - 2025-10-27
-### Ajouts
-- Bandeau sticky unifié affichant version, statut Wi-Fi/Bluetooth et lien d'accès direct depuis le tableau de bord web.
-- Commandes Bluetooth® (activation, renommage, réinitialisation) exposées dans l'interface et via les endpoints REST dédiés.
+### Added
+- Unified sticky banner showing version, Wi-Fi/Bluetooth status, and a quick-access link from the web dashboard.
+- Bluetooth® commands (enable, rename, reset) exposed both in the interface and through dedicated REST endpoints.
 
-### Corrections
-- Délégation d'événements repositionnée pour la navigation par onglets afin de restaurer la sélection après rechargement dynamique.
-- Actualisation des traductions sur les onglets et éléments dynamiques après un changement de langue pour éviter les libellés incohérents.
-- Rétablissement du libellé « Non testé » sur les diagnostics additionnels dans l'interface, l'API et les exports.
+### Fixed
+- Repositioned tab navigation event delegation to restore the selection after dynamic reloads.
+- Refreshed translations on tabs and dynamic elements after a language switch to remove inconsistent labels.
+- Restored the “Not tested” label for additional diagnostics across the interface, API, and exports.
 
-### Améliorations
-- Réponses de scan Wi-Fi enrichies (BSSID, bande, largeur de canal, mode PHY) pour faciliter l'analyse radio.
-- Préallocation étendue de `htmlEscape` afin de limiter les réallocations lors du streaming HTML et des exports.
-- Synchronisation du commentaire d'en-tête et de `DIAGNOSTIC_VERSION` sur 3.1.16 pour aligner journaux et fichiers générés.
+### Improved
+- Enriched Wi-Fi scan responses (BSSID, band, channel width, PHY mode) to simplify RF analysis.
+- Extended `htmlEscape` preallocation to limit reallocations during HTML streaming and export generation.
+- Synchronized the header comment and `DIAGNOSTIC_VERSION` at 3.1.16 to align logs and generated files.
 
 ---
 
 ## [Version 3.1.15-maint] - 2025-10-26
-### Ajouts
-- Néant.
+### Added
+- None.
 
-### Corrections
-- Uniformisation du libellé « Non testé » pour les diagnostics additionnels (ADC, tactile, PWM, stress) dans l'interface, les exports et l'API.
-- Synchronisation du commentaire d'en-tête et de `DIAGNOSTIC_VERSION` sur 3.1.15-maint afin d'afficher le bon numéro dans les journaux et fichiers exportés.
+### Fixed
+- Standardized the “Not tested” label for additional diagnostics (ADC, touch, PWM, stress) in the interface, exports, and API.
+- Synchronized the header comment and `DIAGNOSTIC_VERSION` at 3.1.15-maint so logs and exported files show the correct number.
 
-### Améliorations
-- Extension de la préallocation de `htmlEscape` pour réduire les réallocations lors de l'échappement des chaînes HTML générées.
-- Documentation FR/EN actualisée (README, guides d'installation, configuration, utilisation, architecture, contribution et dépannage) pour refléter la maintenance 3.1.15-maint et les vérifications associées.
+### Improved
+- Extended the `htmlEscape` preallocation to reduce reallocations while escaping generated HTML strings.
+- Updated the FR/EN documentation (README, installation, configuration, usage, architecture, contributing, troubleshooting guides) to reflect the 3.1.15-maint maintenance and checks.
 
 ---
 
 ## [Version 3.1.14-maint] - 2025-10-26
-### Ajouts
-- Néant.
+### Added
+- None.
 
-### Corrections
-- Rétablissement des libellés "Non testé" pour les diagnostics additionnels afin d'assurer une interface cohérente en français.
-- Alignement du commentaire de version et de `DIAGNOSTIC_VERSION` sur la révision 3.1.14-maint pour refléter la maintenance en cours.
+### Fixed
+- Restored “Not tested” status labels for the additional diagnostics to keep the French interface consistent.
+- Aligned the version banner comment and `DIAGNOSTIC_VERSION` with revision 3.1.14-maint to reflect the active maintenance.
 
-### Améliorations
-- Augmentation de la réserve mémoire utilisée par `htmlEscape` pour limiter les réallocations lors de l'échappement des chaînes.
+### Improved
+- Increased the memory reserved by `htmlEscape` to limit reallocations while escaping generated strings.
 
 ---
 
 ## [3.1.1] - 2025-10-26
-### Corrections
-- Suppression des commentaires obsolètes et marqueurs internes pour clarifier la maintenance du firmware.
+### Fixed
+- Removed obsolete comments and internal markers to clarify firmware maintenance status.
 
 ### Documentation
-- Mise à jour des guides FR/EN, exports et constantes pour refléter le passage en version 3.1.1.
+- Updated the FR/EN guides, exports, and constants to reflect the move to version 3.1.1.
 
 ---
 
 ## [3.1.0] - 2025-10-24
-### Points forts
-- Activation automatique du service Bluetooth® Low Energy avec diffusion native sur les cibles compatibles (ESP32, S3, C3, C6, H2).
-- Tableau de bord web enrichi d'une cartouche BLE détaillant l'état, le nom du périphérique et les journaux d'appairage récents.
-- Jeux de documents FR/EN entièrement réécrits couvrant installation, configuration, utilisation, architecture, dépannage et contribution.
+### Highlights
+- Automatic enablement of the Bluetooth® Low Energy service with native advertising on compatible targets (ESP32, S3, C3, C6, H2).
+- Web dashboard enriched with a BLE card showing status, device name, and recent pairing logs.
+- Fully rewritten FR/EN document sets covering installation, configuration, usage, architecture, troubleshooting, and contribution.
 
-### Fonctionnalités
-- Service GATT par défaut avec renommage dynamique du périphérique via l'interface web ou la console série.
-- Nouveaux messages d'état Wi-Fi contextualisés (association, DHCP, authentification, portail captif) affichés dans le bandeau supérieur et l'API REST.
-- Prise en charge initiale assouplie pour les révisions récentes des SoC ESP32 (S3/C3/C6/H2) sur les modules BLE et Wi-Fi.
+### Features
+- Default GATT service with dynamic device renaming via the web interface or serial console.
+- New contextual Wi-Fi status messages (association, DHCP, authentication, captive portal) displayed in the top banner and REST API.
+- Relaxed initial support for the latest ESP32 SoC revisions (S3/C3/C6/H2) within the BLE and Wi-Fi modules.
 
 ### Interface & API
-- Navigation par onglets fiabilisée via délégation d'événements JavaScript, évitant les blocages après un rafraîchissement partiel.
-- Menu supérieur responsive avec regroupement monoligne des indicateurs de statut pour les écrans < 768 px.
-- Export TXT/JSON/CSV et aperçu imprimable synchronisés avec les nouveaux états BLE et Wi-Fi.
+- Hardened tab navigation through JavaScript event delegation to avoid lockups after partial refresh.
+- Responsive top menu grouping status indicators on a single line for screens below 768 px.
+- TXT/JSON/CSV exports and print preview synchronized with the new BLE and Wi-Fi states.
 
 ### Documentation
-- Regroupement des guides dans `docs/` avec renvois croisés vers les versions anglaises et françaises.
-- Ajout d'un guide de contribution détaillé (workflow Git, validation, formatage) et de procédures de dépannage spécifiques BLE/Wi-Fi.
+- Consolidated guides inside `docs/` with cross-links to English and French versions.
+- Added a detailed contributing guide (Git workflow, validation, formatting) and BLE/Wi-Fi troubleshooting procedures.
 
-### Corrections
-- Harmonisation des messages BLE entre la console série, l'API `/api/status` et l'interface web.
-- Nettoyage du JSON de traduction dynamique pour éviter les clés orphelines et incohérences de casse.
-- Clarification de la détection des onglets actifs dans le bundle JavaScript, supprimant les doublons d'écouteurs.
+### Fixed
+- Harmonized BLE messages across the serial console, `/api/status`, and the web interface.
+- Cleaned the dynamic translation JSON to remove orphan keys and casing inconsistencies.
+- Clarified active tab detection in the JavaScript bundle, removing duplicate listeners.
 
 ---
 
 ## [2.6.0] - 2025-10-15
-### Fonctionnalités
-- Boutons manuels sur l'interface web et endpoints REST associés pour piloter individuellement chaque animation de diagnostic OLED.
-- Possibilité de déclencher et d'arrêter les séquences d'affichage directement depuis la console série.
+### Features
+- Manual buttons on the web interface plus REST endpoints to control each OLED diagnostic animation individually.
+- Ability to start and stop display sequences directly from the serial console.
 
-### Améliorations
-- Simplification du flux de reconfiguration I²C OLED : sélection des broches SDA/SCL et vitesse directement depuis l'interface.
-- Actualisation du pack de traductions (FR/EN) pour tous les nouveaux libellés OLED et états d'exécution.
+### Improved
+- Simplified the OLED I²C reconfiguration flow: select SDA/SCL pins and speed directly from the interface.
+- Refreshed the translation pack (FR/EN) for all new OLED labels and runtime states.
 
-### Corrections
-- Suppression complète de la prise en charge TFT (firmware, dépendances Arduino, fragments UI), réduisant la taille du binaire et les avertissements de compilation.
+### Fixed
+- Fully removed TFT support (firmware, Arduino dependencies, UI fragments), shrinking the binary and eliminating compilation warnings.
 
 ---
 
 ## [2.5.1] - 2025-10-10
-### Corrections
-- Statuts PSRAM clarifiés dans le tableau de bord, les exports et les rapports imprimables (valeur détectée, fréquence, mode octal).
-- Ajustement de l'ordre de détection PSRAM pour éviter les faux négatifs sur ESP32-WROVER.
+### Fixed
+- Clarified PSRAM statuses on the dashboard, exports, and printable reports (detected value, frequency, octal mode).
+- Adjusted PSRAM detection order to avoid false negatives on ESP32-WROVER boards.
 
-### Améliorations
-- Mise en avant des cartes compatibles PSRAM avec rappels pour activer l'option dans l'IDE Arduino et la documentation d'installation.
+### Improved
+- Highlighted PSRAM-compatible boards with reminders to enable the option in the Arduino IDE and installation docs.
 
 ---
 
 ## [2.5.0] - 2025-10-08
-### Fonctionnalités
-- Exports TXT/JSON/CSV intégralement traduits (FR/EN) avec inclusion de l'horodatage ISO 8601 et du numéro de build.
-- Prévisualisation imprimable alignée sur la langue sélectionnée et sur les nouveaux blocs de diagnostic.
+### Features
+- Fully translated TXT/JSON/CSV exports (FR/EN) including ISO 8601 timestamps and build numbers.
+- Printable preview aligned with the selected language and the new diagnostic blocks.
 
-### Améliorations
-- Nommage des fichiers d'export enrichi avec le numéro de version, la date et la carte détectée.
-- Révision du workflow d'export REST pour réduire les temps de génération et homogénéiser les intitulés de colonnes.
+### Improved
+- Enriched export filenames with version number, date, and detected board.
+- Revised the REST export workflow to shorten generation times and harmonize column titles.
 
-### Corrections
-- Harmonisation des formats de date (localisation FR/EN) dans les exports et la vue imprimable.
-- Ajout des traductions manquantes sur les boutons de téléchargement et sur les libellés de sections.
+### Fixed
+- Harmonized date formats (FR/EN localization) in exports and the printable view.
+- Added missing translations on download buttons and section labels.
 
 ---
 
 ## [2.4.0] - 2025-10-07
-### Fonctionnalités
-- Interface multilingue complète FR/EN avec bascule à chaud sans rechargement de page.
-- Endpoints `/api/set-language` et `/api/get-translations` permettant aux clients externes de piloter la langue.
-- Fichier `languages.h` regroupant plus de 150 chaînes traduites pour l'interface, les exports et la console série.
+### Features
+- Full FR/EN multilingual interface with hot switching without page reload.
+- `/api/set-language` and `/api/get-translations` endpoints enabling external clients to control the language.
+- `languages.h` file centralizing more than 150 translated strings for the interface, exports, and serial console.
 
-### Améliorations
-- Tous les textes (web, API, exports, logs) reposent sur le catalogue de traductions centralisé.
-- Ajout d'un indicateur visuel de langue active et persistance de la préférence dans le stockage local du navigateur.
+### Improved
+- All texts (web, API, exports, logs) now rely on the centralized translation catalog.
+- Added a visual indicator for the active language and persisted the preference in the browser's local storage.
 
 ---
 
 ## [2.3.0] - 2025-10-06
-### Fonctionnalités
-- Batterie de 10 tests OLED 0,96" I²C (bascule contrastes, inversion, scroll, trames personnalisées) avec messages explicatifs.
-- Reconfiguration dynamique des broches SDA/SCL via l'interface web et l'API pour faciliter le recâblage.
+### Features
+- Suite of 10 OLED 0.96" I²C tests (contrast toggles, inversion, scroll, custom frames) with explanatory messages.
+- Dynamic SDA/SCL pin reconfiguration through the web interface and API to simplify rewiring.
 
-### Améliorations
-- Détection automatique de l'écran à l'adresse 0x3C avec relance des tests après connexion.
-- Ajout d'un module de calibration de contraste pour optimiser les OLED selon la tension d'alimentation.
-
----
-
-## [2.2.0] - 2025-10-05
-### Fonctionnalités
-- Support des écrans TFT SPI (ST7789/ILI9341) avec diagnostics dédiés (test couleurs, patterns, fréquence SPI).
-- Assistant de configuration TFT (pinout, rotation, inversion des axes) accessible via l'interface et la console série.
-
-### Notes
-- Cette fonctionnalité a été retirée en 2.6.0 pour alléger le firmware et se concentrer sur les OLED.
+### Improved
+- Automatically detects the display at address 0x3C and reruns tests after connection.
+- Added a contrast calibration module to optimise OLEDs based on supply voltage.
 
 ---
-
-## [2.0.0] - 2025-10-03
-### Fonctionnalités
-- Réécriture complète du diagnostic : GPIO, ADC, pads tactiles, PWM, I2C, SPI, PSRAM, partitions, stress test, benchmarks et exports.
-- Support multi-Wi-Fi via `WiFiMulti`, découverte mDNS `ESP32-Diagnostic.local` et interface web modernisée.
-- Ajout de l'API REST (lancement tests, récupération de rapports) et des exports TXT/JSON/CSV.
-
-### Documentation
-- Première version du guide d'utilisation détaillant la configuration réseau, les tests disponibles et la collecte des journaux.
-
----
-
-## [1.0.0] - 2025-10-01
-### Fonctionnalités
-- Première version publique avec interface web basique, rapport mémoire, tests GPIO/ADC élémentaires et console série interactive.
-- Génération d'un tableau de bord unique regroupant la configuration Wi-Fi, les mesures de capteurs et les actions rapides.
-
-### Notes
-- Base de code initiale posant les fondations du système de diagnostics évolutif.

@@ -14,7 +14,7 @@ We welcome improvements that strengthen the diagnostic experience while keeping 
 - Keep English and French documentation in sync.
 - When editing READMEs or guides, state the tested firmware version.
 - Use concise, technical language and avoid promising future features that are not implemented.
-- Mention 3.1.16 when confirming maintenance work so the sticky masthead, banner comment, and `DIAGNOSTIC_VERSION` stay aligned.
+- Mention 3.2.0 when confirming maintenance work so the bilingual changelog split, banner comment, and `DIAGNOSTIC_VERSION` stay aligned with the hardened language endpoint.
 
 ## Issue reporting
 File bug reports via [GitHub Issues](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/issues/new/choose) and include:

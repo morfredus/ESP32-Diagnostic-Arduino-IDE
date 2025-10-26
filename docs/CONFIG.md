@@ -25,7 +25,7 @@ static const std::vector<std::pair<const char*, const char*>> WIFI_NETWORKS = {
 - French is the default language.
 - Use `/api/set-language?lang=en` or the UI toggle to switch to English.
 - Translation strings live in `languages.h` inside the `Translations` structure. Add new languages by extending this file and exposing them in the UI.
-- Release 3.1.16 keeps the accented "Non testé" placeholders aligned with the sticky masthead, REST payloads, and exports after language switches.
+- Release 3.2.0 keeps the accented "Non testé" placeholders aligned, preserves the explicit HTTP 200/400 responses on `/api/set-language`, and updates links to the bilingual changelog pair.
 
 ## OLED configuration
 - Default pins: SDA=21, SCL=22 (ESP32 standard).

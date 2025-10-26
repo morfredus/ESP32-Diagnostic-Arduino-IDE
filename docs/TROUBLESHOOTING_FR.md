@@ -6,12 +6,13 @@
 - Assurez-vous qu'aucune autre application n'occupe la pile BLE (redémarrez la carte).
 
 ## Le changement de langue n'a aucun effet
+- Assurez-vous d'exécuter le firmware 3.2.0 afin que `/api/set-language` conserve les succès explicites (FR/EN) et un HTTP 400 pour les codes non pris en charge tout en respectant le changelog bilingue.
 - Vérifiez que `languages.h` est présent à côté du sketch et compilé correctement.
 - Videz le cache du navigateur (Ctrl+F5) pour recharger les traductions.
 - Contrôlez que `/api/get-translations` renvoie HTTP 200 via la console ou un client REST.
 
 ## Les diagnostics additionnels affichent « Non teste » sans accent
-- Passez en version 3.1.16 ou supérieure pour rétablir l'intitulé « Non testé » et appliquer les traductions du bandeau sticky sur tous les supports.
+- Passez en version 3.2.0 (ou toute maintenance 3.x ultérieure) pour conserver l'intitulé « Non testé » et les traductions du bandeau sticky alignées sur la documentation bilingue.
 - Rafraîchissez le tableau de bord (Ctrl+F5) afin de recharger les traductions mises à jour.
 
 ## L'écran OLED reste noir
