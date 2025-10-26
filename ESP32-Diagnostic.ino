@@ -7,6 +7,7 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.03-dev - Relance mDNS sur les evenements reseau
 // Version de dev : 3.2.02-dev - Ajustement du maintien mDNS sans appel update()
 // Version de dev : 3.2.01-dev - Correction de la publication mDNS
 // Version de dev : 3.2.0-doc - Consolidation des guides après la campagne de tests
@@ -103,7 +104,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.02-dev"
+#define DIAGNOSTIC_VERSION "3.2.03-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -114,6 +115,9 @@ const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
 
 bool mdnsResponderStarted = false;
 unsigned long mdnsLastAttempt = 0;
+WiFiEventId_t wifiEventSubscription = 0;
+
+void handleWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info);
 
 String getArduinoCoreVersionString() {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && defined(ESP_ARDUINO_VERSION_MINOR) && defined(ESP_ARDUINO_VERSION_PATCH)
@@ -4009,13 +4013,23 @@ bool startMDNSResponder(bool verboseLogs) {
 
   mdnsLastAttempt = millis();
 
-  if (MDNS.begin(MDNS_HOSTNAME)) {
+  if (mdnsResponderStarted) {
+    MDNS.end();
+    mdnsResponderStarted = false;
+  }
+
+  const char* currentHostname = WiFi.getHostname();
+  const char* hostnameToUse = (currentHostname != nullptr && strlen(currentHostname) > 0)
+                                  ? currentHostname
+                                  : MDNS_HOSTNAME_STR;
+
+  if (MDNS.begin(hostnameToUse)) {
     MDNS.addService("http", "tcp", 80);
     mdnsResponderStarted = true;
 
     if (verboseLogs) {
       Serial.println("════════════════════════════════════════");
-      Serial.printf("   http://%s.local\r\n", MDNS_HOSTNAME);
+      Serial.printf("   http://%s.local\r\n", hostnameToUse);
       Serial.printf("   http://%s\r\n", WiFi.localIP().toString().c_str());
       Serial.println("════════════════════════════════════════\r\n");
     } else {
@@ -4062,6 +4076,26 @@ void maintainMDNSResponder() {
   // sans invoquer de méthode inexistante sur la librairie Arduino mDNS.
 }
 
+// --- [NEW FEATURE] Surveillance des evenements WiFi pour mDNS ---
+void handleWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
+  switch (event) {
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+      Serial.println("[WiFi] Adresse obtenue - (re)demarrage mDNS");
+      startMDNSResponder(true);
+      break;
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+    case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+      if (mdnsResponderStarted) {
+        MDNS.end();
+        mdnsResponderStarted = false;
+        Serial.println("[mDNS] Service arrete suite a la perte WiFi");
+      }
+      break;
+    default:
+      break;
+  }
+}
+
 // ========== SETUP COMPLET ==========
 void setup() {
   Serial.begin(115200);
@@ -4091,6 +4125,8 @@ void setup() {
   WiFi.persistent(false);
   WiFi.setHostname(MDNS_HOSTNAME_STR);
   WiFi.setSleep(false);
+  // --- [NEW FEATURE] Abonnement aux evenements WiFi pour la relance mDNS ---
+  wifiEventSubscription = WiFi.onEvent(handleWiFiEvent);
 #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
   WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
 #ifdef WIFI_CONNECT_AP_BY_SIGNAL
