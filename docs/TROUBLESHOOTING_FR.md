@@ -11,7 +11,7 @@
 - Contrôlez que `/api/get-translations` renvoie HTTP 200 via la console ou un client REST.
 
 ## Les diagnostics additionnels affichent « Non teste » sans accent
-- Mettez à jour le firmware en version 3.1.14-maint ou supérieure pour rétablir l'intitulé « Non testé » dans le catalogue français.
+- Mettez à jour le firmware en version 3.1.15-maint ou supérieure pour rétablir l'intitulé « Non testé » dans le catalogue français sur tous les supports.
 - Rafraîchissez le tableau de bord (Ctrl+F5) afin de recharger les traductions mises à jour.
 
 ## L'écran OLED reste noir

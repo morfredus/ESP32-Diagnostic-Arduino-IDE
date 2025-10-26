@@ -6,6 +6,8 @@
  * Auteur: morfredus
  */
 
+// --- [MAINTENANCE] Journal de version actualisé ---
+// Version de dev : 3.1.15-maint - Harmonisation de la documentation et rappel des libellés par défaut
 // Version de dev : 3.1.14-maint - Corrections de messages d'état et amélioration de l'échappement HTML
 // Version de dev : 3.1.13-dev - Bandeau sticky unifié et retrait du test tactile des exports
 // Version de dev : 3.1.12-dev - Alignement du numéro de version dans le bandeau principal
@@ -93,8 +95,8 @@
 #endif
 
 // ========== CONFIGURATION ==========
-// --- [MAINTENANCE] Mise à jour version maintenance ---
-#define DIAGNOSTIC_VERSION "3.1.14-maint"
+// --- [MAINTENANCE] Mise à jour version maintenance 3.1.15 ---
+#define DIAGNOSTIC_VERSION "3.1.15-maint"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
