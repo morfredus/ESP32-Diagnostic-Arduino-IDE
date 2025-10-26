@@ -1,3 +1,5 @@
+// Version de dev : 3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi
+// Version de dev : 3.2.09-dev - Restauration complète de mDNS sur ESP32-S3
 // Version de dev : 3.2.08-dev - Correction de l'initialisation WiFi pour mDNS
 // Version de dev : 3.2.07-dev - Compatibilité mDNS multi-environnements
 /*
@@ -9,6 +11,8 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi
+// Version de dev : 3.2.09-dev - Restauration complète de mDNS sur ESP32-S3
 // Version de dev : 3.2.08-dev - Correction de l'initialisation WiFi pour mDNS
 // Version de dev : 3.2.07-dev - Compatibilité mDNS multi-environnements
 // Version de dev : 3.2.06-dev - Restauration mDNS fiable et lien d'accès constant
@@ -29,21 +33,34 @@
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <WebServer.h>
-#if defined(__has_include)
-  #if __has_include(<ESPmDNS.h>)
+
+#if defined(ARDUINO_ARCH_ESP32)
+  #if defined(__has_include)
+    #if __has_include(<ESPmDNS.h>)
+      #include <ESPmDNS.h>
+      #define DIAGNOSTIC_HAS_MDNS 1
+      #define DIAGNOSTIC_USES_ESPMDNS 1
+    #elif __has_include(<mdns.h>)
+      #include <mdns.h>
+      #define DIAGNOSTIC_HAS_MDNS 1
+      #define DIAGNOSTIC_USES_IDF_MDNS 1
+    #else
+      #define DIAGNOSTIC_HAS_MDNS 0
+    #endif
+  #else
     #include <ESPmDNS.h>
     #define DIAGNOSTIC_HAS_MDNS 1
-  #else
-    #define DIAGNOSTIC_HAS_MDNS 0
+    #define DIAGNOSTIC_USES_ESPMDNS 1
   #endif
 #else
-  #include <ESPmDNS.h>
-  #define DIAGNOSTIC_HAS_MDNS 1
+  #define DIAGNOSTIC_HAS_MDNS 0
 #endif
+
 #if !defined(DIAGNOSTIC_HAS_MDNS)
-  #define DIAGNOSTIC_HAS_MDNS 1
+  #define DIAGNOSTIC_HAS_MDNS 0
 #endif
-#if DIAGNOSTIC_HAS_MDNS
+
+#if DIAGNOSTIC_HAS_MDNS && defined(DIAGNOSTIC_USES_ESPMDNS)
   #if defined(NO_GLOBAL_MDNS) || defined(NO_GLOBAL_INSTANCES)
     // --- [NEW FEATURE] Instance mDNS dédiée pour compatibilité ---
     static MDNSResponder diagnosticMDNSResponder;
@@ -53,11 +70,25 @@
   #endif
 #endif
 #include <esp_chip_info.h>
+#include <esp_err.h>
 #include <esp_mac.h>
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
 #include <esp_wifi.h>
+#if defined(__has_include)
+  #if __has_include(<esp_netif.h>)
+    #include <esp_netif.h>
+    #define DIAGNOSTIC_HAS_ESP_NETIF 1
+  #endif
+  #if __has_include(<tcpip_adapter.h>)
+    #include <tcpip_adapter.h>
+    #define DIAGNOSTIC_HAS_TCPIP_ADAPTER 1
+  #endif
+#else
+  #include <esp_netif.h>
+  #define DIAGNOSTIC_HAS_ESP_NETIF 1
+#endif
 #include <soc/soc.h>
 #include <soc/rtc.h>
 #if defined(__has_include)
@@ -132,7 +163,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.08-dev"
+#define DIAGNOSTIC_VERSION "3.2.10-dev"
 // --- [NEW FEATURE] Lien d'accès constant via nom d'hôte ---
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
@@ -173,6 +204,10 @@ bool mdnsServiceActive = false;
 bool wifiPreviouslyConnected = false;
 unsigned long lastMDNSAttempt = 0;
 bool mdnsLastAttemptFailed = false;
+#if defined(DIAGNOSTIC_USES_IDF_MDNS)
+// --- [NEW FEATURE] Compatibilité mDNS IDF native ---
+bool mdnsResponderInitialized = false;
+#endif
 #endif
 #if BLE_STACK_SUPPORTED
 BLEServer* bluetoothServer = nullptr;
@@ -371,12 +406,47 @@ String getStableAccessURL() {
   return String("http://") + String(DIAGNOSTIC_HOSTNAME) + ".local";
 }
 
+// --- [NEW FEATURE] Pré-configuration proactive du nom d'hôte mDNS ---
+void configureNetworkHostname() {
+  if (!WiFi.setHostname(DIAGNOSTIC_HOSTNAME)) {
+    Serial.printf("[WiFi] Impossible de définir le nom d'hôte %s\r\n", DIAGNOSTIC_HOSTNAME);
+  } else {
+    Serial.printf("[WiFi] Nom d'hôte défini : %s.local\r\n", DIAGNOSTIC_HOSTNAME);
+  }
+#if defined(ARDUINO_ARCH_ESP32)
+  #if defined(DIAGNOSTIC_HAS_ESP_NETIF)
+    esp_netif_t* staNetif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (staNetif != nullptr) {
+      esp_err_t netifStatus = esp_netif_set_hostname(staNetif, DIAGNOSTIC_HOSTNAME);
+      if (netifStatus != ESP_OK) {
+        Serial.printf("[WiFi] Échec assignation hostname netif (0x%X)\r\n", netifStatus);
+      }
+    } else {
+      Serial.println("[WiFi] Interface STA introuvable pour l'assignation du hostname");
+    }
+  #elif defined(DIAGNOSTIC_HAS_TCPIP_ADAPTER)
+    err_t adapterStatus = tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, DIAGNOSTIC_HOSTNAME);
+    if (adapterStatus != ERR_OK) {
+      Serial.printf("[WiFi] Échec assignation hostname TCP/IP (%d)\r\n", static_cast<int>(adapterStatus));
+    }
+  #endif
+#endif
+}
+
 void stopMDNSService(const char* reason) {
 #if DIAGNOSTIC_HAS_MDNS
   if (!mdnsServiceActive) {
     return;
   }
+#if defined(DIAGNOSTIC_USES_ESPMDNS)
   DIAGNOSTIC_MDNS_SERVER.end();
+#elif defined(DIAGNOSTIC_USES_IDF_MDNS)
+  // --- [NEW FEATURE] Extinction propre du service IDF ---
+  if (mdnsResponderInitialized) {
+    mdns_free();
+    mdnsResponderInitialized = false;
+  }
+#endif
   mdnsServiceActive = false;
   if (reason != nullptr) {
     Serial.printf("[mDNS] Service arrêté (%s)\r\n", reason);
@@ -403,6 +473,7 @@ bool startMDNSService(bool verbose) {
   }
 
   lastMDNSAttempt = now;
+#if defined(DIAGNOSTIC_USES_ESPMDNS)
   if (!DIAGNOSTIC_MDNS_SERVER.begin(DIAGNOSTIC_HOSTNAME)) {
     if (verbose || !mdnsLastAttemptFailed) {
       Serial.println("[mDNS] Échec du démarrage - nouvel essai dans 5s");
@@ -412,6 +483,43 @@ bool startMDNSService(bool verbose) {
   }
 
   DIAGNOSTIC_MDNS_SERVER.addService("http", "tcp", 80);
+#elif defined(DIAGNOSTIC_USES_IDF_MDNS)
+  // --- [NEW FEATURE] Démarrage mDNS via l'API ESP-IDF ---
+  esp_err_t mdnsInitStatus = mdns_init();
+  if (mdnsInitStatus != ESP_OK) {
+    if (verbose || !mdnsLastAttemptFailed) {
+      Serial.printf("[mDNS] Initialisation IDF échouée: 0x%02X\r\n", mdnsInitStatus);
+    }
+    mdnsLastAttemptFailed = true;
+    return false;
+  }
+
+  mdnsResponderInitialized = true;
+
+  esp_err_t hostStatus = mdns_hostname_set(DIAGNOSTIC_HOSTNAME);
+  if (hostStatus != ESP_OK) {
+    if (verbose || !mdnsLastAttemptFailed) {
+      Serial.printf("[mDNS] Attribution du nom d'hôte échouée: 0x%02X\r\n", hostStatus);
+    }
+    mdns_free();
+    mdnsResponderInitialized = false;
+    mdnsLastAttemptFailed = true;
+    return false;
+  }
+
+  mdns_instance_name_set("ESP32 Diagnostic");
+  esp_err_t serviceStatus = mdns_service_add("ESP32 Diagnostic", "_http", "_tcp", 80, nullptr, 0);
+  if (serviceStatus != ESP_OK) {
+    if (verbose || !mdnsLastAttemptFailed) {
+      Serial.printf("[mDNS] Publication du service échouée: 0x%02X\r\n", serviceStatus);
+    }
+    mdns_free();
+    mdnsResponderInitialized = false;
+    mdnsLastAttemptFailed = true;
+    return false;
+  }
+  mdns_service_txt_item_set("_http", "_tcp", "path", "/");
+#endif
   mdnsServiceActive = true;
   mdnsLastAttemptFailed = false;
   Serial.printf("[mDNS] Service actif sur %s\r\n", getStableAccessURL().c_str());
@@ -4169,12 +4277,8 @@ void setup() {
   WiFi.persistent(false);
 
   WiFi.setSleep(false);
-  // --- [NEW FEATURE] Nom d'hôte dédié pour l'accès constant ---
-  if (!WiFi.setHostname(DIAGNOSTIC_HOSTNAME)) {
-    Serial.printf("[WiFi] Impossible de définir le nom d'hôte %s\r\n", DIAGNOSTIC_HOSTNAME);
-  } else {
-    Serial.printf("[WiFi] Nom d'hôte défini : %s.local\r\n", DIAGNOSTIC_HOSTNAME);
-  }
+  // --- [NEW FEATURE] Assignation du nom d'hôte avant la connexion WiFi ---
+  configureNetworkHostname();
 #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
   WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
 #ifdef WIFI_CONNECT_AP_BY_SIGNAL
@@ -4309,7 +4413,7 @@ void setup() {
 void loop() {
   server.handleClient();
   maintainNetworkServices();
-#if DIAGNOSTIC_HAS_MDNS
+#if DIAGNOSTIC_HAS_MDNS && defined(DIAGNOSTIC_USES_ESPMDNS)
   if (mdnsServiceActive) {
     // --- [NEW FEATURE] Maintenance mDNS continue ---
     DIAGNOSTIC_MDNS_SERVER.update();
