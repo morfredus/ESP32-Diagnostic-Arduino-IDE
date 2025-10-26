@@ -2,6 +2,50 @@
 
 Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Version 3.1.16] - 2025-10-27
+### Ajouts
+- Bandeau sticky unifié affichant version, statut Wi-Fi/Bluetooth et lien d'accès direct depuis le tableau de bord web.
+- Commandes Bluetooth® (activation, renommage, réinitialisation) exposées dans l'interface et via les endpoints REST dédiés.
+
+### Corrections
+- Délégation d'événements repositionnée pour la navigation par onglets afin de restaurer la sélection après rechargement dynamique.
+- Actualisation des traductions sur les onglets et éléments dynamiques après un changement de langue pour éviter les libellés incohérents.
+- Rétablissement du libellé « Non testé » sur les diagnostics additionnels dans l'interface, l'API et les exports.
+
+### Améliorations
+- Réponses de scan Wi-Fi enrichies (BSSID, bande, largeur de canal, mode PHY) pour faciliter l'analyse radio.
+- Préallocation étendue de `htmlEscape` afin de limiter les réallocations lors du streaming HTML et des exports.
+- Synchronisation du commentaire d'en-tête et de `DIAGNOSTIC_VERSION` sur 3.1.16 pour aligner journaux et fichiers générés.
+
+---
+
+## [Version 3.1.15-maint] - 2025-10-26
+### Ajouts
+- Néant.
+
+### Corrections
+- Uniformisation du libellé « Non testé » pour les diagnostics additionnels (ADC, tactile, PWM, stress) dans l'interface, les exports et l'API.
+- Synchronisation du commentaire d'en-tête et de `DIAGNOSTIC_VERSION` sur 3.1.15-maint afin d'afficher le bon numéro dans les journaux et fichiers exportés.
+
+### Améliorations
+- Extension de la préallocation de `htmlEscape` pour réduire les réallocations lors de l'échappement des chaînes HTML générées.
+- Documentation FR/EN actualisée (README, guides d'installation, configuration, utilisation, architecture, contribution et dépannage) pour refléter la maintenance 3.1.15-maint et les vérifications associées.
+
+---
+
+## [Version 3.1.14-maint] - 2025-10-26
+### Ajouts
+- Néant.
+
+### Corrections
+- Rétablissement des libellés "Non testé" pour les diagnostics additionnels afin d'assurer une interface cohérente en français.
+- Alignement du commentaire de version et de `DIAGNOSTIC_VERSION` sur la révision 3.1.14-maint pour refléter la maintenance en cours.
+
+### Améliorations
+- Augmentation de la réserve mémoire utilisée par `htmlEscape` pour limiter les réallocations lors de l'échappement des chaînes.
+
+---
+
 ## [3.1.1] - 2025-10-26
 ### Corrections
 - Suppression des commentaires obsolètes et marqueurs internes pour clarifier la maintenance du firmware.

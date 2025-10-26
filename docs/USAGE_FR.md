@@ -20,6 +20,8 @@ Le tableau de bord est organisé en onglets :
 - **Performance** – historique des benchmarks et métriques temps réel.
 - **Export** – téléchargement des rapports TXT/JSON/CSV ou ouverture de la vue imprimable.
 
+La version 3.1.16 conserve le bandeau sticky, les statuts Bluetooth et l'intitulé accentué « Non testé » synchronisés entre interface, API REST et exports.
+
 La barre de navigation s'adapte aux mobiles et conserve l'onglet actif.
 
 ## 4. Outils Bluetooth® Low Energy
