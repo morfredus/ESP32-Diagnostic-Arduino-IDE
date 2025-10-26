@@ -19,7 +19,7 @@ The dashboard is organised into tabs:
 - **Wi-Fi** – detailed scan results (RSSI, channel, security, PHY, bandwidth).
 - **Performance** – benchmark history and runtime metrics.
 - **Export** – download TXT/JSON/CSV reports or open the printable report.
-- Release 3.1.19 keeps the sticky masthead and Bluetooth widgets aligned, preserves the explicit `/api/set-language` payloads, and signposts the bilingual changelog pair for operators.
+- Release 3.2.0 documents the `/api/memory-details` inspector, folds in the Bluetooth/Wi-Fi debugging checklist, and keeps the sticky masthead aligned with the bilingual changelog.
 
 The navigation bar collapses gracefully on mobile devices and preserves active tab state.
 
@@ -38,14 +38,21 @@ All endpoints return JSON unless stated otherwise:
 - `GET /api/oled-config?sda=<pin>&scl=<pin>` – reconfigure OLED I2C pins.
 - `GET /api/oled-test` – run the complete OLED test suite (takes ~25 seconds).
 - `GET /api/oled-message?message=TEXT` – display a custom message on the OLED.
+- `GET /api/memory-details` – return flash/PSRAM/SRAM metrics plus fragmentation percentage for post-run analysis.
 - `GET /export/txt`, `/export/json`, `/export/csv` – download reports in various formats.
 
 ## 6. Reports and logging
 - Serial output mirrors key actions (Wi-Fi status, BLE state, test results).
 - Exported reports include board information, memory breakdown, benchmark metrics, Wi-Fi scan, GPIO results, and OLED status.
 - Keep JSON exports for machine parsing and TXT/CSV for manual analysis.
+- Use the `/api/memory-details` endpoint when reports warn about fragmentation; the JSON response mirrors the guidance documented in 3.2.0.
 
 ## 7. Best practices
 - Re-run Wi-Fi scans after moving the device to a new location to refresh RSSI values.
 - Stop NeoPixel animations before powering down external LEDs to avoid ghosting.
 - When changing OLED pins, run `/api/oled-config` followed by `/api/oled-test` to validate wiring.
+
+## 8. Post-release debugging checklist (3.2.0)
+- Trigger `/api/memory-details` to ensure the fragmentation and PSRAM flags match the new documentation guidance.
+- Confirm the Bluetooth® card reflects advertising state changes after toggling `/api/bluetooth/toggle` and renaming via `/api/bluetooth/name`.
+- Review the Wi-Fi tab and `/api/wifi-scan` output for channel, band, bandwidth, and PHY metadata captured during the debugging campaign.

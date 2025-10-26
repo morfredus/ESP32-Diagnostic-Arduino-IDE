@@ -25,7 +25,7 @@ static const std::vector<std::pair<const char*, const char*>> WIFI_NETWORKS = {
 - Le français est la langue par défaut.
 - Utilisez `/api/set-language?lang=en` ou le sélecteur FR/EN dans l'interface pour basculer en anglais.
 - Les chaînes de traduction résident dans `languages.h` au sein de la structure `Translations`. Ajoutez une langue en étendant cette structure et en l'exposant dans l'interface.
-- La version 3.1.19 conserve l'intitulé accentué « Non testé », préserve les réponses HTTP 200/400 explicites de `/api/set-language` et actualise les liens vers le duo de changelog bilingue.
+- La version 3.2.0 conserve l'intitulé accentué « Non testé », réaffirme les réponses HTTP 200/400 explicites de `/api/set-language` et documente la vérification du changelog bilingue après bascule.
 
 ## Configuration OLED
 - Broches par défaut : SDA=21, SCL=22 (standard ESP32).
@@ -40,4 +40,4 @@ static const std::vector<std::pair<const char*, const char*>> WIFI_NETWORKS = {
 ## Options avancées
 - Activez la PSRAM dans le menu carte de l'Arduino IDE pour les ESP32-S3 afin d'accéder aux diagnostics mémoire étendus.
 - Le firmware détecte automatiquement les variantes et active le support BLE sur les cibles compatibles (ESP32, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2).
-- Pour le debug, suivez le moniteur série : retraits Wi-Fi, états BLE et progression des tests y sont journalisés.
+- Pour le debug, suivez le moniteur série : retraits Wi-Fi, états BLE et progression des tests y sont journalisés, puis interrogez `/api/memory-details` pour obtenir les métriques de fragmentation détaillées.
