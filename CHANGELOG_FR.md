@@ -2,6 +2,21 @@
 
 Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Version 3.2.0] - 2025-10-29
+### Ajouts
+- Documentation de la requête `/api/memory-details` et des alertes de fragmentation issues de la dernière campagne de tests.
+- Intégration, dans les guides d'utilisation et de dépannage, de la checklist Bluetooth® et Wi-Fi validée lors du débogage post-release.
+
+### Corrections
+- Remplacement des mentions 3.1.19 restantes dans les README et guides afin d'aligner bannière, documentation et changelog bilingue sur 3.2.0.
+- Clarification des consignes de changement de langue pour éviter les instructions obsolètes lors de la vérification de `/api/set-language`.
+
+### Améliorations
+- Guides d'installation, de configuration et d'utilisation étoffés avec des étapes de vérification concrètes (exports mémoire, widget BLE, métadonnées de scan Wi-Fi).
+- Guide de contribution renforcé pour rappeler la synchronisation systématique des contenus FR/EN lors des maintenances.
+
+---
+
 ## [Version 3.1.19] - 2025-10-28
 ### Ajouts
 - Néant.

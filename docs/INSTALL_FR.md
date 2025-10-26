@@ -2,7 +2,7 @@
 
 Suivez ces étapes pour déployer ESP32 Diagnostic Suite sur votre carte.
 
-> **Version 3.1.19 :** Vérifiez que le bandeau de version et la constante `DIAGNOSTIC_VERSION` affichent 3.1.19 afin de rester aligné avec le duo de changelog bilingue et la documentation actualisée.
+> **Version 3.2.0 :** Vérifiez que le bandeau de version et la constante `DIAGNOSTIC_VERSION` affichent 3.2.0, puis déclenchez une requête `/api/memory-details` pour valider les conseils de fragmentation ajoutés dans cette mise à jour.
 
 ## 1. Prérequis
 - Carte ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 ou ESP32-H2 (S3 recommandée).
@@ -45,4 +45,4 @@ Les précisions de configuration sont détaillées dans [CONFIG_FR.md](CONFIG_FR
 3. Activez la **PSRAM** pour les cartes ESP32-S3 afin de profiter de tous les diagnostics.
 4. Cliquez sur **Vérifier** puis sur **Téléverser** pour flasher le firmware.
 
-En cas de succès, le moniteur série affiche la version du firmware et l'état de connexion.
+En cas de succès, le moniteur série affiche la version du firmware et l'état de connexion. Exécutez ensuite l'inspecteur mémoire (`/api/memory-details`) pour confirmer que la fragmentation et l'état de la PSRAM correspondent aux indications de la documentation actualisée.

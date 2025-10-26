@@ -6,13 +6,13 @@
 - Ensure no other application is holding the BLE stack (restart the board).
 
 ## Language switch does not change texts
-- Ensure you are running firmware 3.1.19 so `/api/set-language` retains the explicit success (FR/EN) and 400 responses for unsupported codes while matching the bilingual changelog guidance.
+- Ensure you are running firmware 3.2.0 so `/api/set-language` retains the explicit success (FR/EN) and 400 responses for unsupported codes while matching the bilingual changelog guidance.
 - Verify `languages.h` is present alongside the sketch and compiles correctly.
 - Clear the browser cache (Ctrl+F5) to reload the translation bundle.
 - Confirm `/api/get-translations` returns HTTP 200 using the browser console or a REST client.
 
 ## Additional diagnostics show "Non teste" without accent
-- Flash firmware 3.1.19 (or any later 3.x maintenance build) so the French catalogue keeps the "Non testé" placeholder and the sticky masthead reflects the updated bilingual documentation.
+- Flash firmware 3.2.0 (or any later 3.x maintenance build) so the French catalogue keeps the "Non testé" placeholder and the sticky masthead reflects the updated bilingual documentation.
 - Refresh the dashboard (Ctrl+F5) to reload cached translations after updating.
 
 ## OLED screen stays blank
@@ -24,6 +24,11 @@
 - Double-check SSID/password pairs in `wifi-config.h`.
 - Watch the Serial Monitor for `WL_NO_SSID_AVAIL` or `WL_CONNECT_FAILED` codes.
 - Move closer to the access point or try a 2.4 GHz-only SSID.
+
+## Memory fragmentation warnings in exports
+- Call `/api/memory-details` and review the `fragmentation` percentage alongside the PSRAM flags documented for 3.2.0.
+- Ensure PSRAM is enabled on ESP32-S3 boards to keep the `psramAvailable` flag consistent with the new documentation.
+- If fragmentation stays above 20%, power-cycle the board and re-run diagnostics to clear transient heap usage.
 
 ## GPIO tests report conflicts
 - Free the pin from other peripherals (I2C, SPI, UART) before launching the sweep.
