@@ -2,7 +2,7 @@
 
 Suivez ces étapes pour déployer ESP32 Diagnostic Suite sur votre carte.
 
-> **Version 3.1.20 :** Vérifiez que le bandeau de version et la constante `DIAGNOSTIC_VERSION` affichent 3.1.20, puis déclenchez une requête `/api/memory-details` pour valider les conseils de fragmentation ajoutés dans cette mise à jour.
+> **Version 3.2.0 :** Vérifiez que le bandeau de version et la constante `DIAGNOSTIC_VERSION` affichent 3.2.0, puis déclenchez une requête `/api/memory-details` pour valider les conseils de fragmentation ajoutés dans cette mise à jour.
 
 ## 1. Prérequis
 - Carte ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 ou ESP32-H2 (S3 recommandée).

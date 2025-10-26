@@ -2,13 +2,13 @@
 
 All notable changes to ESP32 Diagnostic Suite are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Version 3.1.20] - 2025-10-29
+## [Version 3.2.0] - 2025-10-29
 ### Added
 - Documented how to query the `/api/memory-details` endpoint and interpret fragmentation warnings from the latest diagnostics run.
 - Captured the Bluetooth® and Wi-Fi debugging checklist from the post-release validation pass directly inside the usage and troubleshooting guides.
 
 ### Fixed
-- Replaced remaining 3.1.19 references across READMEs and setup guides so the banner, guides, and bilingual changelog remain synchronized at 3.1.20.
+- Replaced remaining 3.1.19 references across READMEs and setup guides so the banner, guides, and bilingual changelog remain synchronized at 3.2.0.
 - Clarified configuration guidance around language switching to avoid stale instructions when verifying `/api/set-language` responses.
 
 ### Improved
