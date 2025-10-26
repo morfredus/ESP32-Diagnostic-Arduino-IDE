@@ -7,7 +7,7 @@
  */
 
 // Journal de version
-// Version de dev : 3.2.03-dev - Relance mDNS sur les evenements reseau
+// Version de dev : 3.2.04-dev - Reconstruction du serveur mDNS
 // Version de dev : 3.2.02-dev - Ajustement du maintien mDNS sans appel update()
 // Version de dev : 3.2.01-dev - Correction de la publication mDNS
 // Version de dev : 3.2.0-doc - Consolidation des guides après la campagne de tests
@@ -104,7 +104,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.03-dev"
+#define DIAGNOSTIC_VERSION "3.2.04-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -117,7 +117,19 @@ bool mdnsResponderStarted = false;
 unsigned long mdnsLastAttempt = 0;
 WiFiEventId_t wifiEventSubscription = 0;
 
+// --- [NEW FEATURE] Gestion centralisee du serveur mDNS ---
+struct MDNSServiceConfig {
+  String sanitizedHostname;
+  const char* instanceName;
+  uint16_t servicePort;
+};
+
+MDNSServiceConfig mdnsServiceConfig = {String(), "ESP32 Diagnostic", 80};
+
 void handleWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info);
+String sanitizeMDNSHostname(const String& source);
+String buildPreferredMDNSHostname();
+bool configureMDNSResponder(const String& hostname, bool verboseLogs);
 
 String getArduinoCoreVersionString() {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && defined(ESP_ARDUINO_VERSION_MINOR) && defined(ESP_ARDUINO_VERSION_PATCH)
@@ -4006,6 +4018,74 @@ a{color:inherit;}
   server.sendContent("");
 }
 
+// --- [NEW FEATURE] Normalisation du nom mDNS ---
+String sanitizeMDNSHostname(const String& source) {
+  String normalized = "";
+  normalized.reserve(source.length());
+
+  for (size_t i = 0; i < source.length(); ++i) {
+    char c = source.charAt(i);
+    if (c >= 'A' && c <= 'Z') {
+      c = c - 'A' + 'a';
+    }
+
+    if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+      normalized += c;
+    } else if (c == '-' || c == '_' || c == ' ') {
+      if (!normalized.endsWith("-")) {
+        normalized += '-';
+      }
+    }
+  }
+
+  normalized.trim();
+
+  if (normalized.length() == 0) {
+    normalized = String(MDNS_HOSTNAME_STR);
+  }
+
+  if (!(normalized.charAt(0) >= 'a' && normalized.charAt(0) <= 'z')) {
+    normalized = String("esp32-") + normalized;
+  }
+
+  while (normalized.endsWith("-")) {
+    normalized.remove(normalized.length() - 1);
+  }
+
+  return normalized;
+}
+
+String buildPreferredMDNSHostname() {
+  const char* currentHostname = WiFi.getHostname();
+  String source = (currentHostname != nullptr && strlen(currentHostname) > 0)
+                      ? String(currentHostname)
+                      : String(MDNS_HOSTNAME_STR);
+
+  return sanitizeMDNSHostname(source);
+}
+
+bool configureMDNSResponder(const String& hostname, bool verboseLogs) {
+  if (!MDNS.begin(hostname.c_str())) {
+    return false;
+  }
+
+  MDNS.setInstanceName(mdnsServiceConfig.instanceName);
+  MDNS.addService("http", "tcp", mdnsServiceConfig.servicePort);
+  MDNS.addServiceTxt("http", "tcp", "path", "/");
+  MDNS.addServiceTxt("http", "tcp", "board", "esp32");
+
+  if (verboseLogs) {
+    Serial.println("════════════════════════════════════════");
+    Serial.printf("   http://%s.local\r\n", hostname.c_str());
+    Serial.printf("   http://%s\r\n", WiFi.localIP().toString().c_str());
+    Serial.println("════════════════════════════════════════\r\n");
+  } else {
+    Serial.println("[mDNS] Service annonce relance");
+  }
+
+  return true;
+}
+
 bool startMDNSResponder(bool verboseLogs) {
   if (WiFi.status() != WL_CONNECTED) {
     return false;
@@ -4018,23 +4098,11 @@ bool startMDNSResponder(bool verboseLogs) {
     mdnsResponderStarted = false;
   }
 
-  const char* currentHostname = WiFi.getHostname();
-  const char* hostnameToUse = (currentHostname != nullptr && strlen(currentHostname) > 0)
-                                  ? currentHostname
-                                  : MDNS_HOSTNAME_STR;
+  // --- [NEW FEATURE] Reconstruction complete du serveur mDNS ---
+  mdnsServiceConfig.sanitizedHostname = buildPreferredMDNSHostname();
 
-  if (MDNS.begin(hostnameToUse)) {
-    MDNS.addService("http", "tcp", 80);
+  if (configureMDNSResponder(mdnsServiceConfig.sanitizedHostname, verboseLogs)) {
     mdnsResponderStarted = true;
-
-    if (verboseLogs) {
-      Serial.println("════════════════════════════════════════");
-      Serial.printf("   http://%s.local\r\n", hostnameToUse);
-      Serial.printf("   http://%s\r\n", WiFi.localIP().toString().c_str());
-      Serial.println("════════════════════════════════════════\r\n");
-    } else {
-      Serial.println("[mDNS] Service annonce relance");
-    }
     return true;
   }
 
@@ -4066,7 +4134,9 @@ void maintainMDNSResponder() {
       return;
     }
 
-    startMDNSResponder(false);
+    if (!startMDNSResponder(false)) {
+      Serial.println("[mDNS] Tentative de redemarrage echouee");
+    }
     return;
   }
 
@@ -4081,7 +4151,9 @@ void handleWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
   switch (event) {
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
       Serial.println("[WiFi] Adresse obtenue - (re)demarrage mDNS");
-      startMDNSResponder(true);
+      if (!startMDNSResponder(true)) {
+        Serial.println("[mDNS] Impossible de relancer apres evenement WiFi");
+      }
       break;
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
@@ -4123,7 +4195,10 @@ void setup() {
   // WiFi
   WiFi.mode(WIFI_STA);
   WiFi.persistent(false);
-  WiFi.setHostname(MDNS_HOSTNAME_STR);
+
+  // --- [NEW FEATURE] Application du nom mDNS normalise avant connexion ---
+  mdnsServiceConfig.sanitizedHostname = sanitizeMDNSHostname(String(MDNS_HOSTNAME_STR));
+  WiFi.setHostname(mdnsServiceConfig.sanitizedHostname.c_str());
   WiFi.setSleep(false);
   // --- [NEW FEATURE] Abonnement aux evenements WiFi pour la relance mDNS ---
   wifiEventSubscription = WiFi.onEvent(handleWiFiEvent);
@@ -4149,7 +4224,9 @@ void setup() {
     Serial.printf("SSID: %s\r\n", WiFi.SSID().c_str());
     Serial.printf("IP: %s\r\n\r\n", WiFi.localIP().toString().c_str());
     
-    startMDNSResponder(true);
+    if (!startMDNSResponder(true)) {
+      Serial.println("[mDNS] Service indisponible - verifier la configuration");
+    }
   } else {
     Serial.println("\r\n\r\nPas de WiFi\r\n");
   }
