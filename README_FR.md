@@ -1,11 +1,11 @@
-# ESP32 Diagnostic Suite (v3.1.1)
+# ESP32 Diagnostic Suite (v3.2.0)
 
 Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de bord web interactif, tests matériels automatisés et contenus bilingues (FR/EN). Le firmware cible l'Arduino Core 3.3.2 et prend en charge les familles ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 et ESP32-H2.
 
-## Points clés de la version 3.1.1
-- Nettoyage du code avec suppression des commentaires redondants et anciens marqueurs d'historique.
-- Mise à jour de l'ensemble des métadonnées, exports et documentations en v3.1.1.
-- Conservation des fonctionnalités BLE et de l'interface responsive introduites en 3.1.
+## Points clés de la version 3.2.0
+- Documentation de l'inspecteur de mémoire (`/api/memory-details`) et des alertes de fragmentation observées lors de la dernière campagne QA.
+- Intégration, dans les guides d'utilisation et de dépannage, de la checklist Bluetooth®/Wi-Fi validée durant le débogage post-release.
+- Synchronisation des guides FR/EN avec la bannière et le changelog 3.2.0 pour maintenir l'alignement entre firmware, documentation et notes de version.
 
 ## Structure du projet
 - `ESP32-Diagnostic.ino` – point d'entrée du firmware et ordonnanceur des diagnostics.
@@ -23,6 +23,7 @@ Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de
 | Architecture du firmware | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | [ARCHITECTURE_FR.md](docs/ARCHITECTURE_FR.md) |
 | Dépannage | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | [TROUBLESHOOTING_FR.md](docs/TROUBLESHOOTING_FR.md) |
 | Contribuer | [CONTRIBUTING.md](CONTRIBUTING.md) | [CONTRIBUTING_FR.md](CONTRIBUTING_FR.md) |
+| Journal des modifications | [CHANGELOG.md](CHANGELOG.md) | [CHANGELOG_FR.md](CHANGELOG_FR.md) |
 
 ## Capacités principales
 - Interface multilingue avec bascule FR/EN en temps réel sans rechargement.
