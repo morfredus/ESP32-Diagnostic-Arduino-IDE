@@ -1,12 +1,15 @@
 /*
- * ESP32 Diagnostic Suite v3.1.16
+ * ESP32 Diagnostic Suite v3.1.19
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  */
 
-// --- [MAINTENANCE] Journal de version actualisé ---
+// Journal de version
+// Version de dev : 3.1.19-doc - Scission du changelog FR/EN et rafraîchissement de la documentation
+// Version de dev : 3.1.18-doc - Documentation 3.1.18 et durcissement du changement de langue
+// Version de dev : 3.1.17-maint - Nettoyage de commentaires superflus et renforcement de la sélection de langue
 // Version de dev : 3.1.16 - Bandeau sticky unifié et correctifs navigation/traductions
 // Version de dev : 3.1.15-maint - Harmonisation de la documentation et rappel des libellés par défaut
 // Version de dev : 3.1.14-maint - Corrections de messages d'état et amélioration de l'échappement HTML
@@ -61,6 +64,7 @@
     static const bool TARGET_BLE_SUPPORTED = true;
 #endif
 #include <vector>
+#include <cstring>
 
 #if defined(__has_include)
   #if __has_include("wifi-config.h")
@@ -96,8 +100,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-// --- [MAINTENANCE] Mise à jour version 3.1.16 ---
-#define DIAGNOSTIC_VERSION "3.1.16"
+#define DIAGNOSTIC_VERSION "3.1.19"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -198,13 +201,11 @@ bool oledAvailable = false;
 String oledTestResult = "En attente d'initialisation";
 
 // Tests additionnels
-// --- [MAINTENANCE] Correction message d’état ---
 String adcTestResult = "Non testé";
 String touchTestResult = "Non testé";
 String pwmTestResult = "Non testé";
 String partitionsInfo = "";
 String spiInfo = "";
-// --- [MAINTENANCE] Correction message d’état ---
 String stressTestResult = "Non testé";
 
 // ========== STRUCTURES ==========
@@ -2378,13 +2379,18 @@ void handlePrintVersion() {
 // ========== HANDLER CHANGEMENT DE LANGUE ==========
 void handleSetLanguage() {
   if (server.hasArg("lang")) {
-    String lang = server.arg("lang");
+    const String lang = server.arg("lang");
     if (lang == "fr") {
       setLanguage(LANG_FR);
-    } else if (lang == "en") {
-      setLanguage(LANG_EN);
+      server.send(200, "application/json", "{\"success\":true,\"lang\":\"fr\"}");
+      return;
     }
-    server.send(200, "application/json", "{\"success\":true,\"lang\":\"" + lang + "\"}");
+    if (lang == "en") {
+      setLanguage(LANG_EN);
+      server.send(200, "application/json", "{\"success\":true,\"lang\":\"en\"}");
+      return;
+    }
+    server.send(400, "application/json", "{\"success\":false,\"error\":\"unsupported_language\"}");
   } else {
     server.send(400, "application/json", "{\"success\":false}");
   }
@@ -2392,7 +2398,6 @@ void handleSetLanguage() {
 
 String htmlEscape(const String& raw) {
   String escaped;
-  // --- [MAINTENANCE] Préallocation élargie pour l'échappement HTML ---
   escaped.reserve(raw.length() * 6);
   for (size_t i = 0; i < raw.length(); ++i) {
     char c = raw[i];
@@ -2425,7 +2430,9 @@ String jsonEscape(const char* raw) {
     return "";
   }
 
+  const size_t rawLength = strlen(raw);
   String escaped;
+  escaped.reserve(rawLength * 2);
   while (*raw) {
     char c = *raw++;
     switch (c) {
