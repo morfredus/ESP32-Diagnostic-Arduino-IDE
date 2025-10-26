@@ -10,6 +10,10 @@
 - Clear the browser cache (Ctrl+F5) to reload the translation bundle.
 - Confirm `/api/get-translations` returns HTTP 200 using the browser console or a REST client.
 
+## Additional diagnostics show "Non teste" without accent
+- Flash firmware 3.1.14-maint or later so the French catalogue restores the "Non testé" placeholder.
+- Refresh the dashboard (Ctrl+F5) to reload cached translations after updating.
+
 ## OLED screen stays blank
 - Re-run `/api/oled-config?sda=<pin>&scl=<pin>` with the correct wiring.
 - Check the I2C address (0x3C by default). Replace the display if it does not answer on the bus.
