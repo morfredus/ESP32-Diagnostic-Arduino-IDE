@@ -7,6 +7,8 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.02-dev - Ajustement du maintien mDNS sans appel update()
+// Version de dev : 3.2.01-dev - Correction de la publication mDNS
 // Version de dev : 3.2.0-doc - Consolidation des guides après la campagne de tests
 // Version de dev : 3.1.19-doc - Scission du changelog FR/EN et rafraîchissement de la documentation
 // Version de dev : 3.1.18-doc - Documentation 3.1.18 et durcissement du changement de langue
@@ -101,7 +103,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.0"
+#define DIAGNOSTIC_VERSION "3.2.02-dev"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -109,6 +111,9 @@
 
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
+
+bool mdnsResponderStarted = false;
+unsigned long mdnsLastAttempt = 0;
 
 String getArduinoCoreVersionString() {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && defined(ESP_ARDUINO_VERSION_MINOR) && defined(ESP_ARDUINO_VERSION_PATCH)
@@ -3997,6 +4002,66 @@ a{color:inherit;}
   server.sendContent("");
 }
 
+bool startMDNSResponder(bool verboseLogs) {
+  if (WiFi.status() != WL_CONNECTED) {
+    return false;
+  }
+
+  mdnsLastAttempt = millis();
+
+  if (MDNS.begin(MDNS_HOSTNAME)) {
+    MDNS.addService("http", "tcp", 80);
+    mdnsResponderStarted = true;
+
+    if (verboseLogs) {
+      Serial.println("════════════════════════════════════════");
+      Serial.printf("   http://%s.local\r\n", MDNS_HOSTNAME);
+      Serial.printf("   http://%s\r\n", WiFi.localIP().toString().c_str());
+      Serial.println("════════════════════════════════════════\r\n");
+    } else {
+      Serial.println("[mDNS] Service annonce relance");
+    }
+    return true;
+  }
+
+  mdnsResponderStarted = false;
+
+  if (verboseLogs) {
+    Serial.println("mDNS erreur");
+    Serial.printf("Utilisez IP: http://%s\r\n\r\n", WiFi.localIP().toString().c_str());
+  } else {
+    Serial.println("[mDNS] Relance impossible");
+  }
+
+  return false;
+}
+
+void maintainMDNSResponder() {
+  if (WiFi.status() != WL_CONNECTED) {
+    if (mdnsResponderStarted) {
+      MDNS.end();
+      mdnsResponderStarted = false;
+      Serial.println("[mDNS] Service arrete - WiFi indisponible");
+    }
+    return;
+  }
+
+  if (!mdnsResponderStarted) {
+    unsigned long now = millis();
+    if (now - mdnsLastAttempt < 5000) {
+      return;
+    }
+
+    startMDNSResponder(false);
+    return;
+  }
+
+  // --- [NEW FEATURE] Maintien automatique du service mDNS ---
+  // La pile ESP-IDF maintient automatiquement le service mDNS lorsqu'il est actif.
+  // Cette fonction conserve le point d'entrée pour d'éventuels contrôles futurs
+  // sans invoquer de méthode inexistante sur la librairie Arduino mDNS.
+}
+
 // ========== SETUP COMPLET ==========
 void setup() {
   Serial.begin(115200);
@@ -4048,16 +4113,7 @@ void setup() {
     Serial.printf("SSID: %s\r\n", WiFi.SSID().c_str());
     Serial.printf("IP: %s\r\n\r\n", WiFi.localIP().toString().c_str());
     
-    if (MDNS.begin(MDNS_HOSTNAME)) {
-      Serial.println("════════════════════════════════════════");
-      Serial.printf("   http://%s.local\r\n", MDNS_HOSTNAME);
-      Serial.printf("   http://%s\r\n", WiFi.localIP().toString().c_str());
-      Serial.println("════════════════════════════════════════\r\n");
-      MDNS.addService("http", "tcp", 80);
-    } else {
-      Serial.println("mDNS erreur");
-      Serial.printf("Utilisez IP: http://%s\r\n\r\n", WiFi.localIP().toString().c_str());
-    }
+    startMDNSResponder(true);
   } else {
     Serial.println("\r\n\r\nPas de WiFi\r\n");
   }
@@ -4158,6 +4214,8 @@ void setup() {
 // ========== LOOP ==========
 void loop() {
   server.handleClient();
+
+  maintainMDNSResponder();
 
   static unsigned long lastUpdate = 0;
   if (millis() - lastUpdate > 30000) {
