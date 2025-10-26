@@ -1,3 +1,4 @@
+// Version de dev : 3.2.13-dev - Retrait final du doublon IP sur le bandeau legacy
 // Version de dev : 3.2.12-dev - Bandeau sans doublon IP
 // Version de dev : 3.2.11-dev - Bandeau d'accès compact et lien IP unique
 // Version de dev : 3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi
@@ -13,6 +14,7 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.13-dev - Retrait final du doublon IP sur le bandeau legacy
 // Version de dev : 3.2.12-dev - Bandeau sans doublon IP
 // Version de dev : 3.2.11-dev - Bandeau d'accès compact et lien IP unique
 // Version de dev : 3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi
@@ -167,7 +169,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.12-dev"
+#define DIAGNOSTIC_VERSION "3.2.13-dev"
 // --- [NEW FEATURE] Lien d'accès constant via nom d'hôte ---
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
@@ -3375,6 +3377,9 @@ a{color:inherit;}
 .status-item a:hover{
   text-decoration:underline;
 }
+.status-item .access-placeholder{
+  opacity:.6;
+}
 .status-item .separator{
   opacity:.45;
 }
@@ -3780,12 +3785,12 @@ a{color:inherit;}
   String bluetoothNotificationsValue = htmlEscape(String((unsigned long)bluetoothNotifyDisplay));
   String bluetoothDisableAttr = bluetoothCapable ? "" : " disabled";
   String bluetoothFeedbackText = bluetoothCapable ? "" : String(T().bluetooth_not_supported);
+  // --- [BUGFIX] Retrait du doublon IP sur l'interface legacy ---
   bool ipAvailable = diagnosticData.ipAddress.length() > 0;
   String accessUrl = ipAvailable ? ("http://" + diagnosticData.ipAddress) : String(T().not_detected);
   String accessUrlHref = ipAvailable ? accessUrl : String("#");
   String accessUrlEscaped = htmlEscape(accessUrl);
-  String ipDisplay = ipAvailable ? diagnosticData.ipAddress : String(T().not_detected);
-  String ipDisplayEscaped = htmlEscape(ipDisplay);
+  String accessPlaceholder = htmlEscape(String(T().not_detected));
   bool mdnsAvailable = diagnosticData.mdnsAvailable;
   String stableAccessUrl = getStableAccessURL();
   String stableAccessEscaped = htmlEscape(stableAccessUrl);
@@ -3830,9 +3835,9 @@ a{color:inherit;}
   if (ipAvailable) {
     chunk += "<a href='" + accessUrlHref + "' target='_blank' rel='noopener'>" + accessUrlEscaped + "</a>";
   } else {
-    chunk += accessUrlEscaped;
+    chunk += "<span class='access-placeholder'>" + accessPlaceholder + "</span>";
   }
-  chunk += "<span class='separator'>•</span><span id='ipAddressDisplay'>" + ipDisplayEscaped + "</span></span></div>";
+  chunk += "</span></div>";
   chunk += "</div>";
   chunk += "</header>";
   chunk += "<div class='masthead-divider' role='presentation'></div>";
