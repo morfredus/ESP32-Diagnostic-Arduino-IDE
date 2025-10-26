@@ -20,7 +20,7 @@ Le tableau de bord est organisé en onglets :
 - **Performance** – historique des benchmarks et métriques temps réel.
 - **Export** – téléchargement des rapports TXT/JSON/CSV ou ouverture de la vue imprimable.
 
-La maintenance 3.1.15-maint garantit que les diagnostics additionnels affichent par défaut l'intitulé accentué « Non testé » tant que les tests ne sont pas exécutés, en accord avec les exports et l'API REST.
+La version 3.1.16 conserve le bandeau sticky, les statuts Bluetooth et l'intitulé accentué « Non testé » synchronisés entre interface, API REST et exports.
 
 La barre de navigation s'adapte aux mobiles et conserve l'onglet actif.
 

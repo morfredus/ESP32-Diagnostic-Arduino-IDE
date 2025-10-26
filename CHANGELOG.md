@@ -2,6 +2,23 @@
 
 Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Version 3.1.16] - 2025-10-27
+### Ajouts
+- Bandeau sticky unifié affichant version, statut Wi-Fi/Bluetooth et lien d'accès direct depuis le tableau de bord web.
+- Commandes Bluetooth® (activation, renommage, réinitialisation) exposées dans l'interface et via les endpoints REST dédiés.
+
+### Corrections
+- Délégation d'événements repositionnée pour la navigation par onglets afin de restaurer la sélection après rechargement dynamique.
+- Actualisation des traductions sur les onglets et éléments dynamiques après un changement de langue pour éviter les libellés incohérents.
+- Rétablissement du libellé « Non testé » sur les diagnostics additionnels dans l'interface, l'API et les exports.
+
+### Améliorations
+- Réponses de scan Wi-Fi enrichies (BSSID, bande, largeur de canal, mode PHY) pour faciliter l'analyse radio.
+- Préallocation étendue de `htmlEscape` afin de limiter les réallocations lors du streaming HTML et des exports.
+- Synchronisation du commentaire d'en-tête et de `DIAGNOSTIC_VERSION` sur 3.1.16 pour aligner journaux et fichiers générés.
+
+---
+
 ## [Version 3.1.15-maint] - 2025-10-26
 ### Ajouts
 - Néant.
