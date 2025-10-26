@@ -1,11 +1,11 @@
-# ESP32 Diagnostic Suite (v3.1.16)
+# ESP32 Diagnostic Suite (v3.2.0)
 
 Comprehensive diagnostic firmware for ESP32 microcontrollers featuring an interactive web dashboard, automated hardware tests, and bilingual content (FR/EN). The firmware targets Arduino Core 3.3.2 and supports the ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, and ESP32-H2 families.
 
-## Highlights of version 3.1.16
-- Delivered a unified sticky masthead that surfaces the version tag, live Wi-Fi/Bluetooth summaries, and a responsive navigation fallback for small screens.
-- Exposed Bluetooth® management (enable/disable, rename, reset) directly from the dashboard, backed by the `/api/bluetooth/*` endpoints for automation.
-- Refined Wi-Fi diagnostics and localisation by enriching scan metadata, restoring the "Non testé" placeholders, and enlarging the `htmlEscape` preallocation for consistent exports.
+## Highlights of version 3.2.0
+- Split the changelog into dedicated English (`CHANGELOG.md`) and French (`CHANGELOG_FR.md`) files and refreshed every guide accordingly.
+- Updated maintenance notes so the version banner and `DIAGNOSTIC_VERSION` consistently report 3.2.0.
+- Carried forward the hardened language switch workflow and export stability work introduced in 3.1.18.
 
 ## Project structure
 - `ESP32-Diagnostic.ino` – firmware entry point and diagnostic scheduler.
@@ -23,6 +23,7 @@ Comprehensive diagnostic firmware for ESP32 microcontrollers featuring an intera
 | Firmware architecture | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | [ARCHITECTURE_FR.md](docs/ARCHITECTURE_FR.md) |
 | Troubleshooting | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | [TROUBLESHOOTING_FR.md](docs/TROUBLESHOOTING_FR.md) |
 | Contribution rules | [CONTRIBUTING.md](CONTRIBUTING.md) | [CONTRIBUTING_FR.md](CONTRIBUTING_FR.md) |
+| Changelog | [CHANGELOG.md](CHANGELOG.md) | [CHANGELOG_FR.md](CHANGELOG_FR.md) |
 
 ## Core capabilities
 - Multilingual interface with real-time FR/EN switching without page reload.
