@@ -1,3 +1,9 @@
+// Version de dev : 3.2.12-dev - Bandeau sans doublon IP
+// Version de dev : 3.2.11-dev - Bandeau d'accès compact et lien IP unique
+// Version de dev : 3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi
+// Version de dev : 3.2.09-dev - Restauration complète de mDNS sur ESP32-S3
+// Version de dev : 3.2.08-dev - Correction de l'initialisation WiFi pour mDNS
+// Version de dev : 3.2.07-dev - Compatibilité mDNS multi-environnements
 /*
  * ESP32 Diagnostic Suite v3.2.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
@@ -7,6 +13,14 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.12-dev - Bandeau sans doublon IP
+// Version de dev : 3.2.11-dev - Bandeau d'accès compact et lien IP unique
+// Version de dev : 3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi
+// Version de dev : 3.2.09-dev - Restauration complète de mDNS sur ESP32-S3
+// Version de dev : 3.2.08-dev - Correction de l'initialisation WiFi pour mDNS
+// Version de dev : 3.2.07-dev - Compatibilité mDNS multi-environnements
+// Version de dev : 3.2.06-dev - Restauration mDNS fiable et lien d'accès constant
+// Version de dev : 3.2.05-dev - Suppression du service mDNS instable
 // Version de dev : 3.2.04-dev - Reconstruction du serveur mDNS
 // Version de dev : 3.2.02-dev - Ajustement du maintien mDNS sans appel update()
 // Version de dev : 3.2.01-dev - Correction de la publication mDNS
@@ -23,13 +37,62 @@
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <WebServer.h>
-#include <ESPmDNS.h>
+
+#if defined(ARDUINO_ARCH_ESP32)
+  #if defined(__has_include)
+    #if __has_include(<ESPmDNS.h>)
+      #include <ESPmDNS.h>
+      #define DIAGNOSTIC_HAS_MDNS 1
+      #define DIAGNOSTIC_USES_ESPMDNS 1
+    #elif __has_include(<mdns.h>)
+      #include <mdns.h>
+      #define DIAGNOSTIC_HAS_MDNS 1
+      #define DIAGNOSTIC_USES_IDF_MDNS 1
+    #else
+      #define DIAGNOSTIC_HAS_MDNS 0
+    #endif
+  #else
+    #include <ESPmDNS.h>
+    #define DIAGNOSTIC_HAS_MDNS 1
+    #define DIAGNOSTIC_USES_ESPMDNS 1
+  #endif
+#else
+  #define DIAGNOSTIC_HAS_MDNS 0
+#endif
+
+#if !defined(DIAGNOSTIC_HAS_MDNS)
+  #define DIAGNOSTIC_HAS_MDNS 0
+#endif
+
+#if DIAGNOSTIC_HAS_MDNS && defined(DIAGNOSTIC_USES_ESPMDNS)
+  #if defined(NO_GLOBAL_MDNS) || defined(NO_GLOBAL_INSTANCES)
+    // --- [NEW FEATURE] Instance mDNS dédiée pour compatibilité ---
+    static MDNSResponder diagnosticMDNSResponder;
+    #define DIAGNOSTIC_MDNS_SERVER diagnosticMDNSResponder
+  #else
+    #define DIAGNOSTIC_MDNS_SERVER MDNS
+  #endif
+#endif
 #include <esp_chip_info.h>
+#include <esp_err.h>
 #include <esp_mac.h>
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
 #include <esp_wifi.h>
+#if defined(__has_include)
+  #if __has_include(<esp_netif.h>)
+    #include <esp_netif.h>
+    #define DIAGNOSTIC_HAS_ESP_NETIF 1
+  #endif
+  #if __has_include(<tcpip_adapter.h>)
+    #include <tcpip_adapter.h>
+    #define DIAGNOSTIC_HAS_TCPIP_ADAPTER 1
+  #endif
+#else
+  #include <esp_netif.h>
+  #define DIAGNOSTIC_HAS_ESP_NETIF 1
+#endif
 #include <soc/soc.h>
 #include <soc/rtc.h>
 #if defined(__has_include)
@@ -104,32 +167,13 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.04-dev"
+#define DIAGNOSTIC_VERSION "3.2.12-dev"
+// --- [NEW FEATURE] Lien d'accès constant via nom d'hôte ---
+#define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
-#define MDNS_HOSTNAME "esp32-diagnostic"
-
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
-const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
-
-bool mdnsResponderStarted = false;
-unsigned long mdnsLastAttempt = 0;
-WiFiEventId_t wifiEventSubscription = 0;
-
-// --- [NEW FEATURE] Gestion centralisee du serveur mDNS ---
-struct MDNSServiceConfig {
-  String sanitizedHostname;
-  const char* instanceName;
-  uint16_t servicePort;
-};
-
-MDNSServiceConfig mdnsServiceConfig = {String(), "ESP32 Diagnostic", 80};
-
-void handleWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info);
-String sanitizeMDNSHostname(const String& source);
-String buildPreferredMDNSHostname();
-bool configureMDNSResponder(const String& hostname, bool verboseLogs);
 
 String getArduinoCoreVersionString() {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && defined(ESP_ARDUINO_VERSION_MINOR) && defined(ESP_ARDUINO_VERSION_PATCH)
@@ -158,6 +202,17 @@ uint8_t oledRotation = 0;
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
 WiFiMulti wifiMulti;
+#if DIAGNOSTIC_HAS_MDNS
+// --- [NEW FEATURE] Gestion mDNS fiable ---
+bool mdnsServiceActive = false;
+bool wifiPreviouslyConnected = false;
+unsigned long lastMDNSAttempt = 0;
+bool mdnsLastAttemptFailed = false;
+#if defined(DIAGNOSTIC_USES_IDF_MDNS)
+// --- [NEW FEATURE] Compatibilité mDNS IDF native ---
+bool mdnsResponderInitialized = false;
+#endif
+#endif
 #if BLE_STACK_SUPPORTED
 BLEServer* bluetoothServer = nullptr;
 BLEService* bluetoothService = nullptr;
@@ -251,6 +306,7 @@ struct DiagnosticInfo {
   String wifiSSID;
   int wifiRSSI;
   String ipAddress;
+  bool mdnsAvailable;
   bool bluetoothEnabled;
   bool bluetoothAdvertising;
   String bluetoothName;
@@ -348,6 +404,151 @@ std::vector<TouchReading> touchReadings;
 float heapHistory[HISTORY_SIZE];
 float tempHistory[HISTORY_SIZE];
 int historyIndex = 0;
+
+// --- [NEW FEATURE] Services réseau résilients ---
+String getStableAccessURL() {
+  return String("http://") + String(DIAGNOSTIC_HOSTNAME) + ".local";
+}
+
+// --- [NEW FEATURE] Pré-configuration proactive du nom d'hôte mDNS ---
+void configureNetworkHostname() {
+  if (!WiFi.setHostname(DIAGNOSTIC_HOSTNAME)) {
+    Serial.printf("[WiFi] Impossible de définir le nom d'hôte %s\r\n", DIAGNOSTIC_HOSTNAME);
+  } else {
+    Serial.printf("[WiFi] Nom d'hôte défini : %s.local\r\n", DIAGNOSTIC_HOSTNAME);
+  }
+#if defined(ARDUINO_ARCH_ESP32)
+  #if defined(DIAGNOSTIC_HAS_ESP_NETIF)
+    esp_netif_t* staNetif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (staNetif != nullptr) {
+      esp_err_t netifStatus = esp_netif_set_hostname(staNetif, DIAGNOSTIC_HOSTNAME);
+      if (netifStatus != ESP_OK) {
+        Serial.printf("[WiFi] Échec assignation hostname netif (0x%X)\r\n", netifStatus);
+      }
+    } else {
+      Serial.println("[WiFi] Interface STA introuvable pour l'assignation du hostname");
+    }
+  #elif defined(DIAGNOSTIC_HAS_TCPIP_ADAPTER)
+    err_t adapterStatus = tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, DIAGNOSTIC_HOSTNAME);
+    if (adapterStatus != ERR_OK) {
+      Serial.printf("[WiFi] Échec assignation hostname TCP/IP (%d)\r\n", static_cast<int>(adapterStatus));
+    }
+  #endif
+#endif
+}
+
+void stopMDNSService(const char* reason) {
+#if DIAGNOSTIC_HAS_MDNS
+  if (!mdnsServiceActive) {
+    return;
+  }
+#if defined(DIAGNOSTIC_USES_ESPMDNS)
+  DIAGNOSTIC_MDNS_SERVER.end();
+#elif defined(DIAGNOSTIC_USES_IDF_MDNS)
+  // --- [NEW FEATURE] Extinction propre du service IDF ---
+  if (mdnsResponderInitialized) {
+    mdns_free();
+    mdnsResponderInitialized = false;
+  }
+#endif
+  mdnsServiceActive = false;
+  if (reason != nullptr) {
+    Serial.printf("[mDNS] Service arrêté (%s)\r\n", reason);
+  } else {
+    Serial.println("[mDNS] Service arrêté");
+  }
+#else
+  (void) reason;
+#endif
+}
+
+bool startMDNSService(bool verbose) {
+#if DIAGNOSTIC_HAS_MDNS
+  if (!WiFi.isConnected()) {
+    return false;
+  }
+  if (mdnsServiceActive) {
+    return true;
+  }
+
+  unsigned long now = millis();
+  if (!verbose && (now - lastMDNSAttempt < 5000)) {
+    return false;
+  }
+
+  lastMDNSAttempt = now;
+#if defined(DIAGNOSTIC_USES_ESPMDNS)
+  if (!DIAGNOSTIC_MDNS_SERVER.begin(DIAGNOSTIC_HOSTNAME)) {
+    if (verbose || !mdnsLastAttemptFailed) {
+      Serial.println("[mDNS] Échec du démarrage - nouvel essai dans 5s");
+    }
+    mdnsLastAttemptFailed = true;
+    return false;
+  }
+
+  DIAGNOSTIC_MDNS_SERVER.addService("http", "tcp", 80);
+#elif defined(DIAGNOSTIC_USES_IDF_MDNS)
+  // --- [NEW FEATURE] Démarrage mDNS via l'API ESP-IDF ---
+  esp_err_t mdnsInitStatus = mdns_init();
+  if (mdnsInitStatus != ESP_OK) {
+    if (verbose || !mdnsLastAttemptFailed) {
+      Serial.printf("[mDNS] Initialisation IDF échouée: 0x%02X\r\n", mdnsInitStatus);
+    }
+    mdnsLastAttemptFailed = true;
+    return false;
+  }
+
+  mdnsResponderInitialized = true;
+
+  esp_err_t hostStatus = mdns_hostname_set(DIAGNOSTIC_HOSTNAME);
+  if (hostStatus != ESP_OK) {
+    if (verbose || !mdnsLastAttemptFailed) {
+      Serial.printf("[mDNS] Attribution du nom d'hôte échouée: 0x%02X\r\n", hostStatus);
+    }
+    mdns_free();
+    mdnsResponderInitialized = false;
+    mdnsLastAttemptFailed = true;
+    return false;
+  }
+
+  mdns_instance_name_set("ESP32 Diagnostic");
+  esp_err_t serviceStatus = mdns_service_add("ESP32 Diagnostic", "_http", "_tcp", 80, nullptr, 0);
+  if (serviceStatus != ESP_OK) {
+    if (verbose || !mdnsLastAttemptFailed) {
+      Serial.printf("[mDNS] Publication du service échouée: 0x%02X\r\n", serviceStatus);
+    }
+    mdns_free();
+    mdnsResponderInitialized = false;
+    mdnsLastAttemptFailed = true;
+    return false;
+  }
+  mdns_service_txt_item_set("_http", "_tcp", "path", "/");
+#endif
+  mdnsServiceActive = true;
+  mdnsLastAttemptFailed = false;
+  Serial.printf("[mDNS] Service actif sur %s\r\n", getStableAccessURL().c_str());
+  return true;
+#else
+  (void) verbose;
+  return false;
+#endif
+}
+
+void maintainNetworkServices() {
+#if DIAGNOSTIC_HAS_MDNS
+  bool wifiConnectedNow = (WiFi.status() == WL_CONNECTED);
+  if (wifiConnectedNow) {
+    if (!wifiPreviouslyConnected) {
+      startMDNSService(true);
+    } else {
+      startMDNSService(false);
+    }
+  } else if (mdnsServiceActive) {
+    stopMDNSService("WiFi déconnecté");
+  }
+  wifiPreviouslyConnected = wifiConnectedNow;
+#endif
+}
 
 // ========== DÉTECTION MODÈLE ==========
 String detectChipModel() {
@@ -1621,6 +1822,16 @@ void collectDiagnosticInfo() {
     diagnosticData.wifiSSID = WiFi.SSID();
     diagnosticData.wifiRSSI = WiFi.RSSI();
     diagnosticData.ipAddress = WiFi.localIP().toString();
+#if DIAGNOSTIC_HAS_MDNS
+    diagnosticData.mdnsAvailable = mdnsServiceActive;
+#else
+    diagnosticData.mdnsAvailable = false;
+#endif
+  } else {
+    diagnosticData.wifiSSID = "";
+    diagnosticData.wifiRSSI = -127;
+    diagnosticData.ipAddress = "";
+    diagnosticData.mdnsAvailable = false;
   }
   
   diagnosticData.gpioList = getGPIOList();
@@ -2009,6 +2220,7 @@ void handleExportTXT() {
   txt += "SSID: " + diagnosticData.wifiSSID + "\r\n";
   txt += "RSSI: " + String(diagnosticData.wifiRSSI) + " dBm (" + getWiFiSignalQuality() + ")\r\n";
   txt += "IP: " + diagnosticData.ipAddress + "\r\n";
+  txt += "Lien constant: " + getStableAccessURL() + " (" + String(diagnosticData.mdnsAvailable ? "actif" : "en attente") + ")\r\n";
   txt += String(T().subnet_mask) + ": " + WiFi.subnetMask().toString() + "\r\n";
   txt += String(T().gateway) + ": " + WiFi.gatewayIP().toString() + "\r\n";
   txt += "DNS: " + WiFi.dnsIP().toString() + "\r\n";
@@ -2072,6 +2284,7 @@ void handleExportTXT() {
 void handleExportJSON() {
   collectDiagnosticInfo();
   collectDetailedMemory();
+  String stableUrl = getStableAccessURL();
   
   String json = "{";
   json += "\"chip\":{";
@@ -2108,6 +2321,8 @@ void handleExportJSON() {
   json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
   json += "\"quality\":\"" + getWiFiSignalQuality() + "\",";
   json += "\"ip\":\"" + diagnosticData.ipAddress + "\",";
+  json += "\"mdns_ready\":" + String(diagnosticData.mdnsAvailable ? "true" : "false") + ",";
+  json += "\"stable_url\":\"" + jsonEscape(stableUrl.c_str()) + "\",";
   json += "\"subnet\":\"" + WiFi.subnetMask().toString() + "\",";
   json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",";
   json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
@@ -3565,10 +3780,17 @@ a{color:inherit;}
   String bluetoothNotificationsValue = htmlEscape(String((unsigned long)bluetoothNotifyDisplay));
   String bluetoothDisableAttr = bluetoothCapable ? "" : " disabled";
   String bluetoothFeedbackText = bluetoothCapable ? "" : String(T().bluetooth_not_supported);
-  String accessUrl = "http://" + String(MDNS_HOSTNAME) + ".local";
+  bool ipAvailable = diagnosticData.ipAddress.length() > 0;
+  String accessUrl = ipAvailable ? ("http://" + diagnosticData.ipAddress) : String(T().not_detected);
+  String accessUrlHref = ipAvailable ? accessUrl : String("#");
   String accessUrlEscaped = htmlEscape(accessUrl);
-  String ipDisplay = diagnosticData.ipAddress.length() > 0 ? diagnosticData.ipAddress : String(T().not_detected);
+  String ipDisplay = ipAvailable ? diagnosticData.ipAddress : String(T().not_detected);
   String ipDisplayEscaped = htmlEscape(ipDisplay);
+  bool mdnsAvailable = diagnosticData.mdnsAvailable;
+  String stableAccessUrl = getStableAccessURL();
+  String stableAccessEscaped = htmlEscape(stableAccessUrl);
+  String stableAccessHref = mdnsAvailable ? stableAccessUrl : String("#");
+  String mdnsStateAttr = mdnsAvailable ? "true" : "false";
 
   chunk = "<div class='app-shell'>";
   chunk += "<div id='updateIndicator' class='update-indicator'>";
@@ -3598,7 +3820,19 @@ a{color:inherit;}
   chunk += "<span id='bluetoothStatusDot' class='" + bluetoothDotClass + "' aria-hidden='true'></span>";
   chunk += "<span class='status-value' id='bluetoothSummary' data-online='" + bluetoothOnlineCombined + "' data-offline='" + bluetoothOfflineText + "' data-disabled='" + bluetoothDisabledText + "' data-unsupported='" + bluetoothUnsupportedText + "' data-supported='" + bluetoothSupportedAttr + "'>" + bluetoothDisplayText + "</span></div>";
   chunk += "<div class='status-item status-access'><span class='status-label' data-i18n='access'>" + String(T().access) + "</span>";
-  chunk += "<span class='status-value'><a href='" + accessUrl + "' target='_blank' rel='noopener'>" + accessUrlEscaped + "</a><span class='separator'>•</span><span id='ipAddressDisplay'>" + ipDisplayEscaped + "</span></span></div>";
+  chunk += "<span class='status-value' data-mdns='" + mdnsStateAttr + "'>";
+  if (mdnsAvailable) {
+    chunk += "<a href='" + stableAccessHref + "' target='_blank' rel='noopener'>" + stableAccessEscaped + "</a>";
+  } else {
+    chunk += "<span>" + stableAccessEscaped + "</span>";
+  }
+  chunk += "<span class='separator'>•</span>";
+  if (ipAvailable) {
+    chunk += "<a href='" + accessUrlHref + "' target='_blank' rel='noopener'>" + accessUrlEscaped + "</a>";
+  } else {
+    chunk += accessUrlEscaped;
+  }
+  chunk += "<span class='separator'>•</span><span id='ipAddressDisplay'>" + ipDisplayEscaped + "</span></span></div>";
   chunk += "</div>";
   chunk += "</header>";
   chunk += "<div class='masthead-divider' role='presentation'></div>";
@@ -4018,156 +4252,6 @@ a{color:inherit;}
   server.sendContent("");
 }
 
-// --- [NEW FEATURE] Normalisation du nom mDNS ---
-String sanitizeMDNSHostname(const String& source) {
-  String normalized = "";
-  normalized.reserve(source.length());
-
-  for (size_t i = 0; i < source.length(); ++i) {
-    char c = source.charAt(i);
-    if (c >= 'A' && c <= 'Z') {
-      c = c - 'A' + 'a';
-    }
-
-    if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
-      normalized += c;
-    } else if (c == '-' || c == '_' || c == ' ') {
-      if (!normalized.endsWith("-")) {
-        normalized += '-';
-      }
-    }
-  }
-
-  normalized.trim();
-
-  if (normalized.length() == 0) {
-    normalized = String(MDNS_HOSTNAME_STR);
-  }
-
-  if (!(normalized.charAt(0) >= 'a' && normalized.charAt(0) <= 'z')) {
-    normalized = String("esp32-") + normalized;
-  }
-
-  while (normalized.endsWith("-")) {
-    normalized.remove(normalized.length() - 1);
-  }
-
-  return normalized;
-}
-
-String buildPreferredMDNSHostname() {
-  const char* currentHostname = WiFi.getHostname();
-  String source = (currentHostname != nullptr && strlen(currentHostname) > 0)
-                      ? String(currentHostname)
-                      : String(MDNS_HOSTNAME_STR);
-
-  return sanitizeMDNSHostname(source);
-}
-
-bool configureMDNSResponder(const String& hostname, bool verboseLogs) {
-  if (!MDNS.begin(hostname.c_str())) {
-    return false;
-  }
-
-  MDNS.setInstanceName(mdnsServiceConfig.instanceName);
-  MDNS.addService("http", "tcp", mdnsServiceConfig.servicePort);
-  MDNS.addServiceTxt("http", "tcp", "path", "/");
-  MDNS.addServiceTxt("http", "tcp", "board", "esp32");
-
-  if (verboseLogs) {
-    Serial.println("════════════════════════════════════════");
-    Serial.printf("   http://%s.local\r\n", hostname.c_str());
-    Serial.printf("   http://%s\r\n", WiFi.localIP().toString().c_str());
-    Serial.println("════════════════════════════════════════\r\n");
-  } else {
-    Serial.println("[mDNS] Service annonce relance");
-  }
-
-  return true;
-}
-
-bool startMDNSResponder(bool verboseLogs) {
-  if (WiFi.status() != WL_CONNECTED) {
-    return false;
-  }
-
-  mdnsLastAttempt = millis();
-
-  if (mdnsResponderStarted) {
-    MDNS.end();
-    mdnsResponderStarted = false;
-  }
-
-  // --- [NEW FEATURE] Reconstruction complete du serveur mDNS ---
-  mdnsServiceConfig.sanitizedHostname = buildPreferredMDNSHostname();
-
-  if (configureMDNSResponder(mdnsServiceConfig.sanitizedHostname, verboseLogs)) {
-    mdnsResponderStarted = true;
-    return true;
-  }
-
-  mdnsResponderStarted = false;
-
-  if (verboseLogs) {
-    Serial.println("mDNS erreur");
-    Serial.printf("Utilisez IP: http://%s\r\n\r\n", WiFi.localIP().toString().c_str());
-  } else {
-    Serial.println("[mDNS] Relance impossible");
-  }
-
-  return false;
-}
-
-void maintainMDNSResponder() {
-  if (WiFi.status() != WL_CONNECTED) {
-    if (mdnsResponderStarted) {
-      MDNS.end();
-      mdnsResponderStarted = false;
-      Serial.println("[mDNS] Service arrete - WiFi indisponible");
-    }
-    return;
-  }
-
-  if (!mdnsResponderStarted) {
-    unsigned long now = millis();
-    if (now - mdnsLastAttempt < 5000) {
-      return;
-    }
-
-    if (!startMDNSResponder(false)) {
-      Serial.println("[mDNS] Tentative de redemarrage echouee");
-    }
-    return;
-  }
-
-  // --- [NEW FEATURE] Maintien automatique du service mDNS ---
-  // La pile ESP-IDF maintient automatiquement le service mDNS lorsqu'il est actif.
-  // Cette fonction conserve le point d'entrée pour d'éventuels contrôles futurs
-  // sans invoquer de méthode inexistante sur la librairie Arduino mDNS.
-}
-
-// --- [NEW FEATURE] Surveillance des evenements WiFi pour mDNS ---
-void handleWiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
-  switch (event) {
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-      Serial.println("[WiFi] Adresse obtenue - (re)demarrage mDNS");
-      if (!startMDNSResponder(true)) {
-        Serial.println("[mDNS] Impossible de relancer apres evenement WiFi");
-      }
-      break;
-    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
-    case ARDUINO_EVENT_WIFI_STA_LOST_IP:
-      if (mdnsResponderStarted) {
-        MDNS.end();
-        mdnsResponderStarted = false;
-        Serial.println("[mDNS] Service arrete suite a la perte WiFi");
-      }
-      break;
-    default:
-      break;
-  }
-}
-
 // ========== SETUP COMPLET ==========
 void setup() {
   Serial.begin(115200);
@@ -4196,12 +4280,9 @@ void setup() {
   WiFi.mode(WIFI_STA);
   WiFi.persistent(false);
 
-  // --- [NEW FEATURE] Application du nom mDNS normalise avant connexion ---
-  mdnsServiceConfig.sanitizedHostname = sanitizeMDNSHostname(String(MDNS_HOSTNAME_STR));
-  WiFi.setHostname(mdnsServiceConfig.sanitizedHostname.c_str());
   WiFi.setSleep(false);
-  // --- [NEW FEATURE] Abonnement aux evenements WiFi pour la relance mDNS ---
-  wifiEventSubscription = WiFi.onEvent(handleWiFiEvent);
+  // --- [NEW FEATURE] Assignation du nom d'hôte avant la connexion WiFi ---
+  configureNetworkHostname();
 #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
   WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
 #ifdef WIFI_CONNECT_AP_BY_SIGNAL
@@ -4219,16 +4300,24 @@ void setup() {
     attempt++;
   }
   
-  if (WiFi.status() == WL_CONNECTED) {
+  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+#if DIAGNOSTIC_HAS_MDNS
+  wifiPreviouslyConnected = wifiConnected;
+#endif
+
+  if (wifiConnected) {
     Serial.println("\r\n\r\nWiFi OK!");
     Serial.printf("SSID: %s\r\n", WiFi.SSID().c_str());
     Serial.printf("IP: %s\r\n\r\n", WiFi.localIP().toString().c_str());
-    
-    if (!startMDNSResponder(true)) {
-      Serial.println("[mDNS] Service indisponible - verifier la configuration");
+    // --- [NEW FEATURE] Activation du lien stable via mDNS ---
+    if (startMDNSService(true)) {
+      Serial.printf("[Accès] Lien constant : %s\r\n", getStableAccessURL().c_str());
+    } else {
+      Serial.println("[mDNS] Initialisation différée - nouvel essai automatique");
     }
   } else {
     Serial.println("\r\n\r\nPas de WiFi\r\n");
+    Serial.printf("[Accès] Lien constant disponible après connexion : %s\r\n", getStableAccessURL().c_str());
   }
   
   // Détections
@@ -4327,8 +4416,13 @@ void setup() {
 // ========== LOOP ==========
 void loop() {
   server.handleClient();
-
-  maintainMDNSResponder();
+  maintainNetworkServices();
+#if DIAGNOSTIC_HAS_MDNS && defined(DIAGNOSTIC_USES_ESPMDNS)
+  if (mdnsServiceActive) {
+    // --- [NEW FEATURE] Maintenance mDNS continue ---
+    DIAGNOSTIC_MDNS_SERVER.update();
+  }
+#endif
 
   static unsigned long lastUpdate = 0;
   if (millis() - lastUpdate > 30000) {
