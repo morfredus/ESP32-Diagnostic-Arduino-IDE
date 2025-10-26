@@ -25,6 +25,7 @@ static const std::vector<std::pair<const char*, const char*>> WIFI_NETWORKS = {
 - Le français est la langue par défaut.
 - Utilisez `/api/set-language?lang=en` ou le sélecteur FR/EN dans l'interface pour basculer en anglais.
 - Les chaînes de traduction résident dans `languages.h` au sein de la structure `Translations`. Ajoutez une langue en étendant cette structure et en l'exposant dans l'interface.
+- La maintenance 3.1.15-maint conserve l'intitulé accentué « Non testé » des diagnostics additionnels en cohérence entre interface, API REST et exports.
 
 ## Configuration OLED
 - Broches par défaut : SDA=21, SCL=22 (standard ESP32).
