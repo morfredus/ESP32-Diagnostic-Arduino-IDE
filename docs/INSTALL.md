@@ -2,6 +2,8 @@
 
 Follow the steps below to deploy the ESP32 Diagnostic Suite on your board.
 
+> **Maintenance 3.1.15-maint:** Confirm the firmware banner and `DIAGNOSTIC_VERSION` constant report 3.1.15-maint so export filenames and serial logs match.
+
 ## 1. Prerequisites
 - ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, or ESP32-H2 board (S3 recommended).
 - USB cable with data capability.

@@ -6,6 +6,9 @@
  * Auteur: morfredus
  */
 
+// --- [MAINTENANCE] Journal de version actualisé ---
+// Version de dev : 3.1.15-maint - Harmonisation de la documentation et rappel des libellés par défaut
+// Version de dev : 3.1.14-maint - Corrections de messages d'état et amélioration de l'échappement HTML
 // Version de dev : 3.1.13-dev - Bandeau sticky unifié et retrait du test tactile des exports
 // Version de dev : 3.1.12-dev - Alignement du numéro de version dans le bandeau principal
 
@@ -92,7 +95,8 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.1.13-dev"
+// --- [MAINTENANCE] Mise à jour version maintenance 3.1.15 ---
+#define DIAGNOSTIC_VERSION "3.1.15-maint"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -193,12 +197,14 @@ bool oledAvailable = false;
 String oledTestResult = "En attente d'initialisation";
 
 // Tests additionnels
-String adcTestResult = "Non teste";
-String touchTestResult = "Non teste";
-String pwmTestResult = "Non teste";
+// --- [MAINTENANCE] Correction message d’état ---
+String adcTestResult = "Non testé";
+String touchTestResult = "Non testé";
+String pwmTestResult = "Non testé";
 String partitionsInfo = "";
 String spiInfo = "";
-String stressTestResult = "Non teste";
+// --- [MAINTENANCE] Correction message d’état ---
+String stressTestResult = "Non testé";
 
 // ========== STRUCTURES ==========
 struct DiagnosticInfo {
@@ -2385,7 +2391,8 @@ void handleSetLanguage() {
 
 String htmlEscape(const String& raw) {
   String escaped;
-  escaped.reserve(raw.length());
+  // --- [MAINTENANCE] Préallocation élargie pour l'échappement HTML ---
+  escaped.reserve(raw.length() * 6);
   for (size_t i = 0; i < raw.length(); ++i) {
     char c = raw[i];
     switch (c) {
