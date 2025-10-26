@@ -19,7 +19,7 @@ The dashboard is organised into tabs:
 - **Wi-Fi** – detailed scan results (RSSI, channel, security, PHY, bandwidth).
 - **Performance** – benchmark history and runtime metrics.
 - **Export** – download TXT/JSON/CSV reports or open the printable report.
-- Release 3.1.19 keeps the sticky masthead and Bluetooth widgets aligned, preserves the explicit `/api/set-language` payloads, and signposts the bilingual changelog pair for operators.
+- Release 3.2.0 keeps the sticky masthead and Bluetooth widgets aligned, preserves the explicit `/api/set-language` payloads, and signposts the bilingual changelog pair for operators.
 
 The navigation bar collapses gracefully on mobile devices and preserves active tab state.
 

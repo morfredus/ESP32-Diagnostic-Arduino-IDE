@@ -2,7 +2,7 @@
 
 All notable changes to ESP32 Diagnostic Suite are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Version 3.1.19] - 2025-10-28
+## [Version 3.2.0] - 2025-10-28
 ### Added
 - None.
 
@@ -11,7 +11,7 @@ All notable changes to ESP32 Diagnostic Suite are documented here. This project 
 
 ### Improved
 - Split the changelog into dedicated English and French files to make maintenance updates easier for each audience.
-- Refreshed the version banner, `DIAGNOSTIC_VERSION`, and release highlights to reference 3.1.19 across the documentation set.
+- Refreshed the version banner, `DIAGNOSTIC_VERSION`, and release highlights to reference 3.2.0 across the documentation set.
 
 ---
 
@@ -27,21 +27,6 @@ All notable changes to ESP32 Diagnostic Suite are documented here. This project 
 - Preallocated the `jsonEscape` buffer to reduce allocations while generating exports.
 - Explicitly included `<cstring>` to guarantee C string helpers remain available on recent Arduino toolchains.
 - Aligned the FR/EN documentation set (README, installation, configuration, usage, architecture, contributing, troubleshooting guides) with the 3.1.18 maintenance pass.
-
----
-
-## [Version 3.1.18] - 2025-10-27
-### Ajouts
-- Néant.
-
-### Corrections
-- Validation de `/api/set-language` pour renvoyer immédiatement HTTP 200 sur `fr`/`en` et HTTP 400 sur les codes non pris en charge, supprimant les réponses ambiguës.
-- Synchronisation des journaux série et exports avec les nouvelles réponses JSON du changement de langue.
-
-### Améliorations
-- Réservation anticipée du tampon de `jsonEscape` afin de réduire les allocations pendant la génération d'exports.
-- Inclusion explicite de `<cstring>` pour assurer la compatibilité des fonctions de chaîne C sur les toolchains Arduino récentes.
-- Documentation FR/EN alignée sur la maintenance 3.1.18 (README, guides d'installation, configuration, utilisation, architecture, contribution et dépannage).
 
 ---
 

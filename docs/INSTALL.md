@@ -2,7 +2,7 @@
 
 Follow the steps below to deploy the ESP32 Diagnostic Suite on your board.
 
-> **Release 3.1.19:** Confirm the firmware banner and `DIAGNOSTIC_VERSION` constant report 3.1.19 to stay in sync with the bilingual changelog split and refreshed documentation set.
+> **Release 3.2.0:** Confirm the firmware banner and `DIAGNOSTIC_VERSION` constant report 3.2.0 to stay in sync with the bilingual changelog split and refreshed documentation set.
 
 ## 1. Prerequisites
 - ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, or ESP32-H2 board (S3 recommended).

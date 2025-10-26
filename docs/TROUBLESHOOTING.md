@@ -6,13 +6,13 @@
 - Ensure no other application is holding the BLE stack (restart the board).
 
 ## Language switch does not change texts
-- Ensure you are running firmware 3.1.19 so `/api/set-language` retains the explicit success (FR/EN) and 400 responses for unsupported codes while matching the bilingual changelog guidance.
+- Ensure you are running firmware 3.2.0 so `/api/set-language` retains the explicit success (FR/EN) and 400 responses for unsupported codes while matching the bilingual changelog guidance.
 - Verify `languages.h` is present alongside the sketch and compiles correctly.
 - Clear the browser cache (Ctrl+F5) to reload the translation bundle.
 - Confirm `/api/get-translations` returns HTTP 200 using the browser console or a REST client.
 
 ## Additional diagnostics show "Non teste" without accent
-- Flash firmware 3.1.19 (or any later 3.x maintenance build) so the French catalogue keeps the "Non testé" placeholder and the sticky masthead reflects the updated bilingual documentation.
+- Flash firmware 3.2.0 (or any later 3.x maintenance build) so the French catalogue keeps the "Non testé" placeholder and the sticky masthead reflects the updated bilingual documentation.
 - Refresh the dashboard (Ctrl+F5) to reload cached translations after updating.
 
 ## OLED screen stays blank
