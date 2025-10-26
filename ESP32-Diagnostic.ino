@@ -7,6 +7,7 @@
  */
 
 // --- [MAINTENANCE] Journal de version actualisé ---
+// Version de dev : 3.1.16 - Bandeau sticky unifié et correctifs navigation/traductions
 // Version de dev : 3.1.15-maint - Harmonisation de la documentation et rappel des libellés par défaut
 // Version de dev : 3.1.14-maint - Corrections de messages d'état et amélioration de l'échappement HTML
 // Version de dev : 3.1.13-dev - Bandeau sticky unifié et retrait du test tactile des exports
@@ -95,8 +96,8 @@
 #endif
 
 // ========== CONFIGURATION ==========
-// --- [MAINTENANCE] Mise à jour version maintenance 3.1.15 ---
-#define DIAGNOSTIC_VERSION "3.1.15-maint"
+// --- [MAINTENANCE] Mise à jour version 3.1.16 ---
+#define DIAGNOSTIC_VERSION "3.1.16"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
