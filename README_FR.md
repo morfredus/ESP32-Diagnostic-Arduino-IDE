@@ -1,10 +1,10 @@
-# ESP32 Diagnostic Suite (v3.1.19)
+# ESP32 Diagnostic Suite (v3.2.0)
 
 Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de bord web interactif, tests matériels automatisés et contenus bilingues (FR/EN). Le firmware cible l'Arduino Core 3.3.2 et prend en charge les familles ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 et ESP32-H2.
 
-## Points clés de la version 3.1.19
+## Points clés de la version 3.2.0
 - Scission du changelog en fichiers dédiés anglais (`CHANGELOG.md`) et français (`CHANGELOG_FR.md`) avec mise à jour complète des guides.
-- Mise à jour des notes de maintenance afin que le bandeau de version et `DIAGNOSTIC_VERSION` reflètent 3.1.19 partout.
+- Mise à jour des notes de maintenance afin que le bandeau de version et `DIAGNOSTIC_VERSION` reflètent 3.2.0 partout.
 - Conservation du changement de langue durci et de la stabilité des exports introduits en 3.1.18.
 
 ## Structure du projet
