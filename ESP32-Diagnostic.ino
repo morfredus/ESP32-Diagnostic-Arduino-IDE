@@ -1,3 +1,4 @@
+// Version de dev : 3.2.08-dev - Correction de l'initialisation WiFi pour mDNS
 // Version de dev : 3.2.07-dev - Compatibilité mDNS multi-environnements
 /*
  * ESP32 Diagnostic Suite v3.2.0
@@ -8,6 +9,7 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.08-dev - Correction de l'initialisation WiFi pour mDNS
 // Version de dev : 3.2.07-dev - Compatibilité mDNS multi-environnements
 // Version de dev : 3.2.06-dev - Restauration mDNS fiable et lien d'accès constant
 // Version de dev : 3.2.05-dev - Suppression du service mDNS instable
@@ -130,7 +132,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.07-dev"
+#define DIAGNOSTIC_VERSION "3.2.08-dev"
 // --- [NEW FEATURE] Lien d'accès constant via nom d'hôte ---
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
@@ -4190,9 +4192,12 @@ void setup() {
     attempt++;
   }
   
-  wifiPreviouslyConnected = (WiFi.status() == WL_CONNECTED);
+  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+#if DIAGNOSTIC_HAS_MDNS
+  wifiPreviouslyConnected = wifiConnected;
+#endif
 
-  if (wifiPreviouslyConnected) {
+  if (wifiConnected) {
     Serial.println("\r\n\r\nWiFi OK!");
     Serial.printf("SSID: %s\r\n", WiFi.SSID().c_str());
     Serial.printf("IP: %s\r\n\r\n", WiFi.localIP().toString().c_str());
