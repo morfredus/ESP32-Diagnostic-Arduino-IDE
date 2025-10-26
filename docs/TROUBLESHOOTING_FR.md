@@ -10,6 +10,10 @@
 - Videz le cache du navigateur (Ctrl+F5) pour recharger les traductions.
 - Contrôlez que `/api/get-translations` renvoie HTTP 200 via la console ou un client REST.
 
+## Les diagnostics additionnels affichent « Non teste » sans accent
+- Passez en version 3.1.16 ou supérieure pour rétablir l'intitulé « Non testé » et appliquer les traductions du bandeau sticky sur tous les supports.
+- Rafraîchissez le tableau de bord (Ctrl+F5) afin de recharger les traductions mises à jour.
+
 ## L'écran OLED reste noir
 - Relancez `/api/oled-config?sda=<pin>&scl=<pin>` avec le câblage correct.
 - Contrôlez l'adresse I2C (0x3C par défaut). Remplacez l'écran s'il ne répond pas sur le bus.
