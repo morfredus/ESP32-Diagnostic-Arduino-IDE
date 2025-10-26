@@ -1,11 +1,11 @@
-# ESP32 Diagnostic Suite (v3.1.18)
+# ESP32 Diagnostic Suite (v3.1.19)
 
 Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de bord web interactif, tests matériels automatisés et contenus bilingues (FR/EN). Le firmware cible l'Arduino Core 3.3.2 et prend en charge les familles ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 et ESP32-H2.
 
-## Points clés de la version 3.1.18
-- Durcissement de `/api/set-language` : succès immédiat en FR/EN et erreur HTTP 400 explicite pour toute langue non prise en charge.
-- Préallocation du tampon `jsonEscape` (et inclusion de `<cstring>`) afin de stabiliser le streaming des exports sur les toolchains Arduino.
-- Nettoyage des marqueurs de maintenance et rafraîchissement complet de la documentation FR/EN pour le cycle 3.1.18.
+## Points clés de la version 3.1.19
+- Scission du changelog en fichiers dédiés anglais (`CHANGELOG.md`) et français (`CHANGELOG_FR.md`) avec mise à jour complète des guides.
+- Mise à jour des notes de maintenance afin que le bandeau de version et `DIAGNOSTIC_VERSION` reflètent 3.1.19 partout.
+- Conservation du changement de langue durci et de la stabilité des exports introduits en 3.1.18.
 
 ## Structure du projet
 - `ESP32-Diagnostic.ino` – point d'entrée du firmware et ordonnanceur des diagnostics.
@@ -23,6 +23,7 @@ Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de
 | Architecture du firmware | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | [ARCHITECTURE_FR.md](docs/ARCHITECTURE_FR.md) |
 | Dépannage | [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | [TROUBLESHOOTING_FR.md](docs/TROUBLESHOOTING_FR.md) |
 | Contribuer | [CONTRIBUTING.md](CONTRIBUTING.md) | [CONTRIBUTING_FR.md](CONTRIBUTING_FR.md) |
+| Journal des modifications | [CHANGELOG.md](CHANGELOG.md) | [CHANGELOG_FR.md](CHANGELOG_FR.md) |
 
 ## Capacités principales
 - Interface multilingue avec bascule FR/EN en temps réel sans rechargement.
