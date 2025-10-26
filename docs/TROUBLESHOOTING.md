@@ -11,7 +11,7 @@
 - Confirm `/api/get-translations` returns HTTP 200 using the browser console or a REST client.
 
 ## Additional diagnostics show "Non teste" without accent
-- Flash firmware 3.1.14-maint or later so the French catalogue restores the "Non testé" placeholder.
+- Flash firmware 3.1.15-maint or later so the French catalogue restores the "Non testé" placeholder consistently across outputs.
 - Refresh the dashboard (Ctrl+F5) to reload cached translations after updating.
 
 ## OLED screen stays blank
