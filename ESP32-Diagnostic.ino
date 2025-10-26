@@ -1,10 +1,21 @@
 /*
- * ESP32 Diagnostic Suite v3.1.1
+ * ESP32 Diagnostic Suite v3.2.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  */
+
+// Journal de version
+// Version de dev : 3.2.0-doc - Consolidation des guides après la campagne de tests
+// Version de dev : 3.1.19-doc - Scission du changelog FR/EN et rafraîchissement de la documentation
+// Version de dev : 3.1.18-doc - Documentation 3.1.18 et durcissement du changement de langue
+// Version de dev : 3.1.17-maint - Nettoyage de commentaires superflus et renforcement de la sélection de langue
+// Version de dev : 3.1.16 - Bandeau sticky unifié et correctifs navigation/traductions
+// Version de dev : 3.1.15-maint - Harmonisation de la documentation et rappel des libellés par défaut
+// Version de dev : 3.1.14-maint - Corrections de messages d'état et amélioration de l'échappement HTML
+// Version de dev : 3.1.13-dev - Bandeau sticky unifié et retrait du test tactile des exports
+// Version de dev : 3.1.12-dev - Alignement du numéro de version dans le bandeau principal
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -54,6 +65,7 @@
     static const bool TARGET_BLE_SUPPORTED = true;
 #endif
 #include <vector>
+#include <cstring>
 
 #if defined(__has_include)
   #if __has_include("wifi-config.h")
@@ -89,7 +101,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.1.1"
+#define DIAGNOSTIC_VERSION "3.2.0"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
@@ -190,12 +202,12 @@ bool oledAvailable = false;
 String oledTestResult = "En attente d'initialisation";
 
 // Tests additionnels
-String adcTestResult = "Non teste";
-String touchTestResult = "Non teste";
-String pwmTestResult = "Non teste";
+String adcTestResult = "Non testé";
+String touchTestResult = "Non testé";
+String pwmTestResult = "Non testé";
 String partitionsInfo = "";
 String spiInfo = "";
-String stressTestResult = "Non teste";
+String stressTestResult = "Non testé";
 
 // ========== STRUCTURES ==========
 struct DiagnosticInfo {
@@ -2007,7 +2019,6 @@ void handleExportTXT() {
   txt += "NeoPixel: " + neopixelTestResult + "\r\n";
   txt += "OLED: " + oledTestResult + "\r\n";
   txt += "ADC: " + adcTestResult + "\r\n";
-  txt += "Touch: " + touchTestResult + "\r\n";
   txt += "PWM: " + pwmTestResult + "\r\n";
   txt += "\r\n";
   
@@ -2116,7 +2127,6 @@ void handleExportJSON() {
   json += "\"neopixel\":\"" + neopixelTestResult + "\",";
   json += "\"oled\":\"" + oledTestResult + "\",";
   json += "\"adc\":\"" + adcTestResult + "\",";
-  json += "\"touch\":\"" + touchTestResult + "\",";
   json += "\"pwm\":\"" + pwmTestResult + "\"";
   json += "},";
   
@@ -2196,7 +2206,6 @@ void handleExportCSV() {
   csv += String(T().test) + ",NeoPixel," + neopixelTestResult + "\r\n";
   csv += String(T().test) + ",OLED," + oledTestResult + "\r\n";
   csv += String(T().test) + ",ADC," + adcTestResult + "\r\n";
-  csv += String(T().test) + ",Touch," + touchTestResult + "\r\n";
   csv += String(T().test) + ",PWM," + pwmTestResult + "\r\n";
   
   if (diagnosticData.cpuBenchmark > 0) {
@@ -2344,7 +2353,6 @@ void handlePrintVersion() {
   html += "<tr><td>NeoPixel</td><td>" + neopixelTestResult + "</td></tr>";
   html += "<tr><td>Écran OLED</td><td>" + oledTestResult + "</td></tr>";
   html += "<tr><td>ADC</td><td>" + adcTestResult + "</td></tr>";
-  html += "<tr><td>Touch Pads</td><td>" + touchTestResult + "</td></tr>";
   html += "<tr><td>PWM</td><td>" + pwmTestResult + "</td></tr>";
   html += "</table></div>";
   
@@ -2372,13 +2380,18 @@ void handlePrintVersion() {
 // ========== HANDLER CHANGEMENT DE LANGUE ==========
 void handleSetLanguage() {
   if (server.hasArg("lang")) {
-    String lang = server.arg("lang");
+    const String lang = server.arg("lang");
     if (lang == "fr") {
       setLanguage(LANG_FR);
-    } else if (lang == "en") {
-      setLanguage(LANG_EN);
+      server.send(200, "application/json", "{\"success\":true,\"lang\":\"fr\"}");
+      return;
     }
-    server.send(200, "application/json", "{\"success\":true,\"lang\":\"" + lang + "\"}");
+    if (lang == "en") {
+      setLanguage(LANG_EN);
+      server.send(200, "application/json", "{\"success\":true,\"lang\":\"en\"}");
+      return;
+    }
+    server.send(400, "application/json", "{\"success\":false,\"error\":\"unsupported_language\"}");
   } else {
     server.send(400, "application/json", "{\"success\":false}");
   }
@@ -2386,7 +2399,7 @@ void handleSetLanguage() {
 
 String htmlEscape(const String& raw) {
   String escaped;
-  escaped.reserve(raw.length());
+  escaped.reserve(raw.length() * 6);
   for (size_t i = 0; i < raw.length(); ++i) {
     char c = raw[i];
     switch (c) {
@@ -2418,7 +2431,9 @@ String jsonEscape(const char* raw) {
     return "";
   }
 
+  const size_t rawLength = strlen(raw);
   String escaped;
+  escaped.reserve(rawLength * 2);
   while (*raw) {
     char c = *raw++;
     switch (c) {
@@ -2941,15 +2956,53 @@ a{color:inherit;}
   gap:24px;
   min-height:calc(100vh - 48px);
 }
-.app-header{
+.nav-wrapper{
+  position:sticky;
+  top:20px;
+  z-index:95;
+}
+.nav-wrapper .masthead-card{
   background:var(--bg-surface);
   border-radius:var(--radius);
-  padding:16px 22px;
   box-shadow:0 25px 60px rgba(15,23,42,.45);
   border:1px solid var(--border-glow);
   display:flex;
   flex-direction:column;
+  overflow:hidden;
+  transition:var(--transition);
+}
+.nav-wrapper.is-sticky .masthead-card{
+  box-shadow:0 30px 60px rgba(15,23,42,.6);
+  border-color:rgba(148,163,184,0.28);
+}
+.app-header{
+  padding:18px 24px;
+  display:flex;
+  flex-direction:column;
   gap:14px;
+  background:transparent;
+  border:none;
+  box-shadow:none;
+}
+.masthead-divider{
+  height:1px;
+  background:rgba(148,163,184,0.18);
+  margin:0 24px;
+}
+.masthead-nav{
+  padding:16px 24px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  background:rgba(148,163,184,0.04);
+}
+.inline-strip{
+  border-top:1px solid rgba(148,163,184,0.18);
+  background:rgba(148,163,184,0.08);
+  padding:10px 24px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 .header-meta{
   display:flex;
@@ -2973,6 +3026,15 @@ a{color:inherit;}
   font-size:2rem;
   margin:0;
   line-height:1.2;
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+}
+.branding .version-tag{
+  font-size:1rem;
+  font-weight:600;
+  color:var(--text-muted);
 }
 .header-actions{
   display:flex;
@@ -3089,21 +3151,6 @@ a{color:inherit;}
   gap:24px;
   flex:1;
 }
-.nav-wrapper{
-  position:sticky;
-  top:0;
-  z-index:90;
-  transition:var(--transition);
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  padding:6px 0 10px;
-}
-.nav-wrapper.is-sticky{
-  background:rgba(11,17,32,0.92);
-  backdrop-filter:blur(18px);
-  padding:10px 0 12px;
-}
 .primary-nav{
   display:flex;
   flex-wrap:nowrap;
@@ -3191,21 +3238,30 @@ a{color:inherit;}
   box-shadow:0 25px 60px rgba(15,23,42,.45);
 }
 .inline-message{
-  min-height:30px;
+  min-height:24px;
   margin:0;
-  padding:8px 14px;
-  border-radius:12px;
+  padding:6px 18px;
+  border-radius:999px;
   border:1px solid transparent;
-  background:rgba(148,163,184,0.08);
+  background:transparent;
   color:var(--text-muted);
   font-size:.9rem;
-  display:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0;
+  visibility:hidden;
+  transition:var(--transition);
 }
-.nav-wrapper .inline-message{
-  border:1px solid rgba(148,163,184,0.18);
+.inline-strip .inline-message{
+  border-color:rgba(148,163,184,0.14);
+}
+.inline-message.show{
+  opacity:1;
+  visibility:visible;
   background:rgba(148,163,184,0.14);
+  border-color:rgba(148,163,184,0.18);
 }
-.inline-message.show{display:block;}
 .inline-message.success{
   border-color:rgba(34,197,94,.45);
   background:rgba(34,197,94,.12);
@@ -3497,10 +3553,13 @@ a{color:inherit;}
   chunk += "<div id='updateIndicator' class='update-indicator'>";
   chunk += updateLabel;
   chunk += "</div>";
+  chunk += "<div class='app-body'>";
+  chunk += "<div class='nav-wrapper'>";
+  chunk += "<div class='masthead-card'>";
   chunk += "<header class='app-header'>";
   chunk += "<div class='header-meta'>";
-  chunk += "<div class='branding'><span class='subtitle' data-i18n='title'>" + String(T().title) + "</span>";
-  chunk += "<h1 id='main-title'>" + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1></div>";
+  // --- [NEW FEATURE] Bandeau sticky unifié ---
+  chunk += "<div class='branding'><h1 id='main-title'><span class='title-text' data-i18n='title'>" + String(T().title) + "</span><span class='version-tag'>" + String(T().version) + String(DIAGNOSTIC_VERSION) + "</span></h1></div>";
   chunk += "<div class='header-actions'>";
   chunk += "<div class='lang-switcher' role='group' aria-label='Langue'>";
   chunk += "<button type='button' class='lang-btn " + String(currentLanguage == LANG_FR ? "active" : "") + "' data-lang='fr' onclick='changeLang(\"fr\",this)'>FR</button>";
@@ -3521,8 +3580,8 @@ a{color:inherit;}
   chunk += "<span class='status-value'><a href='" + accessUrl + "' target='_blank' rel='noopener'>" + accessUrlEscaped + "</a><span class='separator'>•</span><span id='ipAddressDisplay'>" + ipDisplayEscaped + "</span></span></div>";
   chunk += "</div>";
   chunk += "</header>";
-  chunk += "<div class='app-body'>";
-  chunk += "<div class='nav-wrapper'>";
+  chunk += "<div class='masthead-divider' role='presentation'></div>";
+  chunk += "<div class='masthead-nav'>";
   chunk += "<nav class='primary-nav' data-role='nav'>";
   chunk += "<a href='#overview' class='nav-link active' data-target='overview' onclick=\"return showTab('overview',this);\"><span class='label' data-i18n='nav_overview'>" + String(T().nav_overview) + "</span><span class='icon'>🏠</span></a>";
   chunk += "<a href='#leds' class='nav-link' data-target='leds' onclick=\"return showTab('leds',this);\"><span class='label' data-i18n='nav_leds'>" + String(T().nav_leds) + "</span><span class='icon'>💡</span></a>";
@@ -3544,8 +3603,9 @@ a{color:inherit;}
   chunk += "<option value='benchmark' data-i18n='nav_benchmark'>" + String(T().nav_benchmark) + "</option>";
   chunk += "<option value='export' data-i18n='nav_export'>" + String(T().nav_export) + "</option>";
   chunk += "</select></div>";
-  chunk += "<div id='inlineMessage' class='inline-message' role='status' aria-live='polite'></div>";
   chunk += "</div>";
+  chunk += "<div class='inline-strip'><div id='inlineMessage' class='inline-message' role='status' aria-live='polite'></div></div>";
+  chunk += "</div></div>";
   chunk += "<main class='app-main'>";
   chunk += "<div id='tabContainer' class='tab-container'>";
   server.sendContent(chunk);
@@ -3731,12 +3791,6 @@ a{color:inherit;}
   chunk += "<div id='adc-status' class='status-live'>" + adcTestResult + "</div>";
   chunk += "</div><div id='adc-results' class='info-grid'></div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().touch_test) + "</h2><p class='section-description' data-i18n='touch_desc'>" + String(T().touch_desc) + "</p>";
-  chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='testTouch()'>" + String(T().test) + "</button>";
-  chunk += "<div id='touch-status' class='status-live'>" + touchTestResult + "</div>";
-  chunk += "</div><div id='touch-results' class='info-grid'></div></div>";
-  
   chunk += "<div class='section'><h2>" + String(T().pwm_test) + "</h2><p class='section-description' data-i18n='pwm_desc'>" + String(T().pwm_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testPWM()'>" + String(T().test) + "</button>";
@@ -3880,7 +3934,8 @@ a{color:inherit;}
 
   chunk += "function updateTranslations(showNotice){";
   chunk += "fetch('/api/get-translations').then(function(r){return r.json();}).then(function(tr){";
-  chunk += "var mainTitle=document.getElementById('main-title');if(mainTitle){mainTitle.textContent=tr.title+' v" + String(DIAGNOSTIC_VERSION) + "';}";
+  // --- [NEW FEATURE] Mise à jour version bandeau unifié ---
+  chunk += "var mainTitle=document.getElementById('main-title');if(mainTitle){var versionSpan=mainTitle.querySelector('.version-tag');if(versionSpan){var versionLabel=(tr.version||'v');versionSpan.textContent=versionLabel+'" + String(DIAGNOSTIC_VERSION) + "';}}";
   chunk += "var nodes=document.querySelectorAll('[data-i18n]');";
   chunk += "for(var i=0;i<nodes.length;i++){var key=nodes[i].getAttribute('data-i18n');if(tr[key]){nodes[i].textContent=tr[key];}}";
   chunk += "if(tr.nav_select_label){var navLabel=document.querySelector('label[for=\\'navSelector\\']');if(navLabel){navLabel.textContent=tr.nav_select_label;}if(navDropdown){navDropdown.setAttribute('aria-label',tr.nav_select_label);}}";
@@ -3898,8 +3953,9 @@ a{color:inherit;}
 
   chunk += "function findNavTrigger(el){while(el&&el.classList&&!el.classList.contains('nav-link')){el=el.parentElement;}if(el&&el.classList&&el.classList.contains('nav-link')){return el;}return null;}";
   chunk += "function showTab(tabId,trigger,updateHash){if(!tabId){return false;}if(tabId==='wifi'){tabId='wireless';}clearInlineMessage();var tabs=document.querySelectorAll('.tab-content');for(var i=0;i<tabs.length;i++){tabs[i].classList.remove('active');}var target=document.getElementById(tabId);if(target){target.classList.add('active');var main=document.querySelector('.app-main');if(main){var nav=document.querySelector('.nav-wrapper');var top=main.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop||0);var adjust=nav?nav.offsetHeight:0;var destination=top-adjust-8;if(destination<0){destination=0;}window.scrollTo(0,destination);}else if(typeof target.scrollIntoView==='function'){target.scrollIntoView(true);}}var buttons=document.querySelectorAll('.nav-link');for(var j=0;j<buttons.length;j++){buttons[j].classList.remove('active');buttons[j].removeAttribute('aria-current');}var actual=trigger;if(!actual||!actual.classList){var selector=\".nav-link[data-target='\"+tabId+\"']\";actual=document.querySelector(selector);}if(actual&&actual.classList){actual.classList.add('active');actual.setAttribute('aria-current','page');}if(navDropdown&&navDropdown.value!==tabId){navDropdown.value=tabId;}if(updateHash!==false){if(window.location.hash!=='#'+tabId){ignoreHashChange=true;window.location.hash=tabId;setTimeout(function(){ignoreHashChange=false;},0);}}return false;}";
-  chunk += "function initStickyNav(){var wrapper=document.querySelector('.nav-wrapper');if(!wrapper||wrapper.getAttribute('data-sticky-init')==='1'){return;}wrapper.setAttribute('data-sticky-init','1');var header=document.querySelector('.app-header');var apply=function(state){if(state){wrapper.classList.add('is-sticky');}else{wrapper.classList.remove('is-sticky');}};";
-  chunk += "if('IntersectionObserver' in window&&header){var observer=new IntersectionObserver(function(entries){for(var i=0;i<entries.length;i++){if(entries[i].target===header){apply(!entries[i].isIntersecting);}}},{threshold:0,rootMargin:'-1px 0px 0px 0px'});observer.observe(header);}else{var last=false;window.addEventListener('scroll',function(){var offset=window.pageYOffset||document.documentElement.scrollTop||0;var limit=header?header.offsetHeight:220;var state=offset>limit;if(state!==last){last=state;apply(state);}});} }";
+  chunk += "function initStickyNav(){var wrapper=document.querySelector('.nav-wrapper');if(!wrapper||wrapper.getAttribute('data-sticky-init')==='1'){return;}wrapper.setAttribute('data-sticky-init','1');var apply=function(state){if(state){wrapper.classList.add('is-sticky');}else{wrapper.classList.remove('is-sticky');}};";
+  chunk += "var computeThreshold=function(){var rect=wrapper.getBoundingClientRect();var scrollTop=window.pageYOffset||document.documentElement.scrollTop||0;var stickyOffset=parseInt(window.getComputedStyle(wrapper).top,10)||0;return rect.top+scrollTop-stickyOffset;};var threshold=computeThreshold();";
+  chunk += "var onScroll=function(){var scroll=window.pageYOffset||document.documentElement.scrollTop||0;var state=scroll>=threshold;apply(state);};window.addEventListener('scroll',onScroll);window.addEventListener('resize',function(){threshold=computeThreshold();onScroll();});onScroll();}";
   chunk += "function initNavigation(){var navs=document.querySelectorAll('.primary-nav');if(navs&&navs.length){for(var n=0;n<navs.length;n++){(function(nav){nav.addEventListener('click',function(evt){var source=evt.target||evt.srcElement;var button=findNavTrigger(source);if(!button){return;}evt.preventDefault();var targetTab=button.getAttribute('data-target');if(targetTab){showTab(targetTab,button);}});})(navs[n]);}}var select=document.getElementById('navSelector');navDropdown=select;if(select){select.addEventListener('change',function(evt){var value=evt.target.value;if(value){showTab(value,null);}});}var initial=window.location.hash?window.location.hash.substring(1):null;var defaultButton=document.querySelector('.nav-link.active');if(initial==='wifi'){initial='wireless';}if(!initial&&defaultButton){initial=defaultButton.getAttribute('data-target');}if(!initial){var list=document.querySelectorAll('.nav-link');if(list.length>0){initial=list[0].getAttribute('data-target');defaultButton=list[0];}}var initialButton=null;if(initial){initialButton=document.querySelector(\".nav-link[data-target='\"+initial+\"']\");}if(initial){showTab(initial,initialButton,false);}else{showTab('overview',null,false);}initStickyNav();updateStatusIndicator(connectionState);refreshBluetoothStatus(false);}";
   chunk += "window.addEventListener('hashchange',function(){if(ignoreHashChange){return;}var target=window.location.hash?window.location.hash.substring(1):'overview';if(target==='wifi'){target='wireless';}showTab(target,null,false);});";
   chunk += "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initNavigation);}else{initNavigation();}";
@@ -3921,7 +3977,6 @@ a{color:inherit;}
   chunk += "function configOLED(){updateStatus('oled-status','Reconfiguration...',null);var params='sda='+document.getElementById('oledSDA').value+'&scl='+document.getElementById('oledSCL').value+'&rotation='+document.getElementById('oledRotation').value;fetch('/api/oled-config?'+params).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';updateStatus('oled-status',d.message||'Configuration invalide',state);if(d.success&&typeof d.sda!=='undefined'){document.getElementById('oledSDA').value=d.sda;}if(d.success){var pins=document.getElementById('oled-pins');if(pins){pins.textContent='SDA:'+d.sda+' SCL:'+d.scl;}}if(d.success){var rotDisplay=document.getElementById('oled-rotation-display');if(rotDisplay){rotDisplay.textContent=d.rotation;}}}).catch(function(e){updateStatus('oled-status','Erreur: '+e,'error');});}";
 
   chunk += "function testADC(){document.getElementById('adc-status').innerHTML='Test...';fetch('/api/adc-test').then(function(r){return r.json();}).then(function(data){var h='';if(data.readings&&data.readings.forEach){data.readings.forEach(function(a){h+='<div class=\"info-item\"><div class=\"info-label\">GPIO '+a.pin+'</div><div class=\"info-value\">'+a.raw+' ('+a.voltage.toFixed(2)+'V)</div></div>';});}document.getElementById('adc-results').innerHTML=h;document.getElementById('adc-status').innerHTML=data.result;});}";
-  chunk += "function testTouch(){document.getElementById('touch-status').innerHTML='Test...';fetch('/api/touch-test').then(function(r){return r.json();}).then(function(data){var h='';if(data.readings&&data.readings.forEach){data.readings.forEach(function(t){h+='<div class=\"info-item\"><div class=\"info-label\">Touch'+t.pin+'</div><div class=\"info-value\">'+t.value+'</div></div>';});}document.getElementById('touch-results').innerHTML=h;document.getElementById('touch-status').innerHTML=data.result;});}";
   chunk += "function testPWM(){document.getElementById('pwm-status').innerHTML='Test...';fetch('/api/pwm-test').then(function(r){return r.json();}).then(function(d){document.getElementById('pwm-status').innerHTML=d.result;});}";
   chunk += "function scanSPI(){document.getElementById('spi-status').innerHTML='Scan...';fetch('/api/spi-scan').then(function(r){return r.json();}).then(function(d){document.getElementById('spi-status').innerHTML=d.info;});}";
   chunk += "function listPartitions(){document.getElementById('partitions-results').innerHTML='Scan...';fetch('/api/partitions-list').then(function(r){return r.json();}).then(function(d){document.getElementById('partitions-results').innerHTML=d.partitions;});}";
