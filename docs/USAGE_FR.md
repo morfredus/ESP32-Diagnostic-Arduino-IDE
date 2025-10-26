@@ -20,7 +20,7 @@ Le tableau de bord est organisé en onglets :
 - **Performance** – historique des benchmarks et métriques temps réel.
 - **Export** – téléchargement des rapports TXT/JSON/CSV ou ouverture de la vue imprimable.
 
-La version 3.1.16 conserve le bandeau sticky, les statuts Bluetooth et l'intitulé accentué « Non testé » synchronisés entre interface, API REST et exports.
+La version 3.1.18 conserve le bandeau sticky et les statuts Bluetooth alignés tout en imposant les nouvelles réponses explicites de `/api/set-language` et l'intitulé accentué « Non testé » sur l'interface, l'API REST et les exports.
 
 La barre de navigation s'adapte aux mobiles et conserve l'onglet actif.
 
