@@ -1,3 +1,4 @@
+// Version de dev : 3.2.11-dev - Bandeau d'accès compact et lien IP unique
 // Version de dev : 3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi
 // Version de dev : 3.2.09-dev - Restauration complète de mDNS sur ESP32-S3
 // Version de dev : 3.2.08-dev - Correction de l'initialisation WiFi pour mDNS
@@ -11,6 +12,7 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.11-dev - Bandeau d'accès compact et lien IP unique
 // Version de dev : 3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi
 // Version de dev : 3.2.09-dev - Restauration complète de mDNS sur ESP32-S3
 // Version de dev : 3.2.08-dev - Correction de l'initialisation WiFi pour mDNS
@@ -163,7 +165,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.10-dev"
+#define DIAGNOSTIC_VERSION "3.2.11-dev"
 // --- [NEW FEATURE] Lien d'accès constant via nom d'hôte ---
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1

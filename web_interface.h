@@ -43,10 +43,12 @@ String generateHTML() {
   html += ".container{max-width:1400px;margin:0 auto;background:#fff;border-radius:20px;";
   html += "box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}";
   html += ".header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);";
-  html += "color:#fff;padding:30px;text-align:center;position:relative}";
-  html += ".header h1{font-size:2.5em;margin-bottom:10px;animation:fadeIn 0.5s}";
+  html += "color:#fff;padding:24px 18px 18px;text-align:center;position:relative}";
+  html += ".header h1{font-size:2.2em;margin-bottom:6px;animation:fadeIn 0.5s}";
+  html += ".header a{transition:opacity .2s}";
+  html += ".header a.disabled{opacity:.6;pointer-events:none}";
   html += "@keyframes fadeIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}";
-  html += ".lang-switcher{position:absolute;top:20px;right:20px;display:flex;gap:5px}";
+  html += ".lang-switcher{position:absolute;top:16px;right:16px;display:flex;gap:5px}";
   html += ".lang-btn{padding:8px 15px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);";
   html += "border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
   html += ".lang-btn:hover{background:rgba(255,255,255,.3)}";
@@ -56,7 +58,7 @@ String generateHTML() {
   html += ".status-online{background:#0f0;box-shadow:0 0 10px #0f0}";
   html += ".status-offline{background:#f00;box-shadow:0 0 10px #f00}";
   html += "@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}";
-  html += ".nav{display:flex;justify-content:center;gap:10px;margin-top:20px;flex-wrap:wrap}";
+  html += ".nav{display:flex;justify-content:center;gap:10px;margin-top:16px;flex-wrap:wrap}";
   html += ".nav-btn{padding:10px 20px;background:rgba(255,255,255,.2);border:none;";
   html += "border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
   html += ".nav-btn:hover{background:rgba(255,255,255,.3);transform:translateY(-2px)}";
@@ -149,17 +151,28 @@ String generateHTML() {
   html += "Diagnostic ESP32 v";
   html += DIAGNOSTIC_VERSION_STR;
   html += "</h1>";
-  html += "<div style='font-size:1.2em;margin:10px 0' id='chipModel'>";
+  html += "<div style='font-size:1.2em;margin:6px 0' id='chipModel'>";
   html += diagnosticData.chipModel;
   html += "</div>";
-  html += "<div style='font-size:.9em;opacity:.9;margin:10px 0'>";
+  // --- [BUGFIX] Lien IP unique cliquable et bandeau allégé ---
+  bool ipAvailable = diagnosticData.ipAddress.length() > 0;
+  String ipAccessHref = ipAvailable ? ("http://" + diagnosticData.ipAddress) : String("#");
+  String ipAccessClass = String("access-link");
+  if (!ipAvailable) {
+    ipAccessClass += " disabled";
+  }
+  html += "<div style='font-size:.9em;opacity:.9;margin:6px 0'>";
   html += "Accès: <a href='http://";
   html += MDNS_HOSTNAME_STR;
   html += ".local' style='color:#fff;text-decoration:underline'><strong>http://";
   html += MDNS_HOSTNAME_STR;
-  html += ".local</strong></a> ou <strong id='ipAddress'>";
+  html += ".local</strong></a> ou <a id='ipAddressLink' class='";
+  html += ipAccessClass;
+  html += "' href='";
+  html += ipAccessHref;
+  html += "' style='color:#fff;text-decoration:underline'><strong id='ipAddress'>";
   html += diagnosticData.ipAddress;
-  html += "</strong></div>";
+  html += "</strong></a></div>";
   html += "<div class='nav'>";
   html += "<button type='button' class='nav-btn active' data-tab='overview' onclick=\"showTab('overview',this);\">Vue d'ensemble</button>";
   html += "<button type='button' class='nav-btn' data-tab='leds' onclick=\"showTab('leds',this);\">LEDs</button>";
@@ -229,8 +242,14 @@ String generateJavaScript() {
   // Update functions
   js += "async function updateSystemInfo(){";
   js += "const r=await fetch('/api/system-info');const d=await r.json();";
-  js += "document.getElementById('chipModel').textContent=d.chipModel;";
-  js += "document.getElementById('ipAddress').textContent=d.ipAddress;";
+  // --- [BUGFIX] Synchronisation du lien IP dynamique ---
+  js += "const chipModelEl=document.getElementById('chipModel');";
+  js += "if(chipModelEl){chipModelEl.textContent=d.chipModel||'';}";
+  js += "const ipLabel=document.getElementById('ipAddress');";
+  js += "const ipLink=document.getElementById('ipAddressLink');";
+  js += "const hasIp=d.ipAddress&&d.ipAddress.length;";
+  js += "if(ipLabel){ipLabel.textContent=hasIp?d.ipAddress:'';}";
+  js += "if(ipLink){ipLink.href=hasIp?'http://'+d.ipAddress:'#';ipLink.setAttribute('aria-disabled',hasIp?'false':'true');ipLink.classList.toggle('disabled',!hasIp);}";
   js += "}";
   js += "async function updateMemoryInfo(){await fetch('/api/memory');}";
   js += "async function updateWiFiInfo(){await fetch('/api/wifi-info');}";
