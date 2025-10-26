@@ -1,4 +1,4 @@
-// Version de dev : 3.2.06-dev - Restauration mDNS fiable et lien d'accès constant
+// Version de dev : 3.2.07-dev - Compatibilité mDNS multi-environnements
 /*
  * ESP32 Diagnostic Suite v3.2.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
@@ -8,6 +8,7 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.07-dev - Compatibilité mDNS multi-environnements
 // Version de dev : 3.2.06-dev - Restauration mDNS fiable et lien d'accès constant
 // Version de dev : 3.2.05-dev - Suppression du service mDNS instable
 // Version de dev : 3.2.04-dev - Reconstruction du serveur mDNS
@@ -26,6 +27,29 @@
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <WebServer.h>
+#if defined(__has_include)
+  #if __has_include(<ESPmDNS.h>)
+    #include <ESPmDNS.h>
+    #define DIAGNOSTIC_HAS_MDNS 1
+  #else
+    #define DIAGNOSTIC_HAS_MDNS 0
+  #endif
+#else
+  #include <ESPmDNS.h>
+  #define DIAGNOSTIC_HAS_MDNS 1
+#endif
+#if !defined(DIAGNOSTIC_HAS_MDNS)
+  #define DIAGNOSTIC_HAS_MDNS 1
+#endif
+#if DIAGNOSTIC_HAS_MDNS
+  #if defined(NO_GLOBAL_MDNS) || defined(NO_GLOBAL_INSTANCES)
+    // --- [NEW FEATURE] Instance mDNS dédiée pour compatibilité ---
+    static MDNSResponder diagnosticMDNSResponder;
+    #define DIAGNOSTIC_MDNS_SERVER diagnosticMDNSResponder
+  #else
+    #define DIAGNOSTIC_MDNS_SERVER MDNS
+  #endif
+#endif
 #include <esp_chip_info.h>
 #include <esp_mac.h>
 #include <esp_flash.h>
@@ -106,7 +130,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.06-dev"
+#define DIAGNOSTIC_VERSION "3.2.07-dev"
 // --- [NEW FEATURE] Lien d'accès constant via nom d'hôte ---
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
@@ -141,11 +165,13 @@ uint8_t oledRotation = 0;
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
 WiFiMulti wifiMulti;
+#if DIAGNOSTIC_HAS_MDNS
 // --- [NEW FEATURE] Gestion mDNS fiable ---
 bool mdnsServiceActive = false;
 bool wifiPreviouslyConnected = false;
 unsigned long lastMDNSAttempt = 0;
 bool mdnsLastAttemptFailed = false;
+#endif
 #if BLE_STACK_SUPPORTED
 BLEServer* bluetoothServer = nullptr;
 BLEService* bluetoothService = nullptr;
@@ -344,19 +370,24 @@ String getStableAccessURL() {
 }
 
 void stopMDNSService(const char* reason) {
+#if DIAGNOSTIC_HAS_MDNS
   if (!mdnsServiceActive) {
     return;
   }
-  MDNS.end();
+  DIAGNOSTIC_MDNS_SERVER.end();
   mdnsServiceActive = false;
   if (reason != nullptr) {
     Serial.printf("[mDNS] Service arrêté (%s)\r\n", reason);
   } else {
     Serial.println("[mDNS] Service arrêté");
   }
+#else
+  (void) reason;
+#endif
 }
 
 bool startMDNSService(bool verbose) {
+#if DIAGNOSTIC_HAS_MDNS
   if (!WiFi.isConnected()) {
     return false;
   }
@@ -370,7 +401,7 @@ bool startMDNSService(bool verbose) {
   }
 
   lastMDNSAttempt = now;
-  if (!MDNS.begin(DIAGNOSTIC_HOSTNAME)) {
+  if (!DIAGNOSTIC_MDNS_SERVER.begin(DIAGNOSTIC_HOSTNAME)) {
     if (verbose || !mdnsLastAttemptFailed) {
       Serial.println("[mDNS] Échec du démarrage - nouvel essai dans 5s");
     }
@@ -378,14 +409,19 @@ bool startMDNSService(bool verbose) {
     return false;
   }
 
-  MDNS.addService("http", "tcp", 80);
+  DIAGNOSTIC_MDNS_SERVER.addService("http", "tcp", 80);
   mdnsServiceActive = true;
   mdnsLastAttemptFailed = false;
   Serial.printf("[mDNS] Service actif sur %s\r\n", getStableAccessURL().c_str());
   return true;
+#else
+  (void) verbose;
+  return false;
+#endif
 }
 
 void maintainNetworkServices() {
+#if DIAGNOSTIC_HAS_MDNS
   bool wifiConnectedNow = (WiFi.status() == WL_CONNECTED);
   if (wifiConnectedNow) {
     if (!wifiPreviouslyConnected) {
@@ -397,6 +433,7 @@ void maintainNetworkServices() {
     stopMDNSService("WiFi déconnecté");
   }
   wifiPreviouslyConnected = wifiConnectedNow;
+#endif
 }
 
 // ========== DÉTECTION MODÈLE ==========
@@ -1671,7 +1708,11 @@ void collectDiagnosticInfo() {
     diagnosticData.wifiSSID = WiFi.SSID();
     diagnosticData.wifiRSSI = WiFi.RSSI();
     diagnosticData.ipAddress = WiFi.localIP().toString();
+#if DIAGNOSTIC_HAS_MDNS
     diagnosticData.mdnsAvailable = mdnsServiceActive;
+#else
+    diagnosticData.mdnsAvailable = false;
+#endif
   } else {
     diagnosticData.wifiSSID = "";
     diagnosticData.wifiRSSI = -127;
@@ -4263,10 +4304,12 @@ void setup() {
 void loop() {
   server.handleClient();
   maintainNetworkServices();
+#if DIAGNOSTIC_HAS_MDNS
   if (mdnsServiceActive) {
     // --- [NEW FEATURE] Maintenance mDNS continue ---
-    MDNS.update();
+    DIAGNOSTIC_MDNS_SERVER.update();
   }
+#endif
 
   static unsigned long lastUpdate = 0;
   if (millis() - lastUpdate > 30000) {
