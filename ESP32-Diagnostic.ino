@@ -26,7 +26,6 @@
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <WebServer.h>
-#include <ESPmDNS.h>
 #include <esp_chip_info.h>
 #include <esp_mac.h>
 #include <esp_flash.h>
