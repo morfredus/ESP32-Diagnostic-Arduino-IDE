@@ -6,13 +6,13 @@
 - Assurez-vous qu'aucune autre application n'occupe la pile BLE (redémarrez la carte).
 
 ## Le changement de langue n'a aucun effet
-- Assurez-vous d'exécuter le firmware 3.2.0 afin que `/api/set-language` conserve les succès explicites (FR/EN) et un HTTP 400 pour les codes non pris en charge tout en respectant le changelog bilingue.
+- Assurez-vous d'exécuter le firmware 3.2.22-dev afin que `/api/set-language` conserve les succès explicites (FR/EN) et un HTTP 400 pour les codes non pris en charge tout en respectant le changelog de maintenance consolidé.
 - Vérifiez que `languages.h` est présent à côté du sketch et compilé correctement.
 - Videz le cache du navigateur (Ctrl+F5) pour recharger les traductions.
 - Contrôlez que `/api/get-translations` renvoie HTTP 200 via la console ou un client REST.
 
 ## Les diagnostics additionnels affichent « Non teste » sans accent
-- Passez en version 3.2.0 (ou toute maintenance 3.x ultérieure) pour conserver l'intitulé « Non testé » et les traductions du bandeau sticky alignées sur la documentation bilingue.
+- Passez en version 3.2.22-dev (ou toute maintenance 3.x ultérieure) pour conserver l'intitulé « Non testé » et les traductions du bandeau sticky alignées sur la documentation bilingue mise à jour.
 - Rafraîchissez le tableau de bord (Ctrl+F5) afin de recharger les traductions mises à jour.
 
 ## L'écran OLED reste noir
@@ -26,7 +26,7 @@
 - Rapprochez la carte du point d'accès ou testez un SSID 2,4 GHz.
 
 ## Alertes de fragmentation mémoire dans les exports
-- Appelez `/api/memory-details` et analysez le pourcentage de `fragmentation` ainsi que les drapeaux PSRAM décrits pour la 3.2.0.
+- Appelez `/api/memory-details` et analysez le pourcentage de `fragmentation` ainsi que les drapeaux PSRAM validés jusqu'en 3.2.22-dev.
 - Activez la PSRAM sur les cartes ESP32-S3 afin de garder le drapeau `psramAvailable` cohérent avec la documentation.
 - Si la fragmentation reste au-dessus de 20 %, redémarrez la carte puis relancez les diagnostics pour purger l'usage temporaire de la heap.
 
