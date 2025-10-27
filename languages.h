@@ -278,6 +278,32 @@ struct Translations {
   const char* deepsleep_exit;
   const char* brownout;
   const char* other;
+
+  // Messages d'interface
+  const char* updating;
+  const char* online;
+  const char* offline;
+  const char* check_network;
+  const char* language_updated;
+  const char* language_switch_error;
+  const char* translation_error;
+  const char* bluetooth_invalid_name;
+  const char* bluetooth_enabling;
+  const char* bluetooth_disabling;
+  const char* bluetooth_updating;
+  const char* bluetooth_resetting;
+  const char* loading;
+  const char* configuring;
+  const char* reconfiguring;
+  const char* transmission;
+  const char* error_label;
+  const char* test_failed;
+  const char* gpio_summary_template;
+  const char* wifi_networks_found;
+  const char* i2c_scan_result;
+  const char* gpio_invalid;
+  const char* configuration_invalid;
+  const char* oled_test_running;
 };
 
 // Traductions françaises
@@ -546,7 +572,31 @@ const Translations LANG_FR_TEXTS = {
   "Reset logiciel",
   "Sortie de deep sleep",
   "Brownout",
-  "Autre"
+  "Autre",
+  "Mise à jour...",
+  "En ligne",
+  "Hors ligne",
+  "Vérifiez le réseau.",
+  "Langue mise à jour",
+  "Erreur changement langue",
+  "Erreur traduction",
+  "Nom Bluetooth invalide",
+  "Activation...",
+  "Désactivation...",
+  "Mise à jour...",
+  "Réinitialisation...",
+  "Chargement...",
+  "Configuration...",
+  "Reconfiguration...",
+  "Transmission...",
+  "Erreur",
+  "Test en échec",
+  "Terminé - %COUNT% GPIO testés",
+  "%COUNT% réseaux détectés",
+  "I2C : %COUNT% périphérique(s)",
+  "GPIO invalide",
+  "Configuration invalide",
+  "Test en cours (25s)..."
 };
 
 // Traductions anglaises
@@ -815,7 +865,31 @@ const Translations LANG_EN_TEXTS = {
   "Software reset",
   "Deep sleep exit",
   "Brownout",
-  "Other"
+  "Other",
+  "Updating...",
+  "Online",
+  "Offline",
+  "Check the network.",
+  "Language updated",
+  "Language switch error",
+  "Translation error",
+  "Invalid Bluetooth name",
+  "Enabling...",
+  "Disabling...",
+  "Updating...",
+  "Resetting...",
+  "Loading...",
+  "Configuring...",
+  "Reconfiguring...",
+  "Transmitting...",
+  "Error",
+  "Test failed",
+  "Done - %COUNT% GPIO tested",
+  "%COUNT% networks found",
+  "I2C: %COUNT% device(s)",
+  "Invalid GPIO",
+  "Invalid configuration",
+  "Testing (25s)..."
 };
 
 // Fonction pour obtenir le texte traduit
