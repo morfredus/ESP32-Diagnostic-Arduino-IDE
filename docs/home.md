@@ -1,49 +1,54 @@
-# ESP32 Diagnostic Suite – Accueil (v3.2.0)
+# ESP32 Diagnostic Suite – Wiki Home (v3.3.0)
 
-Bienvenue sur le wiki officiel de la version 3.2.0 du firmware **ESP32 Diagnostic Suite**. Vous y trouverez un aperçu rapide des
-capacités de la plateforme, des nouveautés de cette itération et des liens directs vers les sections d'approfondissement.
+Welcome to the official wiki for firmware version **3.3.0**. This space centralises every guide, reference, and checklist required
+to operate, customise, and maintain the ESP32 Diagnostic Suite across multilingual teams.
 
-## 🚀 Objectif du projet
-- Fournir un tableau de bord web intégré pour inspecter et diagnostiquer les microcontrôleurs ESP32 (ESP32, ESP32-S2, ESP32-S3,
-  ESP32-C3, ESP32-C6, ESP32-H2).
-- Simplifier les campagnes de validation matérielle grâce à des tests automatisés couvrant les bus de communication, la mémoire,
-  le réseau et les périphériques optionnels.
-- Offrir une expérience multilingue (FR/EN) avec une documentation synchronisée entre firmware, wiki et guides PDF.
+## Table of contents
+- [Overview](OVERVIEW.md)
+- [Feature matrix](FEATURE_MATRIX.md)
+- [Diagnostic modules](DIAGNOSTIC_MODULES.md)
+- [Web interface guide](WEB_INTERFACE.md)
+- [REST API reference](API_REFERENCE.md)
+- [Build & deploy](BUILD_AND_DEPLOY.md)
+- [Security guidelines](SECURITY.md)
+- [FAQ](FAQ.md)
+- Core guides: [Installation](INSTALL.md), [Configuration](CONFIG.md), [Usage](USAGE.md), [Troubleshooting](TROUBLESHOOTING.md),
+  [Architecture](ARCHITECTURE.md), [Contributing](../CONTRIBUTING.md)
 
-## 🆕 Points forts de la version 3.2.0
-- Documentation enrichie de l'inspecteur mémoire (`/api/memory-details`) et suivi des alertes de fragmentation observées en QA.
-- Checklist Wi-Fi/Bluetooth® intégrée aux guides d'utilisation et de dépannage, directement issue des retours terrain.
-- Harmonisation complète du bandeau d'interface, du changelog et des exports pour garantir la cohérence firmware / documentation.
+## Release spotlight – 3.3.0
+- Streamlined firmware annotations to preserve the maintenance history while removing redundant banners.
+- Unified `DIAGNOSTIC_VERSION`, firmware header, and documentation on the 3.3.0 identifier for audit-ready exports.
+- Expanded the wiki with bilingual coverage of API usage, module internals, and deployment practices.
 
-## 🌐 Interface web & API
-- Bandeau principal indiquant l'état du Wi-Fi, l'adresse IP, le nom mDNS (`http://ESP32-Diagnostic.local`) et la version active.
-- Lancement manuel des diagnostics via boutons dédiés et surveillance en temps réel depuis le navigateur.
-- Exports disponibles en TXT, JSON, CSV et vue imprimable pour consigner les rapports de test.
-- Endpoints REST documentés permettant l'automatisation (ex. `/api/run-diagnostics`, `/api/memory-details`).
+## Quick start
+1. Follow the [installation guide](INSTALL.md) to set up the Arduino IDE, CLI, or PlatformIO toolchain.
+2. Configure Wi-Fi credentials, localisation, and optional modules via [CONFIG.md](CONFIG.md).
+3. Flash the firmware and open the embedded web dashboard at `http://esp32-diagnostic.local/`.
+4. Run a quick diagnostic, review the [diagnostic modules](DIAGNOSTIC_MODULES.md), and export reports.
 
-## 🔍 Modules de diagnostic inclus
-- **Connectivité :** scan Wi-Fi, état BLE (si pris en charge), vérification des identifiants multiples.
-- **Mémoire & stockage :** PSRAM, flash SPI, allocations dynamiques, fragmentation et usage heap.
-- **E/S & capteurs :** GPIO, ADC, pads tactiles, PWM, bus I2C & SPI avec profils configurables.
-- **Afficheurs & LED :** séquences OLED SSD1306 0,96" et animations NeoPixel/WS2812B.
+## Knowledge base map
+| Topic | English | Français |
+|-------|---------|----------|
+| Wiki home | [home.md](home.md) | [home_FR.md](home_FR.md) |
+| Overview | [OVERVIEW.md](OVERVIEW.md) | [OVERVIEW_FR.md](OVERVIEW_FR.md) |
+| Feature matrix | [FEATURE_MATRIX.md](FEATURE_MATRIX.md) | [FEATURE_MATRIX_FR.md](FEATURE_MATRIX_FR.md) |
+| Diagnostic modules | [DIAGNOSTIC_MODULES.md](DIAGNOSTIC_MODULES.md) | [DIAGNOSTIC_MODULES_FR.md](DIAGNOSTIC_MODULES_FR.md) |
+| Web interface | [WEB_INTERFACE.md](WEB_INTERFACE.md) | [WEB_INTERFACE_FR.md](WEB_INTERFACE_FR.md) |
+| REST API | [API_REFERENCE.md](API_REFERENCE.md) | [API_REFERENCE_FR.md](API_REFERENCE_FR.md) |
+| Build & deploy | [BUILD_AND_DEPLOY.md](BUILD_AND_DEPLOY.md) | [BUILD_AND_DEPLOY_FR.md](BUILD_AND_DEPLOY_FR.md) |
+| Security | [SECURITY.md](SECURITY.md) | [SECURITY_FR.md](SECURITY_FR.md) |
+| FAQ | [FAQ.md](FAQ.md) | [FAQ_FR.md](FAQ_FR.md) |
+| Installation | [INSTALL.md](INSTALL.md) | [INSTALL_FR.md](INSTALL_FR.md) |
+| Configuration | [CONFIG.md](CONFIG.md) | [CONFIG_FR.md](CONFIG_FR.md) |
+| Usage | [USAGE.md](USAGE.md) | [USAGE_FR.md](USAGE_FR.md) |
+| Troubleshooting | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | [TROUBLESHOOTING_FR.md](TROUBLESHOOTING_FR.md) |
+| Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) | [ARCHITECTURE_FR.md](ARCHITECTURE_FR.md) |
+| Contributing | [../CONTRIBUTING.md](../CONTRIBUTING.md) | [../CONTRIBUTING_FR.md](../CONTRIBUTING_FR.md) |
 
-## 🧰 Pré-requis et configuration
-- Arduino IDE 2.x (ou Arduino CLI) avec l'ESP32 Arduino Core **3.3.2**.
-- Bibliothèques recommandées : Adafruit GFX, Adafruit SSD1306, Adafruit NeoPixel, Adafruit BusIO.
-- Fichier `wifi-config.h` (ou `wifi-config-example.h`) à personnaliser pour stocker vos identifiants réseau.
+## Support & escalation
+- License: [MIT](../LICENSE)
+- Issue tracker: [GitHub Issues](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/issues)
+- Release history: [CHANGELOG.md](../CHANGELOG.md) / [CHANGELOG_FR.md](../CHANGELOG_FR.md)
+- Community contributions: Fork the repository and submit pull requests following the [contribution guide](../CONTRIBUTING.md).
 
-## 📚 Ressources complémentaires
-- [Guide d'installation](INSTALL.md)
-- [Configuration avancée](CONFIG.md)
-- [Guide d'utilisation](USAGE.md)
-- [Dépannage](TROUBLESHOOTING.md)
-- [Architecture interne](ARCHITECTURE.md)
-- [Contribuer au projet](../CONTRIBUTING.md)
-- [Journal des modifications complet](../CHANGELOG.md)
-
-## 🤝 Support & contributions
-- Licence : [MIT](../LICENSE)
-- Suivi des anomalies : [Issues GitHub](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/issues)
-- Propositions de correctifs : fork du dépôt, création de branche puis Pull Request en suivant le guide de contribution.
-
-Bonne exploration et diagnostics productifs !
+Happy diagnostics! If you maintain internal SOPs, link back to this wiki to ensure future teams stay aligned with the 3.3.0 release.

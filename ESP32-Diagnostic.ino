@@ -1,54 +1,50 @@
-// Version de dev : 3.2.20-dev - Correction de l'attribut data-i18n dans appendInfoItem
-// Version de dev : 3.2.19-dev - Correction de la collision tr() lors du changement de langue
-// Version de dev : 3.2.18-dev - Suppression du double échappement JS dynamique
-// Version de dev : 3.2.17-dev - Correction des chaînes JS des tests dynamiques
-// Version de dev : 3.2.16-dev - Localisation étendue des chaînes UI dynamiques
-// Version de dev : 3.2.15-dev - Réduction du gabarit HTML et allègement du sketch
-// Version de dev : 3.2.14-dev - Harmonisation des traductions UI dynamiques
-// Version de dev : 3.2.13-dev - Retrait final du doublon IP sur le bandeau legacy
-// Version de dev : 3.2.12-dev - Bandeau sans doublon IP
-// Version de dev : 3.2.11-dev - Bandeau d'accès compact et lien IP unique
-// Version de dev : 3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi
-// Version de dev : 3.2.09-dev - Restauration complète de mDNS sur ESP32-S3
-// Version de dev : 3.2.08-dev - Correction de l'initialisation WiFi pour mDNS
-// Version de dev : 3.2.07-dev - Compatibilité mDNS multi-environnements
 /*
- * ESP32 Diagnostic Suite v3.2.0
+ * ESP32 Diagnostic Suite v3.3.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  */
 
-// Journal de version
-// Version de dev : 3.2.20-dev - Correction de l'attribut data-i18n dans appendInfoItem
-// Version de dev : 3.2.19-dev - Correction de la collision tr() lors du changement de langue
-// Version de dev : 3.2.18-dev - Suppression du double échappement JS dynamique
-// Version de dev : 3.2.17-dev - Correction des chaînes JS des tests dynamiques
-// Version de dev : 3.2.16-dev - Localisation étendue des chaînes UI dynamiques
-// Version de dev : 3.2.15-dev - Réduction du gabarit HTML et allègement du sketch
-// Version de dev : 3.2.14-dev - Harmonisation des traductions UI dynamiques
-// Version de dev : 3.2.13-dev - Retrait final du doublon IP sur le bandeau legacy
-// Version de dev : 3.2.12-dev - Bandeau sans doublon IP
-// Version de dev : 3.2.11-dev - Bandeau d'accès compact et lien IP unique
-// Version de dev : 3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi
-// Version de dev : 3.2.09-dev - Restauration complète de mDNS sur ESP32-S3
-// Version de dev : 3.2.08-dev - Correction de l'initialisation WiFi pour mDNS
-// Version de dev : 3.2.07-dev - Compatibilité mDNS multi-environnements
-// Version de dev : 3.2.06-dev - Restauration mDNS fiable et lien d'accès constant
-// Version de dev : 3.2.05-dev - Suppression du service mDNS instable
-// Version de dev : 3.2.04-dev - Reconstruction du serveur mDNS
-// Version de dev : 3.2.02-dev - Ajustement du maintien mDNS sans appel update()
-// Version de dev : 3.2.01-dev - Correction de la publication mDNS
-// Version de dev : 3.2.0-doc - Consolidation des guides après la campagne de tests
-// Version de dev : 3.1.19-doc - Scission du changelog FR/EN et rafraîchissement de la documentation
-// Version de dev : 3.1.18-doc - Documentation 3.1.18 et durcissement du changement de langue
-// Version de dev : 3.1.17-maint - Nettoyage de commentaires superflus et renforcement de la sélection de langue
-// Version de dev : 3.1.16 - Bandeau sticky unifié et correctifs navigation/traductions
-// Version de dev : 3.1.15-maint - Harmonisation de la documentation et rappel des libellés par défaut
-// Version de dev : 3.1.14-maint - Corrections de messages d'état et amélioration de l'échappement HTML
-// Version de dev : 3.1.13-dev - Bandeau sticky unifié et retrait du test tactile des exports
-// Version de dev : 3.1.12-dev - Alignement du numéro de version dans le bandeau principal
+#if defined(__GNUC__)
+  #define DIAGNOSTIC_UNUSED __attribute__((unused))
+#else
+  #define DIAGNOSTIC_UNUSED
+#endif
+
+static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.2.21-maint - Nettoyage des bannières et consolidation de l'historique",
+  "3.2.20-dev - Correction de l'attribut data-i18n dans appendInfoItem",
+  "3.2.19-dev - Correction de la collision tr() lors du changement de langue",
+  "3.2.18-dev - Suppression du double échappement JS dynamique",
+  "3.2.17-dev - Correction des chaînes JS des tests dynamiques",
+  "3.2.16-dev - Localisation étendue des chaînes UI dynamiques",
+  "3.2.15-dev - Réduction du gabarit HTML et allègement du sketch",
+  "3.2.14-dev - Harmonisation des traductions UI dynamiques",
+  "3.2.13-dev - Retrait final du doublon IP sur le bandeau legacy",
+  "3.2.12-dev - Bandeau sans doublon IP",
+  "3.2.11-dev - Bandeau d'accès compact et lien IP unique",
+  "3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi",
+  "3.2.09-dev - Restauration complète de mDNS sur ESP32-S3",
+  "3.2.08-dev - Correction de l'initialisation WiFi pour mDNS",
+  "3.2.07-dev - Compatibilité mDNS multi-environnements",
+  "3.2.06-dev - Restauration mDNS fiable et lien d'accès constant",
+  "3.2.05-dev - Suppression du service mDNS instable",
+  "3.2.04-dev - Reconstruction du serveur mDNS",
+  "3.2.02-dev - Ajustement du maintien mDNS sans appel update()",
+  "3.2.01-dev - Correction de la publication mDNS",
+  "3.2.0-doc - Consolidation des guides après la campagne de tests",
+  "3.1.19-doc - Scission du changelog FR/EN et rafraîchissement de la documentation",
+  "3.1.18-doc - Documentation 3.1.18 et durcissement du changement de langue",
+  "3.1.17-maint - Nettoyage de commentaires superflus et renforcement de la sélection de langue",
+  "3.1.16 - Bandeau sticky unifié et correctifs navigation/traductions",
+  "3.1.15-maint - Harmonisation de la documentation et rappel des libellés par défaut",
+  "3.1.14-maint - Corrections de messages d'état et amélioration de l'échappement HTML",
+  "3.1.13-dev - Bandeau sticky unifié et retrait du test tactile des exports",
+  "3.1.12-dev - Alignement du numéro de version dans le bandeau principal"
+};
+
+#undef DIAGNOSTIC_UNUSED
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -82,7 +78,6 @@
 
 #if DIAGNOSTIC_HAS_MDNS && defined(DIAGNOSTIC_USES_ESPMDNS)
   #if defined(NO_GLOBAL_MDNS) || defined(NO_GLOBAL_INSTANCES)
-    // --- [NEW FEATURE] Instance mDNS dédiée pour compatibilité ---
     static MDNSResponder diagnosticMDNSResponder;
     #define DIAGNOSTIC_MDNS_SERVER diagnosticMDNSResponder
   #else
@@ -183,8 +178,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.20-dev"
-// --- [NEW FEATURE] Lien d'accès constant via nom d'hôte ---
+#define DIAGNOSTIC_VERSION "3.3.0"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -219,13 +213,11 @@ uint8_t oledRotation = 0;
 WebServer server(80);
 WiFiMulti wifiMulti;
 #if DIAGNOSTIC_HAS_MDNS
-// --- [NEW FEATURE] Gestion mDNS fiable ---
 bool mdnsServiceActive = false;
 bool wifiPreviouslyConnected = false;
 unsigned long lastMDNSAttempt = 0;
 bool mdnsLastAttemptFailed = false;
 #if defined(DIAGNOSTIC_USES_IDF_MDNS)
-// --- [NEW FEATURE] Compatibilité mDNS IDF native ---
 bool mdnsResponderInitialized = false;
 #endif
 #endif
@@ -421,12 +413,10 @@ float heapHistory[HISTORY_SIZE];
 float tempHistory[HISTORY_SIZE];
 int historyIndex = 0;
 
-// --- [NEW FEATURE] Services réseau résilients ---
 String getStableAccessURL() {
   return String("http://") + String(DIAGNOSTIC_HOSTNAME) + ".local";
 }
 
-// --- [NEW FEATURE] Pré-configuration proactive du nom d'hôte mDNS ---
 void configureNetworkHostname() {
   if (!WiFi.setHostname(DIAGNOSTIC_HOSTNAME)) {
     Serial.printf("[WiFi] Impossible de définir le nom d'hôte %s\r\n", DIAGNOSTIC_HOSTNAME);
@@ -461,7 +451,6 @@ void stopMDNSService(const char* reason) {
 #if defined(DIAGNOSTIC_USES_ESPMDNS)
   DIAGNOSTIC_MDNS_SERVER.end();
 #elif defined(DIAGNOSTIC_USES_IDF_MDNS)
-  // --- [NEW FEATURE] Extinction propre du service IDF ---
   if (mdnsResponderInitialized) {
     mdns_free();
     mdnsResponderInitialized = false;
@@ -504,7 +493,6 @@ bool startMDNSService(bool verbose) {
 
   DIAGNOSTIC_MDNS_SERVER.addService("http", "tcp", 80);
 #elif defined(DIAGNOSTIC_USES_IDF_MDNS)
-  // --- [NEW FEATURE] Démarrage mDNS via l'API ESP-IDF ---
   esp_err_t mdnsInitStatus = mdns_init();
   if (mdnsInitStatus != ESP_OK) {
     if (verbose || !mdnsLastAttemptFailed) {
@@ -2732,7 +2720,6 @@ String jsonEscape(const char* raw) {
   return escaped;
 }
 
-// --- [NEW FEATURE] Gabarits HTML compacts pour les blocs info ---
 static inline void appendInfoItem(String& chunk,
                                   const char* labelKey,
                                   const char* labelText,
@@ -3940,7 +3927,6 @@ a{color:inherit;}
   chunk += "<div class='masthead-card'>";
   chunk += "<header class='app-header'>";
   chunk += "<div class='header-meta'>";
-  // --- [NEW FEATURE] Bandeau sticky unifié ---
   chunk += "<div class='branding'><h1 id='main-title'><span class='title-text' data-i18n='title'>" + String(T().title) + "</span><span class='version-tag'>" + String(T().version) + String(DIAGNOSTIC_VERSION) + "</span></h1></div>";
   chunk += "<div class='header-actions'>";
   chunk += "<div class='lang-switcher' role='group' aria-label='Langue'>";
@@ -4494,7 +4480,6 @@ void setup() {
   WiFi.persistent(false);
 
   WiFi.setSleep(false);
-  // --- [NEW FEATURE] Assignation du nom d'hôte avant la connexion WiFi ---
   configureNetworkHostname();
 #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
   WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
@@ -4522,7 +4507,6 @@ void setup() {
     Serial.println("\r\n\r\nWiFi OK!");
     Serial.printf("SSID: %s\r\n", WiFi.SSID().c_str());
     Serial.printf("IP: %s\r\n\r\n", WiFi.localIP().toString().c_str());
-    // --- [NEW FEATURE] Activation du lien stable via mDNS ---
     if (startMDNSService(true)) {
       Serial.printf("[Accès] Lien constant : %s\r\n", getStableAccessURL().c_str());
     } else {
@@ -4632,7 +4616,6 @@ void loop() {
   maintainNetworkServices();
 #if DIAGNOSTIC_HAS_MDNS && defined(DIAGNOSTIC_USES_ESPMDNS)
   if (mdnsServiceActive) {
-    // --- [NEW FEATURE] Maintenance mDNS continue ---
     DIAGNOSTIC_MDNS_SERVER.update();
   }
 #endif
