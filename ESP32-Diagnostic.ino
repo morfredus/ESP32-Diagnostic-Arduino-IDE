@@ -1,3 +1,4 @@
+// Version de dev : 3.2.20-dev - Correction de l'attribut data-i18n dans appendInfoItem
 // Version de dev : 3.2.19-dev - Correction de la collision tr() lors du changement de langue
 // Version de dev : 3.2.18-dev - Suppression du double échappement JS dynamique
 // Version de dev : 3.2.17-dev - Correction des chaînes JS des tests dynamiques
@@ -20,6 +21,7 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.20-dev - Correction de l'attribut data-i18n dans appendInfoItem
 // Version de dev : 3.2.19-dev - Correction de la collision tr() lors du changement de langue
 // Version de dev : 3.2.18-dev - Suppression du double échappement JS dynamique
 // Version de dev : 3.2.17-dev - Correction des chaînes JS des tests dynamiques
@@ -181,7 +183,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.19-dev"
+#define DIAGNOSTIC_VERSION "3.2.20-dev"
 // --- [NEW FEATURE] Lien d'accès constant via nom d'hôte ---
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
@@ -2744,7 +2746,8 @@ static inline void appendInfoItem(String& chunk,
   }
   chunk += F("><div class='info-label");
   if (labelKey != nullptr && labelKey[0] != '\0') {
-    chunk += F("' data-i18n='");
+    // --- [FIX] Attribut data-i18n correctement concaténé ---
+    chunk += F(" data-i18n='");
     chunk += labelKey;
     chunk += F("'>");
   } else {
