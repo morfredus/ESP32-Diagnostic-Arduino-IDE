@@ -1,3 +1,15 @@
+// Version de dev : 3.2.18-dev - Suppression du double échappement JS dynamique
+// Version de dev : 3.2.17-dev - Correction des chaînes JS des tests dynamiques
+// Version de dev : 3.2.16-dev - Localisation étendue des chaînes UI dynamiques
+// Version de dev : 3.2.15-dev - Réduction du gabarit HTML et allègement du sketch
+// Version de dev : 3.2.14-dev - Harmonisation des traductions UI dynamiques
+// Version de dev : 3.2.13-dev - Retrait final du doublon IP sur le bandeau legacy
+// Version de dev : 3.2.12-dev - Bandeau sans doublon IP
+// Version de dev : 3.2.11-dev - Bandeau d'accès compact et lien IP unique
+// Version de dev : 3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi
+// Version de dev : 3.2.09-dev - Restauration complète de mDNS sur ESP32-S3
+// Version de dev : 3.2.08-dev - Correction de l'initialisation WiFi pour mDNS
+// Version de dev : 3.2.07-dev - Compatibilité mDNS multi-environnements
 /*
  * ESP32 Diagnostic Suite v3.2.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
@@ -7,6 +19,23 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.18-dev - Suppression du double échappement JS dynamique
+// Version de dev : 3.2.17-dev - Correction des chaînes JS des tests dynamiques
+// Version de dev : 3.2.16-dev - Localisation étendue des chaînes UI dynamiques
+// Version de dev : 3.2.15-dev - Réduction du gabarit HTML et allègement du sketch
+// Version de dev : 3.2.14-dev - Harmonisation des traductions UI dynamiques
+// Version de dev : 3.2.13-dev - Retrait final du doublon IP sur le bandeau legacy
+// Version de dev : 3.2.12-dev - Bandeau sans doublon IP
+// Version de dev : 3.2.11-dev - Bandeau d'accès compact et lien IP unique
+// Version de dev : 3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi
+// Version de dev : 3.2.09-dev - Restauration complète de mDNS sur ESP32-S3
+// Version de dev : 3.2.08-dev - Correction de l'initialisation WiFi pour mDNS
+// Version de dev : 3.2.07-dev - Compatibilité mDNS multi-environnements
+// Version de dev : 3.2.06-dev - Restauration mDNS fiable et lien d'accès constant
+// Version de dev : 3.2.05-dev - Suppression du service mDNS instable
+// Version de dev : 3.2.04-dev - Reconstruction du serveur mDNS
+// Version de dev : 3.2.02-dev - Ajustement du maintien mDNS sans appel update()
+// Version de dev : 3.2.01-dev - Correction de la publication mDNS
 // Version de dev : 3.2.0-doc - Consolidation des guides après la campagne de tests
 // Version de dev : 3.1.19-doc - Scission du changelog FR/EN et rafraîchissement de la documentation
 // Version de dev : 3.1.18-doc - Documentation 3.1.18 et durcissement du changement de langue
@@ -20,13 +49,62 @@
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <WebServer.h>
-#include <ESPmDNS.h>
+
+#if defined(ARDUINO_ARCH_ESP32)
+  #if defined(__has_include)
+    #if __has_include(<ESPmDNS.h>)
+      #include <ESPmDNS.h>
+      #define DIAGNOSTIC_HAS_MDNS 1
+      #define DIAGNOSTIC_USES_ESPMDNS 1
+    #elif __has_include(<mdns.h>)
+      #include <mdns.h>
+      #define DIAGNOSTIC_HAS_MDNS 1
+      #define DIAGNOSTIC_USES_IDF_MDNS 1
+    #else
+      #define DIAGNOSTIC_HAS_MDNS 0
+    #endif
+  #else
+    #include <ESPmDNS.h>
+    #define DIAGNOSTIC_HAS_MDNS 1
+    #define DIAGNOSTIC_USES_ESPMDNS 1
+  #endif
+#else
+  #define DIAGNOSTIC_HAS_MDNS 0
+#endif
+
+#if !defined(DIAGNOSTIC_HAS_MDNS)
+  #define DIAGNOSTIC_HAS_MDNS 0
+#endif
+
+#if DIAGNOSTIC_HAS_MDNS && defined(DIAGNOSTIC_USES_ESPMDNS)
+  #if defined(NO_GLOBAL_MDNS) || defined(NO_GLOBAL_INSTANCES)
+    // --- [NEW FEATURE] Instance mDNS dédiée pour compatibilité ---
+    static MDNSResponder diagnosticMDNSResponder;
+    #define DIAGNOSTIC_MDNS_SERVER diagnosticMDNSResponder
+  #else
+    #define DIAGNOSTIC_MDNS_SERVER MDNS
+  #endif
+#endif
 #include <esp_chip_info.h>
+#include <esp_err.h>
 #include <esp_mac.h>
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
 #include <esp_wifi.h>
+#if defined(__has_include)
+  #if __has_include(<esp_netif.h>)
+    #include <esp_netif.h>
+    #define DIAGNOSTIC_HAS_ESP_NETIF 1
+  #endif
+  #if __has_include(<tcpip_adapter.h>)
+    #include <tcpip_adapter.h>
+    #define DIAGNOSTIC_HAS_TCPIP_ADAPTER 1
+  #endif
+#else
+  #include <esp_netif.h>
+  #define DIAGNOSTIC_HAS_ESP_NETIF 1
+#endif
 #include <soc/soc.h>
 #include <soc/rtc.h>
 #if defined(__has_include)
@@ -101,14 +179,13 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.0"
+#define DIAGNOSTIC_VERSION "3.2.18-dev"
+// --- [NEW FEATURE] Lien d'accès constant via nom d'hôte ---
+#define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
-#define MDNS_HOSTNAME "esp32-diagnostic"
-
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
-const char* MDNS_HOSTNAME_STR = MDNS_HOSTNAME;
 
 String getArduinoCoreVersionString() {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && defined(ESP_ARDUINO_VERSION_MINOR) && defined(ESP_ARDUINO_VERSION_PATCH)
@@ -137,6 +214,17 @@ uint8_t oledRotation = 0;
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
 WiFiMulti wifiMulti;
+#if DIAGNOSTIC_HAS_MDNS
+// --- [NEW FEATURE] Gestion mDNS fiable ---
+bool mdnsServiceActive = false;
+bool wifiPreviouslyConnected = false;
+unsigned long lastMDNSAttempt = 0;
+bool mdnsLastAttemptFailed = false;
+#if defined(DIAGNOSTIC_USES_IDF_MDNS)
+// --- [NEW FEATURE] Compatibilité mDNS IDF native ---
+bool mdnsResponderInitialized = false;
+#endif
+#endif
 #if BLE_STACK_SUPPORTED
 BLEServer* bluetoothServer = nullptr;
 BLEService* bluetoothService = nullptr;
@@ -230,6 +318,7 @@ struct DiagnosticInfo {
   String wifiSSID;
   int wifiRSSI;
   String ipAddress;
+  bool mdnsAvailable;
   bool bluetoothEnabled;
   bool bluetoothAdvertising;
   String bluetoothName;
@@ -328,6 +417,151 @@ float heapHistory[HISTORY_SIZE];
 float tempHistory[HISTORY_SIZE];
 int historyIndex = 0;
 
+// --- [NEW FEATURE] Services réseau résilients ---
+String getStableAccessURL() {
+  return String("http://") + String(DIAGNOSTIC_HOSTNAME) + ".local";
+}
+
+// --- [NEW FEATURE] Pré-configuration proactive du nom d'hôte mDNS ---
+void configureNetworkHostname() {
+  if (!WiFi.setHostname(DIAGNOSTIC_HOSTNAME)) {
+    Serial.printf("[WiFi] Impossible de définir le nom d'hôte %s\r\n", DIAGNOSTIC_HOSTNAME);
+  } else {
+    Serial.printf("[WiFi] Nom d'hôte défini : %s.local\r\n", DIAGNOSTIC_HOSTNAME);
+  }
+#if defined(ARDUINO_ARCH_ESP32)
+  #if defined(DIAGNOSTIC_HAS_ESP_NETIF)
+    esp_netif_t* staNetif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (staNetif != nullptr) {
+      esp_err_t netifStatus = esp_netif_set_hostname(staNetif, DIAGNOSTIC_HOSTNAME);
+      if (netifStatus != ESP_OK) {
+        Serial.printf("[WiFi] Échec assignation hostname netif (0x%X)\r\n", netifStatus);
+      }
+    } else {
+      Serial.println("[WiFi] Interface STA introuvable pour l'assignation du hostname");
+    }
+  #elif defined(DIAGNOSTIC_HAS_TCPIP_ADAPTER)
+    err_t adapterStatus = tcpip_adapter_set_hostname(TCPIP_ADAPTER_IF_STA, DIAGNOSTIC_HOSTNAME);
+    if (adapterStatus != ERR_OK) {
+      Serial.printf("[WiFi] Échec assignation hostname TCP/IP (%d)\r\n", static_cast<int>(adapterStatus));
+    }
+  #endif
+#endif
+}
+
+void stopMDNSService(const char* reason) {
+#if DIAGNOSTIC_HAS_MDNS
+  if (!mdnsServiceActive) {
+    return;
+  }
+#if defined(DIAGNOSTIC_USES_ESPMDNS)
+  DIAGNOSTIC_MDNS_SERVER.end();
+#elif defined(DIAGNOSTIC_USES_IDF_MDNS)
+  // --- [NEW FEATURE] Extinction propre du service IDF ---
+  if (mdnsResponderInitialized) {
+    mdns_free();
+    mdnsResponderInitialized = false;
+  }
+#endif
+  mdnsServiceActive = false;
+  if (reason != nullptr) {
+    Serial.printf("[mDNS] Service arrêté (%s)\r\n", reason);
+  } else {
+    Serial.println("[mDNS] Service arrêté");
+  }
+#else
+  (void) reason;
+#endif
+}
+
+bool startMDNSService(bool verbose) {
+#if DIAGNOSTIC_HAS_MDNS
+  if (!WiFi.isConnected()) {
+    return false;
+  }
+  if (mdnsServiceActive) {
+    return true;
+  }
+
+  unsigned long now = millis();
+  if (!verbose && (now - lastMDNSAttempt < 5000)) {
+    return false;
+  }
+
+  lastMDNSAttempt = now;
+#if defined(DIAGNOSTIC_USES_ESPMDNS)
+  if (!DIAGNOSTIC_MDNS_SERVER.begin(DIAGNOSTIC_HOSTNAME)) {
+    if (verbose || !mdnsLastAttemptFailed) {
+      Serial.println("[mDNS] Échec du démarrage - nouvel essai dans 5s");
+    }
+    mdnsLastAttemptFailed = true;
+    return false;
+  }
+
+  DIAGNOSTIC_MDNS_SERVER.addService("http", "tcp", 80);
+#elif defined(DIAGNOSTIC_USES_IDF_MDNS)
+  // --- [NEW FEATURE] Démarrage mDNS via l'API ESP-IDF ---
+  esp_err_t mdnsInitStatus = mdns_init();
+  if (mdnsInitStatus != ESP_OK) {
+    if (verbose || !mdnsLastAttemptFailed) {
+      Serial.printf("[mDNS] Initialisation IDF échouée: 0x%02X\r\n", mdnsInitStatus);
+    }
+    mdnsLastAttemptFailed = true;
+    return false;
+  }
+
+  mdnsResponderInitialized = true;
+
+  esp_err_t hostStatus = mdns_hostname_set(DIAGNOSTIC_HOSTNAME);
+  if (hostStatus != ESP_OK) {
+    if (verbose || !mdnsLastAttemptFailed) {
+      Serial.printf("[mDNS] Attribution du nom d'hôte échouée: 0x%02X\r\n", hostStatus);
+    }
+    mdns_free();
+    mdnsResponderInitialized = false;
+    mdnsLastAttemptFailed = true;
+    return false;
+  }
+
+  mdns_instance_name_set("ESP32 Diagnostic");
+  esp_err_t serviceStatus = mdns_service_add("ESP32 Diagnostic", "_http", "_tcp", 80, nullptr, 0);
+  if (serviceStatus != ESP_OK) {
+    if (verbose || !mdnsLastAttemptFailed) {
+      Serial.printf("[mDNS] Publication du service échouée: 0x%02X\r\n", serviceStatus);
+    }
+    mdns_free();
+    mdnsResponderInitialized = false;
+    mdnsLastAttemptFailed = true;
+    return false;
+  }
+  mdns_service_txt_item_set("_http", "_tcp", "path", "/");
+#endif
+  mdnsServiceActive = true;
+  mdnsLastAttemptFailed = false;
+  Serial.printf("[mDNS] Service actif sur %s\r\n", getStableAccessURL().c_str());
+  return true;
+#else
+  (void) verbose;
+  return false;
+#endif
+}
+
+void maintainNetworkServices() {
+#if DIAGNOSTIC_HAS_MDNS
+  bool wifiConnectedNow = (WiFi.status() == WL_CONNECTED);
+  if (wifiConnectedNow) {
+    if (!wifiPreviouslyConnected) {
+      startMDNSService(true);
+    } else {
+      startMDNSService(false);
+    }
+  } else if (mdnsServiceActive) {
+    stopMDNSService("WiFi déconnecté");
+  }
+  wifiPreviouslyConnected = wifiConnectedNow;
+#endif
+}
+
 // ========== DÉTECTION MODÈLE ==========
 String detectChipModel() {
   #ifdef CONFIG_IDF_TARGET_ESP32
@@ -403,6 +637,26 @@ String getResetReason() {
     case ESP_RST_BROWNOUT: return T().brownout;
     default: return T().other;
   }
+}
+
+String formatUptime(unsigned long days, unsigned long hours, unsigned long minutes) {
+  String formatted;
+  if (days > 0) {
+    formatted += String(days) + " " + String(T().days);
+  }
+  if (hours > 0 || formatted.length() > 0) {
+    if (formatted.length() > 0) {
+      formatted += " ";
+    }
+    formatted += String(hours) + " " + String(T().hours);
+  }
+  if (minutes > 0 || formatted.length() == 0) {
+    if (formatted.length() > 0) {
+      formatted += " ";
+    }
+    formatted += String(minutes) + " " + String(T().minutes);
+  }
+  return formatted;
 }
 
 String getMemoryStatus() {
@@ -932,7 +1186,7 @@ void testAllGPIOs() {
     result.tested = true;
     result.working = testSingleGPIO(gpios[i]);
     result.mode = "Digital I/O";
-    result.notes = result.working ? "OK" : "Erreur";
+    result.notes = result.working ? String(T().ok) : String(T().fail);
     gpioResults.push_back(result);
   }
   Serial.printf("GPIO: %d testes\r\n", numGPIO);
@@ -1228,7 +1482,7 @@ void oledStepProgressBar() {
   oled.setTextSize(1);
   oled.setTextColor(SSD1306_WHITE);
   oled.setCursor(20, 10);
-  oled.println("Chargement");
+  oled.println(String(T().loading));
   for (int i = 0; i <= 100; i += 5) {
     oled.drawRect(10, 30, 108, 15, SSD1306_WHITE);
     oled.fillRect(12, 32, i, 11, SSD1306_WHITE);
@@ -1600,6 +1854,16 @@ void collectDiagnosticInfo() {
     diagnosticData.wifiSSID = WiFi.SSID();
     diagnosticData.wifiRSSI = WiFi.RSSI();
     diagnosticData.ipAddress = WiFi.localIP().toString();
+#if DIAGNOSTIC_HAS_MDNS
+    diagnosticData.mdnsAvailable = mdnsServiceActive;
+#else
+    diagnosticData.mdnsAvailable = false;
+#endif
+  } else {
+    diagnosticData.wifiSSID = "";
+    diagnosticData.wifiRSSI = -127;
+    diagnosticData.ipAddress = "";
+    diagnosticData.mdnsAvailable = false;
   }
   
   diagnosticData.gpioList = getGPIOList();
@@ -1988,6 +2252,7 @@ void handleExportTXT() {
   txt += "SSID: " + diagnosticData.wifiSSID + "\r\n";
   txt += "RSSI: " + String(diagnosticData.wifiRSSI) + " dBm (" + getWiFiSignalQuality() + ")\r\n";
   txt += "IP: " + diagnosticData.ipAddress + "\r\n";
+  txt += "Lien constant: " + getStableAccessURL() + " (" + String(diagnosticData.mdnsAvailable ? "actif" : "en attente") + ")\r\n";
   txt += String(T().subnet_mask) + ": " + WiFi.subnetMask().toString() + "\r\n";
   txt += String(T().gateway) + ": " + WiFi.gatewayIP().toString() + "\r\n";
   txt += "DNS: " + WiFi.dnsIP().toString() + "\r\n";
@@ -2051,6 +2316,7 @@ void handleExportTXT() {
 void handleExportJSON() {
   collectDiagnosticInfo();
   collectDetailedMemory();
+  String stableUrl = getStableAccessURL();
   
   String json = "{";
   json += "\"chip\":{";
@@ -2087,6 +2353,8 @@ void handleExportJSON() {
   json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
   json += "\"quality\":\"" + getWiFiSignalQuality() + "\",";
   json += "\"ip\":\"" + diagnosticData.ipAddress + "\",";
+  json += "\"mdns_ready\":" + String(diagnosticData.mdnsAvailable ? "true" : "false") + ",";
+  json += "\"stable_url\":\"" + jsonEscape(stableUrl.c_str()) + "\",";
   json += "\"subnet\":\"" + WiFi.subnetMask().toString() + "\",";
   json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",";
   json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
@@ -2460,6 +2728,37 @@ String jsonEscape(const char* raw) {
   return escaped;
 }
 
+// --- [NEW FEATURE] Gabarits HTML compacts pour les blocs info ---
+static inline void appendInfoItem(String& chunk,
+                                  const char* labelKey,
+                                  const char* labelText,
+                                  const String& valueText,
+                                  const String& valueAttrs = String(),
+                                  const String& wrapperAttrs = String()) {
+  chunk += F("<div class='info-item'");
+  if (wrapperAttrs.length() > 0) {
+    chunk += ' ';
+    chunk += wrapperAttrs;
+  }
+  chunk += F("><div class='info-label");
+  if (labelKey != nullptr && labelKey[0] != '\0') {
+    chunk += F("' data-i18n='");
+    chunk += labelKey;
+    chunk += F("'>");
+  } else {
+    chunk += F("'>");
+  }
+  chunk += labelText;
+  chunk += F("</div><div class='info-value'");
+  if (valueAttrs.length() > 0) {
+    chunk += ' ';
+    chunk += valueAttrs;
+  }
+  chunk += F(">");
+  chunk += valueText;
+  chunk += F("</div></div>");
+}
+
 String jsonField(const char* key, const char* value, bool last = false) {
   String field = "\"";
   field += key;
@@ -2736,6 +3035,7 @@ void handleGetTranslations() {
   String json = "{";
   json.reserve(1024);
   json += jsonField("title", T().title);
+  json += jsonField("version", T().version);
   json += jsonField("nav_overview", T().nav_overview);
   json += jsonField("nav_leds", T().nav_leds);
   json += jsonField("nav_screens", T().nav_screens);
@@ -2746,8 +3046,49 @@ void handleGetTranslations() {
   json += jsonField("nav_export", T().nav_export);
   json += jsonField("nav_select_label", T().nav_select_label);
   json += jsonField("chip_info", T().chip_info);
+  json += jsonField("full_model", T().full_model);
+  json += jsonField("cpu_cores", T().cpu_cores);
+  json += jsonField("mac_wifi", T().mac_wifi);
+  json += jsonField("last_reset", T().last_reset);
+  json += jsonField("chip_features", T().chip_features);
+  json += jsonField("sdk_version", T().sdk_version);
+  json += jsonField("idf_version", T().idf_version);
+  json += jsonField("uptime", T().uptime);
+  json += jsonField("cpu_temp", T().cpu_temp);
+  json += jsonField("revision", T().revision);
+  json += jsonField("days", T().days);
+  json += jsonField("hours", T().hours);
+  json += jsonField("minutes", T().minutes);
   json += jsonField("memory_details", T().memory_details);
+  json += jsonField("flash_memory", T().flash_memory);
+  json += jsonField("real_size", T().real_size);
+  json += jsonField("configured_ide", T().configured_ide);
+  json += jsonField("configuration", T().configuration);
+  json += jsonField("correct", T().correct);
+  json += jsonField("to_fix", T().to_fix);
+  json += jsonField("flash_type", T().flash_type);
+  json += jsonField("flash_speed", T().flash_speed);
+  json += jsonField("psram_external", T().psram_external);
+  json += jsonField("hardware_status", T().hardware_status);
+  json += jsonField("detected_active", T().detected_active);
+  json += jsonField("supported_not_enabled", T().supported_not_enabled);
+  json += jsonField("ide_config", T().ide_config);
+  json += jsonField("total_size", T().total_size);
+  json += jsonField("free", T().free);
+  json += jsonField("used", T().used);
+  json += jsonField("enable_psram_hint", T().enable_psram_hint);
+  json += jsonField("not_detected", T().not_detected);
+  json += jsonField("internal_sram", T().internal_sram);
+  json += jsonField("memory_fragmentation", T().memory_fragmentation);
+  json += jsonField("refresh_memory", T().refresh_memory);
   json += jsonField("wifi_connection", T().wifi_connection);
+  json += jsonField("connected_ssid", T().connected_ssid);
+  json += jsonField("signal_power", T().signal_power);
+  json += jsonField("signal_quality", T().signal_quality);
+  json += jsonField("ip_address", T().ip_address);
+  json += jsonField("subnet_mask", T().subnet_mask);
+  json += jsonField("gateway", T().gateway);
+  json += jsonField("access", T().access);
   json += jsonField("bluetooth_section", T().bluetooth_section);
   json += jsonField("bluetooth_status", T().bluetooth_status);
   json += jsonField("bluetooth_name", T().bluetooth_name);
@@ -2775,7 +3116,9 @@ void handleGetTranslations() {
   json += jsonField("bluetooth_client_disconnected", T().bluetooth_client_disconnected);
   json += jsonField("bluetooth_notifications_label", T().bluetooth_notifications_label);
   json += jsonField("gpio_interfaces", T().gpio_interfaces);
+  json += jsonField("total_gpio", T().total_gpio);
   json += jsonField("i2c_peripherals", T().i2c_peripherals);
+  json += jsonField("detected_addresses", T().detected_addresses);
   json += jsonField("builtin_led", T().builtin_led);
   json += jsonField("oled_screen", T().oled_screen);
   json += jsonField("adc_test", T().adc_test);
@@ -2800,7 +3143,31 @@ void handleGetTranslations() {
   json += jsonField("benchmark_desc", T().benchmark_desc);
   json += jsonField("wifi_scanner", T().wifi_scanner);
   json += jsonField("performance_bench", T().performance_bench);
-  json += jsonField("data_export", T().data_export, true);
+  json += jsonField("data_export", T().data_export);
+  json += jsonField("updating", T().updating);
+  json += jsonField("online", T().online);
+  json += jsonField("offline", T().offline);
+  json += jsonField("check_network", T().check_network);
+  json += jsonField("language_updated", T().language_updated);
+  json += jsonField("language_switch_error", T().language_switch_error);
+  json += jsonField("translation_error", T().translation_error);
+  json += jsonField("bluetooth_invalid_name", T().bluetooth_invalid_name);
+  json += jsonField("bluetooth_enabling", T().bluetooth_enabling);
+  json += jsonField("bluetooth_disabling", T().bluetooth_disabling);
+  json += jsonField("bluetooth_updating", T().bluetooth_updating);
+  json += jsonField("bluetooth_resetting", T().bluetooth_resetting);
+  json += jsonField("loading", T().loading);
+  json += jsonField("configuring", T().configuring);
+  json += jsonField("reconfiguring", T().reconfiguring);
+  json += jsonField("transmission", T().transmission);
+  json += jsonField("error_label", T().error_label);
+  json += jsonField("test_failed", T().test_failed);
+  json += jsonField("gpio_summary_template", T().gpio_summary_template);
+  json += jsonField("wifi_networks_found", T().wifi_networks_found);
+  json += jsonField("i2c_scan_result", T().i2c_scan_result);
+  json += jsonField("gpio_invalid", T().gpio_invalid);
+  json += jsonField("configuration_invalid", T().configuration_invalid);
+  json += jsonField("oled_test_running", T().oled_test_running, true);
   json += "}";
 
   server.send(200, "application/json", json);
@@ -3138,6 +3505,9 @@ a{color:inherit;}
 }
 .status-item a:hover{
   text-decoration:underline;
+}
+.status-item .access-placeholder{
+  opacity:.6;
 }
 .status-item .separator{
   opacity:.45;
@@ -3482,8 +3852,8 @@ a{color:inherit;}
   server.sendContent(chunk);
   
 
-  const char* updateLabel = (currentLanguage == LANG_FR) ? "Mise à jour..." : "Updating...";
-  const char* connectionLabel = (currentLanguage == LANG_FR) ? "En ligne" : "Online";
+  const char* updateLabel = T().updating;
+  const char* connectionLabel = T().online;
   bool wifiConnected = (WiFi.status() == WL_CONNECTED);
   String wifiSummary = String(T().not_detected);
   if (diagnosticData.wifiSSID.length() > 0 && wifiConnected) {
@@ -3544,10 +3914,17 @@ a{color:inherit;}
   String bluetoothNotificationsValue = htmlEscape(String((unsigned long)bluetoothNotifyDisplay));
   String bluetoothDisableAttr = bluetoothCapable ? "" : " disabled";
   String bluetoothFeedbackText = bluetoothCapable ? "" : String(T().bluetooth_not_supported);
-  String accessUrl = "http://" + String(MDNS_HOSTNAME) + ".local";
+  // --- [BUGFIX] Retrait du doublon IP sur l'interface legacy ---
+  bool ipAvailable = diagnosticData.ipAddress.length() > 0;
+  String accessUrl = ipAvailable ? ("http://" + diagnosticData.ipAddress) : String(T().not_detected);
+  String accessUrlHref = ipAvailable ? accessUrl : String("#");
   String accessUrlEscaped = htmlEscape(accessUrl);
-  String ipDisplay = diagnosticData.ipAddress.length() > 0 ? diagnosticData.ipAddress : String(T().not_detected);
-  String ipDisplayEscaped = htmlEscape(ipDisplay);
+  String accessPlaceholder = htmlEscape(String(T().not_detected));
+  bool mdnsAvailable = diagnosticData.mdnsAvailable;
+  String stableAccessUrl = getStableAccessURL();
+  String stableAccessEscaped = htmlEscape(stableAccessUrl);
+  String stableAccessHref = mdnsAvailable ? stableAccessUrl : String("#");
+  String mdnsStateAttr = mdnsAvailable ? "true" : "false";
 
   chunk = "<div class='app-shell'>";
   chunk += "<div id='updateIndicator' class='update-indicator'>";
@@ -3577,7 +3954,19 @@ a{color:inherit;}
   chunk += "<span id='bluetoothStatusDot' class='" + bluetoothDotClass + "' aria-hidden='true'></span>";
   chunk += "<span class='status-value' id='bluetoothSummary' data-online='" + bluetoothOnlineCombined + "' data-offline='" + bluetoothOfflineText + "' data-disabled='" + bluetoothDisabledText + "' data-unsupported='" + bluetoothUnsupportedText + "' data-supported='" + bluetoothSupportedAttr + "'>" + bluetoothDisplayText + "</span></div>";
   chunk += "<div class='status-item status-access'><span class='status-label' data-i18n='access'>" + String(T().access) + "</span>";
-  chunk += "<span class='status-value'><a href='" + accessUrl + "' target='_blank' rel='noopener'>" + accessUrlEscaped + "</a><span class='separator'>•</span><span id='ipAddressDisplay'>" + ipDisplayEscaped + "</span></span></div>";
+  chunk += "<span class='status-value' data-mdns='" + mdnsStateAttr + "'>";
+  if (mdnsAvailable) {
+    chunk += "<a href='" + stableAccessHref + "' target='_blank' rel='noopener'>" + stableAccessEscaped + "</a>";
+  } else {
+    chunk += "<span>" + stableAccessEscaped + "</span>";
+  }
+  chunk += "<span class='separator'>•</span>";
+  if (ipAvailable) {
+    chunk += "<a href='" + accessUrlHref + "' target='_blank' rel='noopener'>" + accessUrlEscaped + "</a>";
+  } else {
+    chunk += "<span class='access-placeholder'>" + accessPlaceholder + "</span>";
+  }
+  chunk += "</span></div>";
   chunk += "</div>";
   chunk += "</header>";
   chunk += "<div class='masthead-divider' role='presentation'></div>";
@@ -3613,97 +4002,118 @@ a{color:inherit;}
   chunk = "<div id='overview' class='tab-content active'>";
   
   // Chip Info
-  chunk += "<div class='section'><h2>" + String(T().chip_info) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().full_model) + "</div><div class='info-value'>" + diagnosticData.chipModel + " Rev" + diagnosticData.chipRevision + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_cores) + "</div><div class='info-value'>" + String(diagnosticData.cpuCores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().mac_wifi) + "</div><div class='info-value'>" + diagnosticData.macAddress + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().last_reset) + "</div><div class='info-value'>" + getResetReason() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().chip_features) + "</div><div class='info-value'>" + getChipFeatures() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().sdk_version) + "</div><div class='info-value'>" + diagnosticData.sdkVersion + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().idf_version) + "</div><div class='info-value'>" + diagnosticData.idfVersion + "</div></div>";
-  
+  chunk += "<div class='section'><h2 data-i18n='chip_info'>" + String(T().chip_info) + "</h2><div class='info-grid'>";
+  String modelValue = diagnosticData.chipModel + " " + String(T().revision) + " " + diagnosticData.chipRevision;
+  appendInfoItem(chunk, "full_model", T().full_model, modelValue);
+  String cpuValue = String(diagnosticData.cpuCores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz";
+  appendInfoItem(chunk, "cpu_cores", T().cpu_cores, cpuValue);
+  appendInfoItem(chunk, "mac_wifi", T().mac_wifi, diagnosticData.macAddress);
+  appendInfoItem(chunk, "last_reset", T().last_reset, getResetReason());
+  appendInfoItem(chunk, "chip_features", T().chip_features, getChipFeatures());
+  appendInfoItem(chunk, "sdk_version", T().sdk_version, diagnosticData.sdkVersion);
+  appendInfoItem(chunk, "idf_version", T().idf_version, diagnosticData.idfVersion);
+
   unsigned long seconds = diagnosticData.uptime / 1000;
   unsigned long minutes = seconds / 60;
   unsigned long hours = minutes / 60;
   unsigned long days = hours / 24;
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().uptime) + "</div><div class='info-value'>" + String(days) + "j " + String(hours % 24) + "h " + String(minutes % 60) + "m</div></div>";
-  
+  String uptimeAttrs = "id='uptime-display' data-days='" + String(days) + "' data-hours='" + String(hours % 24) + "' data-minutes='" + String(minutes % 60) + "'";
+  appendInfoItem(chunk, "uptime", T().uptime, formatUptime(days, hours % 24, minutes % 60), uptimeAttrs);
+
   if (diagnosticData.temperature != -999) {
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_temp) + "</div><div class='info-value'>" + String(diagnosticData.temperature, 1) + " °C</div></div>";
+    String temperatureValue = String(diagnosticData.temperature, 1) + " °C";
+    appendInfoItem(chunk, "cpu_temp", T().cpu_temp, temperatureValue);
   }
   chunk += "</div></div>";
   server.sendContent(chunk);
   
   // Memory - Flash
-  chunk = "<div class='section'><h2>" + String(T().memory_details) + "</h2>";
-  chunk += "<h3>" + String(T().flash_memory) + "</h3><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().real_size) + "</div><div class='info-value'>" + String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().configured_ide) + "</div><div class='info-value'>" + String(detailedMemory.flashSizeChip / 1048576.0, 2) + " MB</div></div>";
-  
+  chunk = "<div class='section'><h2 data-i18n='memory_details'>" + String(T().memory_details) + "</h2>";
+  chunk += "<h3 data-i18n='flash_memory'>" + String(T().flash_memory) + "</h3><div class='info-grid'>";
+  String flashReal = String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB";
+  appendInfoItem(chunk, "real_size", T().real_size, flashReal);
+  String flashConfigured = String(detailedMemory.flashSizeChip / 1048576.0, 2) + " MB";
+  appendInfoItem(chunk, "configured_ide", T().configured_ide, flashConfigured);
+
   bool flashMatch = (detailedMemory.flashSizeReal == detailedMemory.flashSizeChip);
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().configuration) + "</div><div class='info-value'><span class='badge ";
-  chunk += flashMatch ? "badge-success'>" + String(T().correct) : "badge-warning'>" + String(T().to_fix);
-  chunk += "</span></div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().flash_type) + "</div><div class='info-value'>" + getFlashType() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().flash_speed) + "</div><div class='info-value'>" + getFlashSpeed() + "</div></div>";
+  String configValue = flashMatch ? "<span class='badge badge-success' data-i18n='correct'>" + String(T().correct)
+                                  : "<span class='badge badge-warning' data-i18n='to_fix'>" + String(T().to_fix);
+  configValue += "</span>";
+  appendInfoItem(chunk, "configuration", T().configuration, configValue);
+  appendInfoItem(chunk, "flash_type", T().flash_type, getFlashType());
+  appendInfoItem(chunk, "flash_speed", T().flash_speed, getFlashSpeed());
   chunk += "</div>";
   server.sendContent(chunk);
   
   // Memory - PSRAM
-  chunk = "<h3>" + String(T().psram_external) + "</h3><div class='info-grid'>";
+  chunk = "<h3 data-i18n='psram_external'>" + String(T().psram_external) + "</h3><div class='info-grid'>";
   if (detailedMemory.psramAvailable) {
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-success'>" + String(T().detected_active) + "</span></div></div>";
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().total_size) + "</div><div class='info-value'>" + String(detailedMemory.psramTotal / 1048576.0, 2) + " MB</div></div>";
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().free) + "</div><div class='info-value'>" + String(detailedMemory.psramFree / 1048576.0, 2) + " MB</div></div>";
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().used) + "</div><div class='info-value'>" + String(detailedMemory.psramUsed / 1048576.0, 2) + " MB</div></div>";
+    String statusValue = "<span class='badge badge-success' data-i18n='detected_active'>" + String(T().detected_active) + "</span>";
+    appendInfoItem(chunk, "hardware_status", T().hardware_status, statusValue);
+    String psramTotal = String(detailedMemory.psramTotal / 1048576.0, 2) + " MB";
+    appendInfoItem(chunk, "total_size", T().total_size, psramTotal);
+    String psramFree = String(detailedMemory.psramFree / 1048576.0, 2) + " MB";
+    appendInfoItem(chunk, "free", T().free, psramFree);
+    String psramUsed = String(detailedMemory.psramUsed / 1048576.0, 2) + " MB";
+    appendInfoItem(chunk, "used", T().used, psramUsed);
   } else if (detailedMemory.psramBoardSupported) {
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-warning'>" + String(T().supported_not_enabled) + "</span></div></div>";
+    String statusValue = "<span class='badge badge-warning' data-i18n='supported_not_enabled'>" + String(T().supported_not_enabled) + "</span>";
+    appendInfoItem(chunk, "hardware_status", T().hardware_status, statusValue);
     String psramHint = String(T().enable_psram_hint);
     psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
-    chunk += "<div class='info-item' style='grid-column:1/-1'><div class='info-label'>" + String(T().ide_config) + "</div><div class='info-value'>" + psramHint + "</div></div>";
+    String psramHintAttrs = "data-i18n='enable_psram_hint' data-psram-type='" + htmlEscape(String(detailedMemory.psramType ? detailedMemory.psramType : "PSRAM")) + "'";
+    appendInfoItem(chunk, "ide_config", T().ide_config, psramHint, psramHintAttrs, String(F("style='grid-column:1/-1'")));
   } else {
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-danger'>" + String(T().not_detected) + "</span></div></div>";
+    String statusValue = "<span class='badge badge-danger' data-i18n='not_detected'>" + String(T().not_detected) + "</span>";
+    appendInfoItem(chunk, "hardware_status", T().hardware_status, statusValue);
   }
   chunk += "</div>";
   server.sendContent(chunk);
   
   // Memory - SRAM
-  chunk = "<h3>" + String(T().internal_sram) + "</h3><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().total_size) + "</div><div class='info-value'>" + String(detailedMemory.sramTotal / 1024.0, 2) + " KB</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().free) + "</div><div class='info-value'>" + String(detailedMemory.sramFree / 1024.0, 2) + " KB</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().used) + "</div><div class='info-value'>" + String(detailedMemory.sramUsed / 1024.0, 2) + " KB</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_fragmentation) + "</div><div class='info-value'>" + String(detailedMemory.fragmentationPercent, 1) + "%</div></div>";
+  chunk = "<h3 data-i18n='internal_sram'>" + String(T().internal_sram) + "</h3><div class='info-grid'>";
+  String sramTotal = String(detailedMemory.sramTotal / 1024.0, 2) + " KB";
+  appendInfoItem(chunk, "total_size", T().total_size, sramTotal);
+  String sramFree = String(detailedMemory.sramFree / 1024.0, 2) + " KB";
+  appendInfoItem(chunk, "free", T().free, sramFree);
+  String sramUsed = String(detailedMemory.sramUsed / 1024.0, 2) + " KB";
+  appendInfoItem(chunk, "used", T().used, sramUsed);
+  String fragmentation = String(detailedMemory.fragmentationPercent, 1) + "%";
+  appendInfoItem(chunk, "memory_fragmentation", T().memory_fragmentation, fragmentation);
   chunk += "</div>";
-  chunk += "<div style='text-align:center;margin-top:15px'><button class='btn btn-info' onclick='location.reload()'>" + String(T().refresh_memory) + "</button></div></div>";
+  chunk += "<div style='text-align:center;margin-top:15px'><button class='btn btn-info' data-i18n='refresh_memory' onclick='location.reload()'>" + String(T().refresh_memory) + "</button></div></div>";
   server.sendContent(chunk);
   
   // WiFi
-  chunk = "<div class='section'><h2>" + String(T().wifi_connection) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().connected_ssid) + "</div><div class='info-value'>" + diagnosticData.wifiSSID + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_power) + "</div><div class='info-value'>" + String(diagnosticData.wifiRSSI) + " dBm</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().signal_quality) + "</div><div class='info-value'>" + getWiFiSignalQuality() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().ip_address) + "</div><div class='info-value'>" + diagnosticData.ipAddress + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().subnet_mask) + "</div><div class='info-value'>" + WiFi.subnetMask().toString() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().gateway) + "</div><div class='info-value'>" + WiFi.gatewayIP().toString() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</div><div class='info-value'>" + bluetoothSummaryEscaped + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_mac'>" + String(T().bluetooth_mac) + "</div><div class='info-value'>" + diagnosticData.bluetoothAddress + "</div></div>";
+  chunk = "<div class='section'><h2 data-i18n='wifi_connection'>" + String(T().wifi_connection) + "</h2><div class='info-grid'>";
+  appendInfoItem(chunk, "connected_ssid", T().connected_ssid, diagnosticData.wifiSSID);
+  String wifiRssi = String(diagnosticData.wifiRSSI) + " dBm";
+  appendInfoItem(chunk, "signal_power", T().signal_power, wifiRssi);
+  appendInfoItem(chunk, "signal_quality", T().signal_quality, getWiFiSignalQuality());
+  appendInfoItem(chunk, "ip_address", T().ip_address, diagnosticData.ipAddress);
+  appendInfoItem(chunk, "subnet_mask", T().subnet_mask, WiFi.subnetMask().toString());
+  appendInfoItem(chunk, "gateway", T().gateway, WiFi.gatewayIP().toString());
+  appendInfoItem(chunk, "bluetooth_section", T().bluetooth_section, bluetoothSummaryEscaped);
+  appendInfoItem(chunk, "bluetooth_mac", T().bluetooth_mac, diagnosticData.bluetoothAddress);
   chunk += "</div></div>";
   server.sendContent(chunk);
 
   chunk = "<div class='section'><h2 data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_status'>" + String(T().bluetooth_status) + "</div><div class='info-value'>" + bluetoothStatusEscaped + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_name'>" + String(T().bluetooth_name) + "</div><div class='info-value'>" + bluetoothNameEscaped + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_mac'>" + String(T().bluetooth_mac) + "</div><div class='info-value'>" + diagnosticData.bluetoothAddress + "</div></div>";
+  appendInfoItem(chunk, "bluetooth_status", T().bluetooth_status, bluetoothStatusEscaped);
+  appendInfoItem(chunk, "bluetooth_name", T().bluetooth_name, bluetoothNameEscaped);
+  appendInfoItem(chunk, "bluetooth_mac", T().bluetooth_mac, diagnosticData.bluetoothAddress);
   chunk += "</div></div>";
   server.sendContent(chunk);
 
   // GPIO et I2C
-  chunk = "<div class='section'><h2>" + String(T().gpio_interfaces) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().total_gpio) + "</div><div class='info-value'>" + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "</div></div>";
+  chunk = "<div class='section'><h2 data-i18n='gpio_interfaces'>" + String(T().gpio_interfaces) + "</h2><div class='info-grid'>";
+  String totalGPIOValue = String(diagnosticData.totalGPIO) + " " + String(T().pins);
+  appendInfoItem(chunk, "total_gpio", T().total_gpio, totalGPIOValue);
   if (ENABLE_I2C_SCAN) {
-    chunk += "<div class='info-item'><div class='info-label'>" + String(T().i2c_peripherals) + "</div><div class='info-value'>" + String(diagnosticData.i2cCount) + " " + String(T().devices) + "</div></div>";
+    String i2cCountValue = String(diagnosticData.i2cCount) + " " + String(T().devices);
+    appendInfoItem(chunk, "i2c_peripherals", T().i2c_peripherals, i2cCountValue);
     if (diagnosticData.i2cCount > 0) {
-      chunk += "<div class='info-item' style='grid-column:1/-1'><div class='info-label'>" + String(T().detected_addresses) + "</div><div class='info-value'>" + diagnosticData.i2cDevices + "</div></div>";
+      appendInfoItem(chunk, "detected_addresses", T().detected_addresses, diagnosticData.i2cDevices, String(), String(F("style='grid-column:1/-1'")));
     }
   }
   chunk += "</div></div>";
@@ -3713,8 +4123,9 @@ a{color:inherit;}
   // CHUNK 4: TAB LEDs
   chunk = "<div id='leds' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().builtin_led) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().gpio) + "</div><div class='info-value'>GPIO " + String(BUILTIN_LED_PIN) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='builtin-led-status'>" + builtinLedTestResult + "</div></div>";
+  String builtinPinValue = "GPIO " + String(BUILTIN_LED_PIN);
+  appendInfoItem(chunk, nullptr, T().gpio, builtinPinValue);
+  appendInfoItem(chunk, nullptr, T().status, builtinLedTestResult, String(F("id='builtin-led-status'")));
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "<input type='number' id='ledGPIO' value='" + String(BUILTIN_LED_PIN) + "' min='0' max='48' style='width:80px'>";
   chunk += "<button class='btn btn-info' onclick='configBuiltinLED()'>" + String(T().config) + "</button>";
@@ -3725,8 +4136,9 @@ a{color:inherit;}
   chunk += "</div></div></div>";
   
   chunk += "<div class='section'><h2>" + String(T().neopixel) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().gpio) + "</div><div class='info-value'>GPIO " + String(LED_PIN) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='neopixel-status'>" + neopixelTestResult + "</div></div>";
+  String neoPinValue = "GPIO " + String(LED_PIN);
+  appendInfoItem(chunk, nullptr, T().gpio, neoPinValue);
+  appendInfoItem(chunk, nullptr, T().status, neopixelTestResult, String(F("id='neopixel-status'")));
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "<input type='number' id='neoGPIO' value='" + String(LED_PIN) + "' min='0' max='48' style='width:80px'>";
   chunk += "<input type='number' id='neoCount' value='" + String(LED_COUNT) + "' min='1' max='100' style='width:80px'>";
@@ -3742,9 +4154,10 @@ a{color:inherit;}
   // CHUNK 5: TAB Screens
   chunk = "<div id='screens' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().oled_screen) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='oled-status'>" + oledTestResult + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().i2c_pins) + "</div><div class='info-value' id='oled-pins'>SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().rotation) + "</div><div class='info-value' id='oled-rotation-display'>" + String(oledRotation) + "</div></div>";
+  appendInfoItem(chunk, nullptr, T().status, oledTestResult, String(F("id='oled-status'")));
+  String oledPinsValue = "SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL);
+  appendInfoItem(chunk, nullptr, T().i2c_pins, oledPinsValue, String(F("id='oled-pins'")));
+  appendInfoItem(chunk, nullptr, T().rotation, String(oledRotation), String(F("id='oled-rotation-display'")));
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "SDA: <input type='number' id='oledSDA' value='" + String(I2C_SDA) + "' min='0' max='48' style='width:70px'> ";
   chunk += "SCL: <input type='number' id='oledSCL' value='" + String(I2C_SCL) + "' min='0' max='48' style='width:70px'> ";
@@ -3837,13 +4250,16 @@ a{color:inherit;}
   chunk += "</div><div id='wifi-results' class='wifi-list'></div></div>";
   chunk += "<div class='section'><h2 data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</h2>";
   chunk += "<div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_status'>" + String(T().bluetooth_status) + "</div><div class='info-value' id='bluetooth-status'>" + htmlEscape(bluetoothStatusText) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_name'>" + String(T().bluetooth_name) + "</div><div class='info-value' id='bluetooth-name'>" + bluetoothNameEscaped + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_mac'>" + String(T().bluetooth_mac) + "</div><div class='info-value' id='bluetooth-mac'>" + diagnosticData.bluetoothAddress + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_support_label'>" + String(T().bluetooth_support_label) + "</div><div class='info-value' id='bluetooth-support' data-yes='" + bluetoothSupportYes + "' data-no='" + bluetoothSupportNo + "' data-supported='" + bluetoothSupportAttr + "'>" + bluetoothSupportValue + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_advertising_label'>" + String(T().bluetooth_advertising_label) + "</div><div class='info-value' id='bluetooth-advertising' data-on='" + bluetoothAdvertisingOn + "' data-off='" + bluetoothAdvertisingOff + "' data-active='" + bluetoothAdvertisingAttr + "'>" + bluetoothAdvertisingValue + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_connection_label'>" + String(T().bluetooth_connection_label) + "</div><div class='info-value' id='bluetooth-connection' data-connected='" + bluetoothConnectedLabel + "' data-disconnected='" + bluetoothDisconnectedLabel + "' data-state='" + bluetoothConnectionStateAttr + "'>" + bluetoothConnectionValue + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_notifications_label'>" + String(T().bluetooth_notifications_label) + "</div><div class='info-value' id='bluetooth-notify-count'>" + bluetoothNotificationsValue + "</div></div>";
+  appendInfoItem(chunk, "bluetooth_status", T().bluetooth_status, htmlEscape(bluetoothStatusText), String(F("id='bluetooth-status'")));
+  appendInfoItem(chunk, "bluetooth_name", T().bluetooth_name, bluetoothNameEscaped, String(F("id='bluetooth-name'")));
+  appendInfoItem(chunk, "bluetooth_mac", T().bluetooth_mac, diagnosticData.bluetoothAddress, String(F("id='bluetooth-mac'")));
+  String supportAttrs = "id='bluetooth-support' data-yes='" + bluetoothSupportYes + "' data-no='" + bluetoothSupportNo + "' data-supported='" + bluetoothSupportAttr + "'";
+  appendInfoItem(chunk, "bluetooth_support_label", T().bluetooth_support_label, bluetoothSupportValue, supportAttrs);
+  String advertisingAttrs = "id='bluetooth-advertising' data-on='" + bluetoothAdvertisingOn + "' data-off='" + bluetoothAdvertisingOff + "' data-active='" + bluetoothAdvertisingAttr + "'";
+  appendInfoItem(chunk, "bluetooth_advertising_label", T().bluetooth_advertising_label, bluetoothAdvertisingValue, advertisingAttrs);
+  String connectionAttrs = "id='bluetooth-connection' data-connected='" + bluetoothConnectedLabel + "' data-disconnected='" + bluetoothDisconnectedLabel + "' data-state='" + bluetoothConnectionStateAttr + "'";
+  appendInfoItem(chunk, "bluetooth_connection_label", T().bluetooth_connection_label, bluetoothConnectionValue, connectionAttrs);
+  appendInfoItem(chunk, "bluetooth_notifications_label", T().bluetooth_notifications_label, bluetoothNotificationsValue, String(F("id='bluetooth-notify-count'")));
   chunk += "</div>";
   chunk += "<div class='card' style='margin-top:20px'>";
   chunk += "<h3 data-i18n='bluetooth_actions'>" + String(T().bluetooth_actions) + "</h3>";
@@ -3864,10 +4280,10 @@ a{color:inherit;}
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='runBenchmarks()'>" + String(T().run_benchmarks) + "</button>";
   chunk += "</div><div id='benchmark-results' class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_benchmark) + "</div><div class='info-value' id='cpu-bench'>" + String(T().not_tested) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_benchmark) + "</div><div class='info-value' id='mem-bench'>" + String(T().not_tested) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_performance) + "</div><div class='info-value' id='cpu-perf'>-</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_speed) + "</div><div class='info-value' id='mem-speed'>-</div></div>";
+  appendInfoItem(chunk, "cpu_benchmark", T().cpu_benchmark, String(T().not_tested), String(F("id='cpu-bench'")));
+  appendInfoItem(chunk, "memory_benchmark", T().memory_benchmark, String(T().not_tested), String(F("id='mem-bench'")));
+  appendInfoItem(chunk, "cpu_performance", T().cpu_performance, String(F("-")), String(F("id='cpu-perf'")));
+  appendInfoItem(chunk, "memory_speed", T().memory_speed, String(F("-")), String(F("id='mem-speed'")));
   chunk += "</div></div></div>";
   server.sendContent(chunk);
   
@@ -3905,19 +4321,21 @@ a{color:inherit;}
   chunk += "var ignoreHashChange=false;";
   chunk += "var navDropdown=null;";
   chunk += "document.documentElement.setAttribute('lang',currentLang);";
+  chunk += "function tr(key,fr,en){var dict=window.translations||{};var value=dict&&dict[key];if(typeof value==='string'){return value;}if(currentLang==='fr'){return typeof fr!=='undefined'?fr:(typeof en!=='undefined'?en:key);}return typeof en!=='undefined'?en:(typeof fr!=='undefined'?fr:key);}";
   chunk += "function showInlineMessage(text,state){var holder=document.getElementById('inlineMessage');if(!holder){return;}holder.className='inline-message';if(!text){return;}holder.textContent=text;holder.classList.add('show');if(state){holder.classList.add(state);}}";
   chunk += "function clearInlineMessage(){var holder=document.getElementById('inlineMessage');if(!holder){return;}holder.className='inline-message';holder.textContent='';}";
   chunk += "function updateStatus(id,text,state){var el=document.getElementById(id);if(el){el.textContent=text;el.classList.remove('success','error');if(state){el.classList.add(state);}}if(state==='error'||state==='success'){showInlineMessage(text,state);}else if(text===''){clearInlineMessage();}}";
-  chunk += "function connectionLabelText(online){return online?(currentLang==='fr'?'En ligne':'Online'):(currentLang==='fr'?'Hors ligne':'Offline');}";
-  chunk += "function updateStatusIndicator(online){connectionState=!!online;var indicator=document.getElementById('statusIndicator');var label=document.getElementById('connectionLabel');if(indicator){indicator.classList.remove('status-online','status-offline');indicator.classList.add(online?'status-online':'status-offline');}if(label){label.textContent=connectionLabelText(online);}var wifiDot=document.getElementById('wifiStatusDot');if(wifiDot){wifiDot.classList.remove('offline');if(!online){wifiDot.classList.add('offline');}}var wifiValue=document.getElementById('wifiStatusValue');if(wifiValue){var offlineText=wifiValue.getAttribute('data-offline');var onlineText=wifiValue.getAttribute('data-online');if(!online&&offlineText){wifiValue.textContent=offlineText;}else if(online&&onlineText){wifiValue.textContent=onlineText;}}if(!online){showInlineMessage(connectionLabelText(false)+' — '+(currentLang==='fr'?'Vérifiez le réseau.':'Check the network.'),'error');}else{clearInlineMessage();}}";
+  chunk += "function connectionLabelText(online){return online?tr('online','En ligne','Online'):tr('offline','Hors ligne','Offline');}";
+  chunk += "function updateStatusIndicator(online){connectionState=!!online;var indicator=document.getElementById('statusIndicator');var label=document.getElementById('connectionLabel');if(indicator){indicator.classList.remove('status-online','status-offline');indicator.classList.add(online?'status-online':'status-offline');}if(label){label.textContent=connectionLabelText(online);}var wifiDot=document.getElementById('wifiStatusDot');if(wifiDot){wifiDot.classList.remove('offline');if(!online){wifiDot.classList.add('offline');}}var wifiValue=document.getElementById('wifiStatusValue');if(wifiValue){var offlineText=wifiValue.getAttribute('data-offline');var onlineText=wifiValue.getAttribute('data-online');if(!online&&offlineText){wifiValue.textContent=offlineText;}else if(online&&onlineText){wifiValue.textContent=onlineText;}}if(!online){showInlineMessage(connectionLabelText(false)+' — '+tr('check_network','Vérifiez le réseau.','Check the network.'),'error');}else{clearInlineMessage();}}";
+  chunk += "function updateUptimeDisplay(){var el=document.getElementById('uptime-display');if(!el){return;}var days=parseInt(el.getAttribute('data-days')||'0',10);var hours=parseInt(el.getAttribute('data-hours')||'0',10);var minutes=parseInt(el.getAttribute('data-minutes')||'0',10);var tr=window.translations||null;var dayLabel=(tr&&tr.days)?tr.days:(currentLang==='fr'?'jours':'days');var hourLabel=(tr&&tr.hours)?tr.hours:(currentLang==='fr'?'heures':'hours');var minuteLabel=(tr&&tr.minutes)?tr.minutes:(currentLang==='fr'?'minutes':'minutes');var pieces=[];if(days>0){pieces.push(days+' '+dayLabel);}if(hours>0||pieces.length){pieces.push(hours+' '+hourLabel);}if(minutes>0||pieces.length===0){pieces.push(minutes+' '+minuteLabel);}el.textContent=pieces.join(' ');}";
 
   chunk += "function updateBluetoothFeedback(message,state,notify){var box=document.getElementById('bluetooth-feedback');if(!box){return;}if(typeof message==='undefined'||message===null){message='';}box.textContent=message;box.classList.remove('success','error');if(state){box.classList.add(state);}if(notify&&message){if(state==='error'){showInlineMessage(message,'error');}else if(state==='success'){showInlineMessage(message,'success');}}else if(notify&&!message){clearInlineMessage();}}";
   chunk += "function applyBluetoothState(data,notify){if(!data){return;}var statusEl=document.getElementById('bluetooth-status');if(statusEl&&typeof data.status!=='undefined'){statusEl.textContent=data.status;}var nameEl=document.getElementById('bluetooth-name');if(nameEl&&typeof data.name!=='undefined'){nameEl.textContent=data.name;}var macEl=document.getElementById('bluetooth-mac');if(macEl&&typeof data.mac!=='undefined'){macEl.textContent=data.mac;}var input=document.getElementById('bluetoothNameInput');if(input&&typeof data.name!=='undefined'){input.value=data.name;}var summary=document.getElementById('bluetoothSummary');if(summary){summary.setAttribute('data-supported',(data.supported===false)?'false':'true');var offlineStored=summary.getAttribute('data-offline')||'';var disabledStored=summary.getAttribute('data-disabled')||offlineStored;var unsupportedStored=summary.getAttribute('data-unsupported')||offlineStored;if(data.supported===false){var unsupportedText=unsupportedStored||disabledStored||offlineStored;summary.textContent=unsupportedText;summary.setAttribute('data-offline',unsupportedText);}else if(data.enabled===false){var disabledText=disabledStored||offlineStored;summary.textContent=disabledText;summary.setAttribute('data-offline',disabledText);}else{var pieces=[];if(typeof data.status==='string'){pieces.push(data.status);}if(typeof data.summary==='string'){pieces.push(data.summary);}if(pieces.length){var combined=pieces.join(' • ');summary.textContent=combined;summary.setAttribute('data-online',combined);summary.setAttribute('data-offline',disabledStored||offlineStored);}}}var supported=(data.supported===false)?false:true;var supportEl=document.getElementById('bluetooth-support');if(supportEl){var yesText=supportEl.getAttribute('data-yes')||'';var noText=supportEl.getAttribute('data-no')||'';supportEl.setAttribute('data-supported',supported?'true':'false');if(supported&&yesText){supportEl.textContent=yesText;}else if(!supported&&noText){supportEl.textContent=noText;}}var advEl=document.getElementById('bluetooth-advertising');if(advEl){var onText=advEl.getAttribute('data-on')||'';var offText=advEl.getAttribute('data-off')||'';var advActive=supported&&data.enabled!==false&&(data.advertising===true||data.clientConnected===true);advEl.setAttribute('data-active',advActive?'true':'false');if(!supported){var unsupportedTextForAdv=(typeof noText!=='undefined'&&noText)?noText:offText;if(unsupportedTextForAdv){advEl.textContent=unsupportedTextForAdv;}}else if(advActive&&onText){advEl.textContent=onText;}else if(offText){advEl.textContent=offText;}}var connectionEl=document.getElementById('bluetooth-connection');if(connectionEl){var connectedText=connectionEl.getAttribute('data-connected')||'';var disconnectedText=connectionEl.getAttribute('data-disconnected')||'';var stateValue='unsupported';if(supported){if(data.enabled===false){stateValue='disabled';}else if(data.clientConnected===true){stateValue='connected';}else{stateValue='idle';}}connectionEl.setAttribute('data-state',stateValue);if(stateValue==='connected'&&connectedText){connectionEl.textContent=connectedText;}else if(disconnectedText){connectionEl.textContent=disconnectedText;}}var notifyEl=document.getElementById('bluetooth-notify-count');if(notifyEl){var count=(typeof data.notifyCount!=='undefined')?data.notifyCount:0;notifyEl.textContent=count;}";
   chunk += "var indicator=document.getElementById('bluetoothStatusDot');if(indicator){indicator.classList.remove('offline');if(data.supported===false||data.enabled===false){indicator.classList.add('offline');}}var controls=document.querySelectorAll('[data-bt-control=\"1\"]');if(controls&&controls.length){for(var i=0;i<controls.length;i++){controls[i].disabled=(data.supported===false);}}var message=(typeof data.message==='string')?data.message:'';var state=null;if(typeof data.success!=='undefined'){state=data.success?'success':'error';}if(notify){updateBluetoothFeedback(message,state,true);}else if(data.supported===false){updateBluetoothFeedback(message,'error',false);}else{updateBluetoothFeedback('',null,false);}}";
-  chunk += "function refreshBluetoothStatus(showNotice){fetch('/api/bluetooth/status').then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,showNotice);}).catch(function(err){var message=(currentLang==='fr'?'Erreur Bluetooth: ':'Bluetooth error: ')+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',showNotice);});}";
-  chunk += "function toggleBluetooth(enable){updateBluetoothFeedback(enable?(currentLang==='fr'?'Activation...':'Enabling...'):(currentLang==='fr'?'Désactivation...':'Disabling...'),null,false);fetch('/api/bluetooth/toggle?state='+(enable?'on':'off')).then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,true);}).catch(function(err){var message=(currentLang==='fr'?'Erreur Bluetooth: ':'Bluetooth error: ')+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',true);});return false;}";
-  chunk += "function renameBluetooth(){var input=document.getElementById('bluetoothNameInput');if(!input){return false;}var value=input.value||'';if(!value.trim()){updateBluetoothFeedback(currentLang==='fr'?'Nom Bluetooth invalide':'Invalid Bluetooth name','error',true);return false;}updateBluetoothFeedback(currentLang==='fr'?'Mise à jour...':'Updating...',null,false);fetch('/api/bluetooth/name?name='+encodeURIComponent(value.trim())).then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,true);}).catch(function(err){var message=(currentLang==='fr'?'Erreur Bluetooth: ':'Bluetooth error: ')+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',true);});return false;}";
-  chunk += "function resetBluetooth(){updateBluetoothFeedback(currentLang==='fr'?'Réinitialisation...':'Resetting...',null,false);fetch('/api/bluetooth/reset').then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,true);}).catch(function(err){var message=(currentLang==='fr'?'Erreur Bluetooth: ':'Bluetooth error: ')+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',true);});return false;}";
+  chunk += "function refreshBluetoothStatus(showNotice){fetch('/api/bluetooth/status').then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,showNotice);}).catch(function(err){var message=tr('bluetooth_error','Erreur Bluetooth','Bluetooth error')+': '+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',showNotice);});}";
+  chunk += "function toggleBluetooth(enable){updateBluetoothFeedback(enable?tr('bluetooth_enabling','Activation...','Enabling...'):tr('bluetooth_disabling','Désactivation...','Disabling...'),null,false);fetch('/api/bluetooth/toggle?state='+(enable?'on':'off')).then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,true);}).catch(function(err){var message=tr('bluetooth_error','Erreur Bluetooth','Bluetooth error')+': '+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',true);});return false;}";
+  chunk += "function renameBluetooth(){var input=document.getElementById('bluetoothNameInput');if(!input){return false;}var value=input.value||'';if(!value.trim()){updateBluetoothFeedback(tr('bluetooth_invalid_name','Nom Bluetooth invalide','Invalid Bluetooth name'),'error',true);return false;}updateBluetoothFeedback(tr('bluetooth_updating','Mise à jour...','Updating...'),null,false);fetch('/api/bluetooth/name?name='+encodeURIComponent(value.trim())).then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,true);}).catch(function(err){var message=tr('bluetooth_error','Erreur Bluetooth','Bluetooth error')+': '+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',true);});return false;}";
+  chunk += "function resetBluetooth(){updateBluetoothFeedback(tr('bluetooth_resetting','Réinitialisation...','Resetting...'),null,false);fetch('/api/bluetooth/reset').then(function(r){return r.json();}).then(function(data){applyBluetoothState(data,true);}).catch(function(err){var message=tr('bluetooth_error','Erreur Bluetooth','Bluetooth error')+': '+(err&&err.message?err.message:err);updateBluetoothFeedback(message,'error',true);});return false;}";
 
   chunk += "function changeLang(lang,btn){";
   chunk += "fetch('/api/set-language?lang='+lang).then(function(r){return r.json();}).then(function(d){";
@@ -3928,16 +4346,18 @@ a{color:inherit;}
   chunk += "for(var i=0;i<langButtons.length;i++){langButtons[i].classList.remove('active');}";
   chunk += "if(btn){btn.classList.add('active');}";
   chunk += "updateTranslations(true);";
-  chunk += "}).catch(function(err){var message=err&&err.message?err.message:err;showInlineMessage((currentLang==='fr'?'Erreur changement langue: ':'Language switch error: ')+message,'error');});";
+  chunk += "}).catch(function(err){var message=err&&err.message?err.message:err;showInlineMessage(tr('language_switch_error','Erreur changement langue','Language switch error')+': '+message,'error');});";
   chunk += "return false;";
   chunk += "}";
 
   chunk += "function updateTranslations(showNotice){";
   chunk += "fetch('/api/get-translations').then(function(r){return r.json();}).then(function(tr){";
+  chunk += "window.translations=tr;";
+  chunk += "var indicator=document.getElementById('updateIndicator');if(indicator&&tr.updating){indicator.textContent=tr.updating;}";
   // --- [NEW FEATURE] Mise à jour version bandeau unifié ---
   chunk += "var mainTitle=document.getElementById('main-title');if(mainTitle){var versionSpan=mainTitle.querySelector('.version-tag');if(versionSpan){var versionLabel=(tr.version||'v');versionSpan.textContent=versionLabel+'" + String(DIAGNOSTIC_VERSION) + "';}}";
   chunk += "var nodes=document.querySelectorAll('[data-i18n]');";
-  chunk += "for(var i=0;i<nodes.length;i++){var key=nodes[i].getAttribute('data-i18n');if(tr[key]){nodes[i].textContent=tr[key];}}";
+  chunk += "for(var i=0;i<nodes.length;i++){var key=nodes[i].getAttribute('data-i18n');if(!key){continue;}var value=tr[key];if(typeof value==='undefined'){continue;}if(key==='enable_psram_hint'){var psramType=nodes[i].getAttribute('data-psram-type')||'';nodes[i].textContent=value.replace('%TYPE%',psramType);}else{nodes[i].textContent=value;}}";
   chunk += "if(tr.nav_select_label){var navLabel=document.querySelector('label[for=\\'navSelector\\']');if(navLabel){navLabel.textContent=tr.nav_select_label;}if(navDropdown){navDropdown.setAttribute('aria-label',tr.nav_select_label);}}";
   chunk += "var btInput=document.getElementById('bluetoothNameInput');if(btInput&&tr.bluetooth_placeholder){btInput.setAttribute('placeholder',tr.bluetooth_placeholder);}";
   chunk += "var wifiValue=document.getElementById('wifiStatusValue');if(wifiValue&&tr.not_detected){wifiValue.setAttribute('data-offline',tr.not_detected);if(!connectionState){wifiValue.textContent=tr.not_detected;}}";
@@ -3947,8 +4367,9 @@ a{color:inherit;}
   chunk += "var btConnection=document.getElementById('bluetooth-connection');if(btConnection){if(tr.bluetooth_client_connected){btConnection.setAttribute('data-connected',tr.bluetooth_client_connected);}if(tr.bluetooth_client_disconnected){btConnection.setAttribute('data-disconnected',tr.bluetooth_client_disconnected);}var connState=btConnection.getAttribute('data-state');var connectedText=btConnection.getAttribute('data-connected')||'';var disconnectedText=btConnection.getAttribute('data-disconnected')||'';if(connState==='connected'&&connectedText){btConnection.textContent=connectedText;}else if(disconnectedText){btConnection.textContent=disconnectedText;}}";
   chunk += "refreshBluetoothStatus(false);";
   chunk += "updateStatusIndicator(connectionState);";
-  chunk += "if(showNotice){showInlineMessage(currentLang==='fr'?'Langue mise à jour':'Language updated','success');}";
-  chunk += "}).catch(function(err){var message=err&&err.message?err.message:err;showInlineMessage((currentLang==='fr'?'Erreur traduction: ':'Translation error: ')+message,'error');});";
+  chunk += "updateUptimeDisplay();";
+  chunk += "if(showNotice){showInlineMessage(tr('language_updated','Langue mise à jour','Language updated'),'success');}";
+  chunk += "}).catch(function(err){var message=err&&err.message?err.message:err;showInlineMessage(tr('translation_error','Erreur traduction','Translation error')+': '+message,'error');});";
   chunk += "}";
 
   chunk += "function findNavTrigger(el){while(el&&el.classList&&!el.classList.contains('nav-link')){el=el.parentElement;}if(el&&el.classList&&el.classList.contains('nav-link')){return el;}return null;}";
@@ -3956,37 +4377,79 @@ a{color:inherit;}
   chunk += "function initStickyNav(){var wrapper=document.querySelector('.nav-wrapper');if(!wrapper||wrapper.getAttribute('data-sticky-init')==='1'){return;}wrapper.setAttribute('data-sticky-init','1');var apply=function(state){if(state){wrapper.classList.add('is-sticky');}else{wrapper.classList.remove('is-sticky');}};";
   chunk += "var computeThreshold=function(){var rect=wrapper.getBoundingClientRect();var scrollTop=window.pageYOffset||document.documentElement.scrollTop||0;var stickyOffset=parseInt(window.getComputedStyle(wrapper).top,10)||0;return rect.top+scrollTop-stickyOffset;};var threshold=computeThreshold();";
   chunk += "var onScroll=function(){var scroll=window.pageYOffset||document.documentElement.scrollTop||0;var state=scroll>=threshold;apply(state);};window.addEventListener('scroll',onScroll);window.addEventListener('resize',function(){threshold=computeThreshold();onScroll();});onScroll();}";
-  chunk += "function initNavigation(){var navs=document.querySelectorAll('.primary-nav');if(navs&&navs.length){for(var n=0;n<navs.length;n++){(function(nav){nav.addEventListener('click',function(evt){var source=evt.target||evt.srcElement;var button=findNavTrigger(source);if(!button){return;}evt.preventDefault();var targetTab=button.getAttribute('data-target');if(targetTab){showTab(targetTab,button);}});})(navs[n]);}}var select=document.getElementById('navSelector');navDropdown=select;if(select){select.addEventListener('change',function(evt){var value=evt.target.value;if(value){showTab(value,null);}});}var initial=window.location.hash?window.location.hash.substring(1):null;var defaultButton=document.querySelector('.nav-link.active');if(initial==='wifi'){initial='wireless';}if(!initial&&defaultButton){initial=defaultButton.getAttribute('data-target');}if(!initial){var list=document.querySelectorAll('.nav-link');if(list.length>0){initial=list[0].getAttribute('data-target');defaultButton=list[0];}}var initialButton=null;if(initial){initialButton=document.querySelector(\".nav-link[data-target='\"+initial+\"']\");}if(initial){showTab(initial,initialButton,false);}else{showTab('overview',null,false);}initStickyNav();updateStatusIndicator(connectionState);refreshBluetoothStatus(false);}";
+  chunk += "function initNavigation(){updateUptimeDisplay();var navs=document.querySelectorAll('.primary-nav');if(navs&&navs.length){for(var n=0;n<navs.length;n++){(function(nav){nav.addEventListener('click',function(evt){var source=evt.target||evt.srcElement;var button=findNavTrigger(source);if(!button){return;}evt.preventDefault();var targetTab=button.getAttribute('data-target');if(targetTab){showTab(targetTab,button);}});})(navs[n]);}}var select=document.getElementById('navSelector');navDropdown=select;if(select){select.addEventListener('change',function(evt){var value=evt.target.value;if(value){showTab(value,null);}});}var initial=window.location.hash?window.location.hash.substring(1):null;var defaultButton=document.querySelector('.nav-link.active');if(initial==='wifi'){initial='wireless';}if(!initial&&defaultButton){initial=defaultButton.getAttribute('data-target');}if(!initial){var list=document.querySelectorAll('.nav-link');if(list.length>0){initial=list[0].getAttribute('data-target');defaultButton=list[0];}}var initialButton=null;if(initial){initialButton=document.querySelector(\".nav-link[data-target='\"+initial+\"']\");}if(initial){showTab(initial,initialButton,false);}else{showTab('overview',null,false);}initStickyNav();updateStatusIndicator(connectionState);refreshBluetoothStatus(false);}";
   chunk += "window.addEventListener('hashchange',function(){if(ignoreHashChange){return;}var target=window.location.hash?window.location.hash.substring(1):'overview';if(target==='wifi'){target='wireless';}showTab(target,null,false);});";
   chunk += "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initNavigation);}else{initNavigation();}";
 
-  chunk += "function configBuiltinLED(){updateStatus('builtin-led-status','Configuration...',null);fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';updateStatus('builtin-led-status',d.message||'GPIO invalide',state);}).catch(function(e){updateStatus('builtin-led-status','Erreur: '+e,'error');});}";
-  chunk += "function testBuiltinLED(){updateStatus('builtin-led-status','Test...',null);fetch('/api/builtin-led-test').then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';updateStatus('builtin-led-status',d.result||'Test en echec',state);}).catch(function(e){updateStatus('builtin-led-status','Erreur: '+e,'error');});}";
-  chunk += "function ledBlink(){fetch('/api/builtin-led-control?action=blink').then(function(r){return r.json();}).then(function(d){updateStatus('builtin-led-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('builtin-led-status','Erreur: '+e,'error');});}";
-  chunk += "function ledFade(){fetch('/api/builtin-led-control?action=fade').then(function(r){return r.json();}).then(function(d){updateStatus('builtin-led-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('builtin-led-status','Erreur: '+e,'error');});}";
-  chunk += "function ledOff(){fetch('/api/builtin-led-control?action=off').then(function(r){return r.json();}).then(function(d){updateStatus('builtin-led-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('builtin-led-status','Erreur: '+e,'error');});}";
+  chunk += "function configBuiltinLED(){var fallback=tr('gpio_invalid','GPIO invalide','Invalid GPIO');updateStatus('builtin-led-status',tr('configuring','Configuration...','Configuring...'),null);fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';updateStatus('builtin-led-status',d.message||fallback,state);}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function testBuiltinLED(){updateStatus('builtin-led-status',tr('testing','Test...','Testing...'),null);fetch('/api/builtin-led-test').then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';var fallback=tr('test_failed','Test en échec','Test failed');updateStatus('builtin-led-status',d.result||fallback,state);}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function ledBlink(){fetch('/api/builtin-led-control?action=blink').then(function(r){return r.json();}).then(function(d){updateStatus('builtin-led-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function ledFade(){fetch('/api/builtin-led-control?action=fade').then(function(r){return r.json();}).then(function(d){updateStatus('builtin-led-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function ledOff(){fetch('/api/builtin-led-control?action=off').then(function(r){return r.json();}).then(function(d){updateStatus('builtin-led-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
 
-  chunk += "function configNeoPixel(){updateStatus('neopixel-status','Configuration...',null);fetch('/api/neopixel-config?gpio='+document.getElementById('neoGPIO').value+'&count='+document.getElementById('neoCount').value).then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status','Erreur: '+e,'error');});}";
-  chunk += "function testNeoPixel(){updateStatus('neopixel-status','Test...',null);fetch('/api/neopixel-test').then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.result,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status','Erreur: '+e,'error');});}";
-  chunk += "function neoPattern(p){fetch('/api/neopixel-pattern?pattern='+p).then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status','Erreur: '+e,'error');});}";
-  chunk += "function neoCustomColor(){var c=document.getElementById('neoColor').value;var r=parseInt(c.substr(1,2),16);var g=parseInt(c.substr(3,2),16);var b=parseInt(c.substr(5,2),16);updateStatus('neopixel-status','RGB('+r+','+g+','+b+')...',null);fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b).then(function(rsp){return rsp.json();}).then(function(d){updateStatus('neopixel-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status','Erreur: '+e,'error');});}";
+  chunk += "function configNeoPixel(){updateStatus('neopixel-status',tr('configuring','Configuration...','Configuring...'),null);fetch('/api/neopixel-config?gpio='+document.getElementById('neoGPIO').value+'&count='+document.getElementById('neoCount').value).then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function testNeoPixel(){updateStatus('neopixel-status',tr('testing','Test...','Testing...'),null);fetch('/api/neopixel-test').then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.result,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function neoPattern(p){fetch('/api/neopixel-pattern?pattern='+p).then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function neoCustomColor(){var c=document.getElementById('neoColor').value;var r=parseInt(c.substr(1,2),16);var g=parseInt(c.substr(3,2),16);var b=parseInt(c.substr(5,2),16);updateStatus('neopixel-status','RGB('+r+','+g+','+b+')...',null);fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b).then(function(rsp){return rsp.json();}).then(function(d){updateStatus('neopixel-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
 
-  chunk += "function testOLED(){updateStatus('oled-status','Test en cours (25s)...',null);fetch('/api/oled-test').then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.result,d.success?'success':'error');}).catch(function(e){updateStatus('oled-status','Erreur: '+e,'error');});}";
-  chunk += "function oledStep(step){updateStatus('oled-status','" + String(T().testing) + "',null);fetch('/api/oled-step?step='+step).then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('oled-status','Erreur: '+e,'error');});}";
-  chunk += "function oledMessage(){var msg=document.getElementById('oledMsg').value;if(!msg){updateStatus('oled-status','" + String(T().custom_message) + "','error');return;}updateStatus('oled-status','Transmission...',null);fetch('/api/oled-message?message='+encodeURIComponent(msg)).then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('oled-status','Erreur: '+e,'error');});}";
-  chunk += "function configOLED(){updateStatus('oled-status','Reconfiguration...',null);var params='sda='+document.getElementById('oledSDA').value+'&scl='+document.getElementById('oledSCL').value+'&rotation='+document.getElementById('oledRotation').value;fetch('/api/oled-config?'+params).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';updateStatus('oled-status',d.message||'Configuration invalide',state);if(d.success&&typeof d.sda!=='undefined'){document.getElementById('oledSDA').value=d.sda;}if(d.success){var pins=document.getElementById('oled-pins');if(pins){pins.textContent='SDA:'+d.sda+' SCL:'+d.scl;}}if(d.success){var rotDisplay=document.getElementById('oled-rotation-display');if(rotDisplay){rotDisplay.textContent=d.rotation;}}}).catch(function(e){updateStatus('oled-status','Erreur: '+e,'error');});}";
+  chunk += "function testOLED(){updateStatus('oled-status',tr('oled_test_running','Test en cours (25s)...','Testing (25s)...'),null);fetch('/api/oled-test').then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.result,d.success?'success':'error');}).catch(function(e){updateStatus('oled-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function oledStep(step){updateStatus('oled-status','" + String(T().testing) + "',null);fetch('/api/oled-step?step='+step).then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('oled-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function oledMessage(){var msg=document.getElementById('oledMsg').value;if(!msg){updateStatus('oled-status','" + String(T().custom_message) + "','error');return;}updateStatus('oled-status',tr('transmission','Transmission...','Transmitting...'),null);fetch('/api/oled-message?message='+encodeURIComponent(msg)).then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('oled-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function configOLED(){updateStatus('oled-status',tr('reconfiguring','Reconfiguration...','Reconfiguring...'),null);var params='sda='+document.getElementById('oledSDA').value+'&scl='+document.getElementById('oledSCL').value+'&rotation='+document.getElementById('oledRotation').value;fetch('/api/oled-config?'+params).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';var fallback=tr('configuration_invalid','Configuration invalide','Invalid configuration');updateStatus('oled-status',d.message||fallback,state);if(d.success&&typeof d.sda!=='undefined'){document.getElementById('oledSDA').value=d.sda;}if(d.success){var pins=document.getElementById('oled-pins');if(pins){pins.textContent='SDA:'+d.sda+' SCL:'+d.scl;}}if(d.success){var rotDisplay=document.getElementById('oled-rotation-display');if(rotDisplay){rotDisplay.textContent=d.rotation;}}}).catch(function(e){updateStatus('oled-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
 
-  chunk += "function testADC(){document.getElementById('adc-status').innerHTML='Test...';fetch('/api/adc-test').then(function(r){return r.json();}).then(function(data){var h='';if(data.readings&&data.readings.forEach){data.readings.forEach(function(a){h+='<div class=\"info-item\"><div class=\"info-label\">GPIO '+a.pin+'</div><div class=\"info-value\">'+a.raw+' ('+a.voltage.toFixed(2)+'V)</div></div>';});}document.getElementById('adc-results').innerHTML=h;document.getElementById('adc-status').innerHTML=data.result;});}";
-  chunk += "function testPWM(){document.getElementById('pwm-status').innerHTML='Test...';fetch('/api/pwm-test').then(function(r){return r.json();}).then(function(d){document.getElementById('pwm-status').innerHTML=d.result;});}";
-  chunk += "function scanSPI(){document.getElementById('spi-status').innerHTML='Scan...';fetch('/api/spi-scan').then(function(r){return r.json();}).then(function(d){document.getElementById('spi-status').innerHTML=d.info;});}";
-  chunk += "function listPartitions(){document.getElementById('partitions-results').innerHTML='Scan...';fetch('/api/partitions-list').then(function(r){return r.json();}).then(function(d){document.getElementById('partitions-results').innerHTML=d.partitions;});}";
-  chunk += "function stressTest(){document.getElementById('stress-status').innerHTML='Test...';fetch('/api/stress-test').then(function(r){return r.json();}).then(function(d){document.getElementById('stress-status').innerHTML=d.result;});}";
+  // --- [FIX] Normalisation JS tests ADC/GPIO/WiFi ---
+  chunk += "function testADC(){";
+  chunk += "document.getElementById('adc-status').innerHTML=tr('testing','Test...','Testing...');";
+  chunk += "fetch('/api/adc-test').then(function(r){return r.json();}).then(function(data){";
+  chunk += "var h='';";
+  chunk += "if(data.readings&&data.readings.forEach){data.readings.forEach(function(a){";
+  chunk += "h+=\"<div class='info-item'><div class='info-label'>GPIO \"+a.pin+\"</div><div class='info-value'>\"+a.raw+\" (\"+a.voltage.toFixed(2)+\"V)</div></div>\";";
+  chunk += "});}";
+  chunk += "document.getElementById('adc-results').innerHTML=h;";
+  chunk += "document.getElementById('adc-status').innerHTML=data.result;";
+  chunk += "});";
+  chunk += "}";
+  chunk += "function testPWM(){document.getElementById('pwm-status').innerHTML=tr('testing','Test...','Testing...');fetch('/api/pwm-test').then(function(r){return r.json();}).then(function(d){document.getElementById('pwm-status').innerHTML=d.result;});}";
+  chunk += "function scanSPI(){document.getElementById('spi-status').innerHTML=tr('scan','Scan...','Scan...');fetch('/api/spi-scan').then(function(r){return r.json();}).then(function(d){document.getElementById('spi-status').innerHTML=d.info;});}";
+  chunk += "function listPartitions(){document.getElementById('partitions-results').innerHTML=tr('scan','Scan...','Scan...');fetch('/api/partitions-list').then(function(r){return r.json();}).then(function(d){document.getElementById('partitions-results').innerHTML=d.partitions;});}";
+  chunk += "function stressTest(){document.getElementById('stress-status').innerHTML=tr('testing','Test...','Testing...');fetch('/api/stress-test').then(function(r){return r.json();}).then(function(d){document.getElementById('stress-status').innerHTML=d.result;});}";
 
-  chunk += "function testAllGPIO(){document.getElementById('gpio-status').innerHTML='Test...';fetch('/api/test-gpio').then(function(r){return r.json();}).then(function(data){var h='';if(data.results&&data.results.forEach){data.results.forEach(function(g){h+='<div class=\"gpio-item '+(g.working?'gpio-ok':'gpio-fail')+'\">GPIO '+g.pin+'<br>'+(g.working?'OK':'FAIL')+'</div>';});}document.getElementById('gpio-results').innerHTML=h;document.getElementById('gpio-status').innerHTML='Termine - '+data.results.length+' GPIO testes';});}";
-
-  chunk += "function scanWiFi(){document.getElementById('wifi-status').innerHTML='Scan...';fetch('/api/wifi-scan').then(function(r){return r.json();}).then(function(data){var h='';if(data.networks&&data.networks.forEach){data.networks.forEach(function(n){var s=n.rssi>=-60?'🟢':(n.rssi>=-70?'🟡':'🔴');var freq=(n.freq&&n.freq>0)?n.freq+' MHz':'';var pieces=[];if(n.bssid){pieces.push(n.bssid);}if(n.channel){pieces.push('Ch'+n.channel);}if(n.band){pieces.push(n.band);}if(freq){pieces.push(freq);}if(n.bandwidth){pieces.push(n.bandwidth);}if(n.phy){pieces.push(n.phy);}if(n.encryption&&n.encryption!=='-'){pieces.push(n.encryption);}var details=pieces.join(' | ');h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+s+' '+n.ssid+'</strong><br><small>'+details+'</small></div><div style=\"font-size:1.2em;font-weight:bold\">'+n.rssi+' dBm</div></div></div>';});}document.getElementById('wifi-results').innerHTML=h;document.getElementById('wifi-status').innerHTML=data.networks.length+' reseaux detectes';});}";
-
-  chunk += "function scanI2C(){updateStatus('i2c-status','Scan...',null);fetch('/api/i2c-scan').then(function(r){return r.json();}).then(function(d){var msg='I2C: '+d.count+' peripherique(s)';updateStatus('i2c-status',msg,'success');var summary=document.getElementById('i2c-summary');if(summary){summary.textContent=d.count+' peripherique(s) - '+d.devices;}}).catch(function(e){updateStatus('i2c-status','Erreur: '+e,'error');});}";
+  chunk += "function testAllGPIO(){";
+  chunk += "document.getElementById('gpio-status').innerHTML=tr('testing','Test...','Testing...');";
+  chunk += "fetch('/api/test-gpio').then(function(r){return r.json();}).then(function(data){";
+  chunk += "var h='';";
+  chunk += "if(data.results&&data.results.forEach){data.results.forEach(function(g){";
+  chunk += "h+=\"<div class='gpio-item \"+(g.working?\"gpio-ok\":\"gpio-fail\")+\"'>GPIO \"+g.pin+\"<br>\"+(g.working?\"OK\":\"FAIL\")+\"</div>\";";
+  chunk += "});}";
+  chunk += "document.getElementById('gpio-results').innerHTML=h;";
+  chunk += "var template=tr('gpio_summary_template','Terminé - %COUNT% GPIO testés','Done - %COUNT% GPIO tested');";
+  chunk += "document.getElementById('gpio-status').innerHTML=template.replace('%COUNT%',data.results.length);";
+  chunk += "});";
+  chunk += "}";
+  chunk += "function scanWiFi(){";
+  chunk += "document.getElementById('wifi-status').innerHTML=tr('scan','Scan...','Scan...');";
+  chunk += "fetch('/api/wifi-scan').then(function(r){return r.json();}).then(function(data){";
+  chunk += "var h='';";
+  chunk += "if(data.networks&&data.networks.forEach){data.networks.forEach(function(n){";
+  chunk += "var s=n.rssi>=-60?'🟢':(n.rssi>=-70?'🟡':'🔴');";
+  chunk += "var freq=(n.freq&&n.freq>0)?n.freq+' MHz':'';";
+  chunk += "var pieces=[];";
+  chunk += "if(n.bssid){pieces.push(n.bssid);}";
+  chunk += "if(n.channel){pieces.push('Ch'+n.channel);}";
+  chunk += "if(n.band){pieces.push(n.band);}";
+  chunk += "if(freq){pieces.push(freq);}";
+  chunk += "if(n.bandwidth){pieces.push(n.bandwidth);}";
+  chunk += "if(n.phy){pieces.push(n.phy);}";
+  chunk += "if(n.encryption&&n.encryption!=='-'){pieces.push(n.encryption);}";
+  chunk += "var details=pieces.join(' | ');";
+  chunk += "h+=\"<div class='wifi-item'><div style='display:flex;justify-content:space-between'><div><strong>\"+s+\" \"+n.ssid+\"</strong><br><small>\"+details+\"</small></div><div style='font-size:1.2em;font-weight:bold'>\"+n.rssi+\" dBm</div></div></div>\";";
+  chunk += "});}";
+  chunk += "document.getElementById('wifi-results').innerHTML=h;";
+  chunk += "var wifiLabel=tr('wifi_networks_found','%COUNT% réseaux détectés','%COUNT% networks found');";
+  chunk += "document.getElementById('wifi-status').innerHTML=wifiLabel.replace('%COUNT%',data.networks.length);";
+  chunk += "});";
+  chunk += "}";
+  chunk += "function scanI2C(){updateStatus('i2c-status',tr('scan','Scan...','Scan...'),null);fetch('/api/i2c-scan').then(function(r){return r.json();}).then(function(d){var label=tr('i2c_scan_result','I2C : %COUNT% périphérique(s)','I2C: %COUNT% device(s)');updateStatus('i2c-status',label.replace('%COUNT%',d.count),'success');var summary=document.getElementById('i2c-summary');if(summary){var countLabel=tr('device_count','Nombre de Périphériques','Device count');summary.textContent=d.count+' '+countLabel+' - '+d.devices;}}).catch(function(e){updateStatus('i2c-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
 
   chunk += "function runBenchmarks(){document.getElementById('cpu-bench').innerHTML='Test...';document.getElementById('mem-bench').innerHTML='Test...';fetch('/api/benchmark').then(function(r){return r.json();}).then(function(data){document.getElementById('cpu-bench').innerHTML=data.cpu+' us';document.getElementById('mem-bench').innerHTML=data.memory+' us';document.getElementById('cpu-perf').innerHTML=data.cpuPerf.toFixed(2)+' MFLOPS';document.getElementById('mem-speed').innerHTML=data.memSpeed.toFixed(2)+' MB/s';});}";
 
@@ -4024,8 +4487,10 @@ void setup() {
   // WiFi
   WiFi.mode(WIFI_STA);
   WiFi.persistent(false);
-  WiFi.setHostname(MDNS_HOSTNAME_STR);
+
   WiFi.setSleep(false);
+  // --- [NEW FEATURE] Assignation du nom d'hôte avant la connexion WiFi ---
+  configureNetworkHostname();
 #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 3, 0)
   WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
 #ifdef WIFI_CONNECT_AP_BY_SIGNAL
@@ -4043,23 +4508,24 @@ void setup() {
     attempt++;
   }
   
-  if (WiFi.status() == WL_CONNECTED) {
+  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+#if DIAGNOSTIC_HAS_MDNS
+  wifiPreviouslyConnected = wifiConnected;
+#endif
+
+  if (wifiConnected) {
     Serial.println("\r\n\r\nWiFi OK!");
     Serial.printf("SSID: %s\r\n", WiFi.SSID().c_str());
     Serial.printf("IP: %s\r\n\r\n", WiFi.localIP().toString().c_str());
-    
-    if (MDNS.begin(MDNS_HOSTNAME)) {
-      Serial.println("════════════════════════════════════════");
-      Serial.printf("   http://%s.local\r\n", MDNS_HOSTNAME);
-      Serial.printf("   http://%s\r\n", WiFi.localIP().toString().c_str());
-      Serial.println("════════════════════════════════════════\r\n");
-      MDNS.addService("http", "tcp", 80);
+    // --- [NEW FEATURE] Activation du lien stable via mDNS ---
+    if (startMDNSService(true)) {
+      Serial.printf("[Accès] Lien constant : %s\r\n", getStableAccessURL().c_str());
     } else {
-      Serial.println("mDNS erreur");
-      Serial.printf("Utilisez IP: http://%s\r\n\r\n", WiFi.localIP().toString().c_str());
+      Serial.println("[mDNS] Initialisation différée - nouvel essai automatique");
     }
   } else {
     Serial.println("\r\n\r\nPas de WiFi\r\n");
+    Serial.printf("[Accès] Lien constant disponible après connexion : %s\r\n", getStableAccessURL().c_str());
   }
   
   // Détections
@@ -4158,6 +4624,13 @@ void setup() {
 // ========== LOOP ==========
 void loop() {
   server.handleClient();
+  maintainNetworkServices();
+#if DIAGNOSTIC_HAS_MDNS && defined(DIAGNOSTIC_USES_ESPMDNS)
+  if (mdnsServiceActive) {
+    // --- [NEW FEATURE] Maintenance mDNS continue ---
+    DIAGNOSTIC_MDNS_SERVER.update();
+  }
+#endif
 
   static unsigned long lastUpdate = 0;
   if (millis() - lastUpdate > 30000) {
