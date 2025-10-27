@@ -1,3 +1,4 @@
+// Version de dev : 3.2.15-dev - Réduction du gabarit HTML et allègement du sketch
 // Version de dev : 3.2.14-dev - Harmonisation des traductions UI dynamiques
 // Version de dev : 3.2.13-dev - Retrait final du doublon IP sur le bandeau legacy
 // Version de dev : 3.2.12-dev - Bandeau sans doublon IP
@@ -15,6 +16,7 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.15-dev - Réduction du gabarit HTML et allègement du sketch
 // Version de dev : 3.2.14-dev - Harmonisation des traductions UI dynamiques
 // Version de dev : 3.2.13-dev - Retrait final du doublon IP sur le bandeau legacy
 // Version de dev : 3.2.12-dev - Bandeau sans doublon IP
@@ -171,7 +173,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.14-dev"
+#define DIAGNOSTIC_VERSION "3.2.15-dev"
 // --- [NEW FEATURE] Lien d'accès constant via nom d'hôte ---
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
@@ -2720,6 +2722,37 @@ String jsonEscape(const char* raw) {
   return escaped;
 }
 
+// --- [NEW FEATURE] Gabarits HTML compacts pour les blocs info ---
+static inline void appendInfoItem(String& chunk,
+                                  const char* labelKey,
+                                  const char* labelText,
+                                  const String& valueText,
+                                  const String& valueAttrs = String(),
+                                  const String& wrapperAttrs = String()) {
+  chunk += F("<div class='info-item'");
+  if (wrapperAttrs.length() > 0) {
+    chunk += ' ';
+    chunk += wrapperAttrs;
+  }
+  chunk += F("><div class='info-label");
+  if (labelKey != nullptr && labelKey[0] != '\0') {
+    chunk += F("' data-i18n='");
+    chunk += labelKey;
+    chunk += F("'>");
+  } else {
+    chunk += F("'>");
+  }
+  chunk += labelText;
+  chunk += F("</div><div class='info-value'");
+  if (valueAttrs.length() > 0) {
+    chunk += ' ';
+    chunk += valueAttrs;
+  }
+  chunk += F(">");
+  chunk += valueText;
+  chunk += F("</div></div>");
+}
+
 String jsonField(const char* key, const char* value, bool last = false) {
   String field = "\"";
   field += key;
@@ -3940,22 +3973,26 @@ a{color:inherit;}
   
   // Chip Info
   chunk += "<div class='section'><h2 data-i18n='chip_info'>" + String(T().chip_info) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='full_model'>" + String(T().full_model) + "</div><div class='info-value'>" + diagnosticData.chipModel + " " + String(T().revision) + " " + diagnosticData.chipRevision + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='cpu_cores'>" + String(T().cpu_cores) + "</div><div class='info-value'>" + String(diagnosticData.cpuCores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='mac_wifi'>" + String(T().mac_wifi) + "</div><div class='info-value'>" + diagnosticData.macAddress + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='last_reset'>" + String(T().last_reset) + "</div><div class='info-value'>" + getResetReason() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='chip_features'>" + String(T().chip_features) + "</div><div class='info-value'>" + getChipFeatures() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='sdk_version'>" + String(T().sdk_version) + "</div><div class='info-value'>" + diagnosticData.sdkVersion + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='idf_version'>" + String(T().idf_version) + "</div><div class='info-value'>" + diagnosticData.idfVersion + "</div></div>";
-  
+  String modelValue = diagnosticData.chipModel + " " + String(T().revision) + " " + diagnosticData.chipRevision;
+  appendInfoItem(chunk, "full_model", T().full_model, modelValue);
+  String cpuValue = String(diagnosticData.cpuCores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz";
+  appendInfoItem(chunk, "cpu_cores", T().cpu_cores, cpuValue);
+  appendInfoItem(chunk, "mac_wifi", T().mac_wifi, diagnosticData.macAddress);
+  appendInfoItem(chunk, "last_reset", T().last_reset, getResetReason());
+  appendInfoItem(chunk, "chip_features", T().chip_features, getChipFeatures());
+  appendInfoItem(chunk, "sdk_version", T().sdk_version, diagnosticData.sdkVersion);
+  appendInfoItem(chunk, "idf_version", T().idf_version, diagnosticData.idfVersion);
+
   unsigned long seconds = diagnosticData.uptime / 1000;
   unsigned long minutes = seconds / 60;
   unsigned long hours = minutes / 60;
   unsigned long days = hours / 24;
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='uptime'>" + String(T().uptime) + "</div><div class='info-value' id='uptime-display' data-days='" + String(days) + "' data-hours='" + String(hours % 24) + "' data-minutes='" + String(minutes % 60) + "'>" + formatUptime(days, hours % 24, minutes % 60) + "</div></div>";
+  String uptimeAttrs = "id='uptime-display' data-days='" + String(days) + "' data-hours='" + String(hours % 24) + "' data-minutes='" + String(minutes % 60) + "'";
+  appendInfoItem(chunk, "uptime", T().uptime, formatUptime(days, hours % 24, minutes % 60), uptimeAttrs);
 
   if (diagnosticData.temperature != -999) {
-    chunk += "<div class='info-item'><div class='info-label' data-i18n='cpu_temp'>" + String(T().cpu_temp) + "</div><div class='info-value'>" + String(diagnosticData.temperature, 1) + " °C</div></div>";
+    String temperatureValue = String(diagnosticData.temperature, 1) + " °C";
+    appendInfoItem(chunk, "cpu_temp", T().cpu_temp, temperatureValue);
   }
   chunk += "</div></div>";
   server.sendContent(chunk);
@@ -3963,73 +4000,90 @@ a{color:inherit;}
   // Memory - Flash
   chunk = "<div class='section'><h2 data-i18n='memory_details'>" + String(T().memory_details) + "</h2>";
   chunk += "<h3 data-i18n='flash_memory'>" + String(T().flash_memory) + "</h3><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='real_size'>" + String(T().real_size) + "</div><div class='info-value'>" + String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='configured_ide'>" + String(T().configured_ide) + "</div><div class='info-value'>" + String(detailedMemory.flashSizeChip / 1048576.0, 2) + " MB</div></div>";
-  
+  String flashReal = String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB";
+  appendInfoItem(chunk, "real_size", T().real_size, flashReal);
+  String flashConfigured = String(detailedMemory.flashSizeChip / 1048576.0, 2) + " MB";
+  appendInfoItem(chunk, "configured_ide", T().configured_ide, flashConfigured);
+
   bool flashMatch = (detailedMemory.flashSizeReal == detailedMemory.flashSizeChip);
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='configuration'>" + String(T().configuration) + "</div><div class='info-value'><span class='badge ";
-  chunk += flashMatch ? "badge-success' data-i18n='correct'>" + String(T().correct) : "badge-warning' data-i18n='to_fix'>" + String(T().to_fix);
-  chunk += "</span></div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='flash_type'>" + String(T().flash_type) + "</div><div class='info-value'>" + getFlashType() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='flash_speed'>" + String(T().flash_speed) + "</div><div class='info-value'>" + getFlashSpeed() + "</div></div>";
+  String configValue = flashMatch ? "<span class='badge badge-success' data-i18n='correct'>" + String(T().correct)
+                                  : "<span class='badge badge-warning' data-i18n='to_fix'>" + String(T().to_fix);
+  configValue += "</span>";
+  appendInfoItem(chunk, "configuration", T().configuration, configValue);
+  appendInfoItem(chunk, "flash_type", T().flash_type, getFlashType());
+  appendInfoItem(chunk, "flash_speed", T().flash_speed, getFlashSpeed());
   chunk += "</div>";
   server.sendContent(chunk);
   
   // Memory - PSRAM
   chunk = "<h3 data-i18n='psram_external'>" + String(T().psram_external) + "</h3><div class='info-grid'>";
   if (detailedMemory.psramAvailable) {
-    chunk += "<div class='info-item'><div class='info-label' data-i18n='hardware_status'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-success' data-i18n='detected_active'>" + String(T().detected_active) + "</span></div></div>";
-    chunk += "<div class='info-item'><div class='info-label' data-i18n='total_size'>" + String(T().total_size) + "</div><div class='info-value'>" + String(detailedMemory.psramTotal / 1048576.0, 2) + " MB</div></div>";
-    chunk += "<div class='info-item'><div class='info-label' data-i18n='free'>" + String(T().free) + "</div><div class='info-value'>" + String(detailedMemory.psramFree / 1048576.0, 2) + " MB</div></div>";
-    chunk += "<div class='info-item'><div class='info-label' data-i18n='used'>" + String(T().used) + "</div><div class='info-value'>" + String(detailedMemory.psramUsed / 1048576.0, 2) + " MB</div></div>";
+    String statusValue = "<span class='badge badge-success' data-i18n='detected_active'>" + String(T().detected_active) + "</span>";
+    appendInfoItem(chunk, "hardware_status", T().hardware_status, statusValue);
+    String psramTotal = String(detailedMemory.psramTotal / 1048576.0, 2) + " MB";
+    appendInfoItem(chunk, "total_size", T().total_size, psramTotal);
+    String psramFree = String(detailedMemory.psramFree / 1048576.0, 2) + " MB";
+    appendInfoItem(chunk, "free", T().free, psramFree);
+    String psramUsed = String(detailedMemory.psramUsed / 1048576.0, 2) + " MB";
+    appendInfoItem(chunk, "used", T().used, psramUsed);
   } else if (detailedMemory.psramBoardSupported) {
-    chunk += "<div class='info-item'><div class='info-label' data-i18n='hardware_status'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-warning' data-i18n='supported_not_enabled'>" + String(T().supported_not_enabled) + "</span></div></div>";
+    String statusValue = "<span class='badge badge-warning' data-i18n='supported_not_enabled'>" + String(T().supported_not_enabled) + "</span>";
+    appendInfoItem(chunk, "hardware_status", T().hardware_status, statusValue);
     String psramHint = String(T().enable_psram_hint);
     psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
-    chunk += "<div class='info-item' style='grid-column:1/-1'><div class='info-label' data-i18n='ide_config'>" + String(T().ide_config) + "</div><div class='info-value' data-i18n='enable_psram_hint' data-psram-type='" + htmlEscape(String(detailedMemory.psramType ? detailedMemory.psramType : "PSRAM")) + "'>" + psramHint + "</div></div>";
+    String psramHintAttrs = "data-i18n='enable_psram_hint' data-psram-type='" + htmlEscape(String(detailedMemory.psramType ? detailedMemory.psramType : "PSRAM")) + "'";
+    appendInfoItem(chunk, "ide_config", T().ide_config, psramHint, psramHintAttrs, String(F("style='grid-column:1/-1'")));
   } else {
-    chunk += "<div class='info-item'><div class='info-label' data-i18n='hardware_status'>" + String(T().hardware_status) + "</div><div class='info-value'><span class='badge badge-danger' data-i18n='not_detected'>" + String(T().not_detected) + "</span></div></div>";
+    String statusValue = "<span class='badge badge-danger' data-i18n='not_detected'>" + String(T().not_detected) + "</span>";
+    appendInfoItem(chunk, "hardware_status", T().hardware_status, statusValue);
   }
   chunk += "</div>";
   server.sendContent(chunk);
   
   // Memory - SRAM
   chunk = "<h3 data-i18n='internal_sram'>" + String(T().internal_sram) + "</h3><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='total_size'>" + String(T().total_size) + "</div><div class='info-value'>" + String(detailedMemory.sramTotal / 1024.0, 2) + " KB</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='free'>" + String(T().free) + "</div><div class='info-value'>" + String(detailedMemory.sramFree / 1024.0, 2) + " KB</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='used'>" + String(T().used) + "</div><div class='info-value'>" + String(detailedMemory.sramUsed / 1024.0, 2) + " KB</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='memory_fragmentation'>" + String(T().memory_fragmentation) + "</div><div class='info-value'>" + String(detailedMemory.fragmentationPercent, 1) + "%</div></div>";
+  String sramTotal = String(detailedMemory.sramTotal / 1024.0, 2) + " KB";
+  appendInfoItem(chunk, "total_size", T().total_size, sramTotal);
+  String sramFree = String(detailedMemory.sramFree / 1024.0, 2) + " KB";
+  appendInfoItem(chunk, "free", T().free, sramFree);
+  String sramUsed = String(detailedMemory.sramUsed / 1024.0, 2) + " KB";
+  appendInfoItem(chunk, "used", T().used, sramUsed);
+  String fragmentation = String(detailedMemory.fragmentationPercent, 1) + "%";
+  appendInfoItem(chunk, "memory_fragmentation", T().memory_fragmentation, fragmentation);
   chunk += "</div>";
   chunk += "<div style='text-align:center;margin-top:15px'><button class='btn btn-info' data-i18n='refresh_memory' onclick='location.reload()'>" + String(T().refresh_memory) + "</button></div></div>";
   server.sendContent(chunk);
   
   // WiFi
   chunk = "<div class='section'><h2 data-i18n='wifi_connection'>" + String(T().wifi_connection) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='connected_ssid'>" + String(T().connected_ssid) + "</div><div class='info-value'>" + diagnosticData.wifiSSID + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='signal_power'>" + String(T().signal_power) + "</div><div class='info-value'>" + String(diagnosticData.wifiRSSI) + " dBm</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='signal_quality'>" + String(T().signal_quality) + "</div><div class='info-value'>" + getWiFiSignalQuality() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='ip_address'>" + String(T().ip_address) + "</div><div class='info-value'>" + diagnosticData.ipAddress + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='subnet_mask'>" + String(T().subnet_mask) + "</div><div class='info-value'>" + WiFi.subnetMask().toString() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='gateway'>" + String(T().gateway) + "</div><div class='info-value'>" + WiFi.gatewayIP().toString() + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</div><div class='info-value'>" + bluetoothSummaryEscaped + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_mac'>" + String(T().bluetooth_mac) + "</div><div class='info-value'>" + diagnosticData.bluetoothAddress + "</div></div>";
+  appendInfoItem(chunk, "connected_ssid", T().connected_ssid, diagnosticData.wifiSSID);
+  String wifiRssi = String(diagnosticData.wifiRSSI) + " dBm";
+  appendInfoItem(chunk, "signal_power", T().signal_power, wifiRssi);
+  appendInfoItem(chunk, "signal_quality", T().signal_quality, getWiFiSignalQuality());
+  appendInfoItem(chunk, "ip_address", T().ip_address, diagnosticData.ipAddress);
+  appendInfoItem(chunk, "subnet_mask", T().subnet_mask, WiFi.subnetMask().toString());
+  appendInfoItem(chunk, "gateway", T().gateway, WiFi.gatewayIP().toString());
+  appendInfoItem(chunk, "bluetooth_section", T().bluetooth_section, bluetoothSummaryEscaped);
+  appendInfoItem(chunk, "bluetooth_mac", T().bluetooth_mac, diagnosticData.bluetoothAddress);
   chunk += "</div></div>";
   server.sendContent(chunk);
 
   chunk = "<div class='section'><h2 data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_status'>" + String(T().bluetooth_status) + "</div><div class='info-value'>" + bluetoothStatusEscaped + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_name'>" + String(T().bluetooth_name) + "</div><div class='info-value'>" + bluetoothNameEscaped + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_mac'>" + String(T().bluetooth_mac) + "</div><div class='info-value'>" + diagnosticData.bluetoothAddress + "</div></div>";
+  appendInfoItem(chunk, "bluetooth_status", T().bluetooth_status, bluetoothStatusEscaped);
+  appendInfoItem(chunk, "bluetooth_name", T().bluetooth_name, bluetoothNameEscaped);
+  appendInfoItem(chunk, "bluetooth_mac", T().bluetooth_mac, diagnosticData.bluetoothAddress);
   chunk += "</div></div>";
   server.sendContent(chunk);
 
   // GPIO et I2C
   chunk = "<div class='section'><h2 data-i18n='gpio_interfaces'>" + String(T().gpio_interfaces) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='total_gpio'>" + String(T().total_gpio) + "</div><div class='info-value'>" + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "</div></div>";
+  String totalGPIOValue = String(diagnosticData.totalGPIO) + " " + String(T().pins);
+  appendInfoItem(chunk, "total_gpio", T().total_gpio, totalGPIOValue);
   if (ENABLE_I2C_SCAN) {
-    chunk += "<div class='info-item'><div class='info-label' data-i18n='i2c_peripherals'>" + String(T().i2c_peripherals) + "</div><div class='info-value'>" + String(diagnosticData.i2cCount) + " " + String(T().devices) + "</div></div>";
+    String i2cCountValue = String(diagnosticData.i2cCount) + " " + String(T().devices);
+    appendInfoItem(chunk, "i2c_peripherals", T().i2c_peripherals, i2cCountValue);
     if (diagnosticData.i2cCount > 0) {
-      chunk += "<div class='info-item' style='grid-column:1/-1'><div class='info-label' data-i18n='detected_addresses'>" + String(T().detected_addresses) + "</div><div class='info-value'>" + diagnosticData.i2cDevices + "</div></div>";
+      appendInfoItem(chunk, "detected_addresses", T().detected_addresses, diagnosticData.i2cDevices, String(), String(F("style='grid-column:1/-1'")));
     }
   }
   chunk += "</div></div>";
@@ -4039,8 +4093,9 @@ a{color:inherit;}
   // CHUNK 4: TAB LEDs
   chunk = "<div id='leds' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().builtin_led) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().gpio) + "</div><div class='info-value'>GPIO " + String(BUILTIN_LED_PIN) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='builtin-led-status'>" + builtinLedTestResult + "</div></div>";
+  String builtinPinValue = "GPIO " + String(BUILTIN_LED_PIN);
+  appendInfoItem(chunk, nullptr, T().gpio, builtinPinValue);
+  appendInfoItem(chunk, nullptr, T().status, builtinLedTestResult, String(F("id='builtin-led-status'")));
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "<input type='number' id='ledGPIO' value='" + String(BUILTIN_LED_PIN) + "' min='0' max='48' style='width:80px'>";
   chunk += "<button class='btn btn-info' onclick='configBuiltinLED()'>" + String(T().config) + "</button>";
@@ -4051,8 +4106,9 @@ a{color:inherit;}
   chunk += "</div></div></div>";
   
   chunk += "<div class='section'><h2>" + String(T().neopixel) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().gpio) + "</div><div class='info-value'>GPIO " + String(LED_PIN) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='neopixel-status'>" + neopixelTestResult + "</div></div>";
+  String neoPinValue = "GPIO " + String(LED_PIN);
+  appendInfoItem(chunk, nullptr, T().gpio, neoPinValue);
+  appendInfoItem(chunk, nullptr, T().status, neopixelTestResult, String(F("id='neopixel-status'")));
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "<input type='number' id='neoGPIO' value='" + String(LED_PIN) + "' min='0' max='48' style='width:80px'>";
   chunk += "<input type='number' id='neoCount' value='" + String(LED_COUNT) + "' min='1' max='100' style='width:80px'>";
@@ -4068,9 +4124,10 @@ a{color:inherit;}
   // CHUNK 5: TAB Screens
   chunk = "<div id='screens' class='tab-content'>";
   chunk += "<div class='section'><h2>" + String(T().oled_screen) + "</h2><div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().status) + "</div><div class='info-value' id='oled-status'>" + oledTestResult + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().i2c_pins) + "</div><div class='info-value' id='oled-pins'>SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().rotation) + "</div><div class='info-value' id='oled-rotation-display'>" + String(oledRotation) + "</div></div>";
+  appendInfoItem(chunk, nullptr, T().status, oledTestResult, String(F("id='oled-status'")));
+  String oledPinsValue = "SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL);
+  appendInfoItem(chunk, nullptr, T().i2c_pins, oledPinsValue, String(F("id='oled-pins'")));
+  appendInfoItem(chunk, nullptr, T().rotation, String(oledRotation), String(F("id='oled-rotation-display'")));
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "SDA: <input type='number' id='oledSDA' value='" + String(I2C_SDA) + "' min='0' max='48' style='width:70px'> ";
   chunk += "SCL: <input type='number' id='oledSCL' value='" + String(I2C_SCL) + "' min='0' max='48' style='width:70px'> ";
@@ -4163,13 +4220,16 @@ a{color:inherit;}
   chunk += "</div><div id='wifi-results' class='wifi-list'></div></div>";
   chunk += "<div class='section'><h2 data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</h2>";
   chunk += "<div class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_status'>" + String(T().bluetooth_status) + "</div><div class='info-value' id='bluetooth-status'>" + htmlEscape(bluetoothStatusText) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_name'>" + String(T().bluetooth_name) + "</div><div class='info-value' id='bluetooth-name'>" + bluetoothNameEscaped + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_mac'>" + String(T().bluetooth_mac) + "</div><div class='info-value' id='bluetooth-mac'>" + diagnosticData.bluetoothAddress + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_support_label'>" + String(T().bluetooth_support_label) + "</div><div class='info-value' id='bluetooth-support' data-yes='" + bluetoothSupportYes + "' data-no='" + bluetoothSupportNo + "' data-supported='" + bluetoothSupportAttr + "'>" + bluetoothSupportValue + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_advertising_label'>" + String(T().bluetooth_advertising_label) + "</div><div class='info-value' id='bluetooth-advertising' data-on='" + bluetoothAdvertisingOn + "' data-off='" + bluetoothAdvertisingOff + "' data-active='" + bluetoothAdvertisingAttr + "'>" + bluetoothAdvertisingValue + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_connection_label'>" + String(T().bluetooth_connection_label) + "</div><div class='info-value' id='bluetooth-connection' data-connected='" + bluetoothConnectedLabel + "' data-disconnected='" + bluetoothDisconnectedLabel + "' data-state='" + bluetoothConnectionStateAttr + "'>" + bluetoothConnectionValue + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label' data-i18n='bluetooth_notifications_label'>" + String(T().bluetooth_notifications_label) + "</div><div class='info-value' id='bluetooth-notify-count'>" + bluetoothNotificationsValue + "</div></div>";
+  appendInfoItem(chunk, "bluetooth_status", T().bluetooth_status, htmlEscape(bluetoothStatusText), String(F("id='bluetooth-status'")));
+  appendInfoItem(chunk, "bluetooth_name", T().bluetooth_name, bluetoothNameEscaped, String(F("id='bluetooth-name'")));
+  appendInfoItem(chunk, "bluetooth_mac", T().bluetooth_mac, diagnosticData.bluetoothAddress, String(F("id='bluetooth-mac'")));
+  String supportAttrs = "id='bluetooth-support' data-yes='" + bluetoothSupportYes + "' data-no='" + bluetoothSupportNo + "' data-supported='" + bluetoothSupportAttr + "'";
+  appendInfoItem(chunk, "bluetooth_support_label", T().bluetooth_support_label, bluetoothSupportValue, supportAttrs);
+  String advertisingAttrs = "id='bluetooth-advertising' data-on='" + bluetoothAdvertisingOn + "' data-off='" + bluetoothAdvertisingOff + "' data-active='" + bluetoothAdvertisingAttr + "'";
+  appendInfoItem(chunk, "bluetooth_advertising_label", T().bluetooth_advertising_label, bluetoothAdvertisingValue, advertisingAttrs);
+  String connectionAttrs = "id='bluetooth-connection' data-connected='" + bluetoothConnectedLabel + "' data-disconnected='" + bluetoothDisconnectedLabel + "' data-state='" + bluetoothConnectionStateAttr + "'";
+  appendInfoItem(chunk, "bluetooth_connection_label", T().bluetooth_connection_label, bluetoothConnectionValue, connectionAttrs);
+  appendInfoItem(chunk, "bluetooth_notifications_label", T().bluetooth_notifications_label, bluetoothNotificationsValue, String(F("id='bluetooth-notify-count'")));
   chunk += "</div>";
   chunk += "<div class='card' style='margin-top:20px'>";
   chunk += "<h3 data-i18n='bluetooth_actions'>" + String(T().bluetooth_actions) + "</h3>";
@@ -4190,10 +4250,10 @@ a{color:inherit;}
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='runBenchmarks()'>" + String(T().run_benchmarks) + "</button>";
   chunk += "</div><div id='benchmark-results' class='info-grid'>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_benchmark) + "</div><div class='info-value' id='cpu-bench'>" + String(T().not_tested) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_benchmark) + "</div><div class='info-value' id='mem-bench'>" + String(T().not_tested) + "</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().cpu_performance) + "</div><div class='info-value' id='cpu-perf'>-</div></div>";
-  chunk += "<div class='info-item'><div class='info-label'>" + String(T().memory_speed) + "</div><div class='info-value' id='mem-speed'>-</div></div>";
+  appendInfoItem(chunk, "cpu_benchmark", T().cpu_benchmark, String(T().not_tested), String(F("id='cpu-bench'")));
+  appendInfoItem(chunk, "memory_benchmark", T().memory_benchmark, String(T().not_tested), String(F("id='mem-bench'")));
+  appendInfoItem(chunk, "cpu_performance", T().cpu_performance, String(F("-")), String(F("id='cpu-perf'")));
+  appendInfoItem(chunk, "memory_speed", T().memory_speed, String(F("-")), String(F("id='mem-speed'")));
   chunk += "</div></div></div>";
   server.sendContent(chunk);
   
