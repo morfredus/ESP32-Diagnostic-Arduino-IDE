@@ -2,6 +2,19 @@
 
 All notable changes to ESP32 Diagnostic Suite are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Version 3.2.22-dev] - 2025-10-27
+### Added
+- None.
+
+### Fixed
+- Removed redundant “NEW FEATURE” banner comments to avoid confusing maintenance efforts.
+
+### Improved
+- Consolidated the legacy "Version de dev" notes into a firmware constant so internal history remains accessible without banner duplication.
+- Synced the firmware header comment and `DIAGNOSTIC_VERSION` macro at 3.2.22-dev and refreshed documentation to reflect the streamlined maintenance focus.
+
+---
+
 ## [Version 3.2.0] - 2025-10-29
 ### Added
 - Documented how to query the `/api/memory-details` endpoint and interpret fragmentation warnings from the latest diagnostics run.
