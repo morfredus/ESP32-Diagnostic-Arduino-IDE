@@ -2,7 +2,7 @@
 
 Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Version 3.2.22-dev] - 2025-10-27
+## [Version 3.3.0] - 2025-10-27
 ### Ajouts
 - Néant.
 
@@ -11,7 +11,7 @@ Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. 
 
 ### Améliorations
 - Consolidation des notes historiques « Version de dev » dans une constante firmware afin de préserver la mémoire du projet sans dupliquer les bannières.
-- Synchronisation du commentaire d'en-tête et de la macro `DIAGNOSTIC_VERSION` sur 3.2.22-dev avec une documentation mise à jour autour de cette maintenance.
+- Synchronisation du commentaire d'en-tête et de la macro `DIAGNOSTIC_VERSION` sur 3.3.0 avec une documentation mise à jour autour de cette maintenance.
 
 ---
 

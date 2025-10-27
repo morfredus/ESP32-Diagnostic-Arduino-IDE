@@ -24,7 +24,7 @@ ESP32-Diagnostic/
 - **BLE manager** – detects chip capabilities, configures the GATT service, and exposes status updates to the web UI.
 - **Diagnostics engine** – performs hardware tests (GPIO, ADC, touch, OLED, benchmarks) and formats results for the dashboard and exports.
 - **Export subsystem** – assembles TXT/JSON/CSV payloads for download and prints.
-- Release 3.2.22-dev reiterates the reinforced `/api/set-language` handler, keeps the consolidated maintenance history embedded in the firmware, and aligns the bilingual changelog with the refreshed version banner.
+- Release 3.3.0 reiterates the reinforced `/api/set-language` handler, keeps the consolidated maintenance history embedded in the firmware, and aligns the bilingual changelog with the refreshed version banner.
 
 ## Front-end structure
 - HTML templates define each tab with semantic sections.
