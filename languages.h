@@ -245,6 +245,7 @@ struct Translations {
   const char* list;
   const char* days;
   const char* hours;
+  const char* minutes;
   
   // Statuts et messages
   const char* ok;
@@ -513,6 +514,7 @@ const Translations LANG_FR_TEXTS = {
   "Liste",
   "jours",
   "heures",
+  "minutes",
   
   // Statuts
   "OK",
@@ -781,6 +783,7 @@ const Translations LANG_EN_TEXTS = {
   "List",
   "days",
   "hours",
+  "minutes",
     
   // Status
   "OK",
