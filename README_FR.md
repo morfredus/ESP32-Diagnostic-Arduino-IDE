@@ -12,11 +12,20 @@ Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de
 - `languages.h` – catalogue de traductions et sélecteur de langue à chaud.
 - `web_interface.h` – modèles HTML/CSS/JS fournis par le firmware.
 - `wifi-config-example.h` – modèle pour stocker les identifiants Wi-Fi.
-- `docs/` – guides détaillés d'installation, configuration, utilisation et dépannage (FR/EN).
+- `docs/` – wiki complet regroupant installation, utilisation, API et guides de déploiement (FR/EN).
 
 ## Documentation
 | Sujet | Anglais | Français |
 |-------|---------|----------|
+| Wiki (accueil) | [home.md](docs/home.md) | [home_FR.md](docs/home_FR.md) |
+| Vue d'ensemble | [OVERVIEW.md](docs/OVERVIEW.md) | [OVERVIEW_FR.md](docs/OVERVIEW_FR.md) |
+| Matrice des fonctionnalités | [FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md) | [FEATURE_MATRIX_FR.md](docs/FEATURE_MATRIX_FR.md) |
+| Modules de diagnostic | [DIAGNOSTIC_MODULES.md](docs/DIAGNOSTIC_MODULES.md) | [DIAGNOSTIC_MODULES_FR.md](docs/DIAGNOSTIC_MODULES_FR.md) |
+| Interface web | [WEB_INTERFACE.md](docs/WEB_INTERFACE.md) | [WEB_INTERFACE_FR.md](docs/WEB_INTERFACE_FR.md) |
+| REST API | [API_REFERENCE.md](docs/API_REFERENCE.md) | [API_REFERENCE_FR.md](docs/API_REFERENCE_FR.md) |
+| Compilation & déploiement | [BUILD_AND_DEPLOY.md](docs/BUILD_AND_DEPLOY.md) | [BUILD_AND_DEPLOY_FR.md](docs/BUILD_AND_DEPLOY_FR.md) |
+| Sécurité | [SECURITY.md](docs/SECURITY.md) | [SECURITY_FR.md](docs/SECURITY_FR.md) |
+| FAQ | [FAQ.md](docs/FAQ.md) | [FAQ_FR.md](docs/FAQ_FR.md) |
 | Installation | [INSTALL.md](docs/INSTALL.md) | [INSTALL_FR.md](docs/INSTALL_FR.md) |
 | Configuration | [CONFIG.md](docs/CONFIG.md) | [CONFIG_FR.md](docs/CONFIG_FR.md) |
 | Guide d'utilisation | [USAGE.md](docs/USAGE.md) | [USAGE_FR.md](docs/USAGE_FR.md) |
