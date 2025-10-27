@@ -1,3 +1,4 @@
+// Version de dev : 3.2.19-dev - Correction de la collision tr() lors du changement de langue
 // Version de dev : 3.2.18-dev - Suppression du double échappement JS dynamique
 // Version de dev : 3.2.17-dev - Correction des chaînes JS des tests dynamiques
 // Version de dev : 3.2.16-dev - Localisation étendue des chaînes UI dynamiques
@@ -19,6 +20,7 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.19-dev - Correction de la collision tr() lors du changement de langue
 // Version de dev : 3.2.18-dev - Suppression du double échappement JS dynamique
 // Version de dev : 3.2.17-dev - Correction des chaînes JS des tests dynamiques
 // Version de dev : 3.2.16-dev - Localisation étendue des chaînes UI dynamiques
@@ -179,7 +181,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.18-dev"
+#define DIAGNOSTIC_VERSION "3.2.19-dev"
 // --- [NEW FEATURE] Lien d'accès constant via nom d'hôte ---
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
@@ -4351,20 +4353,20 @@ a{color:inherit;}
   chunk += "}";
 
   chunk += "function updateTranslations(showNotice){";
-  chunk += "fetch('/api/get-translations').then(function(r){return r.json();}).then(function(tr){";
-  chunk += "window.translations=tr;";
-  chunk += "var indicator=document.getElementById('updateIndicator');if(indicator&&tr.updating){indicator.textContent=tr.updating;}";
-  // --- [NEW FEATURE] Mise à jour version bandeau unifié ---
-  chunk += "var mainTitle=document.getElementById('main-title');if(mainTitle){var versionSpan=mainTitle.querySelector('.version-tag');if(versionSpan){var versionLabel=(tr.version||'v');versionSpan.textContent=versionLabel+'" + String(DIAGNOSTIC_VERSION) + "';}}";
+  chunk += "fetch('/api/get-translations').then(function(r){return r.json();}).then(function(translations){";
+  chunk += "window.translations=translations;";
+  chunk += "var indicator=document.getElementById('updateIndicator');if(indicator&&translations.updating){indicator.textContent=translations.updating;}";
+  // --- [FIX] Préserver la fonction tr() lors du rafraîchissement des traductions ---
+  chunk += "var mainTitle=document.getElementById('main-title');if(mainTitle){var versionSpan=mainTitle.querySelector('.version-tag');if(versionSpan){var versionLabel=(translations.version||'v');versionSpan.textContent=versionLabel+'" + String(DIAGNOSTIC_VERSION) + "';}}";
   chunk += "var nodes=document.querySelectorAll('[data-i18n]');";
-  chunk += "for(var i=0;i<nodes.length;i++){var key=nodes[i].getAttribute('data-i18n');if(!key){continue;}var value=tr[key];if(typeof value==='undefined'){continue;}if(key==='enable_psram_hint'){var psramType=nodes[i].getAttribute('data-psram-type')||'';nodes[i].textContent=value.replace('%TYPE%',psramType);}else{nodes[i].textContent=value;}}";
-  chunk += "if(tr.nav_select_label){var navLabel=document.querySelector('label[for=\\'navSelector\\']');if(navLabel){navLabel.textContent=tr.nav_select_label;}if(navDropdown){navDropdown.setAttribute('aria-label',tr.nav_select_label);}}";
-  chunk += "var btInput=document.getElementById('bluetoothNameInput');if(btInput&&tr.bluetooth_placeholder){btInput.setAttribute('placeholder',tr.bluetooth_placeholder);}";
-  chunk += "var wifiValue=document.getElementById('wifiStatusValue');if(wifiValue&&tr.not_detected){wifiValue.setAttribute('data-offline',tr.not_detected);if(!connectionState){wifiValue.textContent=tr.not_detected;}}";
-  chunk += "var btSummary=document.getElementById('bluetoothSummary');if(btSummary){if(tr.bluetooth_disabled){btSummary.setAttribute('data-disabled',tr.bluetooth_disabled);}if(tr.bluetooth_not_supported){btSummary.setAttribute('data-unsupported',tr.bluetooth_not_supported);}var supported=btSummary.getAttribute('data-supported');var btDot=document.getElementById('bluetoothStatusDot');var offlineState=btDot&&btDot.classList.contains('offline');if(offlineState){var offlineText=(supported==='false')?(tr.bluetooth_not_supported||btSummary.getAttribute('data-offline')):(tr.bluetooth_disabled||btSummary.getAttribute('data-offline'));if(offlineText){btSummary.textContent=offlineText;btSummary.setAttribute('data-offline',offlineText);}}}";
-  chunk += "var btSupport=document.getElementById('bluetooth-support');if(btSupport){if(tr.bluetooth_support_yes){btSupport.setAttribute('data-yes',tr.bluetooth_support_yes);}if(tr.bluetooth_support_no){btSupport.setAttribute('data-no',tr.bluetooth_support_no);}var supportState=btSupport.getAttribute('data-supported')==='true';var yesValue=btSupport.getAttribute('data-yes')||'';var noValue=btSupport.getAttribute('data-no')||'';if(supportState&&yesValue){btSupport.textContent=yesValue;}else if(!supportState&&noValue){btSupport.textContent=noValue;}}";
-  chunk += "var btAdvert=document.getElementById('bluetooth-advertising');if(btAdvert){if(tr.bluetooth_advertising){btAdvert.setAttribute('data-on',tr.bluetooth_advertising);}if(tr.bluetooth_not_advertising){btAdvert.setAttribute('data-off',tr.bluetooth_not_advertising);}var advertActive=btAdvert.getAttribute('data-active')==='true';var advertOn=btAdvert.getAttribute('data-on')||'';var advertOff=btAdvert.getAttribute('data-off')||'';if(advertActive&&advertOn){btAdvert.textContent=advertOn;}else if(advertOff){btAdvert.textContent=advertOff;}}";
-  chunk += "var btConnection=document.getElementById('bluetooth-connection');if(btConnection){if(tr.bluetooth_client_connected){btConnection.setAttribute('data-connected',tr.bluetooth_client_connected);}if(tr.bluetooth_client_disconnected){btConnection.setAttribute('data-disconnected',tr.bluetooth_client_disconnected);}var connState=btConnection.getAttribute('data-state');var connectedText=btConnection.getAttribute('data-connected')||'';var disconnectedText=btConnection.getAttribute('data-disconnected')||'';if(connState==='connected'&&connectedText){btConnection.textContent=connectedText;}else if(disconnectedText){btConnection.textContent=disconnectedText;}}";
+  chunk += "for(var i=0;i<nodes.length;i++){var key=nodes[i].getAttribute('data-i18n');if(!key){continue;}var value=translations[key];if(typeof value==='undefined'){continue;}if(key==='enable_psram_hint'){var psramType=nodes[i].getAttribute('data-psram-type')||'';nodes[i].textContent=value.replace('%TYPE%',psramType);}else{nodes[i].textContent=value;}}";
+  chunk += "if(translations.nav_select_label){var navLabel=document.querySelector('label[for=\\'navSelector\\']');if(navLabel){navLabel.textContent=translations.nav_select_label;}if(navDropdown){navDropdown.setAttribute('aria-label',translations.nav_select_label);}}";
+  chunk += "var btInput=document.getElementById('bluetoothNameInput');if(btInput&&translations.bluetooth_placeholder){btInput.setAttribute('placeholder',translations.bluetooth_placeholder);}";
+  chunk += "var wifiValue=document.getElementById('wifiStatusValue');if(wifiValue&&translations.not_detected){wifiValue.setAttribute('data-offline',translations.not_detected);if(!connectionState){wifiValue.textContent=translations.not_detected;}}";
+  chunk += "var btSummary=document.getElementById('bluetoothSummary');if(btSummary){if(translations.bluetooth_disabled){btSummary.setAttribute('data-disabled',translations.bluetooth_disabled);}if(translations.bluetooth_not_supported){btSummary.setAttribute('data-unsupported',translations.bluetooth_not_supported);}var supported=btSummary.getAttribute('data-supported');var btDot=document.getElementById('bluetoothStatusDot');var offlineState=btDot&&btDot.classList.contains('offline');if(offlineState){var offlineText=(supported==='false')?(translations.bluetooth_not_supported||btSummary.getAttribute('data-offline')):(translations.bluetooth_disabled||btSummary.getAttribute('data-offline'));if(offlineText){btSummary.textContent=offlineText;btSummary.setAttribute('data-offline',offlineText);}}}";
+  chunk += "var btSupport=document.getElementById('bluetooth-support');if(btSupport){if(translations.bluetooth_support_yes){btSupport.setAttribute('data-yes',translations.bluetooth_support_yes);}if(translations.bluetooth_support_no){btSupport.setAttribute('data-no',translations.bluetooth_support_no);}var supportState=btSupport.getAttribute('data-supported')==='true';var yesValue=btSupport.getAttribute('data-yes')||'';var noValue=btSupport.getAttribute('data-no')||'';if(supportState&&yesValue){btSupport.textContent=yesValue;}else if(!supportState&&noValue){btSupport.textContent=noValue;}}";
+  chunk += "var btAdvert=document.getElementById('bluetooth-advertising');if(btAdvert){if(translations.bluetooth_advertising){btAdvert.setAttribute('data-on',translations.bluetooth_advertising);}if(translations.bluetooth_not_advertising){btAdvert.setAttribute('data-off',translations.bluetooth_not_advertising);}var advertActive=btAdvert.getAttribute('data-active')==='true';var advertOn=btAdvert.getAttribute('data-on')||'';var advertOff=btAdvert.getAttribute('data-off')||'';if(advertActive&&advertOn){btAdvert.textContent=advertOn;}else if(advertOff){btAdvert.textContent=advertOff;}}";
+  chunk += "var btConnection=document.getElementById('bluetooth-connection');if(btConnection){if(translations.bluetooth_client_connected){btConnection.setAttribute('data-connected',translations.bluetooth_client_connected);}if(translations.bluetooth_client_disconnected){btConnection.setAttribute('data-disconnected',translations.bluetooth_client_disconnected);}var connState=btConnection.getAttribute('data-state');var connectedText=btConnection.getAttribute('data-connected')||'';var disconnectedText=btConnection.getAttribute('data-disconnected')||'';if(connState==='connected'&&connectedText){btConnection.textContent=connectedText;}else if(disconnectedText){btConnection.textContent=disconnectedText;}}";
   chunk += "refreshBluetoothStatus(false);";
   chunk += "updateStatusIndicator(connectionState);";
   chunk += "updateUptimeDisplay();";
