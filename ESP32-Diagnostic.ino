@@ -1,3 +1,4 @@
+// Version de dev : 3.2.18-dev - Suppression du double échappement JS dynamique
 // Version de dev : 3.2.17-dev - Correction des chaînes JS des tests dynamiques
 // Version de dev : 3.2.16-dev - Localisation étendue des chaînes UI dynamiques
 // Version de dev : 3.2.15-dev - Réduction du gabarit HTML et allègement du sketch
@@ -18,6 +19,7 @@
  */
 
 // Journal de version
+// Version de dev : 3.2.18-dev - Suppression du double échappement JS dynamique
 // Version de dev : 3.2.17-dev - Correction des chaînes JS des tests dynamiques
 // Version de dev : 3.2.16-dev - Localisation étendue des chaînes UI dynamiques
 // Version de dev : 3.2.15-dev - Réduction du gabarit HTML et allègement du sketch
@@ -177,7 +179,7 @@
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.17-dev"
+#define DIAGNOSTIC_VERSION "3.2.18-dev"
 // --- [NEW FEATURE] Lien d'accès constant via nom d'hôte ---
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
@@ -4396,16 +4398,57 @@ a{color:inherit;}
   chunk += "function configOLED(){updateStatus('oled-status',tr('reconfiguring','Reconfiguration...','Reconfiguring...'),null);var params='sda='+document.getElementById('oledSDA').value+'&scl='+document.getElementById('oledSCL').value+'&rotation='+document.getElementById('oledRotation').value;fetch('/api/oled-config?'+params).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';var fallback=tr('configuration_invalid','Configuration invalide','Invalid configuration');updateStatus('oled-status',d.message||fallback,state);if(d.success&&typeof d.sda!=='undefined'){document.getElementById('oledSDA').value=d.sda;}if(d.success){var pins=document.getElementById('oled-pins');if(pins){pins.textContent='SDA:'+d.sda+' SCL:'+d.scl;}}if(d.success){var rotDisplay=document.getElementById('oled-rotation-display');if(rotDisplay){rotDisplay.textContent=d.rotation;}}}).catch(function(e){updateStatus('oled-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
 
   // --- [FIX] Normalisation JS tests ADC/GPIO/WiFi ---
-  chunk += "function testADC(){document.getElementById('adc-status').innerHTML=tr('testing','Test...','Testing...');fetch('/api/adc-test').then(function(r){return r.json();}).then(function(data){var h=\"\";if(data.readings&&data.readings.forEach){data.readings.forEach(function(a){h+=\"<div class='info-item'><div class='info-label'>GPIO \"+a.pin+\"</div><div class='info-value'>\"+a.raw+\" (\"+a.voltage.toFixed(2)+\"V)</div></div>\";});}document.getElementById('adc-results').innerHTML=h;document.getElementById('adc-status').innerHTML=data.result;});\";"
+  chunk += "function testADC(){";
+  chunk += "document.getElementById('adc-status').innerHTML=tr('testing','Test...','Testing...');";
+  chunk += "fetch('/api/adc-test').then(function(r){return r.json();}).then(function(data){";
+  chunk += "var h='';";
+  chunk += "if(data.readings&&data.readings.forEach){data.readings.forEach(function(a){";
+  chunk += "h+=\"<div class='info-item'><div class='info-label'>GPIO \"+a.pin+\"</div><div class='info-value'>\"+a.raw+\" (\"+a.voltage.toFixed(2)+\"V)</div></div>\";";
+  chunk += "});}";
+  chunk += "document.getElementById('adc-results').innerHTML=h;";
+  chunk += "document.getElementById('adc-status').innerHTML=data.result;";
+  chunk += "});";
+  chunk += "}";
   chunk += "function testPWM(){document.getElementById('pwm-status').innerHTML=tr('testing','Test...','Testing...');fetch('/api/pwm-test').then(function(r){return r.json();}).then(function(d){document.getElementById('pwm-status').innerHTML=d.result;});}";
   chunk += "function scanSPI(){document.getElementById('spi-status').innerHTML=tr('scan','Scan...','Scan...');fetch('/api/spi-scan').then(function(r){return r.json();}).then(function(d){document.getElementById('spi-status').innerHTML=d.info;});}";
   chunk += "function listPartitions(){document.getElementById('partitions-results').innerHTML=tr('scan','Scan...','Scan...');fetch('/api/partitions-list').then(function(r){return r.json();}).then(function(d){document.getElementById('partitions-results').innerHTML=d.partitions;});}";
   chunk += "function stressTest(){document.getElementById('stress-status').innerHTML=tr('testing','Test...','Testing...');fetch('/api/stress-test').then(function(r){return r.json();}).then(function(d){document.getElementById('stress-status').innerHTML=d.result;});}";
 
-  chunk += "function testAllGPIO(){document.getElementById('gpio-status').innerHTML=tr('testing','Test...','Testing...');fetch('/api/test-gpio').then(function(r){return r.json();}).then(function(data){var h=\"\";if(data.results&&data.results.forEach){data.results.forEach(function(g){h+=\"<div class='gpio-item \"+(g.working?\"gpio-ok\":\"gpio-fail\")+\"'>GPIO \"+g.pin+\"<br>\"+(g.working?\"OK\":\"FAIL\")+\"</div>\";});}document.getElementById('gpio-results').innerHTML=h;var template=tr('gpio_summary_template','Terminé - %COUNT% GPIO testés','Done - %COUNT% GPIO tested');document.getElementById('gpio-status').innerHTML=template.replace('%COUNT%',data.results.length);});\";"
-
-  chunk += "function scanWiFi(){document.getElementById('wifi-status').innerHTML=tr('scan','Scan...','Scan...');fetch('/api/wifi-scan').then(function(r){return r.json();}).then(function(data){var h=\"\";if(data.networks&&data.networks.forEach){data.networks.forEach(function(n){var s=n.rssi>=-60?'🟢':(n.rssi>=-70?'🟡':'🔴');var freq=(n.freq&&n.freq>0)?n.freq+' MHz':\"\";var pieces=[];if(n.bssid){pieces.push(n.bssid);}if(n.channel){pieces.push('Ch'+n.channel);}if(n.band){pieces.push(n.band);}if(freq){pieces.push(freq);}if(n.bandwidth){pieces.push(n.bandwidth);}if(n.phy){pieces.push(n.phy);}if(n.encryption&&n.encryption!=='-'){pieces.push(n.encryption);}var details=pieces.join(' | ');h+=\"<div class='wifi-item'><div style='display:flex;justify-content:space-between'><div><strong>\"+s+\" \"+n.ssid+\"</strong><br><small>\"+details+\"</small></div><div style='font-size:1.2em;font-weight:bold'>\"+n.rssi+\" dBm</div></div></div>\";});}document.getElementById('wifi-results').innerHTML=h;var wifiLabel=tr('wifi_networks_found','%COUNT% réseaux détectés','%COUNT% networks found');document.getElementById('wifi-status').innerHTML=wifiLabel.replace('%COUNT%',data.networks.length);});\";"
-
+  chunk += "function testAllGPIO(){";
+  chunk += "document.getElementById('gpio-status').innerHTML=tr('testing','Test...','Testing...');";
+  chunk += "fetch('/api/test-gpio').then(function(r){return r.json();}).then(function(data){";
+  chunk += "var h='';";
+  chunk += "if(data.results&&data.results.forEach){data.results.forEach(function(g){";
+  chunk += "h+=\"<div class='gpio-item \"+(g.working?\"gpio-ok\":\"gpio-fail\")+\"'>GPIO \"+g.pin+\"<br>\"+(g.working?\"OK\":\"FAIL\")+\"</div>\";";
+  chunk += "});}";
+  chunk += "document.getElementById('gpio-results').innerHTML=h;";
+  chunk += "var template=tr('gpio_summary_template','Terminé - %COUNT% GPIO testés','Done - %COUNT% GPIO tested');";
+  chunk += "document.getElementById('gpio-status').innerHTML=template.replace('%COUNT%',data.results.length);";
+  chunk += "});";
+  chunk += "}";
+  chunk += "function scanWiFi(){";
+  chunk += "document.getElementById('wifi-status').innerHTML=tr('scan','Scan...','Scan...');";
+  chunk += "fetch('/api/wifi-scan').then(function(r){return r.json();}).then(function(data){";
+  chunk += "var h='';";
+  chunk += "if(data.networks&&data.networks.forEach){data.networks.forEach(function(n){";
+  chunk += "var s=n.rssi>=-60?'🟢':(n.rssi>=-70?'🟡':'🔴');";
+  chunk += "var freq=(n.freq&&n.freq>0)?n.freq+' MHz':'';";
+  chunk += "var pieces=[];";
+  chunk += "if(n.bssid){pieces.push(n.bssid);}";
+  chunk += "if(n.channel){pieces.push('Ch'+n.channel);}";
+  chunk += "if(n.band){pieces.push(n.band);}";
+  chunk += "if(freq){pieces.push(freq);}";
+  chunk += "if(n.bandwidth){pieces.push(n.bandwidth);}";
+  chunk += "if(n.phy){pieces.push(n.phy);}";
+  chunk += "if(n.encryption&&n.encryption!=='-'){pieces.push(n.encryption);}";
+  chunk += "var details=pieces.join(' | ');";
+  chunk += "h+=\"<div class='wifi-item'><div style='display:flex;justify-content:space-between'><div><strong>\"+s+\" \"+n.ssid+\"</strong><br><small>\"+details+\"</small></div><div style='font-size:1.2em;font-weight:bold'>\"+n.rssi+\" dBm</div></div></div>\";";
+  chunk += "});}";
+  chunk += "document.getElementById('wifi-results').innerHTML=h;";
+  chunk += "var wifiLabel=tr('wifi_networks_found','%COUNT% réseaux détectés','%COUNT% networks found');";
+  chunk += "document.getElementById('wifi-status').innerHTML=wifiLabel.replace('%COUNT%',data.networks.length);";
+  chunk += "});";
+  chunk += "}";
   chunk += "function scanI2C(){updateStatus('i2c-status',tr('scan','Scan...','Scan...'),null);fetch('/api/i2c-scan').then(function(r){return r.json();}).then(function(d){var label=tr('i2c_scan_result','I2C : %COUNT% périphérique(s)','I2C: %COUNT% device(s)');updateStatus('i2c-status',label.replace('%COUNT%',d.count),'success');var summary=document.getElementById('i2c-summary');if(summary){var countLabel=tr('device_count','Nombre de Périphériques','Device count');summary.textContent=d.count+' '+countLabel+' - '+d.devices;}}).catch(function(e){updateStatus('i2c-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
 
   chunk += "function runBenchmarks(){document.getElementById('cpu-bench').innerHTML='Test...';document.getElementById('mem-bench').innerHTML='Test...';fetch('/api/benchmark').then(function(r){return r.json();}).then(function(data){document.getElementById('cpu-bench').innerHTML=data.cpu+' us';document.getElementById('mem-bench').innerHTML=data.memory+' us';document.getElementById('cpu-perf').innerHTML=data.cpuPerf.toFixed(2)+' MFLOPS';document.getElementById('mem-speed').innerHTML=data.memSpeed.toFixed(2)+' MB/s';});}";
