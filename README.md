@@ -12,11 +12,20 @@ Comprehensive diagnostic firmware for ESP32 microcontrollers featuring an intera
 - `languages.h` – translation catalog and runtime language switcher.
 - `web_interface.h` – HTML/CSS/JS templates served by the firmware.
 - `wifi-config-example.h` – template for Wi-Fi credential storage.
-- `docs/` – extended installation, configuration, usage, and troubleshooting guides (EN/FR).
+- `docs/` – comprehensive wiki including installation, usage, API reference, and deployment guides (EN/FR).
 
 ## Documentation
 | Topic | English | Français |
 |-------|---------|----------|
+| Wiki home | [home.md](docs/home.md) | [home_FR.md](docs/home_FR.md) |
+| Overview | [OVERVIEW.md](docs/OVERVIEW.md) | [OVERVIEW_FR.md](docs/OVERVIEW_FR.md) |
+| Feature matrix | [FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md) | [FEATURE_MATRIX_FR.md](docs/FEATURE_MATRIX_FR.md) |
+| Diagnostic modules | [DIAGNOSTIC_MODULES.md](docs/DIAGNOSTIC_MODULES.md) | [DIAGNOSTIC_MODULES_FR.md](docs/DIAGNOSTIC_MODULES_FR.md) |
+| Web interface | [WEB_INTERFACE.md](docs/WEB_INTERFACE.md) | [WEB_INTERFACE_FR.md](docs/WEB_INTERFACE_FR.md) |
+| REST API | [API_REFERENCE.md](docs/API_REFERENCE.md) | [API_REFERENCE_FR.md](docs/API_REFERENCE_FR.md) |
+| Build & deploy | [BUILD_AND_DEPLOY.md](docs/BUILD_AND_DEPLOY.md) | [BUILD_AND_DEPLOY_FR.md](docs/BUILD_AND_DEPLOY_FR.md) |
+| Security | [SECURITY.md](docs/SECURITY.md) | [SECURITY_FR.md](docs/SECURITY_FR.md) |
+| FAQ | [FAQ.md](docs/FAQ.md) | [FAQ_FR.md](docs/FAQ_FR.md) |
 | Installation | [INSTALL.md](docs/INSTALL.md) | [INSTALL_FR.md](docs/INSTALL_FR.md) |
 | Configuration | [CONFIG.md](docs/CONFIG.md) | [CONFIG_FR.md](docs/CONFIG_FR.md) |
 | Usage guide | [USAGE.md](docs/USAGE.md) | [USAGE_FR.md](docs/USAGE_FR.md) |
