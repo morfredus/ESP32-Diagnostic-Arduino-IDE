@@ -2,7 +2,7 @@
 
 Suivez ces étapes pour déployer ESP32 Diagnostic Suite sur votre carte.
 
-> **Version 3.2.22-dev :** Vérifiez que le bandeau de version et la constante `DIAGNOSTIC_VERSION` indiquent 3.2.22-dev, puis consultez la liste `DIAGNOSTIC_VERSION_HISTORY` pour confirmer que les notes de maintenance restent accessibles sans dupliquer les commentaires.
+> **Version 3.3.0 :** Vérifiez que le bandeau de version et la constante `DIAGNOSTIC_VERSION` indiquent 3.3.0, puis consultez la liste `DIAGNOSTIC_VERSION_HISTORY` pour confirmer que les notes de maintenance restent accessibles sans dupliquer les commentaires.
 
 ## 1. Prérequis
 - Carte ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 ou ESP32-H2 (S3 recommandée).
