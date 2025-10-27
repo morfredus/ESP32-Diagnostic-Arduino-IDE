@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.2.21-maint
+ * ESP32 Diagnostic Suite v3.2.22-doc
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.2.21-maint - Nettoyage des bannières et consolidation de l'historique",
   "3.2.20-dev - Correction de l'attribut data-i18n dans appendInfoItem",
   "3.2.19-dev - Correction de la collision tr() lors du changement de langue",
   "3.2.18-dev - Suppression du double échappement JS dynamique",
@@ -177,7 +178,7 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.2.21-maint"
+#define DIAGNOSTIC_VERSION "3.2.22-doc"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1

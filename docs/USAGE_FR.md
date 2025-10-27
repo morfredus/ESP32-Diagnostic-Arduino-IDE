@@ -20,7 +20,7 @@ Le tableau de bord est organisé en onglets :
 - **Performance** – historique des benchmarks et métriques temps réel.
 - **Export** – téléchargement des rapports TXT/JSON/CSV ou ouverture de la vue imprimable.
 
-La version 3.2.0 documente l'inspecteur `/api/memory-details`, intègre la checklist de débogage Bluetooth/Wi-Fi et maintient le bandeau sticky aligné sur le changelog bilingue.
+La version 3.2.22-dev conserve l'historique de maintenance via `DIAGNOSTIC_VERSION_HISTORY`, retire les bannières « NEW FEATURE » redondantes et maintient le bandeau sticky aligné sur le changelog bilingue.
 
 La barre de navigation s'adapte aux mobiles et conserve l'onglet actif.
 
@@ -46,14 +46,14 @@ Toutes les routes renvoient du JSON sauf mention contraire :
 - La sortie série reflète les actions clés (Wi-Fi, BLE, résultats de tests).
 - Les exports incluent les informations carte, la mémoire, les benchmarks, le scan Wi-Fi, les GPIO et l'état OLED.
 - Utilisez le JSON pour l'analyse automatisée et TXT/CSV pour la consultation manuelle.
-- Exploitez l'endpoint `/api/memory-details` lorsque les exports signalent une fragmentation ; la réponse JSON est désormais documentée en 3.2.0.
+- Exploitez l'endpoint `/api/memory-details` lorsque les exports signalent une fragmentation ; la réponse JSON reste alignée grâce à la consolidation 3.2.22-dev.
 
 ## 7. Bonnes pratiques
 - Relancez un scan Wi-Fi après tout déplacement pour rafraîchir les RSSI.
 - Arrêtez les animations NeoPixel avant de couper l'alimentation des LED externes.
 - Après changement des broches OLED, exécutez `/api/oled-config` puis `/api/oled-test` pour valider le câblage.
 
-## 8. Checklist de débogage post-release (3.2.0)
+## 8. Checklist de débogage post-release (3.2.22-dev)
 - Déclenchez `/api/memory-details` pour vérifier que la fragmentation et la PSRAM correspondent aux indications de la documentation.
 - Confirmez que la carte Bluetooth® reflète les bascules d'advertising après `/api/bluetooth/toggle` et un renommage via `/api/bluetooth/name`.
 - Passez en revue l'onglet Wi-Fi et la réponse `/api/wifi-scan` pour valider les métadonnées de canal, bande, largeur et PHY collectées pendant la campagne de débogage.

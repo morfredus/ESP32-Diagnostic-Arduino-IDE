@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Accueil (v3.2.0)
+# ESP32 Diagnostic Suite – Accueil (v3.2.22-dev)
 
-Bienvenue sur le wiki officiel de la version 3.2.0 du firmware **ESP32 Diagnostic Suite**. Vous y trouverez un aperçu rapide des
+Bienvenue sur le wiki officiel de la version 3.2.22-dev du firmware **ESP32 Diagnostic Suite**. Vous y trouverez un aperçu rapide des
 capacités de la plateforme, des nouveautés de cette itération et des liens directs vers les sections d'approfondissement.
 
 ## 🚀 Objectif du projet
@@ -10,10 +10,10 @@ capacités de la plateforme, des nouveautés de cette itération et des liens di
   le réseau et les périphériques optionnels.
 - Offrir une expérience multilingue (FR/EN) avec une documentation synchronisée entre firmware, wiki et guides PDF.
 
-## 🆕 Points forts de la version 3.2.0
-- Documentation enrichie de l'inspecteur mémoire (`/api/memory-details`) et suivi des alertes de fragmentation observées en QA.
-- Checklist Wi-Fi/Bluetooth® intégrée aux guides d'utilisation et de dépannage, directement issue des retours terrain.
-- Harmonisation complète du bandeau d'interface, du changelog et des exports pour garantir la cohérence firmware / documentation.
+## 🆕 Points forts de la version 3.2.22-dev
+- Consolidation des notes « Version de dev » dans le firmware afin de préserver l'historique des maintenances sans multiplier les bannières.
+- Suppression des bannières de commentaires « NEW FEATURE » obsolètes pour alléger la lecture du code.
+- Alignement du commentaire d'en-tête, de `DIAGNOSTIC_VERSION` et de la documentation bilingue sur le numéro 3.2.22-dev.
 
 ## 🌐 Interface web & API
 - Bandeau principal indiquant l'état du Wi-Fi, l'adresse IP, le nom mDNS (`http://ESP32-Diagnostic.local`) et la version active.
