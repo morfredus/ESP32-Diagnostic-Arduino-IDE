@@ -293,9 +293,8 @@ class TranslationField {
   constexpr TranslationField() : langPtr(nullptr), key(static_cast<TranslationKey>(0)) {}
   constexpr TranslationField(const Language* lang, TranslationKey idx) : langPtr(lang), key(idx) {}
 
-  // --- [NEW FEATURE] Conversion String transparente pour les traductions ---
+  // --- [NEW FEATURE] Conversion const char* pour compatibilité Arduino String ---
   operator const char*() const { return c_str(); }
-  operator String() const { return String(c_str()); }
 
   const char* c_str() const {
     return (langPtr != nullptr) ? lookupTranslation(*langPtr, key) : "";
