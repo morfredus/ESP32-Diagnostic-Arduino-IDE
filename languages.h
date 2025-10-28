@@ -1,6 +1,9 @@
 #ifndef LANGUAGES_H
 #define LANGUAGES_H
 
+#include <Arduino.h>
+#include <pgmspace.h>
+
 // ========== SYSTÈME DE TRADUCTION ==========
 
 enum Language {
@@ -8,898 +11,325 @@ enum Language {
   LANG_EN = 1
 };
 
-// Variable globale pour la langue courante
-Language currentLanguage = LANG_FR;
+extern Language currentLanguage;
 
-// Structure pour les traductions
-struct Translations {
-  // Titres et navigation
-  const char* title;
-  const char* version;
-  const char* access;
-  const char* or_text;
-  
-  // Navigation
-  const char* nav_overview;
-  const char* nav_leds;
-  const char* nav_screens;
-  const char* nav_tests;
-  const char* nav_gpio;
-  const char* nav_wireless;
-  const char* nav_benchmark;
-  const char* nav_export;
-  const char* nav_select_label;
-  
-  // Sections Vue d'ensemble
-  const char* chip_info;
-  const char* full_model;
-  const char* cpu_cores;
-  const char* mac_wifi;
-  const char* last_reset;
-  const char* chip_features;
-  const char* sdk_version;
-  const char* idf_version;
-  const char* uptime;
-  const char* cpu_temp;
-  
-  // Mémoire
-  const char* memory_details;
-  const char* flash_memory;
-  const char* real_size;
-  const char* configured_ide;
-  const char* configuration;
-  const char* correct;
-  const char* to_fix;
-  const char* flash_type;
-  const char* flash_speed;
-  const char* action_required;
-  
-  const char* psram_external;
-  const char* hardware_status;
-  const char* detected_active;
-  const char* supported_not_enabled;
-  const char* ide_config;
-  const char* enabled;
-  const char* total_size;
-  const char* free;
-  const char* used;
-  const char* largest_block;
-  const char* integrity_test;
-  const char* not_detected;
-  const char* disabled;
-  const char* psram_usage;
-  const char* enable_psram_hint;
-  
-  const char* internal_sram;
-  const char* min_free;
-  const char* max_alloc;
-  
-  const char* global_analysis;
-  const char* memory_fragmentation;
-  const char* memory_status;
-  const char* total_ram;
-  const char* free_ram_total;
-  const char* refresh_memory;
-  
-  // WiFi
-  const char* wifi_connection;
-  const char* connected_ssid;
-  const char* signal_power;
-  const char* signal_quality;
-  const char* ip_address;
-  const char* subnet_mask;
-  const char* gateway;
-  const char* dns;
-  const char* wifi_channel;
+#define TRANSLATION_MAP(X) \
+  X(title, "ESP32 Diagnostic Exhaustif", "ESP32 Complete Diagnostic") \
+  X(version, "v", "v") \
+  X(access, "Accès", "Access") \
+  X(or_text, "ou", "or") \
+  X(nav_overview, "Vue d'ensemble", "Overview") \
+  X(nav_leds, "LEDs", "LEDs") \
+  X(nav_screens, "Écrans", "Screens") \
+  X(nav_tests, "Tests Avancés", "Advanced Tests") \
+  X(nav_gpio, "GPIO", "GPIO") \
+  X(nav_wireless, "Sans fil", "Wireless") \
+  X(nav_benchmark, "Performance", "Performance") \
+  X(nav_export, "Export", "Export") \
+  X(nav_select_label, "Sélectionner une section", "Select a section") \
+  X(chip_info, "Informations Chip Détaillées", "Detailed Chip Information") \
+  X(full_model, "Modèle Complet", "Full Model") \
+  X(cpu_cores, "Coeurs CPU", "CPU Cores") \
+  X(mac_wifi, "Adresse MAC WiFi", "WiFi MAC Address") \
+  X(last_reset, "Raison Dernier Reset", "Last Reset Reason") \
+  X(chip_features, "Fonctionnalités Chip", "Chip Features") \
+  X(sdk_version, "Version SDK", "SDK Version") \
+  X(idf_version, "Version ESP-IDF", "ESP-IDF Version") \
+  X(uptime, "Uptime", "Uptime") \
+  X(cpu_temp, "Température CPU", "CPU Temperature") \
+  X(memory_details, "Mémoire Détaillée", "Detailed Memory") \
+  X(flash_memory, "Flash Memory", "Flash Memory") \
+  X(real_size, "Taille Réelle (carte)", "Real Size (board)") \
+  X(configured_ide, "Configurée (IDE)", "Configured (IDE)") \
+  X(configuration, "Configuration", "Configuration") \
+  X(correct, "Correcte", "Correct") \
+  X(to_fix, "À corriger", "To fix") \
+  X(flash_type, "Type Flash", "Flash Type") \
+  X(flash_speed, "Vitesse Flash", "Flash Speed") \
+  X(action_required, "Action Requise", "Action Required") \
+  X(psram_external, "PSRAM (Mémoire Externe)", "PSRAM (External Memory)") \
+  X(hardware_status, "Statut Hardware", "Hardware Status") \
+  X(detected_active, "Détectée et active", "Detected and active") \
+  X(supported_not_enabled, "Support détecté (désactivée dans l'IDE)", "Support detected (disabled in IDE)") \
+  X(ide_config, "Configuration IDE", "IDE Configuration") \
+  X(enabled, "Activée", "Enabled") \
+  X(total_size, "Taille Totale", "Total Size") \
+  X(free, "Libre", "Free") \
+  X(used, "Utilisée", "Used") \
+  X(largest_block, "Plus Gros Bloc", "Largest Block") \
+  X(integrity_test, "Test Intégrité", "Integrity Test") \
+  X(not_detected, "Non détectée", "Not detected") \
+  X(disabled, "Désactivée", "Disabled") \
+  X(psram_usage, "Utilisation PSRAM", "PSRAM Usage") \
+  X(enable_psram_hint, "Activez la PSRAM %TYPE% dans l'IDE Arduino (Outils → PSRAM).", "Enable the %TYPE% PSRAM in Arduino IDE (Tools → PSRAM).") \
+  X(internal_sram, "SRAM Interne", "Internal SRAM") \
+  X(min_free, "Min Libre (Record)", "Min Free (Record)") \
+  X(max_alloc, "Max Allocation", "Max Allocation") \
+  X(global_analysis, "Analyse Globale", "Global Analysis") \
+  X(memory_fragmentation, "Fragmentation Mémoire", "Memory Fragmentation") \
+  X(memory_status, "État Mémoire", "Memory Status") \
+  X(total_ram, "RAM Totale (SRAM+PSRAM)", "Total RAM (SRAM+PSRAM)") \
+  X(free_ram_total, "RAM Libre Totale", "Total Free RAM") \
+  X(refresh_memory, "Actualiser Mémoire", "Refresh Memory") \
+  X(wifi_connection, "WiFi", "WiFi") \
+  X(connected_ssid, "SSID Connecté", "Connected SSID") \
+  X(signal_power, "Puissance Signal (RSSI)", "Signal Power (RSSI)") \
+  X(signal_quality, "Qualité Signal", "Signal Quality") \
+  X(ip_address, "Adresse IP", "IP Address") \
+  X(subnet_mask, "Masque Sous-réseau", "Subnet Mask") \
+  X(gateway, "Passerelle", "Gateway") \
+  X(dns, "DNS", "DNS") \
+  X(wifi_channel, "Canal WiFi", "WiFi Channel") \
+  X(bluetooth_section, "Bluetooth", "Bluetooth") \
+  X(bluetooth_status, "Statut Bluetooth", "Bluetooth status") \
+  X(bluetooth_name, "Nom diffusé", "Advertised name") \
+  X(bluetooth_mac, "Adresse MAC Bluetooth", "Bluetooth MAC address") \
+  X(bluetooth_actions, "Actions Bluetooth", "Bluetooth actions") \
+  X(bluetooth_enable, "Activer le Bluetooth", "Enable Bluetooth") \
+  X(bluetooth_disable, "Désactiver le Bluetooth", "Disable Bluetooth") \
+  X(bluetooth_rename, "Mettre à jour le nom", "Update name") \
+  X(bluetooth_reset, "Réinitialiser le Bluetooth", "Reset Bluetooth") \
+  X(bluetooth_placeholder, "Nom Bluetooth (1-29 caractères)", "Bluetooth name (1-29 chars)") \
+  X(bluetooth_not_supported, "Bluetooth non pris en charge", "Bluetooth not supported") \
+  X(bluetooth_disabled, "Bluetooth désactivé", "Bluetooth disabled") \
+  X(bluetooth_enabled, "Bluetooth activé", "Bluetooth enabled") \
+  X(bluetooth_advertising, "Diffusion active", "Advertising active") \
+  X(bluetooth_not_advertising, "Diffusion arrêtée", "Advertising stopped") \
+  X(bluetooth_updated, "Paramètres Bluetooth mis à jour", "Bluetooth settings updated") \
+  X(bluetooth_error, "Erreur Bluetooth", "Bluetooth error") \
+  X(bluetooth_reset_done, "Nom Bluetooth réinitialisé", "Bluetooth name reset") \
+  X(bluetooth_support_label, "Support Bluetooth", "Bluetooth support") \
+  X(bluetooth_support_yes, "Pris en charge", "Supported") \
+  X(bluetooth_support_no, "Non pris en charge", "Not supported") \
+  X(bluetooth_advertising_label, "Diffusion BLE", "BLE advertising") \
+  X(bluetooth_connection_label, "Connexion BLE", "BLE connection") \
+  X(bluetooth_client_connected, "Client connecté", "Client connected") \
+  X(bluetooth_client_disconnected, "Aucun client connecté", "No client connected") \
+  X(bluetooth_notifications_label, "Notifications envoyées", "Notifications sent") \
+  X(gpio_interfaces, "GPIO et Interfaces", "GPIO and Interfaces") \
+  X(total_gpio, "Total GPIO", "Total GPIO") \
+  X(gpio_list, "Liste GPIO", "GPIO List") \
+  X(i2c_peripherals, "Périphériques I2C", "I2C Peripherals") \
+  X(device_count, "Nombre de Périphériques", "Number of Devices") \
+  X(detected_addresses, "Adresses Détectées", "Detected Addresses") \
+  X(rescan_i2c, "Re-scanner I2C", "Re-scan I2C") \
+  X(builtin_led, "LED Intégrée", "Built-in LED") \
+  X(gpio, "GPIO", "GPIO") \
+  X(status, "Statut", "Status") \
+  X(config, "Config", "Config") \
+  X(test, "Test", "Test") \
+  X(blink, "Blink", "Blink") \
+  X(fade, "Fade", "Fade") \
+  X(off, "Off", "Off") \
+  X(neopixel, "NeoPixel", "NeoPixel") \
+  X(rainbow, "Rainbow", "Rainbow") \
+  X(color, "Couleur", "Color") \
+  X(full_test, "Test Complet", "Full Test") \
+  X(oled_screen, "Écran OLED 0.96\" I2C", "OLED Screen 0.96\" I2C") \
+  X(i2c_pins, "Pins I2C", "I2C Pins") \
+  X(i2c_address, "Adresse I2C", "I2C Address") \
+  X(rotation, "Rotation", "Rotation") \
+  X(no_device, "aucun périphérique", "no device") \
+  X(pin_config, "Configuration Pins I2C", "I2C Pin Configuration") \
+  X(apply_redetect, "Appliquer et Re-détecter", "Apply and Re-detect") \
+  X(changes_pins, "Modifie les pins I2C et relance la détection", "Changes I2C pins and restarts detection") \
+  X(custom_message, "Message personnalisé", "Custom message") \
+  X(show_message, "Afficher Message", "Display Message") \
+  X(no_detected, "Aucun écran OLED détecté. Vérifiez le câblage et les pins I2C ci-dessus.", "No OLED screen detected. Check wiring and I2C pins above.") \
+  X(check_wiring, "Vérifiez le câblage et les pins I2C", "Check wiring and I2C pins") \
+  X(oled_step_welcome, "Accueil", "Welcome") \
+  X(oled_step_big_text, "Texte grand format", "Large text") \
+  X(oled_step_text_sizes, "Tailles de texte", "Text sizes") \
+  X(oled_step_shapes, "Formes géométriques", "Geometric shapes") \
+  X(oled_step_horizontal_lines, "Lignes horizontales", "Horizontal lines") \
+  X(oled_step_diagonals, "Lignes diagonales", "Diagonal lines") \
+  X(oled_step_moving_square, "Carré en mouvement", "Moving square") \
+  X(oled_step_progress_bar, "Barre de progression", "Progress bar") \
+  X(oled_step_scroll_text, "Texte défilant", "Scrolling text") \
+  X(oled_step_final_message, "Message final", "Final message") \
+  X(oled_step_executed_prefix, "Étape exécutée :", "Step executed:") \
+  X(oled_step_unavailable, "OLED non disponible", "OLED not available") \
+  X(oled_step_unknown, "Étape inconnue", "Unknown step") \
+  X(adc_test, "Test ADC", "ADC Test") \
+  X(pwm_test, "Test PWM", "PWM Test") \
+  X(spi_bus, "Bus SPI", "SPI Bus") \
+  X(flash_partitions, "Partitions Flash", "Flash Partitions") \
+  X(list_partitions, "Lister Partitions", "List Partitions") \
+  X(click_button, "Cliquez sur le bouton", "Click the button") \
+  X(memory_stress, "Stress Test Mémoire", "Memory Stress Test") \
+  X(start_stress, "Lancer Stress Test", "Start Stress Test") \
+  X(i2c_desc, "Détecte les périphériques reliés au bus I2C.", "Detects peripherals connected on the I2C bus.") \
+  X(adc_desc, "Contrôle les entrées analogiques pour valider l'ADC.", "Checks analog inputs to validate the ADC.") \
+  X(pwm_desc, "Vérifie la génération de PWM sur les sorties sélectionnées.", "Verifies PWM generation on the selected outputs.") \
+  X(spi_desc, "Inspecte le bus SPI pour repérer les périphériques actifs.", "Inspects the SPI bus to spot active peripherals.") \
+  X(partitions_desc, "Affiche la table actuelle des partitions flash.", "Displays the current flash partition table.") \
+  X(stress_desc, "Pousse la mémoire pour détecter les instabilités.", "Pushes memory usage to uncover instability.") \
+  X(gpio_test, "Test GPIO", "GPIO Test") \
+  X(test_all_gpio, "Tester Tous les GPIO", "Test All GPIO") \
+  X(click_to_test, "Cliquez pour tester", "Click to test") \
+  X(gpio_warning, "Un GPIO en échec peut provenir de la configuration ou d'un périphérique externe : vérifiez câblage et alimentation avant de conclure à un défaut.", "A failed GPIO result may stem from configuration or external hardware—double-check wiring and power before assuming the pin is faulty.") \
+  X(gpio_desc, "Teste automatiquement l'ensemble des broches GPIO.", "Automatically exercises every GPIO pin.") \
+  X(wifi_scanner, "Scanner WiFi", "WiFi Scanner") \
+  X(scan_networks, "Scanner Réseaux WiFi", "Scan WiFi Networks") \
+  X(wifi_desc, "Analyse les réseaux WiFi et leurs paramètres radio.", "Analyzes nearby WiFi networks and radio parameters.") \
+  X(performance_bench, "Benchmarks de Performance", "Performance Benchmarks") \
+  X(run_benchmarks, "Lancer Benchmarks", "Run Benchmarks") \
+  X(cpu_benchmark, "CPU Benchmark", "CPU Benchmark") \
+  X(memory_benchmark, "Mémoire Benchmark", "Memory Benchmark") \
+  X(cpu_performance, "Performance CPU", "CPU Performance") \
+  X(memory_speed, "Vitesse Mémoire", "Memory Speed") \
+  X(not_tested, "Non testé", "Not tested") \
+  X(benchmark_desc, "Mesure les performances CPU et mémoire du module.", "Measures CPU and memory performance of the module.") \
+  X(data_export, "Export des Données", "Data Export") \
+  X(txt_file, "Fichier TXT", "TXT File") \
+  X(readable_report, "Rapport texte lisible", "Readable text report") \
+  X(download_txt, "Télécharger TXT", "Download TXT") \
+  X(json_file, "Fichier JSON", "JSON File") \
+  X(structured_format, "Format structuré", "Structured format") \
+  X(download_json, "Télécharger JSON", "Download JSON") \
+  X(csv_file, "Fichier CSV", "CSV File") \
+  X(for_excel, "Pour Excel", "For Excel") \
+  X(download_csv, "Télécharger CSV", "Download CSV") \
+  X(printable_version, "Version Imprimable", "Printable Version") \
+  X(pdf_format, "Format PDF", "PDF Format") \
+  X(open, "Ouvrir", "Open") \
+  X(export_report, "Rapport de diagnostic", "Diagnostic Report") \
+  X(export_generated, "Rapport généré le", "Report generated at") \
+  X(export_after_boot, "secondes après démarrage", "seconds after boot") \
+  X(category, "Catégorie", "Category") \
+  X(parameter, "Paramètre", "Parameter") \
+  X(value, "Valeur", "Value") \
+  X(model, "Modèle", "Model") \
+  X(revision, "Révision", "Revision") \
+  X(frequency, "Fréquence", "Frequency") \
+  X(real, "Réel", "Real") \
+  X(board, "Carte", "Board") \
+  X(psram_mb, "PSRAM MB", "PSRAM MB") \
+  X(detected, "Détecté", "Detected") \
+  X(sram_kb, "SRAM KB", "SRAM KB") \
+  X(connected, "Connecté", "Connected") \
+  X(signal, "Signal", "Signal") \
+  X(list, "Liste", "List") \
+  X(days, "jours", "days") \
+  X(hours, "heures", "hours") \
+  X(minutes, "minutes", "minutes") \
+  X(ok, "OK", "OK") \
+  X(fail, "FAIL", "FAIL") \
+  X(excellent, "Excellent", "Excellent") \
+  X(very_good, "Très bon", "Very good") \
+  X(good, "Bon", "Good") \
+  X(warning, "Attention", "Warning") \
+  X(critical, "Critique", "Critical") \
+  X(weak, "Faible", "Weak") \
+  X(very_weak, "Très faible", "Very weak") \
+  X(none, "Aucune", "None") \
+  X(unknown, "Inconnu", "Unknown") \
+  X(testing, "Test...", "Testing...") \
+  X(completed, "Terminé", "Completed") \
+  X(scan, "Scan...", "Scanning...") \
+  X(scanning, "Scan...", "Scanning...") \
+  X(cores, "coeurs", "cores") \
+  X(pins, "broches", "pins") \
+  X(devices, "périphérique(s)", "device(s)") \
+  X(networks, "réseaux", "networks") \
+  X(tested, "testé(s)", "tested") \
+  X(channels, "canaux", "channels") \
+  X(poweron, "Mise sous tension", "Power on") \
+  X(software_reset, "Reset logiciel", "Software reset") \
+  X(deepsleep_exit, "Sortie de deep sleep", "Deep sleep exit") \
+  X(brownout, "Brownout", "Brownout") \
+  X(other, "Autre", "Other") \
+  X(updating, "Mise à jour...", "Updating...") \
+  X(online, "En ligne", "Online") \
+  X(offline, "Hors ligne", "Offline") \
+  X(check_network, "Vérifiez le réseau.", "Check the network.") \
+  X(language_updated, "Langue mise à jour", "Language updated") \
+  X(language_switch_error, "Erreur changement langue", "Language switch error") \
+  X(translation_error, "Erreur traduction", "Translation error") \
+  X(bluetooth_invalid_name, "Nom Bluetooth invalide", "Invalid Bluetooth name") \
+  X(bluetooth_enabling, "Activation...", "Enabling...") \
+  X(bluetooth_disabling, "Désactivation...", "Disabling...") \
+  X(bluetooth_updating, "Mise à jour...", "Updating...") \
+  X(bluetooth_resetting, "Réinitialisation...", "Resetting...") \
+  X(loading, "Chargement...", "Loading...") \
+  X(configuring, "Configuration...", "Configuring...") \
+  X(reconfiguring, "Reconfiguration...", "Reconfiguring...") \
+  X(transmission, "Transmission...", "Transmitting...") \
+  X(error_label, "Erreur", "Error") \
+  X(test_failed, "Test en échec", "Test failed") \
+  X(gpio_summary_template, "Terminé - %COUNT% GPIO testés", "Done - %COUNT% GPIO tested") \
+  X(wifi_networks_found, "%COUNT% réseaux détectés", "%COUNT% networks found") \
+  X(i2c_scan_result, "I2C : %COUNT% périphérique(s)", "I2C: %COUNT% device(s)") \
+  X(gpio_invalid, "GPIO invalide", "Invalid GPIO") \
+  X(configuration_invalid, "Configuration invalide", "Invalid configuration") \
+  X(oled_test_running, "Test en cours (25s)...", "Testing (25s)...")
 
-  // Bluetooth
-  const char* bluetooth_section;
-  const char* bluetooth_status;
-  const char* bluetooth_name;
-  const char* bluetooth_mac;
-  const char* bluetooth_actions;
-  const char* bluetooth_enable;
-  const char* bluetooth_disable;
-  const char* bluetooth_rename;
-  const char* bluetooth_reset;
-  const char* bluetooth_placeholder;
-  const char* bluetooth_not_supported;
-  const char* bluetooth_disabled;
-  const char* bluetooth_enabled;
-  const char* bluetooth_advertising;
-  const char* bluetooth_not_advertising;
-  const char* bluetooth_updated;
-  const char* bluetooth_error;
-  const char* bluetooth_reset_done;
-  const char* bluetooth_support_label;
-  const char* bluetooth_support_yes;
-  const char* bluetooth_support_no;
-  const char* bluetooth_advertising_label;
-  const char* bluetooth_connection_label;
-  const char* bluetooth_client_connected;
-  const char* bluetooth_client_disconnected;
-  const char* bluetooth_notifications_label;
-  
-  // GPIO et périphériques
-  const char* gpio_interfaces;
-  const char* total_gpio;
-  const char* gpio_list;
-  const char* i2c_peripherals;
-  const char* device_count;
-  const char* detected_addresses;
-  const char* rescan_i2c;
-  
-  // LEDs
-  const char* builtin_led;
-  const char* gpio;
-  const char* status;
-  const char* config;
-  const char* test;
-  const char* blink;
-  const char* fade;
-  const char* off;
-  const char* neopixel;
-  const char* rainbow;
-  const char* color;
-  
-  // Écrans
-  const char* full_test;
-  const char* oled_screen;
-  const char* i2c_pins;
-  const char* i2c_address;
-  const char* rotation;
-  const char* no_device;
-  const char* pin_config;
-  const char* apply_redetect;
-  const char* changes_pins;
-  const char* custom_message;
-  const char* show_message;
-  const char* no_detected;
-  const char* check_wiring;
-  const char* oled_step_welcome;
-  const char* oled_step_big_text;
-  const char* oled_step_text_sizes;
-  const char* oled_step_shapes;
-  const char* oled_step_horizontal_lines;
-  const char* oled_step_diagonals;
-  const char* oled_step_moving_square;
-  const char* oled_step_progress_bar;
-  const char* oled_step_scroll_text;
-  const char* oled_step_final_message;
-  const char* oled_step_executed_prefix;
-  const char* oled_step_unavailable;
-  const char* oled_step_unknown;
-  
-  // Tests avancés
-  const char* adc_test;
-  const char* touch_test;
-  const char* pwm_test;
-  const char* spi_bus;
-  const char* flash_partitions;
-  const char* list_partitions;
-  const char* click_button;
-  const char* memory_stress;
-  const char* start_stress;
-  const char* i2c_desc;
-  const char* adc_desc;
-  const char* touch_desc;
-  const char* pwm_desc;
-  const char* spi_desc;
-  const char* partitions_desc;
-  const char* stress_desc;
-
-  // GPIO
-  const char* gpio_test;
-  const char* test_all_gpio;
-  const char* click_to_test;
-  const char* gpio_warning;
-  const char* gpio_desc;
-
-  // WiFi Scanner
-  const char* wifi_scanner;
-  const char* scan_networks;
-  const char* wifi_desc;
-
-  // Performance
-  const char* performance_bench;
-  const char* run_benchmarks;
-  const char* cpu_benchmark;
-  const char* memory_benchmark;
-  const char* cpu_performance;
-  const char* memory_speed;
-  const char* not_tested;
-  const char* benchmark_desc;
-  
-  // Export
-  const char* data_export;
-  const char* txt_file;
-  const char* readable_report;
-  const char* download_txt;
-  const char* json_file;
-  const char* structured_format;
-  const char* download_json;
-  const char* csv_file;
-  const char* for_excel;
-  const char* download_csv;
-  const char* printable_version;
-  const char* pdf_format;
-  const char* open;
-  
-    // Nouveaux champs pour les exports
-  const char* export_report;
-  const char* export_generated;
-  const char* export_after_boot;
-  const char* category;
-  const char* parameter;
-  const char* value;
-  const char* model;
-  const char* revision;
-  const char* frequency;
-  const char* real;
-  const char* board;
-  const char* psram_mb;
-  const char* detected;
-  const char* sram_kb;
-  const char* connected;
-  const char* signal;
-  const char* list;
-  const char* days;
-  const char* hours;
-  const char* minutes;
-  
-  // Statuts et messages
-  const char* ok;
-  const char* fail;
-  const char* excellent;
-  const char* very_good;
-  const char* good;
-  const char* warning;
-  const char* critical;
-  const char* weak;
-  const char* very_weak;
-  const char* none;
-  const char* unknown;
-  const char* testing;
-  const char* completed;
-  const char* scan;
-  const char* scanning;
-  
-  // Unités
-  const char* cores;
-  const char* pins;
-  const char* devices;
-  const char* networks;
-  const char* tested;
-  const char* channels;
-  
-  // Actions
-  const char* poweron;
-  const char* software_reset;
-  const char* deepsleep_exit;
-  const char* brownout;
-  const char* other;
-
-  // Messages d'interface
-  const char* updating;
-  const char* online;
-  const char* offline;
-  const char* check_network;
-  const char* language_updated;
-  const char* language_switch_error;
-  const char* translation_error;
-  const char* bluetooth_invalid_name;
-  const char* bluetooth_enabling;
-  const char* bluetooth_disabling;
-  const char* bluetooth_updating;
-  const char* bluetooth_resetting;
-  const char* loading;
-  const char* configuring;
-  const char* reconfiguring;
-  const char* transmission;
-  const char* error_label;
-  const char* test_failed;
-  const char* gpio_summary_template;
-  const char* wifi_networks_found;
-  const char* i2c_scan_result;
-  const char* gpio_invalid;
-  const char* configuration_invalid;
-  const char* oled_test_running;
+enum TranslationKey {
+#define DECL_KEY(identifier, fr, en) TR_##identifier,
+  TRANSLATION_MAP(DECL_KEY)
+#undef DECL_KEY
+  TR_COUNT
 };
 
-// Traductions françaises
-const Translations LANG_FR_TEXTS = {
-  // Titres
-  "ESP32 Diagnostic Exhaustif",
-  "v",
-  "Accès",
-  "ou",
-  
-  // Navigation
-  "Vue d'ensemble",
-  "LEDs",
-  "Écrans",
-  "Tests Avancés",
-  "GPIO",
-  "Sans fil",
-  "Performance",
-  "Export",
-  "Sélectionner une section",
-  
-  // Chip
-  "Informations Chip Détaillées",
-  "Modèle Complet",
-  "Coeurs CPU",
-  "Adresse MAC WiFi",
-  "Raison Dernier Reset",
-  "Fonctionnalités Chip",
-  "Version SDK",
-  "Version ESP-IDF",
-  "Uptime",
-  "Température CPU",
-  
-  // Mémoire
-  "Mémoire Détaillée",
-  "Flash Memory",
-  "Taille Réelle (carte)",
-  "Configurée (IDE)",
-  "Configuration",
-  "Correcte",
-  "À corriger",
-  "Type Flash",
-  "Vitesse Flash",
-  "Action Requise",
-  
-  "PSRAM (Mémoire Externe)",
-  "Statut Hardware",
-  "Détectée et active",
-  "Support détecté (désactivée dans l'IDE)",
-  "Configuration IDE",
-  "Activée",
-  "Taille Totale",
-  "Libre",
-  "Utilisée",
-  "Plus Gros Bloc",
-  "Test Intégrité",
-  "Non détectée",
-  "Désactivée",
-  "Utilisation PSRAM",
-  "Activez la PSRAM %TYPE% dans l'IDE Arduino (Outils → PSRAM).",
-  
-  "SRAM Interne",
-  "Min Libre (Record)",
-  "Max Allocation",
-  
-  "Analyse Globale",
-  "Fragmentation Mémoire",
-  "État Mémoire",
-  "RAM Totale (SRAM+PSRAM)",
-  "RAM Libre Totale",
-  "Actualiser Mémoire",
-  
-  // WiFi
-  "WiFi",
-  "SSID Connecté",
-  "Puissance Signal (RSSI)",
-  "Qualité Signal",
-  "Adresse IP",
-  "Masque Sous-réseau",
-  "Passerelle",
-  "DNS",
-  "Canal WiFi",
-
-  // Bluetooth
-  "Bluetooth",
-  "Statut Bluetooth",
-  "Nom diffusé",
-  "Adresse MAC Bluetooth",
-  "Actions Bluetooth",
-  "Activer le Bluetooth",
-  "Désactiver le Bluetooth",
-  "Mettre à jour le nom",
-  "Réinitialiser le Bluetooth",
-  "Nom Bluetooth (1-29 caractères)",
-  "Bluetooth non pris en charge",
-  "Bluetooth désactivé",
-  "Bluetooth activé",
-  "Diffusion active",
-  "Diffusion arrêtée",
-  "Paramètres Bluetooth mis à jour",
-  "Erreur Bluetooth",
-  "Nom Bluetooth réinitialisé",
-  "Support Bluetooth",
-  "Pris en charge",
-  "Non pris en charge",
-  "Diffusion BLE",
-  "Connexion BLE",
-  "Client connecté",
-  "Aucun client connecté",
-  "Notifications envoyées",
-
-  // GPIO
-  "GPIO et Interfaces",
-  "Total GPIO",
-  "Liste GPIO",
-  "Périphériques I2C",
-  "Nombre de Périphériques",
-  "Adresses Détectées",
-  "Re-scanner I2C",
-  
-  // LEDs
-  "LED Intégrée",
-  "GPIO",
-  "Statut",
-  "Config",
-  "Test",
-  "Blink",
-  "Fade",
-  "Off",
-  "NeoPixel",
-  "Rainbow",
-  "Couleur",
-  
-  // Écrans
-  "Test Complet",
-  "Écran OLED 0.96\" I2C",
-  "Pins I2C",
-  "Adresse I2C",
-  "Rotation",
-  "aucun périphérique",
-  "Configuration Pins I2C",
-  "Appliquer et Re-détecter",
-  "Modifie les pins I2C et relance la détection",
-  "Message personnalisé",
-  "Afficher Message",
-  "Aucun écran OLED détecté. Vérifiez le câblage et les pins I2C ci-dessus.",
-  "Vérifiez le câblage et les pins I2C",
-  "Accueil",
-  "Texte grand format",
-  "Tailles de texte",
-  "Formes géométriques",
-  "Lignes horizontales",
-  "Lignes diagonales",
-  "Carré en mouvement",
-  "Barre de progression",
-  "Texte défilant",
-  "Message final",
-  "Étape exécutée :",
-  "OLED non disponible",
-  "Étape inconnue",
-  
-  // Tests
-  "Test ADC",
-  "Test Touch Pads",
-  "Test PWM",
-  "Bus SPI",
-  "Partitions Flash",
-  "Lister Partitions",
-  "Cliquez sur le bouton",
-  "Stress Test Mémoire",
-  "Lancer Stress Test",
-  "Détecte les périphériques reliés au bus I2C.",
-  "Contrôle les entrées analogiques pour valider l'ADC.",
-  "Mesure la réponse des capteurs tactiles capacitifs.",
-  "Vérifie la génération de PWM sur les sorties sélectionnées.",
-  "Inspecte le bus SPI pour repérer les périphériques actifs.",
-  "Affiche la table actuelle des partitions flash.",
-  "Pousse la mémoire pour détecter les instabilités.",
-  
-  // GPIO
-  "Test GPIO",
-  "Tester Tous les GPIO",
-  "Cliquez pour tester",
-  "Un GPIO en échec peut provenir de la configuration ou d'un périphérique externe : vérifiez câblage et alimentation avant de conclure à un défaut.",
-  "Teste automatiquement l'ensemble des broches GPIO.",
-
-  // WiFi
-  "Scanner WiFi",
-  "Scanner Réseaux WiFi",
-  "Analyse les réseaux WiFi et leurs paramètres radio.",
-  
-  // Performance
-  "Benchmarks de Performance",
-  "Lancer Benchmarks",
-  "CPU Benchmark",
-  "Mémoire Benchmark",
-  "Performance CPU",
-  "Vitesse Mémoire",
-  "Non testé",
-  "Mesure les performances CPU et mémoire du module.",
-  
-  // Export
-  "Export des Données",
-  "Fichier TXT",
-  "Rapport texte lisible",
-  "Télécharger TXT",
-  "Fichier JSON",
-  "Format structuré",
-  "Télécharger JSON",
-  "Fichier CSV",
-  "Pour Excel",
-  "Télécharger CSV",
-  "Version Imprimable",
-  "Format PDF",
-  "Ouvrir",
-  
-    // Nouveaux champs exports
-  "Rapport de diagnostic",
-  "Rapport généré le",
-  "secondes après démarrage",
-  "Catégorie",
-  "Paramètre",
-  "Valeur",
-  "Modèle",
-  "Révision",
-  "Fréquence",
-  "Réel",
-  "Carte",
-  "PSRAM MB",
-  "Détecté",
-  "SRAM KB",
-  "Connecté",
-  "Signal",
-  "Liste",
-  "jours",
-  "heures",
-  "minutes",
-  
-  // Statuts
-  "OK",
-  "FAIL",
-  "Excellent",
-  "Très bon",
-  "Bon",
-  "Attention",
-  "Critique",
-  "Faible",
-  "Très faible",
-  "Aucune",
-  "Inconnu",
-  "Test...",
-  "Terminé",
-  "Scan...",
-  "Scan...",
-  
-  // Unités
-  "coeurs",
-  "broches",
-  "périphérique(s)",
-  "réseaux",
-  "testé(s)",
-  "canaux",
-  
-  // Reset
-  "Mise sous tension",
-  "Reset logiciel",
-  "Sortie de deep sleep",
-  "Brownout",
-  "Autre",
-  "Mise à jour...",
-  "En ligne",
-  "Hors ligne",
-  "Vérifiez le réseau.",
-  "Langue mise à jour",
-  "Erreur changement langue",
-  "Erreur traduction",
-  "Nom Bluetooth invalide",
-  "Activation...",
-  "Désactivation...",
-  "Mise à jour...",
-  "Réinitialisation...",
-  "Chargement...",
-  "Configuration...",
-  "Reconfiguration...",
-  "Transmission...",
-  "Erreur",
-  "Test en échec",
-  "Terminé - %COUNT% GPIO testés",
-  "%COUNT% réseaux détectés",
-  "I2C : %COUNT% périphérique(s)",
-  "GPIO invalide",
-  "Configuration invalide",
-  "Test en cours (25s)..."
+static const char* const TRANSLATIONS_FR[] PROGMEM = {
+#define DECL_FR(identifier, fr, en) fr,
+  TRANSLATION_MAP(DECL_FR)
+#undef DECL_FR
 };
 
-// Traductions anglaises
-const Translations LANG_EN_TEXTS = {
-  // Titles
-  "ESP32 Complete Diagnostic",
-  "v",
-  "Access",
-  "or",
-  
-  // Navigation
-  "Overview",
-  "LEDs",
-  "Screens",
-  "Advanced Tests",
-  "GPIO",
-  "Wireless",
-  "Performance",
-  "Export",
-  "Select a section",
-  
-  // Chip
-  "Detailed Chip Information",
-  "Full Model",
-  "CPU Cores",
-  "WiFi MAC Address",
-  "Last Reset Reason",
-  "Chip Features",
-  "SDK Version",
-  "ESP-IDF Version",
-  "Uptime",
-  "CPU Temperature",
-  
-  // Memory
-  "Detailed Memory",
-  "Flash Memory",
-  "Real Size (board)",
-  "Configured (IDE)",
-  "Configuration",
-  "Correct",
-  "To fix",
-  "Flash Type",
-  "Flash Speed",
-  "Action Required",
-  
-  "PSRAM (External Memory)",
-  "Hardware Status",
-  "Detected and active",
-  "Support detected (disabled in IDE)",
-  "IDE Configuration",
-  "Enabled",
-  "Total Size",
-  "Free",
-  "Used",
-  "Largest Block",
-  "Integrity Test",
-  "Not detected",
-  "Disabled",
-  "PSRAM Usage",
-  "Enable the %TYPE% PSRAM in Arduino IDE (Tools → PSRAM).",
-  
-  "Internal SRAM",
-  "Min Free (Record)",
-  "Max Allocation",
-  
-  "Global Analysis",
-  "Memory Fragmentation",
-  "Memory Status",
-  "Total RAM (SRAM+PSRAM)",
-  "Total Free RAM",
-  "Refresh Memory",
-  
-  // WiFi
-  "WiFi",
-  "Connected SSID",
-  "Signal Power (RSSI)",
-  "Signal Quality",
-  "IP Address",
-  "Subnet Mask",
-  "Gateway",
-  "DNS",
-  "WiFi Channel",
-
-  // Bluetooth
-  "Bluetooth",
-  "Bluetooth status",
-  "Advertised name",
-  "Bluetooth MAC address",
-  "Bluetooth actions",
-  "Enable Bluetooth",
-  "Disable Bluetooth",
-  "Update name",
-  "Reset Bluetooth",
-  "Bluetooth name (1-29 chars)",
-  "Bluetooth not supported",
-  "Bluetooth disabled",
-  "Bluetooth enabled",
-  "Advertising active",
-  "Advertising stopped",
-  "Bluetooth settings updated",
-  "Bluetooth error",
-  "Bluetooth name reset",
-  "Bluetooth support",
-  "Supported",
-  "Not supported",
-  "BLE advertising",
-  "BLE connection",
-  "Client connected",
-  "No client connected",
-  "Notifications sent",
-
-  // GPIO
-  "GPIO and Interfaces",
-  "Total GPIO",
-  "GPIO List",
-  "I2C Peripherals",
-  "Number of Devices",
-  "Detected Addresses",
-  "Re-scan I2C",
-  
-  // LEDs
-  "Built-in LED",
-  "GPIO",
-  "Status",
-  "Config",
-  "Test",
-  "Blink",
-  "Fade",
-  "Off",
-  "NeoPixel",
-  "Rainbow",
-  "Color",
-  
-  // Screens
-  "Full Test",
-  "OLED Screen 0.96\" I2C",
-  "I2C Pins",
-  "I2C Address",
-  "Rotation",
-  "no device",
-  "I2C Pin Configuration",
-  "Apply and Re-detect",
-  "Changes I2C pins and restarts detection",
-  "Custom message",
-  "Display Message",
-  "No OLED screen detected. Check wiring and I2C pins above.",
-  "Check wiring and I2C pins",
-  "Welcome",
-  "Large text",
-  "Text sizes",
-  "Geometric shapes",
-  "Horizontal lines",
-  "Diagonal lines",
-  "Moving square",
-  "Progress bar",
-  "Scrolling text",
-  "Final message",
-  "Step executed:",
-  "OLED not available",
-  "Unknown step",
-  
-  // Tests
-  "ADC Test",
-  "Touch Pads Test",
-  "PWM Test",
-  "SPI Bus",
-  "Flash Partitions",
-  "List Partitions",
-  "Click the button",
-  "Memory Stress Test",
-  "Start Stress Test",
-  "Detects peripherals connected on the I2C bus.",
-  "Checks analog inputs to validate the ADC.",
-  "Measures capacitive touch pad response.",
-  "Verifies PWM generation on the selected outputs.",
-  "Inspects the SPI bus to spot active peripherals.",
-  "Displays the current flash partition table.",
-  "Pushes memory usage to uncover instability.",
-  
-  // GPIO
-  "GPIO Test",
-  "Test All GPIO",
-  "Click to test",
-  "A failed GPIO result may stem from configuration or external hardware—double-check wiring and power before assuming the pin is faulty.",
-  "Automatically exercises every GPIO pin.",
-
-  // WiFi
-  "WiFi Scanner",
-  "Scan WiFi Networks",
-  "Analyzes nearby WiFi networks and radio parameters.",
-  
-  // Performance
-  "Performance Benchmarks",
-  "Run Benchmarks",
-  "CPU Benchmark",
-  "Memory Benchmark",
-  "CPU Performance",
-  "Memory Speed",
-  "Not tested",
-  "Measures CPU and memory performance of the module.",
-  
-  // Export
-  "Data Export",
-  "TXT File",
-  "Readable text report",
-  "Download TXT",
-  "JSON File",
-  "Structured format",
-  "Download JSON",
-  "CSV File",
-  "For Excel",
-  "Download CSV",
-  "Printable Version",
-  "PDF Format",
-  "Open",
-  
-    // Nouveaux champs exports
-  "Diagnostic Report",
-  "Report generated at",
-  "seconds after boot",
-  "Category",
-  "Parameter",
-  "Value",
-  "Model",
-  "Revision",
-  "Frequency",
-  "Real",
-  "Board",
-  "PSRAM MB",
-  "Detected",
-  "SRAM KB",
-  "Connected",
-  "Signal",
-  "List",
-  "days",
-  "hours",
-  "minutes",
-    
-  // Status
-  "OK",
-  "FAIL",
-  "Excellent",
-  "Very good",
-  "Good",
-  "Warning",
-  "Critical",
-  "Weak",
-  "Very weak",
-  "None",
-  "Unknown",
-  "Testing...",
-  "Completed",
-  "Scanning...",
-  "Scanning...",
-  
-  // Units
-  "cores",
-  "pins",
-  "device(s)",
-  "networks",
-  "tested",
-  "channels",
-  
-  // Reset
-  "Power on",
-  "Software reset",
-  "Deep sleep exit",
-  "Brownout",
-  "Other",
-  "Updating...",
-  "Online",
-  "Offline",
-  "Check the network.",
-  "Language updated",
-  "Language switch error",
-  "Translation error",
-  "Invalid Bluetooth name",
-  "Enabling...",
-  "Disabling...",
-  "Updating...",
-  "Resetting...",
-  "Loading...",
-  "Configuring...",
-  "Reconfiguring...",
-  "Transmitting...",
-  "Error",
-  "Test failed",
-  "Done - %COUNT% GPIO tested",
-  "%COUNT% networks found",
-  "I2C: %COUNT% device(s)",
-  "Invalid GPIO",
-  "Invalid configuration",
-  "Testing (25s)..."
+static const char* const TRANSLATIONS_EN[] PROGMEM = {
+#define DECL_EN(identifier, fr, en) en,
+  TRANSLATION_MAP(DECL_EN)
+#undef DECL_EN
 };
 
-// Fonction pour obtenir le texte traduit
-const Translations& T() {
-  return (currentLanguage == LANG_FR) ? LANG_FR_TEXTS : LANG_EN_TEXTS;
+// --- [NEW FEATURE] Table de traduction optimisée ---
+inline const char* lookupTranslation(Language lang, TranslationKey key) {
+  return (lang == LANG_FR) ? TRANSLATIONS_FR[key] : TRANSLATIONS_EN[key];
 }
 
-// Fonction pour changer la langue
-void setLanguage(Language lang) {
+class TranslationField {
+ public:
+  constexpr TranslationField() : langPtr(nullptr), key(static_cast<TranslationKey>(0)) {}
+  constexpr TranslationField(const Language* lang, TranslationKey idx) : langPtr(lang), key(idx) {}
+
+  // --- [NEW FEATURE] Conversion String transparente pour les traductions ---
+  operator const char*() const { return c_str(); }
+  operator String() const { return String(c_str()); }
+
+  const char* c_str() const {
+    return (langPtr != nullptr) ? lookupTranslation(*langPtr, key) : "";
+  }
+
+  String str() const { return String(c_str()); }
+
+ private:
+  const Language* langPtr;
+  TranslationKey key;
+};
+
+class TranslationAccessor {
+ public:
+  explicit TranslationAccessor(const Language* lang) {
+#define INIT_FIELD(identifier, fr, en) identifier = TranslationField(lang, TR_##identifier);
+    TRANSLATION_MAP(INIT_FIELD)
+#undef INIT_FIELD
+  }
+
+#define DECL_FIELD(identifier, fr, en) TranslationField identifier;
+  TRANSLATION_MAP(DECL_FIELD)
+#undef DECL_FIELD
+};
+
+inline const TranslationAccessor& T() {
+  static TranslationAccessor accessor(&currentLanguage);
+  return accessor;
+}
+
+inline void setLanguage(Language lang) {
   currentLanguage = lang;
 }
+
+#undef TRANSLATION_MAP
 
 #endif
