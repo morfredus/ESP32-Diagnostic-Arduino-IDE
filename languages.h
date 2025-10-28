@@ -172,7 +172,6 @@ struct Translations {
   
   // Tests avancés
   const char* adc_test;
-  const char* touch_test;
   const char* pwm_test;
   const char* spi_bus;
   const char* flash_partitions;
@@ -182,7 +181,6 @@ struct Translations {
   const char* start_stress;
   const char* i2c_desc;
   const char* adc_desc;
-  const char* touch_desc;
   const char* pwm_desc;
   const char* spi_desc;
   const char* partitions_desc;
@@ -467,7 +465,6 @@ const Translations LANG_FR_TEXTS = {
   
   // Tests
   "Test ADC",
-  "Test Touch Pads",
   "Test PWM",
   "Bus SPI",
   "Partitions Flash",
@@ -477,7 +474,6 @@ const Translations LANG_FR_TEXTS = {
   "Lancer Stress Test",
   "Détecte les périphériques reliés au bus I2C.",
   "Contrôle les entrées analogiques pour valider l'ADC.",
-  "Mesure la réponse des capteurs tactiles capacitifs.",
   "Vérifie la génération de PWM sur les sorties sélectionnées.",
   "Inspecte le bus SPI pour repérer les périphériques actifs.",
   "Affiche la table actuelle des partitions flash.",
@@ -760,7 +756,6 @@ const Translations LANG_EN_TEXTS = {
   
   // Tests
   "ADC Test",
-  "Touch Pads Test",
   "PWM Test",
   "SPI Bus",
   "Flash Partitions",
@@ -770,7 +765,6 @@ const Translations LANG_EN_TEXTS = {
   "Start Stress Test",
   "Detects peripherals connected on the I2C bus.",
   "Checks analog inputs to validate the ADC.",
-  "Measures capacitive touch pad response.",
   "Verifies PWM generation on the selected outputs.",
   "Inspects the SPI bus to spot active peripherals.",
   "Displays the current flash partition table.",
