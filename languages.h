@@ -169,6 +169,9 @@ struct Translations {
   const char* oled_step_executed_prefix;
   const char* oled_step_unavailable;
   const char* oled_step_unknown;
+  const char* oled_detected_template;
+  const char* oled_init_failed;
+  const char* oled_not_detected_template;
   
   // Tests avancés
   const char* adc_test;
@@ -187,6 +190,14 @@ struct Translations {
   const char* spi_desc;
   const char* partitions_desc;
   const char* stress_desc;
+  const char* touch_not_supported;
+  const char* touch_detected_template;
+  const char* pwm_result_template;
+  const char* stress_result_template;
+  const char* spi_info_hspi_vspi;
+  const char* spi_info_dual;
+  const char* spi_info_single;
+  const char* spi_info_unavailable;
 
   // GPIO
   const char* gpio_test;
@@ -464,6 +475,9 @@ const Translations LANG_FR_TEXTS = {
   "Étape exécutée :",
   "OLED non disponible",
   "Étape inconnue",
+  "Détecté à 0x%ADDR%",
+  "Périphérique I2C présent mais initialisation échouée",
+  "Non détecté (SDA:%SDA% SCL:%SCL%)",
   
   // Tests
   "Test ADC",
@@ -482,6 +496,14 @@ const Translations LANG_FR_TEXTS = {
   "Inspecte le bus SPI pour repérer les périphériques actifs.",
   "Affiche la table actuelle des partitions flash.",
   "Pousse la mémoire pour détecter les instabilités.",
+  "Test Touch Pads non supporté sur ce modèle",
+  "%COUNT% pads tactiles détectés",
+  "Test PWM sur GPIO%GPIO% — %STATUS%",
+  "Max : %KB% KB alloués",
+  "HSPI (12,13,14,15), VSPI (18,19,23,5)",
+  "SPI2, SPI3 disponibles",
+  "SPI2 disponible",
+  "Info SPI non disponible",
   
   // GPIO
   "Test GPIO",
@@ -757,6 +779,9 @@ const Translations LANG_EN_TEXTS = {
   "Step executed:",
   "OLED not available",
   "Unknown step",
+  "Detected at 0x%ADDR%",
+  "I2C device present but initialization failed",
+  "Not detected (SDA:%SDA% SCL:%SCL%)",
   
   // Tests
   "ADC Test",
@@ -775,6 +800,14 @@ const Translations LANG_EN_TEXTS = {
   "Inspects the SPI bus to spot active peripherals.",
   "Displays the current flash partition table.",
   "Pushes memory usage to uncover instability.",
+  "Touch pads test not supported on this model",
+  "%COUNT% touch pads detected",
+  "PWM test on GPIO%GPIO% — %STATUS%",
+  "Max: %KB% KB allocated",
+  "HSPI (12,13,14,15), VSPI (18,19,23,5)",
+  "SPI2, SPI3 available",
+  "SPI2 available",
+  "SPI info unavailable",
   
   // GPIO
   "GPIO Test",

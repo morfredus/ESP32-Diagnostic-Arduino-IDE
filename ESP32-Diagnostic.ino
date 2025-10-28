@@ -6,6 +6,8 @@
  * Auteur: morfredus
  */
 
+// Version de dev : 3.3.01-dev - Harmonisation des traductions UI dynamiques
+
 #if defined(__GNUC__)
   #define DIAGNOSTIC_UNUSED __attribute__((unused))
 #else
@@ -143,6 +145,7 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 #endif
 #include <vector>
 #include <cstring>
+#include <cstdio>
 
 #if defined(__has_include)
   #if __has_include("wifi-config.h")
@@ -178,7 +181,7 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.3.0"
+#define DIAGNOSTIC_VERSION "3.3.01-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -272,26 +275,124 @@ Adafruit_NeoPixel *strip = nullptr;
 bool neopixelTested = false;
 bool neopixelAvailable = false;
 bool neopixelSupported = false;
-String neopixelTestResult = "En attente d'initialisation";
+String neopixelTestResult = String(T().not_tested);
 
 // LED intégrée
 int BUILTIN_LED_PIN = -1;
 bool builtinLedTested = false;
 bool builtinLedAvailable = false;
-String builtinLedTestResult = "En attente d'initialisation";
+String builtinLedTestResult = String(T().not_tested);
 
 // OLED
 bool oledTested = false;
 bool oledAvailable = false;
-String oledTestResult = "En attente d'initialisation";
+String oledTestResult = String(T().not_tested);
 
 // Tests additionnels
-String adcTestResult = "Non testé";
-String touchTestResult = "Non testé";
-String pwmTestResult = "Non testé";
+String adcTestResult = String(T().not_tested);
+String touchTestResult = String(T().not_tested);
+String pwmTestResult = String(T().not_tested);
 String partitionsInfo = "";
 String spiInfo = "";
-String stressTestResult = "Non testé";
+String stressTestResult = String(T().not_tested);
+
+// --- [NEW FEATURE] États de test multilingues ---
+static int lastADCChannels = 0;
+static bool adcResultAvailable = false;
+static int lastTouchPads = 0;
+static bool touchSupported = true;
+static bool touchResultAvailable = false;
+static int lastPWMPin = -1;
+static bool pwmResultAvailable = false;
+static bool pwmResultSuccess = false;
+static int lastStressMaxKB = 0;
+static bool stressResultAvailable = false;
+static int oledStatusCode = -2;
+static uint8_t lastOledAddress = SCREEN_ADDRESS;
+static int lastOledSDA = -1;
+static int lastOledSCL = -1;
+static int spiInfoCode = -1;
+
+static void refreshLocalizedResults();
+
+static void refreshLocalizedResults() {
+  String pending = String(T().not_tested);
+
+  if (adcResultAvailable && lastADCChannels > 0) {
+    String result = String(T().adc_test);
+    result += F(" — ");
+    result += String(lastADCChannels);
+    result += ' ';
+    result += String(T().channels);
+    result += F(" • ");
+    result += String(T().ok);
+    adcTestResult = result;
+  } else {
+    adcTestResult = pending;
+  }
+
+  if (!touchSupported) {
+    touchTestResult = String(T().touch_not_supported);
+  } else if (touchResultAvailable && lastTouchPads > 0) {
+    String templateStr = String(T().touch_detected_template);
+    templateStr.replace("%COUNT%", String(lastTouchPads));
+    touchTestResult = templateStr;
+  } else {
+    touchTestResult = pending;
+  }
+
+  if (pwmResultAvailable && lastPWMPin >= 0) {
+    String templateStr = String(T().pwm_result_template);
+    templateStr.replace("%GPIO%", String(lastPWMPin));
+    String statusLabel = pwmResultSuccess ? String(T().ok) : String(T().fail);
+    templateStr.replace("%STATUS%", statusLabel);
+    pwmTestResult = templateStr;
+  } else {
+    pwmTestResult = pending;
+  }
+
+  if (stressResultAvailable && lastStressMaxKB > 0) {
+    String templateStr = String(T().stress_result_template);
+    templateStr.replace("%KB%", String(lastStressMaxKB));
+    stressTestResult = templateStr;
+  } else {
+    stressTestResult = pending;
+  }
+
+  if (oledStatusCode == 1) {
+    String templateStr = String(T().oled_detected_template);
+    char addrBuf[5];
+    snprintf(addrBuf, sizeof(addrBuf), "%02X", lastOledAddress);
+    templateStr.replace("%ADDR%", String(addrBuf));
+    oledTestResult = templateStr;
+  } else if (oledStatusCode == -1) {
+    oledTestResult = String(T().oled_init_failed);
+  } else if (oledStatusCode == 0) {
+    String templateStr = String(T().oled_not_detected_template);
+    templateStr.replace("%SDA%", String(lastOledSDA));
+    templateStr.replace("%SCL%", String(lastOledSCL));
+    oledTestResult = templateStr;
+  } else {
+    oledTestResult = pending;
+  }
+
+  switch (spiInfoCode) {
+    case 0:
+      spiInfo = String(T().spi_info_hspi_vspi);
+      break;
+    case 1:
+      spiInfo = String(T().spi_info_dual);
+      break;
+    case 2:
+      spiInfo = String(T().spi_info_single);
+      break;
+    case 3:
+      spiInfo = String(T().spi_info_unavailable);
+      break;
+    default:
+      break;
+  }
+}
 
 // ========== STRUCTURES ==========
 struct DiagnosticInfo {
@@ -1363,15 +1464,23 @@ void detectOLED() {
   if(i2cDetected && oled.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     oledAvailable = true;
     applyOLEDOrientation();
-    oledTestResult = "Detecte a 0x" + String(SCREEN_ADDRESS, HEX);
+    oledStatusCode = 1;
+    lastOledAddress = SCREEN_ADDRESS;
+    lastOledSDA = I2C_SDA;
+    lastOledSCL = I2C_SCL;
+    refreshLocalizedResults();
     Serial.println("OLED: Detecte!\r\n");
   } else {
     oledAvailable = false;
+    lastOledAddress = SCREEN_ADDRESS;
+    lastOledSDA = I2C_SDA;
+    lastOledSCL = I2C_SCL;
     if (i2cDetected) {
-      oledTestResult = "Peripherique I2C present mais init echoue";
+      oledStatusCode = -1;
     } else {
-      oledTestResult = "Non detecte (SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + ")";
+      oledStatusCode = 0;
     }
+    refreshLocalizedResults();
     Serial.println("OLED: Non detecte\r\n");
   }
 }
@@ -1610,7 +1719,7 @@ void oledShowMessage(String message) {
 void testADC() {
   Serial.println("\r\n=== TEST ADC ===");
   adcReadings.clear();
-  
+
   #ifdef CONFIG_IDF_TARGET_ESP32
     int adcPins[] = {36, 39, 34, 35, 32, 33};
     int numADC = 6;
@@ -1634,8 +1743,10 @@ void testADC() {
     
     Serial.printf("GPIO%d: %d (%.2fV)\r\n", reading.pin, reading.rawValue, reading.voltage);
   }
-  
-  adcTestResult = String(numADC) + " ADC testes - OK";
+
+  lastADCChannels = numADC;
+  adcResultAvailable = true;
+  refreshLocalizedResults();
   Serial.printf("ADC: %d canaux testes\r\n", numADC);
 }
 
@@ -1643,7 +1754,7 @@ void testADC() {
 void testTouchPads() {
   Serial.println("\r\n=== TEST TOUCH PADS ===");
   touchReadings.clear();
-  
+
   #ifdef CONFIG_IDF_TARGET_ESP32
     int touchPins[] = {4, 0, 2, 15, 13, 12, 14, 27, 33, 32};
     int numTouch = 10;
@@ -1653,9 +1764,12 @@ void testTouchPads() {
   #else
     int numTouch = 0;
   #endif
-  
-  if (numTouch == 0) {
-    touchTestResult = "Non supporte sur ce modele";
+
+  touchSupported = (numTouch > 0);
+
+  if (!touchSupported) {
+    touchResultAvailable = false;
+    refreshLocalizedResults();
     Serial.println("Touch: Non supporte");
     return;
   }
@@ -1668,8 +1782,10 @@ void testTouchPads() {
     
     Serial.printf("Touch%d (GPIO%d): %d\r\n", i, reading.pin, reading.value);
   }
-  
-  touchTestResult = String(numTouch) + " Touch Pads detectes";
+
+  lastTouchPads = numTouch;
+  touchResultAvailable = true;
+  refreshLocalizedResults();
   Serial.printf("Touch: %d pads testes\r\n", numTouch);
 }
 
@@ -1697,8 +1813,11 @@ void testPWM() {
   
   ledcWrite(testPin, 0);
   ledcDetach(testPin);
-  
-  pwmTestResult = "Test OK sur GPIO" + String(testPin);
+
+  lastPWMPin = testPin;
+  pwmResultAvailable = true;
+  pwmResultSuccess = true;
+  refreshLocalizedResults();
   Serial.println("PWM: OK");
 }
 
@@ -1706,22 +1825,25 @@ void testPWM() {
 void scanSPI() {
   Serial.println("\r\n=== SCAN SPI ===");
   spiInfo = "";
-  
+  spiInfoCode = 3;
+
   #ifdef CONFIG_IDF_TARGET_ESP32
-    spiInfo = "HSPI (12,13,14,15), VSPI (18,19,23,5)";
+    spiInfoCode = 0;
     Serial.println("SPI: HSPI + VSPI disponibles");
   #elif defined(CONFIG_IDF_TARGET_ESP32S2)
-    spiInfo = "SPI2, SPI3 disponibles";
+    spiInfoCode = 1;
     Serial.println("SPI: SPI2, SPI3");
   #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-    spiInfo = "SPI2, SPI3 disponibles";
+    spiInfoCode = 1;
     Serial.println("SPI: SPI2, SPI3");
   #elif defined(CONFIG_IDF_TARGET_ESP32C3)
-    spiInfo = "SPI2 disponible";
+    spiInfoCode = 2;
     Serial.println("SPI: SPI2");
   #else
-    spiInfo = "Info SPI non disponible";
+    spiInfoCode = 3;
   #endif
+
+  refreshLocalizedResults();
 }
 
 // ========== LISTING PARTITIONS ==========
@@ -1778,8 +1900,10 @@ void memoryStressTest() {
   for(auto ptr : allocations) {
     free(ptr);
   }
-  
-  stressTestResult = "Max: " + String(maxAllocs) + " KB alloues";
+
+  lastStressMaxKB = maxAllocs;
+  stressResultAvailable = true;
+  refreshLocalizedResults();
   Serial.println("Stress test: OK");
 }
 
@@ -2643,11 +2767,13 @@ void handleSetLanguage() {
     const String lang = server.arg("lang");
     if (lang == "fr") {
       setLanguage(LANG_FR);
+      refreshLocalizedResults();
       server.send(200, "application/json", "{\"success\":true,\"lang\":\"fr\"}");
       return;
     }
     if (lang == "en") {
       setLanguage(LANG_EN);
+      refreshLocalizedResults();
       server.send(200, "application/json", "{\"success\":true,\"lang\":\"en\"}");
       return;
     }
@@ -3130,6 +3256,10 @@ void handleGetTranslations() {
   json += jsonField("spi_desc", T().spi_desc);
   json += jsonField("partitions_desc", T().partitions_desc);
   json += jsonField("stress_desc", T().stress_desc);
+  json += jsonField("touch_not_supported", T().touch_not_supported);
+  json += jsonField("touch_detected_template", T().touch_detected_template);
+  json += jsonField("pwm_result_template", T().pwm_result_template);
+  json += jsonField("stress_result_template", T().stress_result_template);
   json += jsonField("gpio_desc", T().gpio_desc);
   json += jsonField("wifi_desc", T().wifi_desc);
   json += jsonField("benchmark_desc", T().benchmark_desc);
@@ -4337,6 +4467,7 @@ a{color:inherit;}
   chunk += "for(var i=0;i<langButtons.length;i++){langButtons[i].classList.remove('active');}";
   chunk += "if(btn){btn.classList.add('active');}";
   chunk += "updateTranslations(true);";
+  chunk += "loadAllData();";
   chunk += "}).catch(function(err){var message=err&&err.message?err.message:err;showInlineMessage(tr('language_switch_error','Erreur changement langue','Language switch error')+': '+message,'error');});";
   chunk += "return false;";
   chunk += "}";
@@ -4461,6 +4592,8 @@ void setup() {
   Serial.printf("     Version %s - FR/EN\r\n", DIAGNOSTIC_VERSION_STR);
   Serial.printf("     Arduino Core %s\r\n", getArduinoCoreVersionString().c_str());
   Serial.println("===============================================\r\n");
+
+  refreshLocalizedResults();
 
   uint8_t btMac[6] = {0};
   if (esp_read_mac(btMac, ESP_MAC_BT) != ESP_OK) {
