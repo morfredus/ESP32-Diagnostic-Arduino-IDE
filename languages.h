@@ -1,6 +1,7 @@
 #ifndef LANGUAGES_H
 #define LANGUAGES_H
 
+#include <Arduino.h>
 #include <pgmspace.h>
 
 // ========== SYSTÈME DE TRADUCTION ==========
@@ -291,8 +292,17 @@ class TranslationField {
  public:
   constexpr TranslationField() : langPtr(nullptr), key(static_cast<TranslationKey>(0)) {}
   constexpr TranslationField(const Language* lang, TranslationKey idx) : langPtr(lang), key(idx) {}
-  operator const char*() const { return lookupTranslation(*langPtr, key); }
-  const char* c_str() const { return lookupTranslation(*langPtr, key); }
+
+  // --- [NEW FEATURE] Conversion String transparente pour les traductions ---
+  operator const char*() const { return c_str(); }
+  operator String() const { return String(c_str()); }
+
+  const char* c_str() const {
+    return (langPtr != nullptr) ? lookupTranslation(*langPtr, key) : "";
+  }
+
+  String str() const { return String(c_str()); }
+
  private:
   const Language* langPtr;
   TranslationKey key;
