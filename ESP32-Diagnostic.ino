@@ -1,3 +1,4 @@
+// Version de dev : 3.3.06-dev - Corrections des retours String après optimisation de la traduction
 // Version de dev : 3.3.05-dev - Levée de l'ambiguïté String/const char* des traductions
 // Version de dev : 3.3.04-dev - Conversion String pour la table de traduction
 // Version de dev : 3.3.02-dev - Harmonisation bilingue de l'interface utilisateur
@@ -16,6 +17,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.3.06-dev - Corrections des retours String après optimisation de la traduction",
   "3.3.05-dev - Levée de l'ambiguïté String/const char* des traductions",
   "3.3.04-dev - Conversion String pour la table de traduction",
   "3.3.03-dev - Optimisation de la table de traduction",
@@ -188,7 +190,7 @@ Language currentLanguage = LANG_FR;
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.3.05-dev"
+#define DIAGNOSTIC_VERSION "3.3.06-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -588,7 +590,7 @@ String getChipFeatures() {
   if (features.length() > 0) {
     features = features.substring(0, features.length() - 2);
   } else {
-    features = T().none;
+    features = T().none.str();
   }
   
   return features;
@@ -604,7 +606,7 @@ String getFlashType() {
   #elif defined(CONFIG_ESPTOOLPY_FLASHMODE_DOUT)
     return "DOUT";
   #else
-    return T().unknown;
+    return T().unknown.str();
   #endif
 }
 
@@ -618,18 +620,18 @@ String getFlashSpeed() {
   #elif defined(CONFIG_ESPTOOLPY_FLASHFREQ_20M)
     return "20 MHz";
   #else
-    return T().unknown;
+    return T().unknown.str();
   #endif
 }
 
 String getResetReason() {
   esp_reset_reason_t reason = esp_reset_reason();
   switch (reason) {
-    case ESP_RST_POWERON: return T().poweron;
-    case ESP_RST_SW: return T().software_reset;
-    case ESP_RST_DEEPSLEEP: return T().deepsleep_exit;
-    case ESP_RST_BROWNOUT: return T().brownout;
-    default: return T().other;
+    case ESP_RST_POWERON: return T().poweron.str();
+    case ESP_RST_SW: return T().software_reset.str();
+    case ESP_RST_DEEPSLEEP: return T().deepsleep_exit.str();
+    case ESP_RST_BROWNOUT: return T().brownout.str();
+    default: return T().other.str();
   }
 }
 
@@ -655,18 +657,18 @@ String formatUptime(unsigned long days, unsigned long hours, unsigned long minut
 
 String getMemoryStatus() {
   float heapUsagePercent = ((float)(diagnosticData.heapSize - diagnosticData.freeHeap) / diagnosticData.heapSize) * 100;
-  if (heapUsagePercent < 50) return T().excellent;
-  else if (heapUsagePercent < 70) return T().good;
-  else if (heapUsagePercent < 85) return T().warning;
-  else return T().critical;
+  if (heapUsagePercent < 50) return T().excellent.str();
+  else if (heapUsagePercent < 70) return T().good.str();
+  else if (heapUsagePercent < 85) return T().warning.str();
+  else return T().critical.str();
 }
 
 String getWiFiSignalQuality() {
-  if (diagnosticData.wifiRSSI >= -50) return T().excellent;
-  else if (diagnosticData.wifiRSSI >= -60) return T().very_good;
-  else if (diagnosticData.wifiRSSI >= -70) return T().good;
-  else if (diagnosticData.wifiRSSI >= -80) return T().weak;
-  else return T().very_weak;
+  if (diagnosticData.wifiRSSI >= -50) return T().excellent.str();
+  else if (diagnosticData.wifiRSSI >= -60) return T().very_good.str();
+  else if (diagnosticData.wifiRSSI >= -70) return T().good.str();
+  else if (diagnosticData.wifiRSSI >= -80) return T().weak.str();
+  else return T().very_weak.str();
 }
 
 String wifiAuthModeToString(wifi_auth_mode_t mode) {
@@ -928,13 +930,13 @@ void collectDetailedMemory() {
   detailedMemory.psramTestPassed = testPSRAMQuick();
   
   if (detailedMemory.fragmentationPercent < 20) {
-    detailedMemory.memoryStatus = T().excellent;
+    detailedMemory.memoryStatus = T().excellent.str();
   } else if (detailedMemory.fragmentationPercent < 40) {
-    detailedMemory.memoryStatus = T().good;
+    detailedMemory.memoryStatus = T().good.str();
   } else if (detailedMemory.fragmentationPercent < 60) {
     detailedMemory.memoryStatus = "Moyen"; // Pas traduit (statut technique)
   } else {
-    detailedMemory.memoryStatus = T().critical;
+    detailedMemory.memoryStatus = T().critical.str();
   }
 }
 
