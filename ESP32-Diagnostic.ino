@@ -1,3 +1,4 @@
+// Version de dev : 3.3.05-dev - Levée de l'ambiguïté String/const char* des traductions
 // Version de dev : 3.3.04-dev - Conversion String pour la table de traduction
 // Version de dev : 3.3.02-dev - Harmonisation bilingue de l'interface utilisateur
 /*
@@ -15,6 +16,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.3.05-dev - Levée de l'ambiguïté String/const char* des traductions",
   "3.3.04-dev - Conversion String pour la table de traduction",
   "3.3.03-dev - Optimisation de la table de traduction",
   "3.3.02-dev - Harmonisation bilingue des libellés UI",
@@ -186,7 +188,7 @@ Language currentLanguage = LANG_FR;
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.3.04-dev"
+#define DIAGNOSTIC_VERSION "3.3.05-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
