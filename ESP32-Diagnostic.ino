@@ -1,3 +1,5 @@
+// Version de dev : 3.3.03-dev - Optimisation de la table de traduction
+// Version de dev : 3.3.02-dev - Harmonisation bilingue de l'interface utilisateur
 /*
  * ESP32 Diagnostic Suite v3.3.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
@@ -13,6 +15,9 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.3.03-dev - Optimisation de la table de traduction",
+  "3.3.02-dev - Harmonisation bilingue des libellés UI",
+  "3.3.01-dev - Retrait du diagnostic touchpad devenu obsolète",
   "3.2.21-maint - Nettoyage des bannières et consolidation de l'historique",
   "3.2.20-dev - Correction de l'attribut data-i18n dans appendInfoItem",
   "3.2.19-dev - Correction de la collision tr() lors du changement de langue",
@@ -159,6 +164,8 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 // Système de traduction
 #include "languages.h"
 
+Language currentLanguage = LANG_FR;
+
 #if defined(__has_include)
   #if __has_include(<esp_arduino_version.h>)
     #include <esp_arduino_version.h>
@@ -178,7 +185,7 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.3.0"
+#define DIAGNOSTIC_VERSION "3.3.03-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -272,26 +279,25 @@ Adafruit_NeoPixel *strip = nullptr;
 bool neopixelTested = false;
 bool neopixelAvailable = false;
 bool neopixelSupported = false;
-String neopixelTestResult = "En attente d'initialisation";
+String neopixelTestResult = String(T().not_tested);
 
 // LED intégrée
 int BUILTIN_LED_PIN = -1;
 bool builtinLedTested = false;
 bool builtinLedAvailable = false;
-String builtinLedTestResult = "En attente d'initialisation";
+String builtinLedTestResult = String(T().not_tested);
 
 // OLED
 bool oledTested = false;
 bool oledAvailable = false;
-String oledTestResult = "En attente d'initialisation";
+String oledTestResult = String(T().not_tested);
 
 // Tests additionnels
-String adcTestResult = "Non testé";
-String touchTestResult = "Non testé";
-String pwmTestResult = "Non testé";
+String adcTestResult = String(T().not_tested);
+String pwmTestResult = String(T().not_tested);
 String partitionsInfo = "";
 String spiInfo = "";
-String stressTestResult = "Non testé";
+String stressTestResult = String(T().not_tested);
 
 // ========== STRUCTURES ==========
 struct DiagnosticInfo {
@@ -400,13 +406,6 @@ struct ADCReading {
 };
 
 std::vector<ADCReading> adcReadings;
-
-struct TouchReading {
-  int pin;
-  int value;
-};
-
-std::vector<TouchReading> touchReadings;
 
 #define HISTORY_SIZE 60
 float heapHistory[HISTORY_SIZE];
@@ -669,7 +668,7 @@ String getWiFiSignalQuality() {
 
 String wifiAuthModeToString(wifi_auth_mode_t mode) {
   switch (mode) {
-    case WIFI_AUTH_OPEN: return "Ouvert";
+    case WIFI_AUTH_OPEN: return (currentLanguage == LANG_FR) ? "Ouvert" : "Open";
 #ifdef WIFI_AUTH_WEP
     case WIFI_AUTH_WEP: return "WEP";
 #endif
@@ -1197,7 +1196,7 @@ void detectBuiltinLED() {
     else BUILTIN_LED_PIN = 2;
   #endif
   
-  builtinLedTestResult = "Pret - GPIO " + String(BUILTIN_LED_PIN);
+  builtinLedTestResult = String(T().gpio) + " " + String(BUILTIN_LED_PIN) + " - " + String(T().not_tested);
   Serial.printf("LED integree: GPIO %d\r\n", BUILTIN_LED_PIN);
 }
 
@@ -1225,7 +1224,7 @@ void testBuiltinLED() {
   
   digitalWrite(BUILTIN_LED_PIN, LOW);
   builtinLedAvailable = true;
-  builtinLedTestResult = "Test OK - GPIO " + String(BUILTIN_LED_PIN);
+  builtinLedTestResult = String(T().test) + " " + String(T().ok) + " - GPIO " + String(BUILTIN_LED_PIN);
   builtinLedTested = true;
   Serial.println("LED: OK");
 }
@@ -1259,7 +1258,7 @@ void detectNeoPixelSupport() {
   
   if (strip != nullptr) delete strip;
   strip = new Adafruit_NeoPixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
-  neopixelTestResult = "Pret - GPIO " + String(LED_PIN);
+  neopixelTestResult = String(T().gpio) + " " + String(LED_PIN) + " - " + String(T().not_tested);
   Serial.printf("NeoPixel: GPIO %d\r\n", LED_PIN);
 }
 
@@ -1293,7 +1292,7 @@ void testNeoPixel() {
   strip->show();
   
   neopixelAvailable = true;
-  neopixelTestResult = "Test OK - GPIO " + String(LED_PIN);
+  neopixelTestResult = String(T().test) + " " + String(T().ok) + " - GPIO " + String(LED_PIN);
   neopixelTested = true;
   Serial.println("NeoPixel: OK");
 }
@@ -1363,14 +1362,14 @@ void detectOLED() {
   if(i2cDetected && oled.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     oledAvailable = true;
     applyOLEDOrientation();
-    oledTestResult = "Detecte a 0x" + String(SCREEN_ADDRESS, HEX);
+    oledTestResult = String(T().detected) + " @ 0x" + String(SCREEN_ADDRESS, HEX);
     Serial.println("OLED: Detecte!\r\n");
   } else {
     oledAvailable = false;
     if (i2cDetected) {
-      oledTestResult = "Peripherique I2C present mais init echoue";
+      oledTestResult = String(T().i2c_peripherals) + " - " + String(T().fail);
     } else {
-      oledTestResult = "Non detecte (SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + ")";
+      oledTestResult = String(T().not_detected) + " (SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + ")";
     }
     Serial.println("OLED: Non detecte\r\n");
   }
@@ -1583,7 +1582,7 @@ void testOLED() {
   oledStepFinalMessage();
 
   oledTested = true;
-  oledTestResult = "Test OK - 128x64";
+  oledTestResult = String(T().test) + " " + String(T().ok) + " - 128x64";
   Serial.println("OLED: Tests complets OK\r\n");
 }
 
@@ -1635,44 +1634,11 @@ void testADC() {
     Serial.printf("GPIO%d: %d (%.2fV)\r\n", reading.pin, reading.rawValue, reading.voltage);
   }
   
-  adcTestResult = String(numADC) + " ADC testes - OK";
+  adcTestResult = String(numADC) + " " + String(T().channels) + " - " + String(T().ok);
   Serial.printf("ADC: %d canaux testes\r\n", numADC);
 }
 
-// ========== TEST TOUCH PADS ==========
-void testTouchPads() {
-  Serial.println("\r\n=== TEST TOUCH PADS ===");
-  touchReadings.clear();
-  
-  #ifdef CONFIG_IDF_TARGET_ESP32
-    int touchPins[] = {4, 0, 2, 15, 13, 12, 14, 27, 33, 32};
-    int numTouch = 10;
-  #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-    int touchPins[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
-    int numTouch = 14;
-  #else
-    int numTouch = 0;
-  #endif
-  
-  if (numTouch == 0) {
-    touchTestResult = "Non supporte sur ce modele";
-    Serial.println("Touch: Non supporte");
-    return;
-  }
-  
-  for(int i = 0; i < numTouch; i++) {
-    TouchReading reading;
-    reading.pin = touchPins[i];
-    reading.value = touchRead(touchPins[i]);
-    touchReadings.push_back(reading);
-    
-    Serial.printf("Touch%d (GPIO%d): %d\r\n", i, reading.pin, reading.value);
-  }
-  
-  touchTestResult = String(numTouch) + " Touch Pads detectes";
-  Serial.printf("Touch: %d pads testes\r\n", numTouch);
-}
-
+// --- [NEW FEATURE] Nettoyage des diagnostics : retrait du test touchpad ---
 // ========== TEST PWM ==========
 void testPWM() {
   Serial.println("\r\n=== TEST PWM ===");
@@ -1698,7 +1664,7 @@ void testPWM() {
   ledcWrite(testPin, 0);
   ledcDetach(testPin);
   
-  pwmTestResult = "Test OK sur GPIO" + String(testPin);
+  pwmTestResult = String(T().test) + " " + String(T().ok) + " - GPIO " + String(testPin);
   Serial.println("PWM: OK");
 }
 
@@ -1779,7 +1745,7 @@ void memoryStressTest() {
     free(ptr);
   }
   
-  stressTestResult = "Max: " + String(maxAllocs) + " KB alloues";
+  stressTestResult = String(T().max_alloc) + ": " + String(maxAllocs) + " KB";
   Serial.println("Stress test: OK");
 }
 
@@ -1926,11 +1892,11 @@ void handleBuiltinLEDConfig() {
     if (newGPIO >= 0 && newGPIO <= 48) {
       BUILTIN_LED_PIN = newGPIO;
       resetBuiltinLEDTest();
-      server.send(200, "application/json", "{\"success\":true,\"message\":\"LED GPIO " + String(BUILTIN_LED_PIN) + "\"}");
+      server.send(200, "application/json", "{\"success\":true,\"message\":\"" + String(T().config) + " " + String(T().gpio) + " " + String(BUILTIN_LED_PIN) + "\"}");
       return;
     }
   }
-  server.send(400, "application/json", "{\"success\":false}");
+  server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().gpio_invalid) + "\"}");
 }
 
 void handleBuiltinLEDTest() {
@@ -1947,7 +1913,7 @@ void handleBuiltinLEDControl() {
   
   String action = server.arg("action");
   if (BUILTIN_LED_PIN == -1) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"LED non configuree\"}");
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().gpio_invalid) + "\"}");
     return;
   }
   
@@ -1961,7 +1927,7 @@ void handleBuiltinLEDControl() {
       digitalWrite(BUILTIN_LED_PIN, LOW);
       delay(200);
     }
-    message = "Clignotement OK";
+    message = String(T().blink) + " " + String(T().ok);
   } else if (action == "fade") {
     for(int i = 0; i <= 255; i += 5) {
       analogWrite(BUILTIN_LED_PIN, i);
@@ -1972,11 +1938,11 @@ void handleBuiltinLEDControl() {
       delay(10);
     }
     digitalWrite(BUILTIN_LED_PIN, LOW);
-    message = "Fade OK";
+    message = String(T().fade) + " " + String(T().ok);
   } else if (action == "off") {
     digitalWrite(BUILTIN_LED_PIN, LOW);
     builtinLedTested = false;
-    message = "LED eteinte";
+    message = String(T().off);
   } else {
     server.send(400, "application/json", "{\"success\":false}");
     return;
@@ -1996,7 +1962,7 @@ void handleNeoPixelConfig() {
       if (strip) delete strip;
       strip = new Adafruit_NeoPixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
       resetNeoPixelTest();
-      server.send(200, "application/json", "{\"success\":true,\"message\":\"Config GPIO " + String(LED_PIN) + "\"}");
+      server.send(200, "application/json", "{\"success\":true,\"message\":\"" + String(T().config) + " " + String(T().gpio) + " " + String(LED_PIN) + "\"}");
       return;
     }
   }
@@ -2017,25 +1983,25 @@ void handleNeoPixelPattern() {
   
   String pattern = server.arg("pattern");
   if (!strip) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"NeoPixel non init\"}");
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().neopixel) + " - " + String(T().not_detected) + "\"}");
     return;
   }
   
   String message = "";
   if (pattern == "rainbow") {
     neopixelRainbow();
-    message = "Arc-en-ciel OK";
+    message = String(T().rainbow) + " " + String(T().ok);
   } else if (pattern == "blink") {
     neopixelBlink(strip->Color(255, 0, 0), 5);
-    message = "Blink OK";
+    message = String(T().blink) + " " + String(T().ok);
   } else if (pattern == "fade") {
     neopixelFade(strip->Color(0, 0, 255));
-    message = "Fade OK";
+    message = String(T().fade) + " " + String(T().ok);
   } else if (pattern == "off") {
     strip->clear();
     strip->show();
     neopixelTested = false;
-    message = "Off";
+    message = String(T().off);
   } else {
     server.send(400, "application/json", "{\"success\":false}");
     return;
@@ -2088,7 +2054,7 @@ void handleOLEDConfig() {
       return;
     }
   }
-  server.send(400, "application/json", "{\"success\":false,\"message\":\"Configuration invalide\"}");
+  server.send(400, "application/json", "{\"success\":false,\"message\":\"" + String(T().configuration_invalid) + "\"}");
 }
 
 void handleOLEDTest() {
@@ -2140,17 +2106,6 @@ void handleADCTest() {
             ",\"voltage\":" + String(adcReadings[i].voltage, 2) + "}";
   }
   json += "],\"result\":\"" + adcTestResult + "\"}";
-  server.send(200, "application/json", json);
-}
-
-void handleTouchTest() {
-  testTouchPads();
-  String json = "{\"readings\":[";
-  for (size_t i = 0; i < touchReadings.size(); i++) {
-    if (i > 0) json += ",";
-    json += "{\"pin\":" + String(touchReadings[i].pin) + ",\"value\":" + String(touchReadings[i].value) + "}";
-  }
-  json += "],\"result\":\"" + touchTestResult + "\"}";
   server.send(200, "application/json", json);
 }
 
@@ -2273,7 +2228,7 @@ void handleExportTXT() {
   
   txt += "=== " + String(T().test) + " ===\r\n";
   txt += String(T().builtin_led) + ": " + builtinLedTestResult + "\r\n";
-  txt += "NeoPixel: " + neopixelTestResult + "\r\n";
+  txt += String(T().neopixel) + ": " + neopixelTestResult + "\r\n";
   txt += "OLED: " + oledTestResult + "\r\n";
   txt += "ADC: " + adcTestResult + "\r\n";
   txt += "PWM: " + pwmTestResult + "\r\n";
@@ -2463,7 +2418,7 @@ void handleExportCSV() {
   csv += String(T().i2c_peripherals) + "," + String(T().devices) + "," + diagnosticData.i2cDevices + "\r\n";
   
   csv += String(T().test) + "," + String(T().builtin_led) + "," + builtinLedTestResult + "\r\n";
-  csv += String(T().test) + ",NeoPixel," + neopixelTestResult + "\r\n";
+  csv += String(T().test) + "," + String(T().neopixel) + "," + neopixelTestResult + "\r\n";
   csv += String(T().test) + ",OLED," + oledTestResult + "\r\n";
   csv += String(T().test) + ",ADC," + adcTestResult + "\r\n";
   csv += String(T().test) + ",PWM," + pwmTestResult + "\r\n";
@@ -2513,45 +2468,45 @@ void handlePrintVersion() {
   
   // Chip
   html += "<div class='section'>";
-  html += "<h2>Informations Processeur</h2>";
+  html += "<h2>" + String(T().chip_info) + "</h2>";
   html += "<div class='grid'>";
-  html += "<div class='row'><b>Modèle:</b><span>" + diagnosticData.chipModel + " Rev" + diagnosticData.chipRevision + "</span></div>";
-  html += "<div class='row'><b>CPU:</b><span>" + String(diagnosticData.cpuCores) + " coeurs @ " + String(diagnosticData.cpuFreqMHz) + " MHz</span></div>";
-  html += "<div class='row'><b>MAC WiFi:</b><span>" + diagnosticData.macAddress + "</span></div>";
-  html += "<div class='row'><b>SDK:</b><span>" + diagnosticData.sdkVersion + "</span></div>";
-  html += "<div class='row'><b>ESP-IDF:</b><span>" + diagnosticData.idfVersion + "</span></div>";
+  html += "<div class='row'><b>" + String(T().full_model) + ":</b><span>" + diagnosticData.chipModel + " Rev" + diagnosticData.chipRevision + "</span></div>";
+  html += "<div class='row'><b>" + String(T().cpu_cores) + ":</b><span>" + String(diagnosticData.cpuCores) + " " + String(T().cores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz</span></div>";
+  html += "<div class='row'><b>" + String(T().mac_wifi) + ":</b><span>" + diagnosticData.macAddress + "</span></div>";
+  html += "<div class='row'><b>" + String(T().sdk_version) + ":</b><span>" + diagnosticData.sdkVersion + "</span></div>";
+  html += "<div class='row'><b>" + String(T().idf_version) + ":</b><span>" + diagnosticData.idfVersion + "</span></div>";
   if (diagnosticData.temperature != -999) {
-    html += "<div class='row'><b>Température:</b><span>" + String(diagnosticData.temperature, 1) + " °C</span></div>";
+    html += "<div class='row'><b>" + String(T().cpu_temp) + ":</b><span>" + String(diagnosticData.temperature, 1) + " °C</span></div>";
   }
-  
+
   unsigned long seconds = diagnosticData.uptime / 1000;
   unsigned long minutes = seconds / 60;
   unsigned long hours = minutes / 60;
   unsigned long days = hours / 24;
-  html += "<div class='row'><b>Uptime:</b><span>" + String(days) + "j " + String(hours % 24) + "h " + String(minutes % 60) + "m</span></div>";
-  html += "<div class='row'><b>Dernier Reset:</b><span>" + getResetReason() + "</span></div>";
+  html += "<div class='row'><b>" + String(T().uptime) + ":</b><span>" + formatUptime(days, hours % 24, minutes % 60) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().last_reset) + ":</b><span>" + getResetReason() + "</span></div>";
   html += "</div></div>";
-  
+
   // Mémoire
   html += "<div class='section'>";
-  html += "<h2>Mémoire</h2>";
+  html += "<h2>" + String(T().memory_details) + "</h2>";
   html += "<table>";
-  html += "<tr><th>Type</th><th>Taille</th><th>Libre</th><th>Utilisée</th><th>Statut</th></tr>";
-  
+  html += "<tr><th>" + String(T().category) + "</th><th>" + String(T().total_size) + "</th><th>" + String(T().free) + "</th><th>" + String(T().used) + "</th><th>" + String(T().status) + "</th></tr>";
+
   // Flash
   bool flashMatch = (detailedMemory.flashSizeReal == detailedMemory.flashSizeChip);
-  html += "<tr><td><b>Flash</b></td>";
+  html += "<tr><td><b>" + String(T().flash_memory) + "</b></td>";
   html += "<td>" + String(detailedMemory.flashSizeReal / 1048576.0, 1) + " MB</td>";
   html += "<td>-</td><td>-</td>";
-  html += "<td><span class='badge " + String(flashMatch ? "badge-success'>OK" : "badge-warning'>Config IDE") + "</span></td></tr>";
-  
+  html += "<td><span class='badge " + String(flashMatch ? "badge-success'>" + String(T().ok) : "badge-warning'>" + String(T().ide_config)) + "</span></td></tr>";
+
   // PSRAM
-  html += "<tr><td><b>PSRAM</b></td>";
+  html += "<tr><td><b>" + String(T().psram_external) + "</b></td>";
   html += "<td>" + String(detailedMemory.psramTotal / 1048576.0, 1) + " MB</td>";
   if (detailedMemory.psramAvailable) {
     html += "<td>" + String(detailedMemory.psramFree / 1048576.0, 1) + " MB</td>";
     html += "<td>" + String(detailedMemory.psramUsed / 1048576.0, 1) + " MB</td>";
-    html += "<td><span class='badge badge-success'>Détectée</span></td>";
+    html += "<td><span class='badge badge-success'>" + String(T().detected_active) + "</span></td>";
   } else if (detailedMemory.psramBoardSupported) {
     html += "<td>-</td><td>-</td>";
     String psramHint = String(T().enable_psram_hint);
@@ -2559,71 +2514,72 @@ void handlePrintVersion() {
     html += "<td><span class='badge badge-warning'>" + String(T().supported_not_enabled) + "</span><br><small>" + psramHint + "</small></td>";
   } else {
     html += "<td>-</td><td>-</td>";
-    html += "<td><span class='badge badge-danger'>Non détectée</span></td>";
+    html += "<td><span class='badge badge-danger'>" + String(T().not_detected) + "</span></td>";
   }
   html += "</tr>";
-  
+
   // SRAM
-  html += "<tr><td><b>SRAM</b></td>";
+  html += "<tr><td><b>" + String(T().internal_sram) + "</b></td>";
   html += "<td>" + String(detailedMemory.sramTotal / 1024.0, 1) + " KB</td>";
   html += "<td>" + String(detailedMemory.sramFree / 1024.0, 1) + " KB</td>";
   html += "<td>" + String(detailedMemory.sramUsed / 1024.0, 1) + " KB</td>";
-  html += "<td><span class='badge badge-success'>OK</span></td></tr>";
+  html += "<td><span class='badge badge-success'>" + detailedMemory.memoryStatus + "</span></td></tr>";
   html += "</table>";
-  html += "<div class='row'><b>Fragmentation:</b><span>" + String(detailedMemory.fragmentationPercent, 1) + "% - " + detailedMemory.memoryStatus + "</span></div>";
+  html += "<div class='row'><b>" + String(T().memory_fragmentation) + ":</b><span>" + String(detailedMemory.fragmentationPercent, 1) + "% - " + detailedMemory.memoryStatus + "</span></div>";
   html += "</div>";
-  
+
   // WiFi
   html += "<div class='section'>";
-  html += "<h2>Connexion WiFi</h2>";
+  html += "<h2>" + String(T().wifi_connection) + "</h2>";
   html += "<div class='grid'>";
-  html += "<div class='row'><b>SSID:</b><span>" + diagnosticData.wifiSSID + "</span></div>";
-  html += "<div class='row'><b>Signal:</b><span>" + String(diagnosticData.wifiRSSI) + " dBm (" + getWiFiSignalQuality() + ")</span></div>";
-  html += "<div class='row'><b>Adresse IP:</b><span>" + diagnosticData.ipAddress + "</span></div>";
-  html += "<div class='row'><b>Masque:</b><span>" + WiFi.subnetMask().toString() + "</span></div>";
-  html += "<div class='row'><b>Passerelle:</b><span>" + WiFi.gatewayIP().toString() + "</span></div>";
-  html += "<div class='row'><b>DNS:</b><span>" + WiFi.dnsIP().toString() + "</span></div>";
+  html += "<div class='row'><b>" + String(T().connected_ssid) + ":</b><span>" + diagnosticData.wifiSSID + "</span></div>";
+  html += "<div class='row'><b>" + String(T().signal_power) + ":</b><span>" + String(diagnosticData.wifiRSSI) + " dBm</span></div>";
+  html += "<div class='row'><b>" + String(T().signal_quality) + ":</b><span>" + getWiFiSignalQuality() + "</span></div>";
+  html += "<div class='row'><b>" + String(T().ip_address) + ":</b><span>" + diagnosticData.ipAddress + "</span></div>";
+  html += "<div class='row'><b>" + String(T().subnet_mask) + ":</b><span>" + WiFi.subnetMask().toString() + "</span></div>";
+  html += "<div class='row'><b>" + String(T().dns) + ":</b><span>" + WiFi.dnsIP().toString() + "</span></div>";
+  html += "<div class='row'><b>" + String(T().gateway) + ":</b><span>" + WiFi.gatewayIP().toString() + "</span></div>";
   html += "</div></div>";
 
   html += "<div class='section'>";
-  html += "<h2>Bluetooth</h2>";
+  html += "<h2>" + String(T().bluetooth_section) + "</h2>";
   html += "<div class='grid'>";
   html += "<div class='row'><b>" + String(T().bluetooth_status) + ":</b><span>" + htmlEscape(getBluetoothStateLabel()) + "</span></div>";
   html += "<div class='row'><b>" + String(T().bluetooth_name) + ":</b><span>" + htmlEscape(bluetoothDeviceName) + "</span></div>";
   html += "<div class='row'><b>" + String(T().bluetooth_mac) + ":</b><span>" + htmlEscape(diagnosticData.bluetoothAddress) + "</span></div>";
   String printAdvertising = bluetoothCapable && bluetoothAdvertising ? String(T().bluetooth_advertising) : String(T().bluetooth_not_advertising);
-  html += "<div class='row'><b>" + String(T().bluetooth_advertising) + ":</b><span>" + htmlEscape(printAdvertising) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().bluetooth_advertising_label) + ":</b><span>" + htmlEscape(printAdvertising) + "</span></div>";
   html += "</div></div>";
 
   // GPIO et Périphériques
   html += "<div class='section'>";
-  html += "<h2>GPIO et Périphériques</h2>";
+  html += "<h2>" + String(T().gpio_interfaces) + "</h2>";
   html += "<div class='grid'>";
-  html += "<div class='row'><b>GPIO Total:</b><span>" + String(diagnosticData.totalGPIO) + " broches</span></div>";
-  html += "<div class='row'><b>I2C:</b><span id='i2c-summary'>" + String(diagnosticData.i2cCount) + " périphérique(s) - " + diagnosticData.i2cDevices + "</span></div>";
-  html += "<div class='row'><b>SPI:</b><span>" + spiInfo + "</span></div>";
+  html += "<div class='row'><b>" + String(T().total_gpio) + ":</b><span>" + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "</span></div>";
+  html += "<div class='row'><b>" + String(T().i2c_peripherals) + ":</b><span>" + String(diagnosticData.i2cCount) + " " + String(T().devices) + " - " + diagnosticData.i2cDevices + "</span></div>";
+  html += "<div class='row'><b>" + String(T().spi_bus) + ":</b><span>" + spiInfo + "</span></div>";
   html += "</div></div>";
-  
+
   // Tests Matériels
   html += "<div class='section'>";
-  html += "<h2>Tests Matériels</h2>";
+  html += "<h2>" + String(T().nav_tests) + "</h2>";
   html += "<table>";
-  html += "<tr><th>Périphérique</th><th>Résultat</th></tr>";
-  html += "<tr><td>LED intégrée</td><td>" + builtinLedTestResult + "</td></tr>";
-  html += "<tr><td>NeoPixel</td><td>" + neopixelTestResult + "</td></tr>";
-  html += "<tr><td>Écran OLED</td><td>" + oledTestResult + "</td></tr>";
-  html += "<tr><td>ADC</td><td>" + adcTestResult + "</td></tr>";
-  html += "<tr><td>PWM</td><td>" + pwmTestResult + "</td></tr>";
+  html += "<tr><th>" + String(T().parameter) + "</th><th>" + String(T().status) + "</th></tr>";
+  html += "<tr><td>" + String(T().builtin_led) + "</td><td>" + builtinLedTestResult + "</td></tr>";
+  html += "<tr><td>" + String(T().neopixel) + "</td><td>" + neopixelTestResult + "</td></tr>";
+  html += "<tr><td>" + String(T().oled_screen) + "</td><td>" + oledTestResult + "</td></tr>";
+  html += "<tr><td>" + String(T().adc_test) + "</td><td>" + adcTestResult + "</td></tr>";
+  html += "<tr><td>" + String(T().pwm_test) + "</td><td>" + pwmTestResult + "</td></tr>";
   html += "</table></div>";
-  
+
   // Performance
   if (diagnosticData.cpuBenchmark > 0) {
     html += "<div class='section'>";
-    html += "<h2>Performance</h2>";
+    html += "<h2>" + String(T().performance_bench) + "</h2>";
     html += "<div class='grid'>";
-    html += "<div class='row'><b>CPU:</b><span>" + String(diagnosticData.cpuBenchmark) + " µs (" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + " MFLOPS)</span></div>";
-    html += "<div class='row'><b>Mémoire:</b><span>" + String(diagnosticData.memBenchmark) + " µs</span></div>";
-    html += "<div class='row'><b>Stress Test:</b><span>" + stressTestResult + "</span></div>";
+    html += "<div class='row'><b>" + String(T().cpu_benchmark) + ":</b><span>" + String(diagnosticData.cpuBenchmark) + " µs (" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + " MFLOPS)</span></div>";
+    html += "<div class='row'><b>" + String(T().memory_benchmark) + ":</b><span>" + String(diagnosticData.memBenchmark) + " µs</span></div>";
+    html += "<div class='row'><b>" + String(T().memory_stress) + ":</b><span>" + stressTestResult + "</span></div>";
     html += "</div></div>";
   }
   
@@ -3114,7 +3070,6 @@ void handleGetTranslations() {
   json += jsonField("builtin_led", T().builtin_led);
   json += jsonField("oled_screen", T().oled_screen);
   json += jsonField("adc_test", T().adc_test);
-  json += jsonField("touch_test", T().touch_test);
   json += jsonField("pwm_test", T().pwm_test);
   json += jsonField("spi_bus", T().spi_bus);
   json += jsonField("flash_partitions", T().flash_partitions);
@@ -3125,7 +3080,6 @@ void handleGetTranslations() {
   json += jsonField("gpio_warning", T().gpio_warning);
   json += jsonField("i2c_desc", T().i2c_desc);
   json += jsonField("adc_desc", T().adc_desc);
-  json += jsonField("touch_desc", T().touch_desc);
   json += jsonField("pwm_desc", T().pwm_desc);
   json += jsonField("spi_desc", T().spi_desc);
   json += jsonField("partitions_desc", T().partitions_desc);
@@ -4113,7 +4067,7 @@ a{color:inherit;}
 
   // CHUNK 4: TAB LEDs
   chunk = "<div id='leds' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().builtin_led) + "</h2><div class='info-grid'>";
+  chunk += "<div class='section'><h2 data-i18n='builtin_led'>" + String(T().builtin_led) + "</h2><div class='info-grid'>";
   String builtinPinValue = "GPIO " + String(BUILTIN_LED_PIN);
   appendInfoItem(chunk, nullptr, T().gpio, builtinPinValue);
   appendInfoItem(chunk, nullptr, T().status, builtinLedTestResult, String(F("id='builtin-led-status'")));
@@ -4126,7 +4080,7 @@ a{color:inherit;}
   chunk += "<button class='btn btn-danger' onclick='ledOff()'>" + String(T().off) + "</button>";
   chunk += "</div></div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().neopixel) + "</h2><div class='info-grid'>";
+  chunk += "<div class='section'><h2 data-i18n='neopixel'>" + String(T().neopixel) + "</h2><div class='info-grid'>";
   String neoPinValue = "GPIO " + String(LED_PIN);
   appendInfoItem(chunk, nullptr, T().gpio, neoPinValue);
   appendInfoItem(chunk, nullptr, T().status, neopixelTestResult, String(F("id='neopixel-status'")));
@@ -4144,7 +4098,7 @@ a{color:inherit;}
   
   // CHUNK 5: TAB Screens
   chunk = "<div id='screens' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().oled_screen) + "</h2><div class='info-grid'>";
+  chunk += "<div class='section'><h2 data-i18n='oled_screen'>" + String(T().oled_screen) + "</h2><div class='info-grid'>";
   appendInfoItem(chunk, nullptr, T().status, oledTestResult, String(F("id='oled-status'")));
   String oledPinsValue = "SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL);
   appendInfoItem(chunk, nullptr, T().i2c_pins, oledPinsValue, String(F("id='oled-pins'")));
@@ -4184,37 +4138,37 @@ a{color:inherit;}
   
   // CHUNK 6: TAB Tests
   chunk = "<div id='tests' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().i2c_peripherals) + "</h2><p class='section-description' data-i18n='i2c_desc'>" + String(T().i2c_desc) + "</p>";
+  chunk += "<div class='section'><h2 data-i18n='i2c_peripherals'>" + String(T().i2c_peripherals) + "</h2><p class='section-description' data-i18n='i2c_desc'>" + String(T().i2c_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='scanI2C()'>" + String(T().rescan_i2c) + "</button>";
   chunk += "<div id='i2c-status' class='status-live'>" + String(T().click_button) + "</div>";
   chunk += "</div></div>";
-  chunk += "<div class='section'><h2>" + String(T().adc_test) + "</h2><p class='section-description' data-i18n='adc_desc'>" + String(T().adc_desc) + "</p>";
+  chunk += "<div class='section'><h2 data-i18n='adc_test'>" + String(T().adc_test) + "</h2><p class='section-description' data-i18n='adc_desc'>" + String(T().adc_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testADC()'>" + String(T().test) + "</button>";
   chunk += "<div id='adc-status' class='status-live'>" + adcTestResult + "</div>";
   chunk += "</div><div id='adc-results' class='info-grid'></div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().pwm_test) + "</h2><p class='section-description' data-i18n='pwm_desc'>" + String(T().pwm_desc) + "</p>";
+  chunk += "<div class='section'><h2 data-i18n='pwm_test'>" + String(T().pwm_test) + "</h2><p class='section-description' data-i18n='pwm_desc'>" + String(T().pwm_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testPWM()'>" + String(T().test) + "</button>";
   chunk += "<div id='pwm-status' class='status-live'>" + pwmTestResult + "</div>";
   chunk += "</div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().spi_bus) + "</h2><p class='section-description' data-i18n='spi_desc'>" + String(T().spi_desc) + "</p>";
+  chunk += "<div class='section'><h2 data-i18n='spi_bus'>" + String(T().spi_bus) + "</h2><p class='section-description' data-i18n='spi_desc'>" + String(T().spi_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='scanSPI()'>" + String(T().scan) + "</button>";
   chunk += "<div id='spi-status' class='status-live'>" + (spiInfo.length() > 0 ? spiInfo : String(T().click_button)) + "</div>";
   chunk += "</div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().flash_partitions) + "</h2><p class='section-description' data-i18n='partitions_desc'>" + String(T().partitions_desc) + "</p>";
+  chunk += "<div class='section'><h2 data-i18n='flash_partitions'>" + String(T().flash_partitions) + "</h2><p class='section-description' data-i18n='partitions_desc'>" + String(T().partitions_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='listPartitions()'>" + String(T().list_partitions) + "</button>";
   chunk += "</div><div id='partitions-results' style='background:#fff;color:#0b1120;padding:15px;border-radius:10px;font-family:monospace;white-space:pre-wrap;font-size:0.85em'>";
   chunk += partitionsInfo.length() > 0 ? partitionsInfo : String(T().click_button);
   chunk += "</div></div>";
   
-  chunk += "<div class='section'><h2>" + String(T().memory_stress) + "</h2><p class='section-description' data-i18n='stress_desc'>" + String(T().stress_desc) + "</p>";
+  chunk += "<div class='section'><h2 data-i18n='memory_stress'>" + String(T().memory_stress) + "</h2><p class='section-description' data-i18n='stress_desc'>" + String(T().stress_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-danger' onclick='stressTest()'>" + String(T().start_stress) + "</button>";
   chunk += "<div id='stress-status' class='status-live'>" + stressTestResult + "</div>";
@@ -4223,7 +4177,7 @@ a{color:inherit;}
   
   // CHUNK 7: TAB GPIO
   chunk = "<div id='gpio' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().gpio_test) + "</h2><p class='section-description' data-i18n='gpio_desc'>" + String(T().gpio_desc) + "</p>";
+  chunk += "<div class='section'><h2 data-i18n='gpio_test'>" + String(T().gpio_test) + "</h2><p class='section-description' data-i18n='gpio_desc'>" + String(T().gpio_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='testAllGPIO()'>" + String(T().test_all_gpio) + "</button>";
   chunk += "<div id='gpio-status' class='status-live'>" + String(T().click_to_test) + "</div>";
@@ -4234,7 +4188,7 @@ a{color:inherit;}
   
   // CHUNK 8: TAB Wireless
   chunk = "<div id='wireless' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().wifi_scanner) + "</h2><p class='section-description' data-i18n='wifi_desc'>" + String(T().wifi_desc) + "</p>";
+  chunk += "<div class='section'><h2 data-i18n='wifi_scanner'>" + String(T().wifi_scanner) + "</h2><p class='section-description' data-i18n='wifi_desc'>" + String(T().wifi_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='scanWiFi()'>" + String(T().scan_networks) + "</button>";
   chunk += "<div id='wifi-status' class='status-live'>" + String(T().click_to_test) + "</div>";
@@ -4267,7 +4221,7 @@ a{color:inherit;}
   
   // CHUNK 9: TAB Benchmark
   chunk = "<div id='benchmark' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().performance_bench) + "</h2><p class='section-description' data-i18n='benchmark_desc'>" + String(T().benchmark_desc) + "</p>";
+  chunk += "<div class='section'><h2 data-i18n='performance_bench'>" + String(T().performance_bench) + "</h2><p class='section-description' data-i18n='benchmark_desc'>" + String(T().benchmark_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
   chunk += "<button class='btn btn-primary' onclick='runBenchmarks()'>" + String(T().run_benchmarks) + "</button>";
   chunk += "</div><div id='benchmark-results' class='info-grid'>";
@@ -4280,7 +4234,7 @@ a{color:inherit;}
   
   // CHUNK 10: TAB Export
   chunk = "<div id='export' class='tab-content'>";
-  chunk += "<div class='section'><h2>" + String(T().data_export) + "</h2>";
+  chunk += "<div class='section'><h2 data-i18n='data_export'>" + String(T().data_export) + "</h2>";
   chunk += "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-top:20px'>";
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #667eea'>";
   chunk += "<h3 style='color:#667eea;margin-bottom:15px'>" + String(T().txt_file) + "</h3>";
@@ -4585,7 +4539,6 @@ void setup() {
   
   // Tests avancés
   server.on("/api/adc-test", handleADCTest);
-  server.on("/api/touch-test", handleTouchTest);
   server.on("/api/pwm-test", handlePWMTest);
   server.on("/api/spi-scan", handleSPIScan);
   server.on("/api/partitions-list", handlePartitionsList);
