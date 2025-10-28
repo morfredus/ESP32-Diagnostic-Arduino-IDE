@@ -1,3 +1,4 @@
+// Version de dev : 3.3.01-dev - Retrait du diagnostic tactile obsolète
 /*
  * ESP32 Diagnostic Suite v3.3.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
@@ -13,6 +14,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.3.01-dev - Retrait du diagnostic tactile obsolète",
   "3.2.21-maint - Nettoyage des bannières et consolidation de l'historique",
   "3.2.20-dev - Correction de l'attribut data-i18n dans appendInfoItem",
   "3.2.19-dev - Correction de la collision tr() lors du changement de langue",
@@ -178,7 +180,7 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.3.0"
+#define DIAGNOSTIC_VERSION "3.3.01-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -287,7 +289,6 @@ String oledTestResult = "En attente d'initialisation";
 
 // Tests additionnels
 String adcTestResult = "Non testé";
-String touchTestResult = "Non testé";
 String pwmTestResult = "Non testé";
 String partitionsInfo = "";
 String spiInfo = "";
@@ -400,13 +401,6 @@ struct ADCReading {
 };
 
 std::vector<ADCReading> adcReadings;
-
-struct TouchReading {
-  int pin;
-  int value;
-};
-
-std::vector<TouchReading> touchReadings;
 
 #define HISTORY_SIZE 60
 float heapHistory[HISTORY_SIZE];
@@ -1606,6 +1600,7 @@ void oledShowMessage(String message) {
   oled.display();
 }
 
+// --- [MAINTENANCE] Retrait du diagnostic tactile obsolète ---
 // ========== TEST ADC ==========
 void testADC() {
   Serial.println("\r\n=== TEST ADC ===");
@@ -1637,40 +1632,6 @@ void testADC() {
   
   adcTestResult = String(numADC) + " ADC testes - OK";
   Serial.printf("ADC: %d canaux testes\r\n", numADC);
-}
-
-// ========== TEST TOUCH PADS ==========
-void testTouchPads() {
-  Serial.println("\r\n=== TEST TOUCH PADS ===");
-  touchReadings.clear();
-  
-  #ifdef CONFIG_IDF_TARGET_ESP32
-    int touchPins[] = {4, 0, 2, 15, 13, 12, 14, 27, 33, 32};
-    int numTouch = 10;
-  #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-    int touchPins[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
-    int numTouch = 14;
-  #else
-    int numTouch = 0;
-  #endif
-  
-  if (numTouch == 0) {
-    touchTestResult = "Non supporte sur ce modele";
-    Serial.println("Touch: Non supporte");
-    return;
-  }
-  
-  for(int i = 0; i < numTouch; i++) {
-    TouchReading reading;
-    reading.pin = touchPins[i];
-    reading.value = touchRead(touchPins[i]);
-    touchReadings.push_back(reading);
-    
-    Serial.printf("Touch%d (GPIO%d): %d\r\n", i, reading.pin, reading.value);
-  }
-  
-  touchTestResult = String(numTouch) + " Touch Pads detectes";
-  Serial.printf("Touch: %d pads testes\r\n", numTouch);
 }
 
 // ========== TEST PWM ==========
@@ -2140,17 +2101,6 @@ void handleADCTest() {
             ",\"voltage\":" + String(adcReadings[i].voltage, 2) + "}";
   }
   json += "],\"result\":\"" + adcTestResult + "\"}";
-  server.send(200, "application/json", json);
-}
-
-void handleTouchTest() {
-  testTouchPads();
-  String json = "{\"readings\":[";
-  for (size_t i = 0; i < touchReadings.size(); i++) {
-    if (i > 0) json += ",";
-    json += "{\"pin\":" + String(touchReadings[i].pin) + ",\"value\":" + String(touchReadings[i].value) + "}";
-  }
-  json += "],\"result\":\"" + touchTestResult + "\"}";
   server.send(200, "application/json", json);
 }
 
@@ -3114,7 +3064,6 @@ void handleGetTranslations() {
   json += jsonField("builtin_led", T().builtin_led);
   json += jsonField("oled_screen", T().oled_screen);
   json += jsonField("adc_test", T().adc_test);
-  json += jsonField("touch_test", T().touch_test);
   json += jsonField("pwm_test", T().pwm_test);
   json += jsonField("spi_bus", T().spi_bus);
   json += jsonField("flash_partitions", T().flash_partitions);
@@ -3125,7 +3074,6 @@ void handleGetTranslations() {
   json += jsonField("gpio_warning", T().gpio_warning);
   json += jsonField("i2c_desc", T().i2c_desc);
   json += jsonField("adc_desc", T().adc_desc);
-  json += jsonField("touch_desc", T().touch_desc);
   json += jsonField("pwm_desc", T().pwm_desc);
   json += jsonField("spi_desc", T().spi_desc);
   json += jsonField("partitions_desc", T().partitions_desc);
@@ -4585,7 +4533,6 @@ void setup() {
   
   // Tests avancés
   server.on("/api/adc-test", handleADCTest);
-  server.on("/api/touch-test", handleTouchTest);
   server.on("/api/pwm-test", handlePWMTest);
   server.on("/api/spi-scan", handleSPIScan);
   server.on("/api/partitions-list", handlePartitionsList);
