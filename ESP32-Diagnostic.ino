@@ -1,3 +1,4 @@
+// Version de dev : 3.3.03-dev - Optimisation de la table de traduction
 // Version de dev : 3.3.02-dev - Harmonisation bilingue de l'interface utilisateur
 /*
  * ESP32 Diagnostic Suite v3.3.0
@@ -14,6 +15,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.3.03-dev - Optimisation de la table de traduction",
   "3.3.02-dev - Harmonisation bilingue des libellés UI",
   "3.3.01-dev - Retrait du diagnostic touchpad devenu obsolète",
   "3.2.21-maint - Nettoyage des bannières et consolidation de l'historique",
@@ -162,6 +164,8 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 // Système de traduction
 #include "languages.h"
 
+Language currentLanguage = LANG_FR;
+
 #if defined(__has_include)
   #if __has_include(<esp_arduino_version.h>)
     #include <esp_arduino_version.h>
@@ -181,7 +185,7 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.3.02-dev"
+#define DIAGNOSTIC_VERSION "3.3.03-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
