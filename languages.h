@@ -49,8 +49,8 @@ extern Language currentLanguage;
   X(action_required, "Action Requise", "Action Required") \
   X(psram_external, "PSRAM (Mémoire Externe)", "PSRAM (External Memory)") \
   X(hardware_status, "Statut Hardware", "Hardware Status") \
-  X(detected_active, "Détectée et active", "Detected and active") \
-  X(supported_not_enabled, "Support détecté (désactivée dans l'IDE)", "Support detected (disabled in IDE)") \
+  X(detected_active, "Détectée et active", "Detected and Active") \
+  X(supported_not_enabled, "Support détecté (désactivée dans l'IDE)", "Support Detected (disabled in IDE)") \
   X(ide_config, "Configuration IDE", "IDE Configuration") \
   X(enabled, "Activée", "Enabled") \
   X(total_size, "Taille Totale", "Total Size") \
@@ -58,7 +58,7 @@ extern Language currentLanguage;
   X(used, "Utilisée", "Used") \
   X(largest_block, "Plus Gros Bloc", "Largest Block") \
   X(integrity_test, "Test Intégrité", "Integrity Test") \
-  X(not_detected, "Non détectée", "Not detected") \
+  X(not_detected, "Non détectée", "Not Detected") \
   X(disabled, "Désactivée", "Disabled") \
   X(psram_usage, "Utilisation PSRAM", "PSRAM Usage") \
   X(enable_psram_hint, "Activez la PSRAM %TYPE% dans l'IDE Arduino (Outils → PSRAM).", "Enable the %TYPE% PSRAM in Arduino IDE (Tools → PSRAM).") \
@@ -81,31 +81,31 @@ extern Language currentLanguage;
   X(dns, "DNS", "DNS") \
   X(wifi_channel, "Canal WiFi", "WiFi Channel") \
   X(bluetooth_section, "Bluetooth", "Bluetooth") \
-  X(bluetooth_status, "Statut Bluetooth", "Bluetooth status") \
-  X(bluetooth_name, "Nom diffusé", "Advertised name") \
-  X(bluetooth_mac, "Adresse MAC Bluetooth", "Bluetooth MAC address") \
-  X(bluetooth_actions, "Actions Bluetooth", "Bluetooth actions") \
+  X(bluetooth_status, "Statut Bluetooth", "Bluetooth Status") \
+  X(bluetooth_name, "Nom diffusé", "Advertised Name") \
+  X(bluetooth_mac, "Adresse MAC Bluetooth", "Bluetooth MAC Address") \
+  X(bluetooth_actions, "Actions Bluetooth", "Bluetooth Actions") \
   X(bluetooth_enable, "Activer le Bluetooth", "Enable Bluetooth") \
   X(bluetooth_disable, "Désactiver le Bluetooth", "Disable Bluetooth") \
-  X(bluetooth_rename, "Mettre à jour le nom", "Update name") \
+  X(bluetooth_rename, "Mettre à jour le nom", "Update Name") \
   X(bluetooth_reset, "Réinitialiser le Bluetooth", "Reset Bluetooth") \
-  X(bluetooth_placeholder, "Nom Bluetooth (1-29 caractères)", "Bluetooth name (1-29 chars)") \
-  X(bluetooth_not_supported, "Bluetooth non pris en charge", "Bluetooth not supported") \
-  X(bluetooth_disabled, "Bluetooth désactivé", "Bluetooth disabled") \
-  X(bluetooth_enabled, "Bluetooth activé", "Bluetooth enabled") \
-  X(bluetooth_advertising, "Diffusion active", "Advertising active") \
-  X(bluetooth_not_advertising, "Diffusion arrêtée", "Advertising stopped") \
-  X(bluetooth_updated, "Paramètres Bluetooth mis à jour", "Bluetooth settings updated") \
-  X(bluetooth_error, "Erreur Bluetooth", "Bluetooth error") \
-  X(bluetooth_reset_done, "Nom Bluetooth réinitialisé", "Bluetooth name reset") \
-  X(bluetooth_support_label, "Support Bluetooth", "Bluetooth support") \
+  X(bluetooth_placeholder, "Nom Bluetooth (1-29 caractères)", "Bluetooth Name (1-29 chars)") \
+  X(bluetooth_not_supported, "Bluetooth non pris en charge", "Bluetooth Not Supported") \
+  X(bluetooth_disabled, "Bluetooth désactivé", "Bluetooth Disabled") \
+  X(bluetooth_enabled, "Bluetooth activé", "Bluetooth Enabled") \
+  X(bluetooth_advertising, "Diffusion active", "Advertising Active") \
+  X(bluetooth_not_advertising, "Diffusion arrêtée", "Advertising Stopped") \
+  X(bluetooth_updated, "Paramètres Bluetooth mis à jour", "Bluetooth Settings Updated") \
+  X(bluetooth_error, "Erreur Bluetooth", "Bluetooth Error") \
+  X(bluetooth_reset_done, "Nom Bluetooth réinitialisé", "Bluetooth Name Reset") \
+  X(bluetooth_support_label, "Support Bluetooth", "Bluetooth Support") \
   X(bluetooth_support_yes, "Pris en charge", "Supported") \
-  X(bluetooth_support_no, "Non pris en charge", "Not supported") \
-  X(bluetooth_advertising_label, "Diffusion BLE", "BLE advertising") \
-  X(bluetooth_connection_label, "Connexion BLE", "BLE connection") \
-  X(bluetooth_client_connected, "Client connecté", "Client connected") \
-  X(bluetooth_client_disconnected, "Aucun client connecté", "No client connected") \
-  X(bluetooth_notifications_label, "Notifications envoyées", "Notifications sent") \
+  X(bluetooth_support_no, "Non pris en charge", "Not Supported") \
+  X(bluetooth_advertising_label, "Diffusion BLE", "BLE Advertising") \
+  X(bluetooth_connection_label, "Connexion BLE", "BLE Connection") \
+  X(bluetooth_client_connected, "Client connecté", "Client Connected") \
+  X(bluetooth_client_disconnected, "Aucun client connecté", "No Client Connected") \
+  X(bluetooth_notifications_label, "Notifications envoyées", "Notifications Sent") \
   X(gpio_interfaces, "GPIO et Interfaces", "GPIO and Interfaces") \
   X(total_gpio, "Total GPIO", "Total GPIO") \
   X(gpio_list, "Liste GPIO", "GPIO List") \
@@ -283,7 +283,6 @@ static const char* const TRANSLATIONS_EN[] PROGMEM = {
 #undef DECL_EN
 };
 
-// --- [NEW FEATURE] Table de traduction optimisée ---
 inline const char* lookupTranslation(Language lang, TranslationKey key) {
   return (lang == LANG_FR) ? TRANSLATIONS_FR[key] : TRANSLATIONS_EN[key];
 }
@@ -293,7 +292,6 @@ class TranslationField {
   constexpr TranslationField() : langPtr(nullptr), key(static_cast<TranslationKey>(0)) {}
   constexpr TranslationField(const Language* lang, TranslationKey idx) : langPtr(lang), key(idx) {}
 
-  // --- [NEW FEATURE] Conversion const char* pour compatibilité Arduino String ---
   operator const char*() const { return c_str(); }
 
   const char* c_str() const {

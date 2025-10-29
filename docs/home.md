@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Wiki Home (v3.3.0)
+# ESP32 Diagnostic Suite – Wiki Home (v3.4.0)
 
-Welcome to the official wiki for firmware version **3.3.0**. This space centralises every guide, reference, and checklist required
+Welcome to the official wiki for firmware version **3.4.0**. This space centralises every guide, reference, and checklist required
 to operate, customise, and maintain the ESP32 Diagnostic Suite across multilingual teams.
 
 ## Table of contents
@@ -15,10 +15,10 @@ to operate, customise, and maintain the ESP32 Diagnostic Suite across multilingu
 - Core guides: [Installation](INSTALL.md), [Configuration](CONFIG.md), [Usage](USAGE.md), [Troubleshooting](TROUBLESHOOTING.md),
   [Architecture](ARCHITECTURE.md), [Contributing](../CONTRIBUTING.md)
 
-## Release spotlight – 3.3.0
-- Streamlined firmware annotations to preserve the maintenance history while removing redundant banners.
-- Unified `DIAGNOSTIC_VERSION`, firmware header, and documentation on the 3.3.0 identifier for audit-ready exports.
-- Expanded the wiki with bilingual coverage of API usage, module internals, and deployment practices.
+## Release spotlight – 3.4.0
+- Centralised JSON helper prototypes and HTTP response builders for consistent exports across diagnostics.
+- Reinforced the translation pipeline by restoring safe `String` handling and aligning FR/EN labels.
+- Retired the legacy touchpad diagnostic while refreshing the complete bilingual documentation set.
 
 ## Quick start
 1. Follow the [installation guide](INSTALL.md) to set up the Arduino IDE, CLI, or PlatformIO toolchain.
@@ -51,4 +51,4 @@ to operate, customise, and maintain the ESP32 Diagnostic Suite across multilingu
 - Release history: [CHANGELOG.md](../CHANGELOG.md) / [CHANGELOG_FR.md](../CHANGELOG_FR.md)
 - Community contributions: Fork the repository and submit pull requests following the [contribution guide](../CONTRIBUTING.md).
 
-Happy diagnostics! If you maintain internal SOPs, link back to this wiki to ensure future teams stay aligned with the 3.3.0 release.
+Happy diagnostics! If you maintain internal SOPs, link back to this wiki to ensure future teams stay aligned with the 3.4.0 release.

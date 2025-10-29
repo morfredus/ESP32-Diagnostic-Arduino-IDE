@@ -19,7 +19,7 @@ The dashboard is organised into tabs:
 - **Wi-Fi** – detailed scan results (RSSI, channel, security, PHY, bandwidth).
 - **Performance** – benchmark history and runtime metrics.
 - **Export** – download TXT/JSON/CSV reports or open the printable report.
-- Release 3.3.0 keeps the streamlined maintenance history via `DIAGNOSTIC_VERSION_HISTORY`, removes redundant “NEW FEATURE” banners, and keeps the sticky masthead aligned with the bilingual changelog.
+- Release 3.4.0 centralises JSON helper exports, restores translation-safe `String` handling, and removes the legacy touchpad diagnostic from the automated run.
 
 The navigation bar collapses gracefully on mobile devices and preserves active tab state.
 
@@ -45,14 +45,14 @@ All endpoints return JSON unless stated otherwise:
 - Serial output mirrors key actions (Wi-Fi status, BLE state, test results).
 - Exported reports include board information, memory breakdown, benchmark metrics, Wi-Fi scan, GPIO results, and OLED status.
 - Keep JSON exports for machine parsing and TXT/CSV for manual analysis.
-- Use the `/api/memory-details` endpoint when reports warn about fragmentation; the JSON response mirrors the guidance maintained through 3.3.0.
+- Use the `/api/memory-details` endpoint when reports warn about fragmentation; the JSON response mirrors the guidance maintained through 3.4.0.
 
 ## 7. Best practices
 - Re-run Wi-Fi scans after moving the device to a new location to refresh RSSI values.
 - Stop NeoPixel animations before powering down external LEDs to avoid ghosting.
 - When changing OLED pins, run `/api/oled-config` followed by `/api/oled-test` to validate wiring.
 
-## 8. Post-release debugging checklist (3.3.0)
-- Trigger `/api/memory-details` to ensure the fragmentation and PSRAM flags match the new documentation guidance.
-- Confirm the Bluetooth® card reflects advertising state changes after toggling `/api/bluetooth/toggle` and renaming via `/api/bluetooth/name`.
-- Review the Wi-Fi tab and `/api/wifi-scan` output for channel, band, bandwidth, and PHY metadata captured during the debugging campaign.
+## 8. Post-release debugging checklist (3.4.0)
+- Trigger `/api/memory-details` to verify the unified JSON helpers return the expected fragmentation and PSRAM flags.
+- Switch languages via `/api/set-language` and the UI toggle to confirm the harmonised FR/EN labels remain consistent.
+- Review the default diagnostic cycle to ensure the removed touchpad routine no longer appears in serial logs or exports.

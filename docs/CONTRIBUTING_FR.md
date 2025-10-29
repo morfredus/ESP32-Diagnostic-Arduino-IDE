@@ -14,7 +14,7 @@ Les contributions qui améliorent la fiabilité du diagnostic et l'expérience u
 - Gardez la documentation anglaise et française alignée.
 - Mentionnez la version du firmware vérifiée lors de la mise à jour d'un guide.
 - Utilisez un ton technique et concis sans promettre de fonctionnalités non implémentées.
-- Rappelez la version 3.3.0 lors des travaux de maintenance afin de garder synchronisés le duo de changelog bilingue, le commentaire de version, `DIAGNOSTIC_VERSION` ainsi que la documentation sur l'historique consolidé et le handler de langue.
+- Rappelez la version 3.4.0 lors des travaux de maintenance afin de garder synchronisés les helpers JSON mutualisés, le duo de changelog bilingue, `DIAGNOSTIC_VERSION` et le handler de langue renforcé.
 
 ## Signalement d'anomalies
 Déclarez vos anomalies via [GitHub Issues](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/issues/new/choose) et incluez :

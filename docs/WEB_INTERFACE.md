@@ -1,7 +1,7 @@
-# ESP32 Diagnostic Suite – Web Interface Guide (v3.3.0)
+# ESP32 Diagnostic Suite – Web Interface Guide (v3.4.0)
 
 The built-in web dashboard is the primary control surface for technicians. This guide covers the layout, interaction patterns, and
-customisation hooks available in version 3.3.0.
+customisation hooks available in version 3.4.0.
 
 ## Layout overview
 ```
@@ -41,6 +41,7 @@ customisation hooks available in version 3.3.0.
 ## Accessibility & localisation
 - All actionable controls include ARIA labels and keyboard shortcuts (`Space/Enter` to trigger primary buttons).
 - Language switch toggles between English and French without reloading the page; text resources are loaded from `languages.h`.
+- Version 3.4.0 restores translation-safe `String` conversions so tile labels and exports stay synchronised after toggles.
 - High-contrast theme activated automatically when the browser prefers dark mode.
 
 ## Custom branding
