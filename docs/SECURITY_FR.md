@@ -1,4 +1,4 @@
-# ESP32 Diagnostic Suite – Directives de sécurité (v3.3.0)
+# ESP32 Diagnostic Suite – Directives de sécurité (v3.3.11)
 
 Même si la suite est majoritairement utilisée en laboratoire, ces recommandations limitent l'exposition lors des tests de
 matériel pré-production.
@@ -17,7 +17,7 @@ matériel pré-production.
 ## Intégrité firmware
 - Vérifier le hash SHA-256 des binaires avant les flashs de masse.
 - Maintenir l'environnement de build à jour et reproductible (cf. [BUILD_AND_DEPLOY_FR.md](BUILD_AND_DEPLOY_FR.md)).
-- Taguer les releases avec des tags Git annotés (ex. `v3.3.0`) pour assurer la traçabilité code ↔ firmware.
+- Taguer les releases avec des tags Git annotés (ex. `v3.3.11`) pour assurer la traçabilité code ↔ firmware.
 
 ## Bonnes pratiques interface web
 - Ne pas exposer directement le tableau de bord sur Internet.
@@ -31,7 +31,7 @@ matériel pré-production.
 - Purger le cache de l'appareil après extraction via `POST /api/stop` puis un cycle d'alimentation.
 
 ## Réponse à incident
-- En cas de suspicion, effectuer un factory reset : `esptool.py erase_flash`, puis reflasher 3.3.0.
+- En cas de suspicion, effectuer un factory reset : `esptool.py erase_flash`, puis reflasher 3.3.11.
 - Révoquer les identifiants Wi-Fi associés et mettre à jour les journaux d'audit avec les exports concernés.
 - Ouvrir un ticket d'incident en mentionnant l'identifiant de rapport (`run_id`) pour la traçabilité.
 

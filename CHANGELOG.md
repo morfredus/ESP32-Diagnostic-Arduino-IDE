@@ -2,6 +2,21 @@
 
 All notable changes to ESP32 Diagnostic Suite are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Version 3.3.11] - 2025-10-29
+### Added
+- Shared JSON helper prototypes to expose consistent utility signatures across diagnostics modules.
+
+### Fixed
+- Resolved build failures caused by mismatched JSON helper declarations during cross-module usage.
+- Restored safe `String` conversions within the translation pipeline after the catalog optimisations.
+
+### Improved
+- Unified the HTTP JSON response builders and peripheral handlers to reduce duplication across exports.
+- Harmonised the bilingual UI labels and retired the legacy touchpad diagnostic from the default run list.
+- Updated the complete FR/EN documentation set to reflect the stabilised 3.3.x maintenance track.
+
+---
+
 ## [Version 3.3.0] - 2025-10-27
 ### Added
 - None.
