@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Diagnostic Modules (v3.3.11)
+# ESP32 Diagnostic Suite – Diagnostic Modules (v3.4.0)
 
-This guide dives into each automated diagnostic module shipped with version 3.3.11. Use it to understand the execution order,
+This guide dives into each automated diagnostic module shipped with version 3.4.0. Use it to understand the execution order,
 metrics collected, and interpretation guidelines when reviewing reports.
 
 ## Execution pipeline
@@ -11,7 +11,7 @@ REST API, and serial logger.
 2. **Connectivity** – runs Wi-Fi scans, optional BLE scan, and mDNS advertisement checks.
 3. **Network throughput** – executes ping and HTTP fetch benchmarks when Wi-Fi credentials are available.
 4. **Memory & storage** – measures PSRAM, heap fragmentation, and flash read/write integrity.
-5. **GPIO sweep** – toggles digital pins, analog inputs, and PWM outputs (legacy touchpad routine removed in 3.3.11).
+5. **GPIO sweep** – toggles digital pins, analog inputs, and PWM outputs (legacy touchpad routine removed in 3.4.0).
 6. **Peripheral buses** – validates I2C (primary/secondary), SPI loopback, UART loopback, and OneWire sensors.
 7. **Display & LEDs** – runs OLED sequences, NeoPixel animations, and ensures proper refresh timings.
 8. **Reporting** – packages results, updates the activity log, and exposes data for export or API retrieval.
