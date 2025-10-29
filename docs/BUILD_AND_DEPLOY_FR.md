@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Compilation & déploiement (v3.3.0)
+# ESP32 Diagnostic Suite – Compilation & déploiement (v3.3.11)
 
-Ce document décrit les toolchains supportées et la checklist recommandée pour livrer le firmware 3.3.0.
+Ce document décrit les toolchains supportées et la checklist recommandée pour livrer le firmware 3.3.11.
 
 ## Toolchains
 ### Arduino IDE 2.x
@@ -36,7 +36,7 @@ Lancer `pio run --target upload` pour compiler et flasher.
 
 ## Checklist pré-déploiement
 - [ ] Mettre à jour `wifi-config.h` avec les identifiants production et, le cas échéant, les paramètres entreprise.
-- [ ] Vérifier que `DIAGNOSTIC_VERSION` vaut `3.3.0` dans le firmware et la documentation.
+- [ ] Vérifier que `DIAGNOSTIC_VERSION` vaut `3.3.11` dans le firmware et la documentation.
 - [ ] Compiler les ressources multilingues sans avertissement (`languages.h`).
 - [ ] Exécuter un cycle complet sur une carte de référence et exporter les rapports JSON/CSV.
 - [ ] Capturer des captures d'écran ou impressions du tableau de bord pour les notes de version si nécessaire.
@@ -50,7 +50,7 @@ Lancer `pio run --target upload` pour compiler et flasher.
 | Sanity REST API | Déclencher `/api/run` puis `/api/status`. | File d'attente reçue et payload JSON valide. |
 
 ## Packaging release
-1. Taguer le dépôt avec `v3.3.0` (tag annoté).
+1. Taguer le dépôt avec `v3.3.11` (tag annoté).
 2. Joindre les binaires compilés (`.bin`) pour chaque carte si diffusion via GitHub Releases.
 3. Publier les notes en se référant au [CHANGELOG_FR.md](../CHANGELOG_FR.md).
 4. Partager les liens du wiki mis à jour (`docs/home.md`) avec les équipes support.
