@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Modules de diagnostic (v3.3.0)
+# ESP32 Diagnostic Suite – Modules de diagnostic (v3.3.11)
 
-Ce guide détaille chaque module de diagnostic automatisé livré avec la version 3.3.0. Il décrit l'ordre d'exécution, les métriques
+Ce guide détaille chaque module de diagnostic automatisé livré avec la version 3.3.11. Il décrit l'ordre d'exécution, les métriques
 collectées et les clés d'exportation à surveiller lors de l'analyse des rapports.
 
 ## Pipeline d'exécution
@@ -11,7 +11,7 @@ bord web, la REST API et le logger série.
 2. **Connectivité** – lance des scans Wi-Fi, un scan BLE optionnel et vérifie la diffusion mDNS.
 3. **Débit réseau** – exécute des benchmarks ping et HTTP lorsque les identifiants Wi-Fi sont renseignés.
 4. **Mémoire & stockage** – mesure la PSRAM, la fragmentation du tas et l'intégrité lecture/écriture de la flash.
-5. **Balayage GPIO** – alterne les sorties numériques, lit les entrées analogiques, pads tactiles et sorties PWM.
+5. **Balayage GPIO** – alterne les sorties numériques, lit les entrées analogiques et sorties PWM (routine touchpad retirée en 3.3.11).
 6. **Bus périphériques** – valide I2C (primaire/secondaire), boucle SPI, boucle UART et capteurs OneWire.
 7. **Afficheur & LEDs** – lance les séquences OLED, animations NeoPixel et vérifie les timings de rafraîchissement.
 8. **Reporting** – assemble les résultats, met à jour le journal d'activité et publie les données pour export/API.
@@ -23,7 +23,7 @@ bord web, la REST API et le logger série.
 | Connectivité | Recense les points d'accès, vérifie l'association Wi-Fi, teste la publicité BLE (si supportée). | Nombre d'AP, RSSI par AP, temps d'association, fenêtre de scan BLE. | `wifi.networks[]`, `wifi.association_ms`, `ble.found_devices`. |
 | Débit réseau | Mesure latence et taille de réponse HTTP selon les cibles configurées. | Ping min/moy/max, statut HTTP, débit (kB/s). | `net.ping`, `net.http.status`, `net.http.kbps`. |
 | Mémoire & stockage | Effectue stress tests du tas et validation CRC de la flash. | Marque haute du tas, taille PSRAM, statut CRC flash. | `memory.heap_max`, `memory.psram`, `storage.flash_crc`. |
-| Balayage GPIO | Pulse les sorties digitales, échantillonne les entrées analogiques, valide les pull-ups, teste les seuils tactiles. | Liste de broches ok/erreur, moyenne/variance ADC, baseline tactile. | `gpio.digital[]`, `gpio.adc[]`, `gpio.touch[]`. |
+| Balayage GPIO | Pulse les sorties digitales, échantillonne les entrées analogiques, valide les pull-ups (routine tactile retirée). | Liste de broches ok/erreur, moyenne/variance ADC, synthèse PWM via les tests matériels. | `gpio.list`, `hardware_tests.pwm`. |
 | Bus périphériques | Confirme l'initialisation des bus et la détection optionnelle (OLED, capteurs, INA219...). | IDs I2C détectés, statut boucle SPI, checksum UART, présence OneWire. | `bus.i2c.devices[]`, `bus.spi.status`, `bus.uart.loopback`. |
 | Afficheur & LEDs | Exerce la sortie graphique et les routines LED. | Checksum trame OLED, FPS, saturation & gamma NeoPixel. | `display.oled.frames`, `display.oled.fps`, `led.neopixel.status`. |
 | Reporting | Sérialise les résultats en JSON, CSV, TXT et gère le cache REST. | Taille par format, horodatage, notes opérateur. | `report.generated_at`, `report.formats`, `report.operator`. |

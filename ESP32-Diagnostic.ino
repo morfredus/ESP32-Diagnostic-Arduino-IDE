@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.3.0
+ * ESP32 Diagnostic Suite v3.3.11
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,8 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  // Version 3.3.11 - Stabilisation JSON et documentation 3.3.x
+  "3.3.11 - Stabilisation JSON et documentation 3.3.x",
   // Version de dev : 3.3.11-dev - Nettoyage des commentaires et harmonisation Bluetooth
   "3.3.11-dev - Nettoyage des commentaires et harmonisation Bluetooth",
   // Version de dev : 3.3.10-dev - Prototypes des helpers JSON mutualisés
@@ -209,7 +211,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.3.11-dev"
+#define DIAGNOSTIC_VERSION "3.3.11"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1

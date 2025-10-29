@@ -2,7 +2,7 @@
 
 Follow the steps below to deploy the ESP32 Diagnostic Suite on your board.
 
-> **Release 3.3.0:** Confirm the firmware banner and `DIAGNOSTIC_VERSION` constant report 3.3.0, then review the consolidated `DIAGNOSTIC_VERSION_HISTORY` list to ensure the maintenance notes remain accessible without duplicate comments.
+> **Release 3.3.11:** Confirm the firmware banner and `DIAGNOSTIC_VERSION` constant report 3.3.11, then validate `/api/memory-details` and the bilingual UI to ensure the unified JSON helpers and translation fixes are active.
 
 ## 1. Prerequisites
 - ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, or ESP32-H2 board (S3 recommended).
