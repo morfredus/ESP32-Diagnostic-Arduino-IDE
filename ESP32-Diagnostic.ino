@@ -1,11 +1,3 @@
-// Version de dev : 3.3.10-dev - Prototypes des helpers JSON mutualisés
-// Version de dev : 3.3.09-dev - Unification des handlers périphériques
-// Version de dev : 3.3.08-dev - Correctifs compilation helpers JSON
-// Version de dev : 3.3.07-dev - Mutualisation des réponses HTTP JSON
-// Version de dev : 3.3.06-dev - Corrections des retours String après optimisation de la traduction
-// Version de dev : 3.3.05-dev - Levée de l'ambiguïté String/const char* des traductions
-// Version de dev : 3.3.04-dev - Conversion String pour la table de traduction
-// Version de dev : 3.3.02-dev - Harmonisation bilingue de l'interface utilisateur
 /*
  * ESP32 Diagnostic Suite v3.3.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
@@ -21,6 +13,8 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  // Version de dev : 3.3.11-dev - Nettoyage des commentaires et harmonisation Bluetooth
+  "3.3.11-dev - Nettoyage des commentaires et harmonisation Bluetooth",
   // Version de dev : 3.3.10-dev - Prototypes des helpers JSON mutualisés
   "3.3.10-dev - Prototypes des helpers JSON mutualisés",
   // Version de dev : 3.3.09-dev - Unification des handlers périphériques
@@ -215,7 +209,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.3.10-dev"
+#define DIAGNOSTIC_VERSION "3.3.11-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -1668,7 +1662,6 @@ void testADC() {
   Serial.printf("ADC: %d canaux testes\r\n", numADC);
 }
 
-// --- [NEW FEATURE] Nettoyage des diagnostics : retrait du test touchpad ---
 // ========== TEST PWM ==========
 void testPWM() {
   Serial.println("\r\n=== TEST PWM ===");
@@ -2768,7 +2761,6 @@ inline void sendJsonResponse(int statusCode, std::initializer_list<JsonFieldSpec
   server.send(statusCode, "application/json", buildJsonObject(fields));
 }
 
-// --- [NEW FEATURE] Réponse JSON mutualisée pour les handlers spécialisés ---
 static String buildActionResponseJson(bool success,
                                       const String& message,
                                       std::initializer_list<JsonFieldSpec> extraFields) {
