@@ -2,7 +2,7 @@
 
 Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Version 3.3.11] - 2025-10-29
+## [Version 3.4.0] - 2025-10-29
 ### Ajouts
 - Mutualisation des prototypes des helpers JSON afin d'exposer des signatures cohérentes entre modules de diagnostic.
 
