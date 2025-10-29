@@ -1,4 +1,4 @@
-# ESP32 Diagnostic Suite – REST API Reference (v3.3.11)
+# ESP32 Diagnostic Suite – REST API Reference (v3.4.0)
 
 The REST API mirrors the web dashboard controls and exposes diagnostics data for automation. All endpoints are served over HTTP on
 the same port as the dashboard. Authentication is sessionless; secure deployments should restrict access at the network level.
@@ -18,7 +18,7 @@ the same port as the dashboard. Authentication is sessionless; secure deployment
 Returns firmware metadata and build hashes.
 ```json
 {
-  "version": "3.3.11",
+  "version": "3.4.0",
   "git_commit": "abc1234",
   "build_time": "2024-05-10T09:15:00Z"
 }
@@ -98,7 +98,7 @@ Attaches operator notes to the latest report.
 | `503` | Hardware busy | Module is initialising hardware; retry after a few seconds. |
 
 ## Automation tips
-- Use `GET /api/version` during CI to verify that the deployed unit is running firmware 3.3.11.
+- Use `GET /api/version` during CI to verify that the deployed unit is running firmware 3.4.0.
 - Combine `/api/run` with `/api/status` polling to monitor long test suites, then download the report in JSON for further parsing.
 - Store operator notes via `/api/notes` after each run to keep audit trails within the device exports.
 
