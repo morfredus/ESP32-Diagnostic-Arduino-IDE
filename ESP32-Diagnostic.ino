@@ -1,3 +1,4 @@
+// Version de dev : 3.3.10-dev - Prototypes des helpers JSON mutualisés
 // Version de dev : 3.3.09-dev - Unification des handlers périphériques
 // Version de dev : 3.3.08-dev - Correctifs compilation helpers JSON
 // Version de dev : 3.3.07-dev - Mutualisation des réponses HTTP JSON
@@ -20,6 +21,8 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  // Version de dev : 3.3.10-dev - Prototypes des helpers JSON mutualisés
+  "3.3.10-dev - Prototypes des helpers JSON mutualisés",
   // Version de dev : 3.3.09-dev - Unification des handlers périphériques
   "3.3.09-dev - Unification des handlers périphériques",
   "3.3.08-dev - Correctifs compilation helpers JSON",
@@ -180,6 +183,19 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 
 Language currentLanguage = LANG_FR;
 
+static String buildActionResponseJson(bool success,
+                                      const String& message,
+                                      std::initializer_list<JsonFieldSpec> extraFields = {});
+inline void sendActionResponse(int statusCode,
+                               bool success,
+                               const String& message,
+                               std::initializer_list<JsonFieldSpec> extraFields = {});
+inline void sendOperationSuccess(const String& message,
+                                 std::initializer_list<JsonFieldSpec> extraFields = {});
+inline void sendOperationError(int statusCode,
+                               const String& message,
+                               std::initializer_list<JsonFieldSpec> extraFields = {});
+
 #if defined(__has_include)
   #if __has_include(<esp_arduino_version.h>)
     #include <esp_arduino_version.h>
@@ -199,7 +215,7 @@ Language currentLanguage = LANG_FR;
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.3.09-dev"
+#define DIAGNOSTIC_VERSION "3.3.10-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -2755,7 +2771,7 @@ inline void sendJsonResponse(int statusCode, std::initializer_list<JsonFieldSpec
 // --- [NEW FEATURE] Réponse JSON mutualisée pour les handlers spécialisés ---
 static String buildActionResponseJson(bool success,
                                       const String& message,
-                                      std::initializer_list<JsonFieldSpec> extraFields = {}) {
+                                      std::initializer_list<JsonFieldSpec> extraFields) {
   String json = "{";
   bool first = true;
   appendJsonField(json, first, jsonBoolField("success", success));
@@ -2772,18 +2788,18 @@ static String buildActionResponseJson(bool success,
 inline void sendActionResponse(int statusCode,
                                bool success,
                                const String& message,
-                               std::initializer_list<JsonFieldSpec> extraFields = {}) {
+                               std::initializer_list<JsonFieldSpec> extraFields) {
   server.send(statusCode, "application/json", buildActionResponseJson(success, message, extraFields));
 }
 
 inline void sendOperationSuccess(const String& message,
-                                 std::initializer_list<JsonFieldSpec> extraFields = {}) {
+                                 std::initializer_list<JsonFieldSpec> extraFields) {
   sendActionResponse(200, true, message, extraFields);
 }
 
 inline void sendOperationError(int statusCode,
                                const String& message,
-                               std::initializer_list<JsonFieldSpec> extraFields = {}) {
+                               std::initializer_list<JsonFieldSpec> extraFields) {
   sendActionResponse(statusCode, false, message, extraFields);
 }
 
