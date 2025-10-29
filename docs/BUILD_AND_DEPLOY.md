@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Build & Deploy (v3.3.0)
+# ESP32 Diagnostic Suite – Build & Deploy (v3.3.11)
 
-This document describes the supported toolchains and the recommended release checklist for firmware version 3.3.0.
+This document describes the supported toolchains and the recommended release checklist for firmware version 3.3.11.
 
 ## Toolchains
 ### Arduino IDE 2.x
@@ -36,7 +36,7 @@ Run `pio run --target upload` to build and flash.
 
 ## Pre-deployment checklist
 - [ ] Update `wifi-config.h` with production SSID/passwords and optional enterprise credentials.
-- [ ] Confirm `DIAGNOSTIC_VERSION` matches `3.3.0` in both firmware and documentation.
+- [ ] Confirm `DIAGNOSTIC_VERSION` matches `3.3.11` in both firmware and documentation.
 - [ ] Verify multilingual assets compile without warnings (`languages.h`).
 - [ ] Run a full diagnostic cycle on a reference board and export JSON/CSV reports.
 - [ ] Capture screenshots or printouts of the dashboard for release notes if required.
@@ -50,7 +50,7 @@ Run `pio run --target upload` to build and flash.
 | REST API sanity | Trigger `/api/run` then `/api/status`. | Receives queued status and JSON payload. |
 
 ## Release packaging
-1. Tag the repository with `v3.3.0` (Git annotated tag).
+1. Tag the repository with `v3.3.11` (Git annotated tag).
 2. Attach compiled binaries (`.bin`) for each target board if distributing via GitHub Releases.
 3. Publish release notes referencing [CHANGELOG.md](../CHANGELOG.md).
 4. Share links to the updated wiki (`docs/home.md`) for support teams.
