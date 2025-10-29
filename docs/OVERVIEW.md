@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Overview (v3.3.11)
+# ESP32 Diagnostic Suite – Overview (v3.4.0)
 
-The ESP32 Diagnostic Suite delivers a production-ready toolkit for validating ESP32-based boards before deployment. Version 3.3.11 focuses on stabilising the maintenance workflow, harmonising firmware annotations, and providing a fully bilingual knowledge base for integrators and support teams.
+The ESP32 Diagnostic Suite delivers a production-ready toolkit for validating ESP32-based boards before deployment. Version 3.4.0 focuses on stabilising the maintenance workflow, harmonising firmware annotations, and providing a fully bilingual knowledge base for integrators and support teams.
 
 ## Mission statement
 - Provide a consistent methodology to qualify ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, and ESP32-H2 boards.
@@ -16,7 +16,7 @@ The ESP32 Diagnostic Suite delivers a production-ready toolkit for validating ES
 | Localisation | Runtime FR/EN switching at both the firmware (serial output) and interface levels. |
 | Extensibility | Modular test registry, event bus for user-defined callbacks, and optional OLED/NeoPixel helpers. |
 
-## Release 3.3.11 focus
+## Release 3.4.0 focus
 - Centralised JSON helper prototypes and response builders so diagnostics exports share a single maintenance surface.
 - Addressed JSON helper build errors and restored translation-safe `String` handling to keep FR/EN outputs reliable.
 - Updated the bilingual documentation to cover the streamlined diagnostic set after removing the legacy touchpad routine.

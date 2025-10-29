@@ -1,4 +1,4 @@
-# ESP32 Diagnostic Suite – FAQ (v3.3.11)
+# ESP32 Diagnostic Suite – FAQ (v3.4.0)
 
 ## Généralités
 **Q : Quelles cartes sont officiellement supportées ?**
