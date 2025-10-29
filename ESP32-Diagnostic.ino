@@ -1,3 +1,9 @@
+// Version de dev : 3.3.08-dev - Correctifs compilation helpers JSON
+// Version de dev : 3.3.07-dev - Mutualisation des réponses HTTP JSON
+// Version de dev : 3.3.06-dev - Corrections des retours String après optimisation de la traduction
+// Version de dev : 3.3.05-dev - Levée de l'ambiguïté String/const char* des traductions
+// Version de dev : 3.3.04-dev - Conversion String pour la table de traduction
+// Version de dev : 3.3.02-dev - Harmonisation bilingue de l'interface utilisateur
 /*
  * ESP32 Diagnostic Suite v3.3.0
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
@@ -13,6 +19,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.3.08-dev - Correctifs compilation helpers JSON",
   "3.3.07-dev - Mutualisation des réponses HTTP JSON",
   "3.3.06-dev - Corrections des retours String après optimisation de la traduction",
   "3.3.05-dev - Levée de l'ambiguïté String/const char* des traductions",
@@ -151,6 +158,7 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 #include <vector>
 #include <cstring>
 #include <initializer_list>
+#include "json_helpers.h"
 
 #if defined(__has_include)
   #if __has_include("wifi-config.h")
@@ -188,7 +196,7 @@ Language currentLanguage = LANG_FR;
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.3.07-dev"
+#define DIAGNOSTIC_VERSION "3.3.08-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -2757,34 +2765,6 @@ String jsonEscape(const char* raw) {
     }
   }
   return escaped;
-}
-
-// --- [NEW FEATURE] Factorisation des réponses JSON ---
-struct JsonFieldSpec {
-  const char* key;
-  String value;
-  bool raw;
-};
-
-inline JsonFieldSpec jsonStringField(const char* key, const String& value) {
-  return {key, value, false};
-}
-
-inline JsonFieldSpec jsonStringField(const char* key, const char* value) {
-  return {key, value ? String(value) : String(), false};
-}
-
-inline JsonFieldSpec jsonBoolField(const char* key, bool value) {
-  return {key, value ? String(F("true")) : String(F("false")), true};
-}
-
-template <typename T>
-inline JsonFieldSpec jsonNumberField(const char* key, T value) {
-  return {key, String(value), true};
-}
-
-inline JsonFieldSpec jsonFloatField(const char* key, double value, uint8_t decimals = 2) {
-  return {key, String(value, decimals), true};
 }
 
 String buildJsonObject(std::initializer_list<JsonFieldSpec> fields) {
