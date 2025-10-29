@@ -1,3 +1,4 @@
+// Version de dev : 3.3.09-dev - Unification des handlers périphériques
 // Version de dev : 3.3.08-dev - Correctifs compilation helpers JSON
 // Version de dev : 3.3.07-dev - Mutualisation des réponses HTTP JSON
 // Version de dev : 3.3.06-dev - Corrections des retours String après optimisation de la traduction
@@ -19,6 +20,8 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  // Version de dev : 3.3.09-dev - Unification des handlers périphériques
+  "3.3.09-dev - Unification des handlers périphériques",
   "3.3.08-dev - Correctifs compilation helpers JSON",
   "3.3.07-dev - Mutualisation des réponses HTTP JSON",
   "3.3.06-dev - Corrections des retours String après optimisation de la traduction",
@@ -196,7 +199,7 @@ Language currentLanguage = LANG_FR;
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.3.08-dev"
+#define DIAGNOSTIC_VERSION "3.3.09-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -1907,43 +1910,33 @@ void handleBuiltinLEDConfig() {
       BUILTIN_LED_PIN = newGPIO;
       resetBuiltinLEDTest();
       String message = String(T().config) + " " + String(T().gpio) + " " + String(BUILTIN_LED_PIN);
-      sendJsonResponse(200, {
-        jsonBoolField("success", true),
-        jsonStringField("message", message)
-      });
+      sendOperationSuccess(message);
       return;
     }
   }
-  sendJsonResponse(400, {
-    jsonBoolField("success", false),
-    jsonStringField("message", T().gpio_invalid)
-  });
+  sendOperationError(400, T().gpio_invalid.str());
 }
 
 void handleBuiltinLEDTest() {
   resetBuiltinLEDTest();
   testBuiltinLED();
-  sendJsonResponse(200, {
-    jsonBoolField("success", builtinLedAvailable),
+  sendActionResponse(200, builtinLedAvailable, builtinLedTestResult, {
     jsonStringField("result", builtinLedTestResult)
   });
 }
 
 void handleBuiltinLEDControl() {
   if (!server.hasArg("action")) {
-    sendJsonResponse(400, { jsonBoolField("success", false) });
+    sendOperationError(400, T().configuration_invalid.str());
     return;
   }
 
   String action = server.arg("action");
   if (BUILTIN_LED_PIN == -1) {
-    sendJsonResponse(400, {
-      jsonBoolField("success", false),
-      jsonStringField("message", T().gpio_invalid)
-    });
+    sendOperationError(400, T().gpio_invalid.str());
     return;
   }
-  
+
   pinMode(BUILTIN_LED_PIN, OUTPUT);
   String message = "";
   
@@ -1971,14 +1964,11 @@ void handleBuiltinLEDControl() {
     builtinLedTested = false;
     message = String(T().off);
   } else {
-    sendJsonResponse(400, { jsonBoolField("success", false) });
+    sendOperationError(400, T().configuration_invalid.str());
     return;
   }
 
-  sendJsonResponse(200, {
-    jsonBoolField("success", true),
-    jsonStringField("message", message)
-  });
+  sendOperationSuccess(message);
 }
 
 void handleNeoPixelConfig() {
@@ -1993,41 +1983,34 @@ void handleNeoPixelConfig() {
       strip = new Adafruit_NeoPixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
       resetNeoPixelTest();
       String message = String(T().config) + " " + String(T().gpio) + " " + String(LED_PIN);
-      sendJsonResponse(200, {
-        jsonBoolField("success", true),
-        jsonStringField("message", message)
-      });
+      sendOperationSuccess(message);
       return;
     }
   }
-  sendJsonResponse(400, { jsonBoolField("success", false) });
+  sendOperationError(400, T().configuration_invalid.str());
 }
 
 void handleNeoPixelTest() {
   resetNeoPixelTest();
   testNeoPixel();
-  sendJsonResponse(200, {
-    jsonBoolField("success", neopixelAvailable),
+  sendActionResponse(200, neopixelAvailable, neopixelTestResult, {
     jsonStringField("result", neopixelTestResult)
   });
 }
 
 void handleNeoPixelPattern() {
   if (!server.hasArg("pattern")) {
-    sendJsonResponse(400, { jsonBoolField("success", false) });
+    sendOperationError(400, T().configuration_invalid.str());
     return;
   }
 
   String pattern = server.arg("pattern");
   if (!strip) {
     String message = String(T().neopixel) + " - " + String(T().not_detected);
-    sendJsonResponse(400, {
-      jsonBoolField("success", false),
-      jsonStringField("message", message)
-    });
+    sendOperationError(400, message);
     return;
   }
-  
+
   String message = "";
   if (pattern == "rainbow") {
     neopixelRainbow();
@@ -2044,22 +2027,19 @@ void handleNeoPixelPattern() {
     neopixelTested = false;
     message = String(T().off);
   } else {
-    sendJsonResponse(400, { jsonBoolField("success", false) });
+    sendOperationError(400, T().configuration_invalid.str());
     return;
   }
 
-  sendJsonResponse(200, {
-    jsonBoolField("success", true),
-    jsonStringField("message", message)
-  });
+  sendOperationSuccess(message);
 }
 
 void handleNeoPixelColor() {
   if (!server.hasArg("r") || !server.hasArg("g") || !server.hasArg("b") || !strip) {
-    sendJsonResponse(400, { jsonBoolField("success", false) });
+    sendOperationError(400, T().configuration_invalid.str());
     return;
   }
-  
+
   int r = server.arg("r").toInt();
   int g = server.arg("g").toInt();
   int b = server.arg("b").toInt();
@@ -2067,12 +2047,9 @@ void handleNeoPixelColor() {
   strip->fill(strip->Color(r, g, b));
   strip->show();
   neopixelTested = false;
-  
+
   String message = "RGB(" + String(r) + "," + String(g) + "," + String(b) + ")";
-  sendJsonResponse(200, {
-    jsonBoolField("success", true),
-    jsonStringField("message", message)
-  });
+  sendOperationSuccess(message);
 }
 
 void handleOLEDConfig() {
@@ -2098,9 +2075,7 @@ void handleOLEDConfig() {
       }
 
       String message = "I2C reconfigure: SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + " Rot:" + String(oledRotation);
-      sendJsonResponse(200, {
-        jsonBoolField("success", true),
-        jsonStringField("message", message),
+      sendOperationSuccess(message, {
         jsonNumberField("sda", I2C_SDA),
         jsonNumberField("scl", I2C_SCL),
         jsonNumberField("rotation", oledRotation)
@@ -2108,69 +2083,50 @@ void handleOLEDConfig() {
       return;
     }
   }
-  sendJsonResponse(400, {
-    jsonBoolField("success", false),
-    jsonStringField("message", T().configuration_invalid)
-  });
+  sendOperationError(400, T().configuration_invalid.str());
 }
 
 void handleOLEDTest() {
   resetOLEDTest();
   testOLED();
-  sendJsonResponse(200, {
-    jsonBoolField("success", oledAvailable),
+  sendActionResponse(200, oledAvailable, oledTestResult, {
     jsonStringField("result", oledTestResult)
   });
 }
 
 void handleOLEDStep() {
   if (!server.hasArg("step")) {
-    sendJsonResponse(400, {
-      jsonBoolField("success", false),
-      jsonStringField("message", T().oled_step_unknown)
-    });
+    sendOperationError(400, T().oled_step_unknown.str());
     return;
   }
 
   String stepId = server.arg("step");
 
   if (!oledAvailable) {
-    sendJsonResponse(200, {
-      jsonBoolField("success", false),
-      jsonStringField("message", T().oled_step_unavailable)
-    });
+    sendActionResponse(200, false, T().oled_step_unavailable.str());
     return;
   }
 
   bool ok = performOLEDStep(stepId);
   if (!ok) {
-    sendJsonResponse(400, {
-      jsonBoolField("success", false),
-      jsonStringField("message", T().oled_step_unknown)
-    });
+    sendOperationError(400, T().oled_step_unknown.str());
     return;
   }
 
   String label = getOLEDStepLabel(stepId);
   String message = String(T().oled_step_executed_prefix) + " " + label;
-  sendJsonResponse(200, {
-    jsonBoolField("success", true),
-    jsonStringField("message", message)
-  });
+  sendOperationSuccess(message);
 }
 
 void handleOLEDMessage() {
   if (!server.hasArg("message")) {
-    sendJsonResponse(400, { jsonBoolField("success", false) });
+    sendOperationError(400, T().configuration_invalid.str());
     return;
   }
 
   String message = server.arg("message");
   oledShowMessage(message);
-  sendJsonResponse(200, {
-    jsonBoolField("success", true),
-    jsonStringField("message", String("Message affiche"))
-  });
+  sendOperationSuccess(String("Message affiche"));
 }
 
 void handleADCTest() {
@@ -2681,26 +2637,23 @@ void handleSetLanguage() {
     const String lang = server.arg("lang");
     if (lang == "fr") {
       setLanguage(LANG_FR);
-      sendJsonResponse(200, {
-        jsonBoolField("success", true),
+      sendActionResponse(200, true, String(), {
         jsonStringField("lang", "fr")
       });
       return;
     }
     if (lang == "en") {
       setLanguage(LANG_EN);
-      sendJsonResponse(200, {
-        jsonBoolField("success", true),
+      sendActionResponse(200, true, String(), {
         jsonStringField("lang", "en")
       });
       return;
     }
-    sendJsonResponse(400, {
-      jsonBoolField("success", false),
+    sendActionResponse(400, false, String(), {
       jsonStringField("error", "unsupported_language")
     });
   } else {
-    sendJsonResponse(400, { jsonBoolField("success", false) });
+    sendOperationError(400, T().configuration_invalid.str());
   }
 }
 
@@ -2767,25 +2720,29 @@ String jsonEscape(const char* raw) {
   return escaped;
 }
 
+static inline void appendJsonField(String& json, bool& first, const JsonFieldSpec& field) {
+  if (!first) {
+    json += ',';
+  }
+  first = false;
+  json += '"';
+  json += field.key;
+  json += '"';
+  json += ':';
+  if (field.raw) {
+    json += field.value;
+  } else {
+    json += '"';
+    json += jsonEscape(field.value.c_str());
+    json += '"';
+  }
+}
+
 String buildJsonObject(std::initializer_list<JsonFieldSpec> fields) {
   String json = "{";
   bool first = true;
   for (const auto& field : fields) {
-    if (!first) {
-      json += ',';
-    }
-    first = false;
-    json += '"';
-    json += field.key;
-    json += '"';
-    json += ':';
-    if (field.raw) {
-      json += field.value;
-    } else {
-      json += '"';
-      json += jsonEscape(field.value.c_str());
-      json += '"';
-    }
+    appendJsonField(json, first, field);
   }
   json += '}';
   return json;
@@ -2793,6 +2750,41 @@ String buildJsonObject(std::initializer_list<JsonFieldSpec> fields) {
 
 inline void sendJsonResponse(int statusCode, std::initializer_list<JsonFieldSpec> fields) {
   server.send(statusCode, "application/json", buildJsonObject(fields));
+}
+
+// --- [NEW FEATURE] Réponse JSON mutualisée pour les handlers spécialisés ---
+static String buildActionResponseJson(bool success,
+                                      const String& message,
+                                      std::initializer_list<JsonFieldSpec> extraFields = {}) {
+  String json = "{";
+  bool first = true;
+  appendJsonField(json, first, jsonBoolField("success", success));
+  if (message.length() > 0) {
+    appendJsonField(json, first, jsonStringField("message", message));
+  }
+  for (const auto& field : extraFields) {
+    appendJsonField(json, first, field);
+  }
+  json += '}';
+  return json;
+}
+
+inline void sendActionResponse(int statusCode,
+                               bool success,
+                               const String& message,
+                               std::initializer_list<JsonFieldSpec> extraFields = {}) {
+  server.send(statusCode, "application/json", buildActionResponseJson(success, message, extraFields));
+}
+
+inline void sendOperationSuccess(const String& message,
+                                 std::initializer_list<JsonFieldSpec> extraFields = {}) {
+  sendActionResponse(200, true, message, extraFields);
+}
+
+inline void sendOperationError(int statusCode,
+                               const String& message,
+                               std::initializer_list<JsonFieldSpec> extraFields = {}) {
+  sendActionResponse(statusCode, false, message, extraFields);
 }
 
 static inline void appendInfoItem(String& chunk,
