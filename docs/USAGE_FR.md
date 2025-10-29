@@ -20,7 +20,7 @@ Le tableau de bord est organisé en onglets :
 - **Performance** – historique des benchmarks et métriques temps réel.
 - **Export** – téléchargement des rapports TXT/JSON/CSV ou ouverture de la vue imprimable.
 
-La version 3.3.0 conserve l'historique de maintenance via `DIAGNOSTIC_VERSION_HISTORY`, retire les bannières « NEW FEATURE » redondantes et maintient le bandeau sticky aligné sur le changelog bilingue.
+La version 3.3.11 centralise les exports via les helpers JSON mutualisés, rétablit des retours `String` sûrs dans la chaîne de traduction et retire le diagnostic touchpad du plan automatique.
 
 La barre de navigation s'adapte aux mobiles et conserve l'onglet actif.
 
@@ -46,14 +46,14 @@ Toutes les routes renvoient du JSON sauf mention contraire :
 - La sortie série reflète les actions clés (Wi-Fi, BLE, résultats de tests).
 - Les exports incluent les informations carte, la mémoire, les benchmarks, le scan Wi-Fi, les GPIO et l'état OLED.
 - Utilisez le JSON pour l'analyse automatisée et TXT/CSV pour la consultation manuelle.
-- Exploitez l'endpoint `/api/memory-details` lorsque les exports signalent une fragmentation ; la réponse JSON reste alignée grâce à la consolidation 3.3.0.
+- Exploitez l'endpoint `/api/memory-details` lorsque les exports signalent une fragmentation ; la réponse JSON reflète désormais les helpers mutualisés de la 3.3.11.
 
 ## 7. Bonnes pratiques
 - Relancez un scan Wi-Fi après tout déplacement pour rafraîchir les RSSI.
 - Arrêtez les animations NeoPixel avant de couper l'alimentation des LED externes.
 - Après changement des broches OLED, exécutez `/api/oled-config` puis `/api/oled-test` pour valider le câblage.
 
-## 8. Checklist de débogage post-release (3.3.0)
-- Déclenchez `/api/memory-details` pour vérifier que la fragmentation et la PSRAM correspondent aux indications de la documentation.
-- Confirmez que la carte Bluetooth® reflète les bascules d'advertising après `/api/bluetooth/toggle` et un renommage via `/api/bluetooth/name`.
-- Passez en revue l'onglet Wi-Fi et la réponse `/api/wifi-scan` pour valider les métadonnées de canal, bande, largeur et PHY collectées pendant la campagne de débogage.
+## 8. Checklist de débogage post-release (3.3.11)
+- Déclenchez `/api/memory-details` pour confirmer que les helpers JSON unifiés renvoient la fragmentation et la PSRAM attendues.
+- Basculez la langue via `/api/set-language` et le commutateur UI afin de vérifier l'harmonisation FR/EN.
+- Contrôlez le cycle de diagnostics par défaut pour s'assurer que le test touchpad retiré n'apparaît plus dans les journaux ou exports.

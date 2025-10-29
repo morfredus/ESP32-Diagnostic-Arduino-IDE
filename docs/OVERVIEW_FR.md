@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Vue d'ensemble (v3.3.0)
+# ESP32 Diagnostic Suite – Vue d'ensemble (v3.3.11)
 
-La suite ESP32 Diagnostic fournit une boîte à outils prête pour la production afin de valider les cartes basées sur ESP32 avant déploiement. La version 3.3.0 met l'accent sur la stabilisation des opérations de maintenance, l'harmonisation des annotations du firmware et l'enrichissement d'une base de connaissances bilingue pour les équipes d'intégration et de support.
+La suite ESP32 Diagnostic fournit une boîte à outils prête pour la production afin de valider les cartes basées sur ESP32 avant déploiement. La version 3.3.11 met l'accent sur la stabilisation des opérations de maintenance, l'harmonisation des annotations du firmware et l'enrichissement d'une base de connaissances bilingue pour les équipes d'intégration et de support.
 
 ## Mission
 - Proposer une méthodologie homogène pour qualifier les cartes ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 et ESP32-H2.
@@ -16,10 +16,10 @@ La suite ESP32 Diagnostic fournit une boîte à outils prête pour la production
 | Localisation | Bascule FR/EN à l'exécution côté firmware (sortie série) et interface web. |
 | Extensibilité | Registre modulaire de tests, bus d'événements pour callbacks personnalisés et helpers OLED/NeoPixel optionnels. |
 
-## Focus de la version 3.3.0
-- Uniformisation du commentaire d'en-tête firmware et de la constante `DIAGNOSTIC_VERSION` pour refléter fidèlement la version publiée.
-- Archivage des anciens commentaires « Version de dev » au profit d'un historique structuré dans le changelog.
-- Synchronisation de tous les supports documentaires (README, guides, wiki) sur l'identifiant 3.3.0 afin d'éviter les écarts dans les rapports imprimés.
+## Focus de la version 3.3.11
+- Centralisation des prototypes et builders JSON pour mutualiser l'entretien des exports diagnostics.
+- Correction des erreurs de compilation des helpers JSON et restauration des retours `String` sûrs dans la chaîne de traduction.
+- Mise à jour de la documentation bilingue pour refléter le retrait du diagnostic touchpad et l'harmonisation des libellés.
 
 ## Carte du wiki
 Consultez cette carte pour accéder directement à la bonne rubrique :

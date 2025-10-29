@@ -24,7 +24,7 @@ ESP32-Diagnostic/
 - **Gestionnaire BLE** – détecte les capacités du chip, configure le service GATT et expose l'état côté interface.
 - **Moteur de diagnostics** – exécute les tests matériels (GPIO, ADC, tactile, OLED, benchmarks) et formate les résultats pour le tableau de bord et les exports.
 - **Sous-système d'export** – assemble les charges TXT/JSON/CSV et la vue imprimable.
-- La version 3.3.0 réaffirme le handler `/api/set-language` renforcé, conserve l'historique consolidé au sein du firmware et maintient l'alignement du changelog bilingue avec la bannière de version actualisée.
+- La version 3.3.11 met en avant la mutualisation des réponses JSON, le durcissement des retours `String` dans la traduction et la simplification du catalogue de modules après retrait du diagnostic touchpad.
 
 ## Structure front-end
 - Les modèles HTML définissent chaque onglet avec des sections sémantiques.
