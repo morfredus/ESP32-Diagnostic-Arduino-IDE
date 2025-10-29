@@ -2,7 +2,6 @@
 
 #include <Arduino.h>
 
-// --- [NEW FEATURE] Factorisation des réponses JSON ---
 struct JsonFieldSpec {
   const char* key;
   String value;
