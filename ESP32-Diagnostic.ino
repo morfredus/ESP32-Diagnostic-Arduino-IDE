@@ -13,8 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
-  // Version 3.4.0 - Stabilisation JSON et documentation 3.3.x
-  "3.4.0 - Stabilisation JSON et documentation 3.3.x",
+  "3.4.0 - Stabilisation JSON et documentation 3.4.x",
   "3.4.0-dev - Nettoyage des commentaires et harmonisation Bluetooth",
   "3.3.10-dev - Prototypes des helpers JSON mutualisés",
   "3.3.09-dev - Unification des handlers périphériques",
