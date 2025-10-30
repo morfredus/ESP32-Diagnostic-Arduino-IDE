@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.4.05-dev
+ * ESP32 Diagnostic Suite v3.4.06-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.4.06-dev - Localisation des statuts et actions OLED",
   "3.4.05-dev - Centralisation des traductions OLED dans languages.h",
   "3.4.04-dev - Correction des traductions des commandes écran",
   "3.4.03-dev - Traduction dynamique des actions écran OLED",
@@ -212,7 +213,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.4.05-dev"
+#define DIAGNOSTIC_VERSION "3.4.06-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -3229,6 +3230,9 @@ String buildTranslationsJSON() {
   json += jsonField("oled_step_progress_bar", T().oled_step_progress_bar);
   json += jsonField("oled_step_scroll_text", T().oled_step_scroll_text);
   json += jsonField("oled_step_final_message", T().oled_step_final_message);
+  json += jsonField("oled_step_running", T().oled_step_running);
+  json += jsonField("oled_message_required", T().oled_message_required);
+  json += jsonField("oled_displaying_message", T().oled_displaying_message);
   json += jsonField("custom_message", T().custom_message);
   json += jsonField("show_message", T().show_message);
   json += jsonField("adc_test", T().adc_test);
