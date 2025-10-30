@@ -13,6 +13,8 @@ extern const char* MDNS_HOSTNAME_STR;
 extern WebServer server;
 extern DiagnosticInfo diagnosticData;
 extern Language currentLanguage;
+extern const char* const DIAGNOSTIC_SECURE_SCHEME;
+extern const char* const DIAGNOSTIC_LEGACY_SCHEME;
 
 // Déclarations forward des fonctions
 String generateHTML();
@@ -162,25 +164,56 @@ String generateHTML() {
   html += "</div>";
   // --- [BUGFIX] Suppression du doublon IP dans le bandeau ---
   bool ipAvailable = diagnosticData.ipAddress.length() > 0;
-  String ipAccessHref = ipAvailable ? ("http://" + diagnosticData.ipAddress) : String("#");
+  String secureScheme = String(DIAGNOSTIC_SECURE_SCHEME);
+  String legacyScheme = String(DIAGNOSTIC_LEGACY_SCHEME);
+  String mdnsHost = String(MDNS_HOSTNAME_STR) + ".local";
+  String mdnsSecureUrl = secureScheme + mdnsHost;
+  String mdnsLegacyUrl = legacyScheme + mdnsHost;
+  String ipAccessHref = ipAvailable ? (secureScheme + diagnosticData.ipAddress) : String("#");
+  String ipLegacyHref = ipAvailable ? (legacyScheme + diagnosticData.ipAddress) : String();
   String ipAccessClass = String("access-link");
   if (!ipAvailable) {
     ipAccessClass += " disabled";
   }
+  String ipAriaDisabled = ipAvailable ? String("false") : String("true");
+  String ipLabelValue = ipAvailable ? ipAccessHref : String("IP indisponible");
   html += "<div class='access-row'>";
   html += "<span class='access-label'>Accès :</span>";
-  html += "<a class='access-link' href='http://";
-  html += MDNS_HOSTNAME_STR;
-  html += ".local'><strong>http://";
-  html += MDNS_HOSTNAME_STR;
-  html += ".local</strong></a>";
+  // --- [NEW FEATURE] Liens HTTPS avec repli automatique ---
+  html += "<a class='access-link' id='mdnsLink' href='";
+  html += mdnsSecureUrl;
+  html += "' data-access-host='";
+  html += mdnsHost;
+  html += "' data-secure='";
+  html += secureScheme;
+  html += "' data-legacy='";
+  html += legacyScheme;
+  html += "' data-access-label='";
+  html += mdnsHost;
+  html += "' data-legacy-label='";
+  html += mdnsLegacyUrl;
+  html += "' data-label-id='mdnsAddressText' aria-disabled='false'><strong id='mdnsAddressText'>";
+  html += mdnsSecureUrl;
+  html += "</strong></a>";
   html += "<span class='access-sep'>•</span>";
   html += "<a id='ipAddressLink' class='";
   html += ipAccessClass;
   html += "' href='";
   html += ipAccessHref;
-  html += "'><strong id='ipAddressText'>";
-  html += ipAvailable ? diagnosticData.ipAddress : String("IP indisponible");
+  html += "' data-access-host='";
+  html += (ipAvailable ? diagnosticData.ipAddress : String(""));
+  html += "' data-secure='";
+  html += secureScheme;
+  html += "' data-legacy='";
+  html += legacyScheme;
+  html += "' data-access-label='";
+  html += (ipAvailable ? diagnosticData.ipAddress : String(""));
+  html += "' data-legacy-label='";
+  html += ipLegacyHref;
+  html += "' data-label-id='ipAddressText' aria-disabled='";
+  html += ipAriaDisabled;
+  html += "'><strong id='ipAddressText' data-placeholder='IP indisponible'>";
+  html += ipLabelValue;
   html += "</strong></a></div>";
   html += "<div class='nav'>";
   html += "<button type='button' class='nav-btn active' data-tab='overview' onclick=\"showTab('overview',this);\">Vue d'ensemble</button>";
@@ -212,12 +245,14 @@ String generateJavaScript() {
   js += "let currentLang='fr';";
   js += "let updateTimer=null;";
   js += "let isConnected=true;";
+  js += "function applyAccessLinkScheme(){var links=document.querySelectorAll('[data-access-host]');var preferSecure=window.location.protocol==='https:';for(var i=0;i<links.length;i++){var link=links[i];if(!link){continue;}var host=link.getAttribute('data-access-host');var secure=link.getAttribute('data-secure')||'https://';var legacy=link.getAttribute('data-legacy')||'http://';var labelId=link.getAttribute('data-label-id');var labelNode=labelId?document.getElementById(labelId):null;var labelHost=link.getAttribute('data-access-label')||host||'';var legacyLabel=link.getAttribute('data-legacy-label')||'';if(!host){link.href='#';link.classList.add('disabled');link.setAttribute('aria-disabled','true');if(labelNode&&labelNode.getAttribute('data-placeholder')){labelNode.textContent=labelNode.getAttribute('data-placeholder');}continue;}var scheme=preferSecure?secure:legacy;link.href=scheme+host;link.classList.remove('disabled');link.setAttribute('aria-disabled','false');if(labelNode){if(!preferSecure&&legacyLabel){labelNode.textContent=legacyLabel;}else{labelNode.textContent=scheme+labelHost;}}}}";
 
   // Initialisation - CORRIGÉE
   // --- [BUGFIX] Navigation onglets : délégation dès le chargement ---
   js += "document.addEventListener('DOMContentLoaded',function(){";
   js += "console.log('Interface chargée');";
   js += "initNavigation();";
+  js += "applyAccessLinkScheme();";
   js += "loadAllData();";
   js += "startAutoUpdate();";
   js += "});";
@@ -257,8 +292,14 @@ String generateJavaScript() {
   js += "const ipLabel=document.getElementById('ipAddressText');";
   js += "const ipLink=document.getElementById('ipAddressLink');";
   js += "const hasIp=d.ipAddress&&d.ipAddress.length;";
-  js += "if(ipLabel){ipLabel.textContent=hasIp?d.ipAddress:'IP indisponible';}";
-  js += "if(ipLink){ipLink.href=hasIp?'http://'+d.ipAddress:'#';ipLink.setAttribute('aria-disabled',hasIp?'false':'true');ipLink.classList.toggle('disabled',!hasIp);}";
+  js += "const secureScheme=(ipLink&&ipLink.getAttribute('data-secure'))||'https://';";
+  js += "const legacyScheme=(ipLink&&ipLink.getAttribute('data-legacy'))||'http://';";
+  js += "const preferSecure=window.location.protocol==='https:';";
+  js += "const activeScheme=preferSecure?secureScheme:legacyScheme;";
+  // --- [NEW FEATURE] Réalignement HTTPS dynamique ---
+  js += "if(ipLabel){if(hasIp){ipLabel.textContent=activeScheme+d.ipAddress;}else{var placeholder=ipLabel.getAttribute('data-placeholder')||'IP indisponible';ipLabel.textContent=placeholder;}}";
+  js += "if(ipLink){if(hasIp){ipLink.setAttribute('data-access-host',d.ipAddress);ipLink.setAttribute('data-access-label',d.ipAddress);ipLink.setAttribute('data-legacy-label',legacyScheme+d.ipAddress);ipLink.setAttribute('aria-disabled','false');ipLink.classList.remove('disabled');}else{ipLink.setAttribute('data-access-host','');ipLink.setAttribute('data-access-label','');ipLink.setAttribute('data-legacy-label','');ipLink.setAttribute('aria-disabled','true');ipLink.classList.add('disabled');}}";
+  js += "applyAccessLinkScheme();";
   js += "}";
   js += "async function updateMemoryInfo(){await fetch('/api/memory');}";
   js += "async function updateWiFiInfo(){await fetch('/api/wifi-info');}";
