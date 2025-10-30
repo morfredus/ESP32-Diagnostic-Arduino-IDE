@@ -640,35 +640,36 @@ String generateJavaScript() {
   js += "}";
 
   // FONCTIONS API - OLED
+  // --- [NEW FEATURE] Localisation complète des statuts OLED ---
   js += "async function testOLED(){";
-  js += "document.getElementById('oled-status').textContent='Test en cours (25s)...';";
+  js += "document.getElementById('oled-status').textContent=tr('oled_test_running');";
   js += "const r=await fetch('/api/oled-test');const d=await r.json();";
   js += "document.getElementById('oled-status').textContent=d.result;";
   js += "}";
   js += "async function oledStep(step){";
-  js += "setStatus('oled-status','Étape en cours...',null);";
-  js += "try{const r=await fetch('/api/oled-step?step='+step);const d=await r.json();setStatus('oled-status',d.message,d.success?'success':'error');}catch(e){setStatus('oled-status','Erreur: '+e,'error');}";
+  js += "setStatus('oled-status',tr('oled_step_running'),null);";
+  js += "try{const r=await fetch('/api/oled-step?step='+step);const d=await r.json();setStatus('oled-status',d.message,d.success?'success':'error');}catch(e){setStatus('oled-status',tr('error_label')+': '+e,'error');}";
   js += "}";
 
   // FONCTIONS API - Affichage texte OLED
   js += "async function oledDisplayText(){";
   js += "const text=document.getElementById('oledText').value;";
-  js += "if(!text){setStatus('oled-status','Message requis','error');return;}";
-  js += "setStatus('oled-status','Affichage en cours...',null);";
-  js += "try{const r=await fetch('/api/oled-message?message='+encodeURIComponent(text));const d=await r.json();setStatus('oled-status',d.message,d.success?'success':'error');}catch(e){setStatus('oled-status','Erreur: '+e,'error');}";
+  js += "if(!text){setStatus('oled-status',tr('oled_message_required'),'error');return;}";
+  js += "setStatus('oled-status',tr('oled_displaying_message'),null);";
+  js += "try{const r=await fetch('/api/oled-message?message='+encodeURIComponent(text));const d=await r.json();setStatus('oled-status',d.message,d.success?'success':'error');}catch(e){setStatus('oled-status',tr('error_label')+': '+e,'error');}";
   js += "}";
   js += "async function configOLED(){";
-  js += "setStatus('oled-status','Reconfiguration...',null);";
+  js += "setStatus('oled-status',tr('reconfiguring'),null);";
   js += "const sda=document.getElementById('oledSDA').value;";
   js += "const scl=document.getElementById('oledSCL').value;";
   js += "const rotation=document.getElementById('oledRotation').value;";
   js += "try{";
   js += "const r=await fetch('/api/oled-config?sda='+sda+'&scl='+scl+'&rotation='+rotation);";
   js += "const d=await r.json();";
-  js += "setStatus('oled-status',d.message||'Configuration invalide',d.success?'success':'error');";
+  js += "setStatus('oled-status',d.message||tr('configuration_invalid'),d.success?'success':'error');";
   js += "if(d.success){if(typeof d.sda!=='undefined'){document.getElementById('oledSDA').value=d.sda;document.getElementById('oledSCL').value=d.scl;}";
   js += "const pins=document.getElementById('oled-pins');if(pins){pins.textContent='SDA:'+d.sda+' SCL:'+d.scl;}const rotDisplay=document.getElementById('oled-rotation-display');if(rotDisplay){rotDisplay.textContent=d.rotation;}if(document.getElementById('oledRotation')){document.getElementById('oledRotation').value=d.rotation;}}";
-  js += "}catch(e){setStatus('oled-status','Erreur: '+e,'error');}";
+  js += "}catch(e){setStatus('oled-status',tr('error_label')+': '+e,'error');}";
   js += "}";
 
   // FONCTIONS API - Tests

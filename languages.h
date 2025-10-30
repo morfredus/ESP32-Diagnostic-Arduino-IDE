@@ -150,6 +150,9 @@ extern Language currentLanguage;
   X(oled_step_executed_prefix, "Étape exécutée :", "Step executed:") \
   X(oled_step_unavailable, "OLED non disponible", "OLED not available") \
   X(oled_step_unknown, "Étape inconnue", "Unknown step") \
+  X(oled_step_running, "Étape en cours...", "Step in progress...") \
+  X(oled_message_required, "Message requis", "Message required") \
+  X(oled_displaying_message, "Affichage en cours...", "Displaying message...") \
   X(adc_test, "Test ADC", "ADC Test") \
   X(pwm_test, "Test PWM", "PWM Test") \
   X(spi_bus, "Bus SPI", "SPI Bus") \
