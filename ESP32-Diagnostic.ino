@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.4.01-dev
+ * ESP32 Diagnostic Suite v3.4.02-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.4.02-dev - Repli HTTP automatique si HTTPS indisponible",
   "3.4.01-dev - Préférence HTTPS et repli intelligent",
   "3.4.0 - Stabilisation JSON et documentation 3.4.x",
   "3.4.0-dev - Nettoyage des commentaires et harmonisation Bluetooth",
@@ -208,18 +209,22 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.4.01-dev"
+#define DIAGNOSTIC_VERSION "3.4.02-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 
-// --- [NEW FEATURE] Préférence du schéma d'accès sécurisé ---
+// --- [BUGFIX] Préférence HTTPS contrôlable ---
+#if !defined(DIAGNOSTIC_PREFER_SECURE)
+#define DIAGNOSTIC_PREFER_SECURE 0
+#endif
 const char* const DIAGNOSTIC_SECURE_SCHEME = "https://";
 const char* const DIAGNOSTIC_LEGACY_SCHEME = "http://";
 
-static inline String buildAccessUrl(const String& hostOrAddress, bool preferSecure = true) {
+static inline String buildAccessUrl(const String& hostOrAddress,
+                                    bool preferSecure = (DIAGNOSTIC_PREFER_SECURE != 0)) {
   if (hostOrAddress.length() == 0) {
     return String();
   }
@@ -452,8 +457,9 @@ float heapHistory[HISTORY_SIZE];
 float tempHistory[HISTORY_SIZE];
 int historyIndex = 0;
 
+// --- [BUGFIX] URL stable en HTTP par défaut ---
 String getStableAccessURL() {
-  return buildAccessUrl(getStableAccessHost(), true);
+  return buildAccessUrl(getStableAccessHost());
 }
 
 void configureNetworkHostname() {
@@ -3998,7 +4004,8 @@ a{color:inherit;}
   // --- [BUGFIX] Retrait du doublon IP sur l'interface legacy ---
   bool ipAvailable = diagnosticData.ipAddress.length() > 0;
   String accessHost = diagnosticData.ipAddress;
-  String accessUrl = ipAvailable ? buildAccessUrl(accessHost, true) : String(T().not_detected);
+  // --- [BUGFIX] Lien IP initial en HTTP ---
+  String accessUrl = ipAvailable ? buildAccessUrl(accessHost) : String(T().not_detected);
   String accessUrlLegacy = ipAvailable ? buildAccessUrl(accessHost, false) : String();
   String accessUrlHref = ipAvailable ? accessUrl : String("#");
   String accessUrlEscaped = htmlEscape(accessUrl);
