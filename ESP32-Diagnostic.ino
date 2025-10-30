@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.4.04-dev
+ * ESP32 Diagnostic Suite v3.4.05-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.4.05-dev - Centralisation des traductions OLED dans languages.h",
   "3.4.04-dev - Correction des traductions des commandes écran",
   "3.4.03-dev - Traduction dynamique des actions écran OLED",
   "3.4.02-dev - Repli HTTP automatique si HTTPS indisponible",
@@ -211,7 +212,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.4.04-dev"
+#define DIAGNOSTIC_VERSION "3.4.05-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -3121,10 +3122,10 @@ void stopBluetooth() {
   bluetoothAdvertising = false;
 }
 
-void handleGetTranslations() {
-  // Envoie toutes les traductions en JSON pour mise à jour dynamique
+String buildTranslationsJSON() {
+  // --- [REFACTOR] Centralisation de la construction JSON des traductions ---
   String json = "{";
-  json.reserve(1400);
+  json.reserve(1600);
   json += jsonField("title", T().title);
   json += jsonField("version", T().version);
   json += jsonField("nav_overview", T().nav_overview);
@@ -3277,7 +3278,11 @@ void handleGetTranslations() {
   json += jsonField("oled_test_running", T().oled_test_running, true);
   json += "}";
 
-  server.send(200, "application/json", json);
+  return json;
+}
+
+void handleGetTranslations() {
+  server.send(200, "application/json; charset=utf-8", buildTranslationsJSON());
 }
 
 void handleBluetoothStatus() {
