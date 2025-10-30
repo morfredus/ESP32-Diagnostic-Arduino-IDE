@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.4.0
+ * ESP32 Diagnostic Suite v3.4.02-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,8 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.4.02-dev - Repli HTTP automatique si HTTPS indisponible",
+  "3.4.01-dev - Préférence HTTPS et repli intelligent",
   "3.4.0 - Stabilisation JSON et documentation 3.4.x",
   "3.4.0-dev - Nettoyage des commentaires et harmonisation Bluetooth",
   "3.3.10-dev - Prototypes des helpers JSON mutualisés",
@@ -207,12 +209,33 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.4.0"
+#define DIAGNOSTIC_VERSION "3.4.02-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
+
+// --- [BUGFIX] Préférence HTTPS contrôlable ---
+#if !defined(DIAGNOSTIC_PREFER_SECURE)
+#define DIAGNOSTIC_PREFER_SECURE 0
+#endif
+const char* const DIAGNOSTIC_SECURE_SCHEME = "https://";
+const char* const DIAGNOSTIC_LEGACY_SCHEME = "http://";
+
+static inline String buildAccessUrl(const String& hostOrAddress,
+                                    bool preferSecure = (DIAGNOSTIC_PREFER_SECURE != 0)) {
+  if (hostOrAddress.length() == 0) {
+    return String();
+  }
+  const String secureScheme = String(DIAGNOSTIC_SECURE_SCHEME);
+  const String legacyScheme = String(DIAGNOSTIC_LEGACY_SCHEME);
+  return (preferSecure ? secureScheme : legacyScheme) + hostOrAddress;
+}
+
+static inline String getStableAccessHost() {
+  return String(DIAGNOSTIC_HOSTNAME) + ".local";
+}
 
 String getArduinoCoreVersionString() {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && defined(ESP_ARDUINO_VERSION_MINOR) && defined(ESP_ARDUINO_VERSION_PATCH)
@@ -434,8 +457,9 @@ float heapHistory[HISTORY_SIZE];
 float tempHistory[HISTORY_SIZE];
 int historyIndex = 0;
 
+// --- [BUGFIX] URL stable en HTTP par défaut ---
 String getStableAccessURL() {
-  return String("http://") + String(DIAGNOSTIC_HOSTNAME) + ".local";
+  return buildAccessUrl(getStableAccessHost());
 }
 
 void configureNetworkHostname() {
@@ -3979,15 +4003,26 @@ a{color:inherit;}
   String bluetoothFeedbackText = bluetoothCapable ? "" : String(T().bluetooth_not_supported);
   // --- [BUGFIX] Retrait du doublon IP sur l'interface legacy ---
   bool ipAvailable = diagnosticData.ipAddress.length() > 0;
-  String accessUrl = ipAvailable ? ("http://" + diagnosticData.ipAddress) : String(T().not_detected);
+  String accessHost = diagnosticData.ipAddress;
+  // --- [BUGFIX] Lien IP initial en HTTP ---
+  String accessUrl = ipAvailable ? buildAccessUrl(accessHost) : String(T().not_detected);
+  String accessUrlLegacy = ipAvailable ? buildAccessUrl(accessHost, false) : String();
   String accessUrlHref = ipAvailable ? accessUrl : String("#");
   String accessUrlEscaped = htmlEscape(accessUrl);
+  String accessUrlLegacyEscaped = htmlEscape(accessUrlLegacy);
   String accessPlaceholder = htmlEscape(String(T().not_detected));
   bool mdnsAvailable = diagnosticData.mdnsAvailable;
+  String stableAccessHost = getStableAccessHost();
   String stableAccessUrl = getStableAccessURL();
+  String stableAccessLegacy = buildAccessUrl(stableAccessHost, false);
   String stableAccessEscaped = htmlEscape(stableAccessUrl);
+  String stableAccessLegacyEscaped = htmlEscape(stableAccessLegacy);
+  String stableAccessHostEscaped = htmlEscape(stableAccessHost);
+  String accessHostEscaped = htmlEscape(accessHost);
   String stableAccessHref = mdnsAvailable ? stableAccessUrl : String("#");
   String mdnsStateAttr = mdnsAvailable ? "true" : "false";
+  String secureSchemeEscaped = htmlEscape(String(DIAGNOSTIC_SECURE_SCHEME));
+  String legacySchemeEscaped = htmlEscape(String(DIAGNOSTIC_LEGACY_SCHEME));
 
   chunk = "<div class='app-shell'>";
   chunk += "<div id='updateIndicator' class='update-indicator'>";
@@ -4018,13 +4053,17 @@ a{color:inherit;}
   chunk += "<div class='status-item status-access'><span class='status-label' data-i18n='access'>" + String(T().access) + "</span>";
   chunk += "<span class='status-value' data-mdns='" + mdnsStateAttr + "'>";
   if (mdnsAvailable) {
-    chunk += "<a href='" + stableAccessHref + "' target='_blank' rel='noopener'>" + stableAccessEscaped + "</a>";
+    chunk += "<a href='" + stableAccessHref + "' target='_blank' rel='noopener' data-access-host='" + stableAccessHostEscaped +
+             "' data-secure='" + secureSchemeEscaped + "' data-legacy='" + legacySchemeEscaped + "' data-access-label='" +
+             stableAccessHostEscaped + "' data-legacy-label='" + stableAccessLegacyEscaped + "'>" + stableAccessEscaped + "</a>";
   } else {
     chunk += "<span>" + stableAccessEscaped + "</span>";
   }
   chunk += "<span class='separator'>•</span>";
   if (ipAvailable) {
-    chunk += "<a href='" + accessUrlHref + "' target='_blank' rel='noopener'>" + accessUrlEscaped + "</a>";
+    chunk += "<a href='" + accessUrlHref + "' target='_blank' rel='noopener' data-access-host='" + accessHostEscaped +
+             "' data-secure='" + secureSchemeEscaped + "' data-legacy='" + legacySchemeEscaped + "' data-access-label='" +
+             accessHostEscaped + "' data-legacy-label='" + accessUrlLegacyEscaped + "'>" + accessUrlEscaped + "</a>";
   } else {
     chunk += "<span class='access-placeholder'>" + accessPlaceholder + "</span>";
   }
@@ -4382,6 +4421,9 @@ a{color:inherit;}
   chunk += "var connectionState=true;";
   chunk += "var ignoreHashChange=false;";
   chunk += "var navDropdown=null;";
+  chunk += "function preferredAccessScheme(){return window.location.protocol==='https:'?'https://':'http://';}";
+  // --- [NEW FEATURE] Harmonisation du schéma des liens d'accès ---
+  chunk += "function applyAccessLinkScheme(){var links=document.querySelectorAll('[data-access-host]');if(!links||!links.length){return;}var preferSecure=(preferredAccessScheme()==='https://');for(var i=0;i<links.length;i++){var link=links[i];if(!link){continue;}var host=link.getAttribute('data-access-host');if(!host){continue;}var secure=link.getAttribute('data-secure')||'https://';var legacy=link.getAttribute('data-legacy')||'http://';var scheme=preferSecure?secure:legacy;var labelHost=link.getAttribute('data-access-label')||host;var legacyLabel=link.getAttribute('data-legacy-label');link.href=scheme+host;if(!preferSecure&&legacyLabel){link.textContent=legacyLabel;}else{link.textContent=scheme+labelHost;}}}";
   chunk += "document.documentElement.setAttribute('lang',currentLang);";
   chunk += "function tr(key,fr,en){var dict=window.translations||{};var value=dict&&dict[key];if(typeof value==='string'){return value;}if(currentLang==='fr'){return typeof fr!=='undefined'?fr:(typeof en!=='undefined'?en:key);}return typeof en!=='undefined'?en:(typeof fr!=='undefined'?fr:key);}";
   chunk += "function showInlineMessage(text,state){var holder=document.getElementById('inlineMessage');if(!holder){return;}holder.className='inline-message';if(!text){return;}holder.textContent=text;holder.classList.add('show');if(state){holder.classList.add(state);}}";
@@ -4439,9 +4481,9 @@ a{color:inherit;}
   chunk += "function initStickyNav(){var wrapper=document.querySelector('.nav-wrapper');if(!wrapper||wrapper.getAttribute('data-sticky-init')==='1'){return;}wrapper.setAttribute('data-sticky-init','1');var apply=function(state){if(state){wrapper.classList.add('is-sticky');}else{wrapper.classList.remove('is-sticky');}};";
   chunk += "var computeThreshold=function(){var rect=wrapper.getBoundingClientRect();var scrollTop=window.pageYOffset||document.documentElement.scrollTop||0;var stickyOffset=parseInt(window.getComputedStyle(wrapper).top,10)||0;return rect.top+scrollTop-stickyOffset;};var threshold=computeThreshold();";
   chunk += "var onScroll=function(){var scroll=window.pageYOffset||document.documentElement.scrollTop||0;var state=scroll>=threshold;apply(state);};window.addEventListener('scroll',onScroll);window.addEventListener('resize',function(){threshold=computeThreshold();onScroll();});onScroll();}";
-  chunk += "function initNavigation(){updateUptimeDisplay();var navs=document.querySelectorAll('.primary-nav');if(navs&&navs.length){for(var n=0;n<navs.length;n++){(function(nav){nav.addEventListener('click',function(evt){var source=evt.target||evt.srcElement;var button=findNavTrigger(source);if(!button){return;}evt.preventDefault();var targetTab=button.getAttribute('data-target');if(targetTab){showTab(targetTab,button);}});})(navs[n]);}}var select=document.getElementById('navSelector');navDropdown=select;if(select){select.addEventListener('change',function(evt){var value=evt.target.value;if(value){showTab(value,null);}});}var initial=window.location.hash?window.location.hash.substring(1):null;var defaultButton=document.querySelector('.nav-link.active');if(initial==='wifi'){initial='wireless';}if(!initial&&defaultButton){initial=defaultButton.getAttribute('data-target');}if(!initial){var list=document.querySelectorAll('.nav-link');if(list.length>0){initial=list[0].getAttribute('data-target');defaultButton=list[0];}}var initialButton=null;if(initial){initialButton=document.querySelector(\".nav-link[data-target='\"+initial+\"']\");}if(initial){showTab(initial,initialButton,false);}else{showTab('overview',null,false);}initStickyNav();updateStatusIndicator(connectionState);refreshBluetoothStatus(false);}";
+  chunk += "function initNavigation(){updateUptimeDisplay();var navs=document.querySelectorAll('.primary-nav');if(navs&&navs.length){for(var n=0;n<navs.length;n++){(function(nav){nav.addEventListener('click',function(evt){var source=evt.target||evt.srcElement;var button=findNavTrigger(source);if(!button){return;}evt.preventDefault();var targetTab=button.getAttribute('data-target');if(targetTab){showTab(targetTab,button);}});})(navs[n]);}}var select=document.getElementById('navSelector');navDropdown=select;if(select){select.addEventListener('change',function(evt){var value=evt.target.value;if(value){showTab(value,null);}});}var initial=window.location.hash?window.location.hash.substring(1):null;var defaultButton=document.querySelector('.nav-link.active');if(initial==='wifi'){initial='wireless';}if(!initial&&defaultButton){initial=defaultButton.getAttribute('data-target');}if(!initial){var list=document.querySelectorAll('.nav-link');if(list.length>0){initial=list[0].getAttribute('data-target');defaultButton=list[0];}}var initialButton=null;if(initial){initialButton=document.querySelector(\".nav-link[data-target='\"+initial+\"']\");}if(initial){showTab(initial,initialButton,false);}else{showTab('overview',null,false);}initStickyNav();updateStatusIndicator(connectionState);applyAccessLinkScheme();refreshBluetoothStatus(false);}";
   chunk += "window.addEventListener('hashchange',function(){if(ignoreHashChange){return;}var target=window.location.hash?window.location.hash.substring(1):'overview';if(target==='wifi'){target='wireless';}showTab(target,null,false);});";
-  chunk += "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initNavigation);}else{initNavigation();}";
+  chunk += "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){initNavigation();applyAccessLinkScheme();});}else{initNavigation();applyAccessLinkScheme();}";
 
   chunk += "function configBuiltinLED(){var fallback=tr('gpio_invalid','GPIO invalide','Invalid GPIO');updateStatus('builtin-led-status',tr('configuring','Configuration...','Configuring...'),null);fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';updateStatus('builtin-led-status',d.message||fallback,state);}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
   chunk += "function testBuiltinLED(){updateStatus('builtin-led-status',tr('testing','Test...','Testing...'),null);fetch('/api/builtin-led-test').then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';var fallback=tr('test_failed','Test en échec','Test failed');updateStatus('builtin-led-status',d.result||fallback,state);}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
