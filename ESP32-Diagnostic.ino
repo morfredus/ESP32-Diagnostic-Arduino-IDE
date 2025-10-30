@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.4.02-dev
+ * ESP32 Diagnostic Suite v3.4.09-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,13 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.4.09-dev - Actualisation instantanée des traductions",
+  "3.4.08-dev - Localisation des tests avancés",
+  "3.4.07-dev - Harmonisation des traductions OLED",
+  "3.4.06-dev - Localisation des statuts et actions OLED",
+  "3.4.05-dev - Centralisation des traductions OLED dans languages.h",
+  "3.4.04-dev - Correction des traductions des commandes écran",
+  "3.4.03-dev - Traduction dynamique des actions écran OLED",
   "3.4.02-dev - Repli HTTP automatique si HTTPS indisponible",
   "3.4.01-dev - Préférence HTTPS et repli intelligent",
   "3.4.0 - Stabilisation JSON et documentation 3.4.x",
@@ -209,7 +216,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.4.02-dev"
+#define DIAGNOSTIC_VERSION "3.4.09-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -3119,10 +3126,10 @@ void stopBluetooth() {
   bluetoothAdvertising = false;
 }
 
-void handleGetTranslations() {
-  // Envoie toutes les traductions en JSON pour mise à jour dynamique
+String buildTranslationsJSON() {
+  // --- [REFACTOR] Centralisation de la construction JSON des traductions ---
   String json = "{";
-  json.reserve(1024);
+  json.reserve(1600);
   json += jsonField("title", T().title);
   json += jsonField("version", T().version);
   json += jsonField("nav_overview", T().nav_overview);
@@ -3210,14 +3217,39 @@ void handleGetTranslations() {
   json += jsonField("detected_addresses", T().detected_addresses);
   json += jsonField("builtin_led", T().builtin_led);
   json += jsonField("oled_screen", T().oled_screen);
+  // --- [BUGFIX] Export complet des traductions écran ---
+  json += jsonField("status", T().status);
+  json += jsonField("i2c_pins", T().i2c_pins);
+  json += jsonField("rotation", T().rotation);
+  json += jsonField("apply_redetect", T().apply_redetect);
+  json += jsonField("full_test", T().full_test);
+  json += jsonField("oled_step_welcome", T().oled_step_welcome);
+  json += jsonField("oled_step_big_text", T().oled_step_big_text);
+  json += jsonField("oled_step_text_sizes", T().oled_step_text_sizes);
+  json += jsonField("oled_step_shapes", T().oled_step_shapes);
+  json += jsonField("oled_step_horizontal_lines", T().oled_step_horizontal_lines);
+  json += jsonField("oled_step_diagonals", T().oled_step_diagonals);
+  json += jsonField("oled_step_moving_square", T().oled_step_moving_square);
+  json += jsonField("oled_step_progress_bar", T().oled_step_progress_bar);
+  json += jsonField("oled_step_scroll_text", T().oled_step_scroll_text);
+  json += jsonField("oled_step_final_message", T().oled_step_final_message);
+  json += jsonField("oled_step_running", T().oled_step_running);
+  json += jsonField("oled_message_required", T().oled_message_required);
+  json += jsonField("oled_displaying_message", T().oled_displaying_message);
+  json += jsonField("custom_message", T().custom_message);
+  json += jsonField("show_message", T().show_message);
   json += jsonField("adc_test", T().adc_test);
+  json += jsonField("start_adc_test", T().start_adc_test);
   json += jsonField("pwm_test", T().pwm_test);
   json += jsonField("spi_bus", T().spi_bus);
   json += jsonField("flash_partitions", T().flash_partitions);
   json += jsonField("memory_stress", T().memory_stress);
+  json += jsonField("stress_warning", T().stress_warning);
+  json += jsonField("start_stress", T().start_stress);
   json += jsonField("gpio_test", T().gpio_test);
   json += jsonField("test_all_gpio", T().test_all_gpio);
   json += jsonField("click_to_test", T().click_to_test);
+  json += jsonField("not_tested", T().not_tested);
   json += jsonField("gpio_warning", T().gpio_warning);
   json += jsonField("i2c_desc", T().i2c_desc);
   json += jsonField("adc_desc", T().adc_desc);
@@ -3257,7 +3289,11 @@ void handleGetTranslations() {
   json += jsonField("oled_test_running", T().oled_test_running, true);
   json += "}";
 
-  server.send(200, "application/json", json);
+  return json;
+}
+
+void handleGetTranslations() {
+  server.send(200, "application/json; charset=utf-8", buildTranslationsJSON());
 }
 
 void handleBluetoothStatus() {
@@ -4259,6 +4295,7 @@ a{color:inherit;}
   String oledPinsValue = "SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL);
   appendInfoItem(chunk, nullptr, T().i2c_pins, oledPinsValue, String(F("id='oled-pins'")));
   appendInfoItem(chunk, nullptr, T().rotation, String(oledRotation), String(F("id='oled-rotation-display'")));
+  // --- [BUGFIX] Harmonisation des attributs de traduction OLED ---
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "SDA: <input type='number' id='oledSDA' value='" + String(I2C_SDA) + "' min='0' max='48' style='width:70px'> ";
   chunk += "SCL: <input type='number' id='oledSCL' value='" + String(I2C_SCL) + "' min='0' max='48' style='width:70px'> ";
@@ -4267,26 +4304,26 @@ a{color:inherit;}
     chunk += "<option value='" + String(rot) + "'" + String(oledRotation == rot ? " selected" : "") + ">" + String(rot) + "</option>";
   }
   chunk += "</select> ";
-  chunk += "<button class='btn btn-info' onclick='configOLED()'>" + String(T().apply_redetect) + "</button>";
+  chunk += "<button class='btn btn-info' data-i18n='apply_redetect' data-i18n-prefix='🔄 ' onclick='configOLED()'>" + String(T().apply_redetect) + "</button>";
   if (oledAvailable) {
     chunk += "<div style='margin-top:15px'>";
-    chunk += "<button class='btn btn-primary' onclick='testOLED()'>" + String(T().full_test) + "</button>";
+    chunk += "<button class='btn btn-primary' data-i18n='full_test' data-i18n-prefix='🧪 ' data-i18n-suffix=' (25s)' onclick='testOLED()'>" + String(T().full_test) + "</button>";
     chunk += "</div>";
     chunk += "<div class='oled-step-grid' style='margin-top:15px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px'>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"welcome\")'>" + String(T().oled_step_welcome) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"big_text\")'>" + String(T().oled_step_big_text) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"text_sizes\")'>" + String(T().oled_step_text_sizes) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"shapes\")'>" + String(T().oled_step_shapes) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"horizontal_lines\")'>" + String(T().oled_step_horizontal_lines) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"diagonals\")'>" + String(T().oled_step_diagonals) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"moving_square\")'>" + String(T().oled_step_moving_square) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"progress_bar\")'>" + String(T().oled_step_progress_bar) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"scroll_text\")'>" + String(T().oled_step_scroll_text) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"final_message\")'>" + String(T().oled_step_final_message) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_welcome' data-i18n-prefix='🏁 ' onclick='oledStep(\"welcome\")'>" + String(T().oled_step_welcome) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_big_text' data-i18n-prefix='🔠 ' onclick='oledStep(\"big_text\")'>" + String(T().oled_step_big_text) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_text_sizes' data-i18n-prefix='🔤 ' onclick='oledStep(\"text_sizes\")'>" + String(T().oled_step_text_sizes) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_shapes' data-i18n-prefix='🟦 ' onclick='oledStep(\"shapes\")'>" + String(T().oled_step_shapes) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_horizontal_lines' data-i18n-prefix='📏 ' onclick='oledStep(\"horizontal_lines\")'>" + String(T().oled_step_horizontal_lines) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_diagonals' data-i18n-prefix='📐 ' onclick='oledStep(\"diagonals\")'>" + String(T().oled_step_diagonals) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_moving_square' data-i18n-prefix='⬜ ' onclick='oledStep(\"moving_square\")'>" + String(T().oled_step_moving_square) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_progress_bar' data-i18n-prefix='📊 ' onclick='oledStep(\"progress_bar\")'>" + String(T().oled_step_progress_bar) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_scroll_text' data-i18n-prefix='📜 ' onclick='oledStep(\"scroll_text\")'>" + String(T().oled_step_scroll_text) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_final_message' data-i18n-prefix='✅ ' onclick='oledStep(\"final_message\")'>" + String(T().oled_step_final_message) + "</button>";
     chunk += "</div>";
     chunk += "<div style='margin-top:15px'>";
-    chunk += "<input type='text' id='oledMsg' placeholder='" + String(T().custom_message) + "' style='width:250px;margin:0 5px'>";
-    chunk += "<button class='btn btn-success' onclick='oledMessage()'>" + String(T().show_message) + "</button>";
+    chunk += "<input type='text' id='oledMsg' data-i18n-placeholder='custom_message' placeholder='" + String(T().custom_message) + "' style='width:250px;margin:0 5px'>";
+    chunk += "<button class='btn btn-success' data-i18n='show_message' data-i18n-prefix='📤 ' onclick='oledMessage()'>" + String(T().show_message) + "</button>";
     chunk += "</div>";
   }
   chunk += "</div></div></div></div>";

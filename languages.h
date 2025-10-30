@@ -150,13 +150,18 @@ extern Language currentLanguage;
   X(oled_step_executed_prefix, "Étape exécutée :", "Step executed:") \
   X(oled_step_unavailable, "OLED non disponible", "OLED not available") \
   X(oled_step_unknown, "Étape inconnue", "Unknown step") \
+  X(oled_step_running, "Étape en cours...", "Step in progress...") \
+  X(oled_message_required, "Message requis", "Message required") \
+  X(oled_displaying_message, "Affichage en cours...", "Displaying message...") \
   X(adc_test, "Test ADC", "ADC Test") \
+  X(start_adc_test, "Lancer test ADC", "Start ADC Test") \
   X(pwm_test, "Test PWM", "PWM Test") \
   X(spi_bus, "Bus SPI", "SPI Bus") \
   X(flash_partitions, "Partitions Flash", "Flash Partitions") \
   X(list_partitions, "Lister Partitions", "List Partitions") \
   X(click_button, "Cliquez sur le bouton", "Click the button") \
   X(memory_stress, "Stress Test Mémoire", "Memory Stress Test") \
+  X(stress_warning, "Peut ralentir l'ESP32 temporairement", "May temporarily slow the ESP32") \
   X(start_stress, "Lancer Stress Test", "Start Stress Test") \
   X(i2c_desc, "Détecte les périphériques reliés au bus I2C.", "Detects peripherals connected on the I2C bus.") \
   X(adc_desc, "Contrôle les entrées analogiques pour valider l'ADC.", "Checks analog inputs to validate the ADC.") \
