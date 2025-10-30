@@ -272,6 +272,9 @@ String generateJavaScript() {
   js += "let translationsCache=DEFAULT_TRANSLATIONS;";
   js += "function setTranslationsCache(t){if(t&&typeof t==='object'){translationsCache=Object.assign({},DEFAULT_TRANSLATIONS,t);}";
   js += "else{translationsCache=DEFAULT_TRANSLATIONS;}}";
+  // --- [BUGFIX] Rafraîchissement immédiat du catalogue de traductions ---
+  js += "function fetchTranslations(){const cacheBypass='ts='+(Date.now());const endpoint='/api/get-translations?'+cacheBypass;";
+  js += "return fetch(endpoint,{cache:'no-store'}).then(r=>r.json());}";
   js += "function tr(key){const source=translationsCache&&translationsCache[key];if(typeof source==='string'){return source;}const fallback=DEFAULT_TRANSLATIONS[key];return typeof fallback==='string'?fallback:key;}";
   // --- [BUGFIX] Détection automatique HTTPS ---
   js += "const SECURE_PROBE_TIMEOUT=1500;";
@@ -288,8 +291,7 @@ String generateJavaScript() {
   js += "document.addEventListener('DOMContentLoaded',function(){";
   js += "console.log('Interface chargée');";
   // --- [NEW FEATURE] Préchargement des traductions UI dynamiques ---
-  js += "fetch('/api/get-translations').then(r=>r.json()).then(t=>{setTranslationsCache(t);updateInterfaceTexts();}).catch(err=>c";
-  js += "onsole.warn('Translations unavailable',err));";
+  js += "fetchTranslations().then(t=>{setTranslationsCache(t);updateInterfaceTexts();}).catch(err=>console.warn('Translations unavailable',err));";
   js += "initNavigation();";
   js += "applyAccessLinkScheme();";
   js += "loadAllData();";
@@ -763,14 +765,15 @@ String generateJavaScript() {
   js += "}";
 
   // Changement de langue
+  // --- [BUGFIX] Application immédiate des traductions lors du changement de langue ---
   js += "function changeLang(lang,btn){";
-  js += "fetch('/api/set-language?lang='+lang).then(r=>r.json()).then(d=>{";
-  js += "if(d.success){";
+  js += "fetch('/api/set-language?lang='+lang,{cache:'no-store'}).then(r=>r.json()).then(d=>{";
+  js += "if(!d.success){throw new Error('language switch rejected');}";
   js += "currentLang=lang;";
   js += "document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));";
   js += "if(btn){btn.classList.add('active');}else{document.querySelectorAll('.lang-btn').forEach(b=>{if(b.textContent.toLowerCase()===lang)b.classList.add('active');});}";
-  js += "return fetch('/api/get-translations');";
-  js += "}}").then(r=>r.json()).then(translations=>{";
+  js += "return fetchTranslations();";
+  js += "}).then(translations=>{";
   js += "setTranslationsCache(translations);";
   js += "updateInterfaceTexts();";
   js += "const ind=document.getElementById('updateIndicator');if(ind){ind.textContent='Langue changée : '+lang.toUpperCase();showUpdateIndicator();hideUpdateIndicator();}";
