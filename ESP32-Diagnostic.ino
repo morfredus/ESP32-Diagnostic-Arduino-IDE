@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.4.02-dev
+ * ESP32 Diagnostic Suite v3.4.05-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,9 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.4.05-dev - Centralisation des traductions OLED dans languages.h",
+  "3.4.04-dev - Correction des traductions des commandes écran",
+  "3.4.03-dev - Traduction dynamique des actions écran OLED",
   "3.4.02-dev - Repli HTTP automatique si HTTPS indisponible",
   "3.4.01-dev - Préférence HTTPS et repli intelligent",
   "3.4.0 - Stabilisation JSON et documentation 3.4.x",
@@ -209,7 +212,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.4.02-dev"
+#define DIAGNOSTIC_VERSION "3.4.05-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -3119,10 +3122,10 @@ void stopBluetooth() {
   bluetoothAdvertising = false;
 }
 
-void handleGetTranslations() {
-  // Envoie toutes les traductions en JSON pour mise à jour dynamique
+String buildTranslationsJSON() {
+  // --- [REFACTOR] Centralisation de la construction JSON des traductions ---
   String json = "{";
-  json.reserve(1024);
+  json.reserve(1600);
   json += jsonField("title", T().title);
   json += jsonField("version", T().version);
   json += jsonField("nav_overview", T().nav_overview);
@@ -3210,6 +3213,24 @@ void handleGetTranslations() {
   json += jsonField("detected_addresses", T().detected_addresses);
   json += jsonField("builtin_led", T().builtin_led);
   json += jsonField("oled_screen", T().oled_screen);
+  // --- [BUGFIX] Export complet des traductions écran ---
+  json += jsonField("status", T().status);
+  json += jsonField("i2c_pins", T().i2c_pins);
+  json += jsonField("rotation", T().rotation);
+  json += jsonField("apply_redetect", T().apply_redetect);
+  json += jsonField("full_test", T().full_test);
+  json += jsonField("oled_step_welcome", T().oled_step_welcome);
+  json += jsonField("oled_step_big_text", T().oled_step_big_text);
+  json += jsonField("oled_step_text_sizes", T().oled_step_text_sizes);
+  json += jsonField("oled_step_shapes", T().oled_step_shapes);
+  json += jsonField("oled_step_horizontal_lines", T().oled_step_horizontal_lines);
+  json += jsonField("oled_step_diagonals", T().oled_step_diagonals);
+  json += jsonField("oled_step_moving_square", T().oled_step_moving_square);
+  json += jsonField("oled_step_progress_bar", T().oled_step_progress_bar);
+  json += jsonField("oled_step_scroll_text", T().oled_step_scroll_text);
+  json += jsonField("oled_step_final_message", T().oled_step_final_message);
+  json += jsonField("custom_message", T().custom_message);
+  json += jsonField("show_message", T().show_message);
   json += jsonField("adc_test", T().adc_test);
   json += jsonField("pwm_test", T().pwm_test);
   json += jsonField("spi_bus", T().spi_bus);
@@ -3257,7 +3278,11 @@ void handleGetTranslations() {
   json += jsonField("oled_test_running", T().oled_test_running, true);
   json += "}";
 
-  server.send(200, "application/json", json);
+  return json;
+}
+
+void handleGetTranslations() {
+  server.send(200, "application/json; charset=utf-8", buildTranslationsJSON());
 }
 
 void handleBluetoothStatus() {
