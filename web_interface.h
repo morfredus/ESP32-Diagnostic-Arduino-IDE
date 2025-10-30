@@ -217,14 +217,14 @@ String generateHTML() {
   html += ipLabelValue;
   html += "</strong></a></div>";
   html += "<div class='nav'>";
-  html += "<button type='button' class='nav-btn active' data-tab='overview' onclick=\"showTab('overview',this);\">Vue d'ensemble</button>";
-  html += "<button type='button' class='nav-btn' data-tab='leds' onclick=\"showTab('leds',this);\">LEDs</button>";
-  html += "<button type='button' class='nav-btn' data-tab='screens' onclick=\"showTab('screens',this);\">Écrans</button>";
-  html += "<button type='button' class='nav-btn' data-tab='tests' onclick=\"showTab('tests',this);\">Tests</button>";
-  html += "<button type='button' class='nav-btn' data-tab='gpio' onclick=\"showTab('gpio',this);\">GPIO</button>";
-  html += "<button type='button' class='nav-btn' data-tab='wifi' onclick=\"showTab('wifi',this);\">WiFi</button>";
-  html += "<button type='button' class='nav-btn' data-tab='benchmark' onclick=\"showTab('benchmark',this);\">Performance</button>";
-  html += "<button type='button' class='nav-btn' data-tab='export' onclick=\"showTab('export',this);\">Export</button>";
+  html += "<button type='button' class='nav-btn active' data-tab='overview' data-i18n='nav_overview' onclick=\"showTab('overview',this);\">Vue d'ensemble</button>";
+  html += "<button type='button' class='nav-btn' data-tab='leds' data-i18n='nav_leds' onclick=\"showTab('leds',this);\">LEDs</button>";
+  html += "<button type='button' class='nav-btn' data-tab='screens' data-i18n='nav_screens' onclick=\"showTab('screens',this);\">Écrans</button>";
+  html += "<button type='button' class='nav-btn' data-tab='tests' data-i18n='nav_tests' onclick=\"showTab('tests',this);\">Tests</button>";
+  html += "<button type='button' class='nav-btn' data-tab='gpio' data-i18n='nav_gpio' onclick=\"showTab('gpio',this);\">GPIO</button>";
+  html += "<button type='button' class='nav-btn' data-tab='wifi' data-i18n='nav_wireless' onclick=\"showTab('wifi',this);\">WiFi</button>";
+  html += "<button type='button' class='nav-btn' data-tab='benchmark' data-i18n='nav_benchmark' onclick=\"showTab('benchmark',this);\">Performance</button>";
+  html += "<button type='button' class='nav-btn' data-tab='export' data-i18n='nav_export' onclick=\"showTab('export',this);\">Export</button>";
   html += "</div>";
   html += "</div>";
   html += "<div class='content'>";
@@ -246,6 +246,11 @@ String generateJavaScript() {
   js += "let currentLang='fr';";
   js += "let updateTimer=null;";
   js += "let isConnected=true;";
+  // --- [NEW FEATURE] Mise en cache des traductions dynamiques ---
+  js += "let translationsCache={};";
+  js += "function setTranslationsCache(t){translationsCache=t||{};}";
+  js += "function tr(key,fr,en){const fallback=currentLang==='fr'?(fr||en||key):(en||fr||key);if(!translationsCache){return fallback;}");
+  js += "const value=translationsCache[key];return typeof value==='string'?value:fallback;}";
   // --- [BUGFIX] Détection automatique HTTPS ---
   js += "const SECURE_PROBE_TIMEOUT=1500;";
   js += "const securePreferenceCache=typeof Map==='function'?new Map():null;";
@@ -260,6 +265,9 @@ String generateJavaScript() {
   // --- [BUGFIX] Navigation onglets : délégation dès le chargement ---
   js += "document.addEventListener('DOMContentLoaded',function(){";
   js += "console.log('Interface chargée');";
+  // --- [NEW FEATURE] Préchargement des traductions UI dynamiques ---
+  js += "fetch('/api/get-translations').then(r=>r.json()).then(t=>{setTranslationsCache(t);updateInterfaceTexts();}).catch(err=>c";
+  js += "onsole.warn('Translations unavailable',err));";
   js += "initNavigation();";
   js += "applyAccessLinkScheme();";
   js += "loadAllData();";
@@ -369,6 +377,7 @@ String generateJavaScript() {
   js += "else if(tabName==='wifi'){tab.innerHTML=buildWifi();}";
   js += "else if(tabName==='benchmark'){tab.innerHTML=buildBenchmark();}";
   js += "else if(tabName==='export'){tab.innerHTML=buildExport();}";
+  js += "updateInterfaceTexts();";
   js += "}catch(e){tab.innerHTML='<div class=\"section\"><h2>❌ Erreur</h2><p>'+e+'</p></div>';}";
   js += "}";
 
@@ -460,34 +469,40 @@ String generateJavaScript() {
   js += "return h;";
   js += "}";
 
-js += "function buildScreens(d){";
+  // --- [NEW FEATURE] Traduction complète des interactions OLED ---
+  js += "function buildScreens(d){";
   js += "const rotation=(typeof d.oled.rotation!=='undefined')?d.oled.rotation:0;";
-  js += "let h='<div class=\"section\"><h2>🖥️ Écran OLED 0.96\\\" I2C</h2><div class=\"info-grid\">';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Statut</div><div class=\"info-value\" id=\"oled-status\">'+d.oled.status+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Pins I2C</div><div class=\"info-value\" id=\"oled-pins\">SDA:'+d.oled.pins.sda+' SCL:'+d.oled.pins.scl+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Rotation</div><div class=\"info-value\" id=\"oled-rotation-display\">'+rotation+'</div></div>';";
-  js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='SDA: <input type=\"number\" id=\"oledSDA\" value=\"'+d.oled.pins.sda+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
-  js += "h+='SCL: <input type=\"number\" id=\"oledSCL\" value=\"'+d.oled.pins.scl+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
-  js += "h+='Rotation: <select id=\"oledRotation\" style=\"width:90px;padding:10px;border:2px solid #ddd;border-radius:5px\">';";
-  js += "for(let i=0;i<4;i++){h+='<option value=\\''+i+'\\''+(i===rotation?' selected':'')+'>'+i+'</option>';};";
+  js += "const hasOled=d&&d.oled&&((typeof d.oled.available==='undefined')?true:!!d.oled.available);";
+  js += "let h='<div class=\\"section\\"><h2 data-i18n=\\"oled_screen\\" data-i18n-prefix=\\"🖥️ \">'+tr('oled_screen','Écran OLED 0.96\\\\\" I2C','OLED Screen 0.96\\\\\" I2C')+'</h2><div class=\\"info-grid\\">';";
+  js += "h+='<div class=\\"info-item\\"><div class=\\"info-label\\" data-i18n=\\"status\\">'+tr('status','Statut','Status')+'</div><div class=\\"info-value\\" id=\\"oled-status\\">'+d.oled.status+'</div></div>';";
+  js += "h+='<div class=\\"info-item\\"><div class=\\"info-label\\" data-i18n=\\"i2c_pins\\">'+tr('i2c_pins','Pins I2C','I2C Pins')+'</div><div class=\\"info-value\\" id=\\"oled-pins\\">SDA:'+d.oled.pins.sda+' SCL:'+d.oled.pins.scl+'</div></div>';";
+  js += "h+='<div class=\\"info-item\\"><div class=\\"info-label\\" data-i18n=\\"rotation\\">'+tr('rotation','Rotation','Rotation')+'</div><div class=\\"info-value\\" id=\\"oled-rotation-display\\">'+rotation+'</div></div>';";
+  js += "h+='<div class=\\"info-item\\" style=\\"grid-column:1/-1;text-align:center\\">';";
+  js += "h+='SDA: <input type=\\"number\\" id=\\"oledSDA\\" value=\\"'+d.oled.pins.sda+'\\" min=\\"0\\" max=\\"48\\" style=\\"width:70px\\"> ';";
+  js += "h+='SCL: <input type=\\"number\\" id=\\"oledSCL\\" value=\\"'+d.oled.pins.scl+'\\" min=\\"0\\" max=\\"48\\" style=\\"width:70px\\"> ';";
+  js += "h+=tr('rotation','Rotation','Rotation')+': <select id=\\"oledRotation\\" style=\\"width:90px;padding:10px;border:2px solid #ddd;border-radius:5px\\">';";
+  js += "for(let i=0;i<4;i++){h+='<option value=\\\\''+i+'\\\\''+(i===rotation?' selected':'')+'>'+i+'</option>';};";
   js += "h+='</select> ';";
-  js += "h+='<button class=\"btn btn-info\" onclick=\"configOLED()\">🔄 Reconfigurer</button>';";
-  js += "h+='<div style=\"margin-top:15px\"><button class=\"btn btn-primary\" onclick=\"testOLED()\">🧪 Test complet (25s)</button></div>';";
-  js += "h+='<div class=\"oled-step-grid\" style=\"margin-top:15px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px\">';";
-  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'welcome\')\">🏁 Accueil</button>';";
-  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'big_text\')\">🔠 Texte grand format</button>';";
-  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'text_sizes\')\">🔤 Tailles de texte</button>';";
-  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'shapes\')\">🟦 Formes géométriques</button>';";
-  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'horizontal_lines\')\">📏 Lignes horizontales</button>';";
-  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'diagonals\')\">📐 Lignes diagonales</button>';";
-  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'moving_square\')\">⬜ Carré en mouvement</button>';";
-  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'progress_bar\')\">📊 Barre de progression</button>';";
-  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'scroll_text\')\">📜 Texte défilant</button>';";
-  js += "h+='<button class=\"btn btn-secondary\" onclick=\"oledStep(\'final_message\')\">✅ Message final</button>';";
+  js += "h+='<button class=\\"btn btn-info\\" data-i18n=\\"apply_redetect\\" data-i18n-prefix=\\"🔄 \\" onclick=\\"configOLED()\\">'+tr('apply_redetect','Appliquer et Re-détecter','Apply and Re-detect')+'</button>';";
+  js += "if(hasOled){";
+  js += "h+='<div style=\\"margin-top:15px\\"><button class=\\"btn btn-primary\\" data-i18n=\\"full_test\\" data-i18n-prefix=\\"🧪 \\" data-i18n-suffix=\\" (25s)\\" onclick=\\"testOLED()\\">'+tr('full_test','Test Complet','Full Test')+'</button></div>';";
+  js += "h+='<div class=\\"oled-step-grid\\" style=\\"margin-top:15px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px\\">';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_welcome\\" data-i18n-prefix=\\"🏁 \\" onclick=\\"oledStep(\\'welcome\\')\\">'+tr('oled_step_welcome','Accueil','Welcome')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_big_text\\" data-i18n-prefix=\\"🔠 \\" onclick=\\"oledStep(\\'big_text\\')\\">'+tr('oled_step_big_text','Texte grand format','Large text')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_text_sizes\\" data-i18n-prefix=\\"🔤 \\" onclick=\\"oledStep(\\'text_sizes\\')\\">'+tr('oled_step_text_sizes','Tailles de texte','Text sizes')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_shapes\\" data-i18n-prefix=\\"🟦 \\" onclick=\\"oledStep(\\'shapes\\')\\">'+tr('oled_step_shapes','Formes géométriques','Geometric shapes')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_horizontal_lines\\" data-i18n-prefix=\\"📏 \\" onclick=\\"oledStep(\\'horizontal_lines\\')\\">'+tr('oled_step_horizontal_lines','Lignes horizontales','Horizontal lines')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_diagonals\\" data-i18n-prefix=\\"📐 \\" onclick=\\"oledStep(\\'diagonals\\')\\">'+tr('oled_step_diagonals','Lignes diagonales','Diagonal lines')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_moving_square\\" data-i18n-prefix=\\"⬜ \\" onclick=\\"oledStep(\\'moving_square\\')\\">'+tr('oled_step_moving_square','Carré en mouvement','Moving square')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_progress_bar\\" data-i18n-prefix=\\"📊 \\" onclick=\\"oledStep(\\'progress_bar\\')\\">'+tr('oled_step_progress_bar','Barre de progression','Progress bar')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_scroll_text\\" data-i18n-prefix=\\"📜 \\" onclick=\\"oledStep(\\'scroll_text\\')\\">'+tr('oled_step_scroll_text','Texte défilant','Scrolling text')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_final_message\\" data-i18n-prefix=\\"✅ \\" onclick=\\"oledStep(\\'final_message\\')\\">'+tr('oled_step_final_message','Message final','Final message')+'</button>';";
   js += "h+='</div>';";
-  js += "h+='<div style=\"margin-top:15px\"><input type=\"text\" id=\"oledText\" placeholder=\"Message à afficher\" style=\"width:300px;padding:10px\"> ';";
-  js += "h+='<button class=\"btn btn-success\" onclick=\"oledDisplayText()\">📤 Afficher message</button></div>';";
+  js += "h+='<div style=\\"margin-top:15px\\">';";
+  js += "h+='<input type=\\"text\\" id=\\"oledText\\" data-i18n-placeholder=\\"custom_message\\" placeholder=\\"'+tr('custom_message','Message personnalisé','Custom message')+'\\" style=\\"width:300px;padding:10px\\"> ';";
+  js += "h+='<button class=\\"btn btn-success\\" data-i18n=\\"show_message\\" data-i18n-prefix=\\"📤 \\" onclick=\\"oledDisplayText()\\">'+tr('show_message','Afficher Message','Display Message')+'</button>';";
+  js += "h+='</div>';";
+  js += "}";
   js += "h+='</div></div></div>';";
   js += "return h;";
   js += "}";
@@ -732,15 +747,18 @@ js += "function buildScreens(d){";
   js += "if(btn){btn.classList.add('active');}else{document.querySelectorAll('.lang-btn').forEach(b=>{if(b.textContent.toLowerCase()===lang)b.classList.add('active');});}";
   js += "return fetch('/api/get-translations');";
   js += "}}").then(r=>r.json()).then(translations=>{";
-  js += "updateInterfaceTexts(translations);";
+  js += "setTranslationsCache(translations);";
+  js += "updateInterfaceTexts();";
   js += "const ind=document.getElementById('updateIndicator');if(ind){ind.textContent='Langue changée : '+lang.toUpperCase();showUpdateIndicator();hideUpdateIndicator();}";
   js += "}).catch(e=>{const ind=document.getElementById('updateIndicator');if(ind){ind.textContent='Erreur changement langue: '+e;showUpdateIndicator();hideUpdateIndicator();}});";
   js += "}";
 
   js += "function updateInterfaceTexts(t){";
-  // --- [BUGFIX] Traductions alignées sur les onglets dynamiques ---
-  js += "const btns=document.querySelectorAll('.nav-btn');";
-  js += "btns.forEach(btn=>{const key=btn.dataset.tab;if(key&&t[key])btn.textContent=t[key];});";
+  js += "if(t){setTranslationsCache(t);}";
+  js += "const translations=translationsCache||{};";
+  // --- [NEW FEATURE] Actualisation complète des libellés traduits ---
+  js += "document.querySelectorAll('[data-i18n]').forEach(el=>{const key=el.getAttribute('data-i18n');if(!key){return;}const value=translations[key];if(typeof value!=='string'){return;}const prefix=el.getAttribute('data-i18n-prefix')||'';const suffix=el.getAttribute('data-i18n-suffix')||'';if(el.tagName==='INPUT'){if(el.hasAttribute('placeholder')){el.setAttribute('placeholder',prefix+value+suffix);}else{el.value=prefix+value+suffix;}}else{el.textContent=prefix+value+suffix;}});";
+  js += "document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{const key=el.getAttribute('data-i18n-placeholder');const value=translations[key];if(typeof value!=='string'){return;}const prefix=el.getAttribute('data-i18n-prefix')||'';const suffix=el.getAttribute('data-i18n-suffix')||'';el.setAttribute('placeholder',prefix+value+suffix);});";
   js += "}";
 
   return js;
