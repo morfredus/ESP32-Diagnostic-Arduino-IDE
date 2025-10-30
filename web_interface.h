@@ -167,9 +167,10 @@ String generateHTML() {
   String secureScheme = String(DIAGNOSTIC_SECURE_SCHEME);
   String legacyScheme = String(DIAGNOSTIC_LEGACY_SCHEME);
   String mdnsHost = String(MDNS_HOSTNAME_STR) + ".local";
-  String mdnsSecureUrl = secureScheme + mdnsHost;
   String mdnsLegacyUrl = legacyScheme + mdnsHost;
-  String ipAccessHref = ipAvailable ? (secureScheme + diagnosticData.ipAddress) : String("#");
+  // --- [BUGFIX] Affichage HTTP par défaut ---
+  String mdnsDisplayUrl = mdnsLegacyUrl;
+  String ipAccessHref = ipAvailable ? (legacyScheme + diagnosticData.ipAddress) : String("#");
   String ipLegacyHref = ipAvailable ? (legacyScheme + diagnosticData.ipAddress) : String();
   String ipAccessClass = String("access-link");
   if (!ipAvailable) {
@@ -181,7 +182,7 @@ String generateHTML() {
   html += "<span class='access-label'>Accès :</span>";
   // --- [NEW FEATURE] Liens HTTPS avec repli automatique ---
   html += "<a class='access-link' id='mdnsLink' href='";
-  html += mdnsSecureUrl;
+  html += mdnsDisplayUrl;
   html += "' data-access-host='";
   html += mdnsHost;
   html += "' data-secure='";
@@ -193,7 +194,7 @@ String generateHTML() {
   html += "' data-legacy-label='";
   html += mdnsLegacyUrl;
   html += "' data-label-id='mdnsAddressText' aria-disabled='false'><strong id='mdnsAddressText'>";
-  html += mdnsSecureUrl;
+  html += mdnsDisplayUrl;
   html += "</strong></a>";
   html += "<span class='access-sep'>•</span>";
   html += "<a id='ipAddressLink' class='";
@@ -245,7 +246,15 @@ String generateJavaScript() {
   js += "let currentLang='fr';";
   js += "let updateTimer=null;";
   js += "let isConnected=true;";
-  js += "function applyAccessLinkScheme(){var links=document.querySelectorAll('[data-access-host]');var preferSecure=window.location.protocol==='https:';for(var i=0;i<links.length;i++){var link=links[i];if(!link){continue;}var host=link.getAttribute('data-access-host');var secure=link.getAttribute('data-secure')||'https://';var legacy=link.getAttribute('data-legacy')||'http://';var labelId=link.getAttribute('data-label-id');var labelNode=labelId?document.getElementById(labelId):null;var labelHost=link.getAttribute('data-access-label')||host||'';var legacyLabel=link.getAttribute('data-legacy-label')||'';if(!host){link.href='#';link.classList.add('disabled');link.setAttribute('aria-disabled','true');if(labelNode&&labelNode.getAttribute('data-placeholder')){labelNode.textContent=labelNode.getAttribute('data-placeholder');}continue;}var scheme=preferSecure?secure:legacy;link.href=scheme+host;link.classList.remove('disabled');link.setAttribute('aria-disabled','false');if(labelNode){if(!preferSecure&&legacyLabel){labelNode.textContent=legacyLabel;}else{labelNode.textContent=scheme+labelHost;}}}}";
+  // --- [BUGFIX] Détection automatique HTTPS ---
+  js += "const SECURE_PROBE_TIMEOUT=1500;";
+  js += "const securePreferenceCache=typeof Map==='function'?new Map():null;";
+  js += "const securePreferenceStore={};";
+  js += "function getSecurePreference(key){if(securePreferenceCache){return securePreferenceCache.has(key)?securePreferenceCache.get(key):undefined;}return Object.prototype.hasOwnProperty.call(securePreferenceStore,key)?securePreferenceStore[key]:undefined;}";
+  js += "function setSecurePreference(key,value){if(securePreferenceCache){securePreferenceCache.set(key,value);return;}securePreferenceStore[key]=value;}";
+  js += "function probeSecureEndpoint(host,secure,cb){if(!host||typeof cb!=='function'){return;}const base=secure+host;let settled=false;const finalize=result=>{if(settled){return;}settled=true;clearTimeout(timer);cb(result);};const timer=setTimeout(()=>finalize(false),SECURE_PROBE_TIMEOUT);if(typeof fetch==='function'){fetch(base+'/',{mode:'no-cors'}).then(()=>finalize(true)).catch(()=>finalize(false));}else{try{const tester=new Image();tester.onload=function(){finalize(true);};tester.onerror=function(){finalize(false);};tester.src=base+'/favicon.ico?probe='+Date.now();}catch(err){finalize(false);}}}";
+  js += "function shouldPreferSecureAccess(host,secure,legacy){if(!host||!secure||secure===legacy){return false;}const key=secure+host;const cached=getSecurePreference(key);if(typeof cached==='boolean'){return cached;}setSecurePreference(key,false);probeSecureEndpoint(host,secure,function(available){const previous=getSecurePreference(key);setSecurePreference(key,available);if(previous!==available){applyAccessLinkScheme();}});return false;}";
+  js += "function applyAccessLinkScheme(){var links=document.querySelectorAll('[data-access-host]');for(var i=0;i<links.length;i++){var link=links[i];if(!link){continue;}var host=link.getAttribute('data-access-host');var secure=link.getAttribute('data-secure')||'https://';var legacy=link.getAttribute('data-legacy')||'http://';var labelId=link.getAttribute('data-label-id');var labelNode=labelId?document.getElementById(labelId):null;var labelHost=link.getAttribute('data-access-label')||host||'';var legacyLabel=link.getAttribute('data-legacy-label')||'';if(!host){link.href='#';link.classList.add('disabled');link.setAttribute('aria-disabled','true');if(labelNode&&labelNode.getAttribute('data-placeholder')){labelNode.textContent=labelNode.getAttribute('data-placeholder');}continue;}var useSecure=shouldPreferSecureAccess(host,secure,legacy);var scheme=useSecure?secure:legacy;link.href=scheme+host;link.classList.remove('disabled');link.setAttribute('aria-disabled','false');if(labelNode){if(!useSecure&&legacyLabel){labelNode.textContent=legacyLabel;}else{labelNode.textContent=scheme+labelHost;}}}}";
 
   // Initialisation - CORRIGÉE
   // --- [BUGFIX] Navigation onglets : délégation dès le chargement ---
@@ -294,11 +303,9 @@ String generateJavaScript() {
   js += "const hasIp=d.ipAddress&&d.ipAddress.length;";
   js += "const secureScheme=(ipLink&&ipLink.getAttribute('data-secure'))||'https://';";
   js += "const legacyScheme=(ipLink&&ipLink.getAttribute('data-legacy'))||'http://';";
-  js += "const preferSecure=window.location.protocol==='https:';";
-  js += "const activeScheme=preferSecure?secureScheme:legacyScheme;";
-  // --- [NEW FEATURE] Réalignement HTTPS dynamique ---
-  js += "if(ipLabel){if(hasIp){ipLabel.textContent=activeScheme+d.ipAddress;}else{var placeholder=ipLabel.getAttribute('data-placeholder')||'IP indisponible';ipLabel.textContent=placeholder;}}";
-  js += "if(ipLink){if(hasIp){ipLink.setAttribute('data-access-host',d.ipAddress);ipLink.setAttribute('data-access-label',d.ipAddress);ipLink.setAttribute('data-legacy-label',legacyScheme+d.ipAddress);ipLink.setAttribute('aria-disabled','false');ipLink.classList.remove('disabled');}else{ipLink.setAttribute('data-access-host','');ipLink.setAttribute('data-access-label','');ipLink.setAttribute('data-legacy-label','');ipLink.setAttribute('aria-disabled','true');ipLink.classList.add('disabled');}}";
+  js += "// --- [BUGFIX] Réalignement HTTP/HTTPS dynamique ---\n";
+  js += "if(ipLabel){if(hasIp){ipLabel.textContent=legacyScheme+d.ipAddress;}else{var placeholder=ipLabel.getAttribute('data-placeholder')||'IP indisponible';ipLabel.textContent=placeholder;}}";
+  js += "if(ipLink){if(hasIp){ipLink.href=legacyScheme+d.ipAddress;ipLink.setAttribute('data-access-host',d.ipAddress);ipLink.setAttribute('data-access-label',d.ipAddress);ipLink.setAttribute('data-legacy-label',legacyScheme+d.ipAddress);ipLink.setAttribute('aria-disabled','false');ipLink.classList.remove('disabled');}else{ipLink.href='#';ipLink.setAttribute('data-access-host','');ipLink.setAttribute('data-access-label','');ipLink.setAttribute('data-legacy-label','');ipLink.setAttribute('aria-disabled','true');ipLink.classList.add('disabled');}}";
   js += "applyAccessLinkScheme();";
   js += "}";
   js += "async function updateMemoryInfo(){await fetch('/api/memory');}";
