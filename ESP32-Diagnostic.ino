@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.4.07-dev
+ * ESP32 Diagnostic Suite v3.4.08-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.4.08-dev - Localisation des tests avancés",
   "3.4.07-dev - Harmonisation des traductions OLED",
   "3.4.06-dev - Localisation des statuts et actions OLED",
   "3.4.05-dev - Centralisation des traductions OLED dans languages.h",
@@ -214,7 +215,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.4.07-dev"
+#define DIAGNOSTIC_VERSION "3.4.08-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -3237,13 +3238,17 @@ String buildTranslationsJSON() {
   json += jsonField("custom_message", T().custom_message);
   json += jsonField("show_message", T().show_message);
   json += jsonField("adc_test", T().adc_test);
+  json += jsonField("start_adc_test", T().start_adc_test);
   json += jsonField("pwm_test", T().pwm_test);
   json += jsonField("spi_bus", T().spi_bus);
   json += jsonField("flash_partitions", T().flash_partitions);
   json += jsonField("memory_stress", T().memory_stress);
+  json += jsonField("stress_warning", T().stress_warning);
+  json += jsonField("start_stress", T().start_stress);
   json += jsonField("gpio_test", T().gpio_test);
   json += jsonField("test_all_gpio", T().test_all_gpio);
   json += jsonField("click_to_test", T().click_to_test);
+  json += jsonField("not_tested", T().not_tested);
   json += jsonField("gpio_warning", T().gpio_warning);
   json += jsonField("i2c_desc", T().i2c_desc);
   json += jsonField("adc_desc", T().adc_desc);

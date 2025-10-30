@@ -530,16 +530,17 @@ String generateJavaScript() {
   js += "}";
 
   // Build Tests
+  // --- [NEW FEATURE] Localisation complète des tests avancés ---
   js += "function buildTests(){";
-  js += "let h='<div class=\"section\"><h2>📊 Test ADC</h2>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" onclick=\"testADC()\">🧪 Lancer test ADC</button>';";
-  js += "h+='<div id=\"adc-status\" class=\"status-live\">Cliquez pour tester</div></div>';";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"adc_test\" data-i18n-prefix=\"📊 \">'+tr('adc_test')+'</h2>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"start_adc_test\" data-i18n-prefix=\"🧪 \\" onclick=\"testADC()\">'+tr('start_adc_test')+'</button>';";
+  js += "h+='<div id=\"adc-status\" class=\"status-live\" data-i18n=\"click_to_test\">'+tr('click_to_test')+'</div></div>';";
   js += "h+='<div id=\"adc-results\" class=\"info-grid\"></div></div>';";
-  js += "h+='<div class=\"section\"><h2>🔥 Stress Test</h2>';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"memory_stress\" data-i18n-prefix=\"🔥 \">'+tr('memory_stress')+'</h2>';";
   js += "h+='<div style=\"text-align:center;margin:20px 0\">';";
-  js += "h+='<p style=\"color:#dc3545;font-weight:bold\">⚠️ Peut ralentir l\\'ESP32 temporairement</p>';";
-  js += "h+='<button class=\"btn btn-danger\" onclick=\"runStressTest()\">🚀 Démarrer Stress Test</button>';";
-  js += "h+='<div id=\"stress-status\" class=\"status-live\">Non testé</div></div>';";
+  js += "h+='<p style=\"color:#dc3545;font-weight:bold\" data-i18n=\"stress_warning\" data-i18n-prefix=\"⚠️ \">'+tr('stress_warning')+'</p>';";
+  js += "h+='<button class=\"btn btn-danger\" data-i18n=\"start_stress\" data-i18n-prefix=\"🚀 \\" onclick=\"runStressTest()\">'+tr('start_stress')+'</button>';";
+  js += "h+='<div id=\"stress-status\" class=\"status-live\" data-i18n=\"not_tested\">'+tr('not_tested')+'</div></div>';";
   js += "h+='<div id=\"stress-results\" class=\"info-grid\"></div></div>';";
   js += "return h;";
   js += "}";
