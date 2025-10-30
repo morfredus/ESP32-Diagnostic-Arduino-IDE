@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.4.06-dev
+ * ESP32 Diagnostic Suite v3.4.07-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.4.07-dev - Harmonisation des traductions OLED",
   "3.4.06-dev - Localisation des statuts et actions OLED",
   "3.4.05-dev - Centralisation des traductions OLED dans languages.h",
   "3.4.04-dev - Correction des traductions des commandes écran",
@@ -213,7 +214,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.4.06-dev"
+#define DIAGNOSTIC_VERSION "3.4.07-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -4288,6 +4289,7 @@ a{color:inherit;}
   String oledPinsValue = "SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL);
   appendInfoItem(chunk, nullptr, T().i2c_pins, oledPinsValue, String(F("id='oled-pins'")));
   appendInfoItem(chunk, nullptr, T().rotation, String(oledRotation), String(F("id='oled-rotation-display'")));
+  // --- [BUGFIX] Harmonisation des attributs de traduction OLED ---
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "SDA: <input type='number' id='oledSDA' value='" + String(I2C_SDA) + "' min='0' max='48' style='width:70px'> ";
   chunk += "SCL: <input type='number' id='oledSCL' value='" + String(I2C_SCL) + "' min='0' max='48' style='width:70px'> ";
@@ -4296,26 +4298,26 @@ a{color:inherit;}
     chunk += "<option value='" + String(rot) + "'" + String(oledRotation == rot ? " selected" : "") + ">" + String(rot) + "</option>";
   }
   chunk += "</select> ";
-  chunk += "<button class='btn btn-info' onclick='configOLED()'>" + String(T().apply_redetect) + "</button>";
+  chunk += "<button class='btn btn-info' data-i18n='apply_redetect' data-i18n-prefix='🔄 ' onclick='configOLED()'>" + String(T().apply_redetect) + "</button>";
   if (oledAvailable) {
     chunk += "<div style='margin-top:15px'>";
-    chunk += "<button class='btn btn-primary' onclick='testOLED()'>" + String(T().full_test) + "</button>";
+    chunk += "<button class='btn btn-primary' data-i18n='full_test' data-i18n-prefix='🧪 ' data-i18n-suffix=' (25s)' onclick='testOLED()'>" + String(T().full_test) + "</button>";
     chunk += "</div>";
     chunk += "<div class='oled-step-grid' style='margin-top:15px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px'>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"welcome\")'>" + String(T().oled_step_welcome) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"big_text\")'>" + String(T().oled_step_big_text) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"text_sizes\")'>" + String(T().oled_step_text_sizes) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"shapes\")'>" + String(T().oled_step_shapes) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"horizontal_lines\")'>" + String(T().oled_step_horizontal_lines) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"diagonals\")'>" + String(T().oled_step_diagonals) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"moving_square\")'>" + String(T().oled_step_moving_square) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"progress_bar\")'>" + String(T().oled_step_progress_bar) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"scroll_text\")'>" + String(T().oled_step_scroll_text) + "</button>";
-    chunk += "<button class='btn btn-secondary' onclick='oledStep(\"final_message\")'>" + String(T().oled_step_final_message) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_welcome' data-i18n-prefix='🏁 ' onclick='oledStep(\"welcome\")'>" + String(T().oled_step_welcome) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_big_text' data-i18n-prefix='🔠 ' onclick='oledStep(\"big_text\")'>" + String(T().oled_step_big_text) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_text_sizes' data-i18n-prefix='🔤 ' onclick='oledStep(\"text_sizes\")'>" + String(T().oled_step_text_sizes) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_shapes' data-i18n-prefix='🟦 ' onclick='oledStep(\"shapes\")'>" + String(T().oled_step_shapes) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_horizontal_lines' data-i18n-prefix='📏 ' onclick='oledStep(\"horizontal_lines\")'>" + String(T().oled_step_horizontal_lines) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_diagonals' data-i18n-prefix='📐 ' onclick='oledStep(\"diagonals\")'>" + String(T().oled_step_diagonals) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_moving_square' data-i18n-prefix='⬜ ' onclick='oledStep(\"moving_square\")'>" + String(T().oled_step_moving_square) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_progress_bar' data-i18n-prefix='📊 ' onclick='oledStep(\"progress_bar\")'>" + String(T().oled_step_progress_bar) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_scroll_text' data-i18n-prefix='📜 ' onclick='oledStep(\"scroll_text\")'>" + String(T().oled_step_scroll_text) + "</button>";
+    chunk += "<button class='btn btn-secondary' data-i18n='oled_step_final_message' data-i18n-prefix='✅ ' onclick='oledStep(\"final_message\")'>" + String(T().oled_step_final_message) + "</button>";
     chunk += "</div>";
     chunk += "<div style='margin-top:15px'>";
-    chunk += "<input type='text' id='oledMsg' placeholder='" + String(T().custom_message) + "' style='width:250px;margin:0 5px'>";
-    chunk += "<button class='btn btn-success' onclick='oledMessage()'>" + String(T().show_message) + "</button>";
+    chunk += "<input type='text' id='oledMsg' data-i18n-placeholder='custom_message' placeholder='" + String(T().custom_message) + "' style='width:250px;margin:0 5px'>";
+    chunk += "<button class='btn btn-success' data-i18n='show_message' data-i18n-prefix='📤 ' onclick='oledMessage()'>" + String(T().show_message) + "</button>";
     chunk += "</div>";
   }
   chunk += "</div></div></div></div>";
