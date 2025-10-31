@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.4.11-dev
+ * ESP32 Diagnostic Suite v3.4.11
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.4.11 - Publication documentation et harmonisation finale des traductions dynamiques",
   "3.4.11-dev - Harmonisation des traductions dynamiques",
   "3.4.10-dev - Localisation instantanée des tests avancés",
   "3.4.09-dev - Actualisation instantanée des traductions",
@@ -218,7 +219,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.4.11-dev"
+#define DIAGNOSTIC_VERSION "3.4.11"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
