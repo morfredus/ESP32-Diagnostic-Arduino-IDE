@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.5.2-dev
+ * ESP32 Diagnostic Suite v3.5.3-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.5.3-dev - Correction traductions hardcodées (Message affiche, Inconnu, WiFi Open)",
   "3.5.2-dev - Ajout endpoints API manquants et correction traductions Overview",
   "3.5.1 - Restauration historique des versions",
   "3.5.0 - Publication de la version 3.5.0 pour mise en production",
@@ -222,7 +223,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.5.2-dev"
+#define DIAGNOSTIC_VERSION "3.5.3-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -747,9 +748,10 @@ String getWiFiSignalQuality() {
   return T().unknown.str();
 }
 
+// --- [TRANSLATION FIX] Use translation keys for WiFi auth modes ---
 String wifiAuthModeToString(wifi_auth_mode_t mode) {
   switch (mode) {
-    case WIFI_AUTH_OPEN: return (currentLanguage == LANG_FR) ? "Ouvert" : "Open";
+    case WIFI_AUTH_OPEN: return T().wifi_open_auth.str();
 #ifdef WIFI_AUTH_WEP
     case WIFI_AUTH_WEP: return "WEP";
 #endif
@@ -771,7 +773,7 @@ String wifiAuthModeToString(wifi_auth_mode_t mode) {
 #ifdef WIFI_AUTH_OWE
     case WIFI_AUTH_OWE: return "OWE";
 #endif
-    default: return "Inconnu";
+    default: return T().unknown.str();
   }
 }
 
@@ -1023,7 +1025,7 @@ void printPSRAMDiagnostic() {
   
   Serial.println("\r\nFlags de compilation detectes (indication du type supporte par la carte):");
   bool anyFlag = false;
-  String psramType = detailedMemory.psramType ? detailedMemory.psramType : "Inconnu";
+  String psramType = detailedMemory.psramType ? detailedMemory.psramType : T().unknown.str();
   
   #ifdef CONFIG_SPIRAM
     Serial.println("  ✓ CONFIG_SPIRAM");
@@ -2196,7 +2198,8 @@ void handleOLEDMessage() {
 
   String message = server.arg("message");
   oledShowMessage(message);
-  sendOperationSuccess(String("Message affiche"));
+  // --- [TRANSLATION FIX] Use translation key instead of hardcoded string ---
+  sendOperationSuccess(T().message_displayed.str());
 }
 
 void handleADCTest() {
@@ -2415,7 +2418,7 @@ void handleMemoryDetails() {
   json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") +
           ",\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") +
           ",\"supported\":" + String(detailedMemory.psramBoardSupported ? "true" : "false") +
-          ",\"type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : "Inconnu") + "\"" +
+          ",\"type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : T().unknown.str()) + "\"" +
           ",\"total\":" + String(detailedMemory.psramTotal) + ",\"free\":" + String(detailedMemory.psramFree) + "},";
   json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) + ",\"free\":" + String(detailedMemory.sramFree) + "},";
   json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",\"status\":\"" + detailedMemory.memoryStatus + "\"}";
@@ -2560,7 +2563,7 @@ void handleExportJSON() {
   json += "\"psram_free_mb\":" + String(detailedMemory.psramFree / 1048576.0, 2) + ",";
   json += "\"psram_available\":" + String(detailedMemory.psramAvailable ? "true" : "false") + ",";
   json += "\"psram_supported\":" + String(detailedMemory.psramBoardSupported ? "true" : "false") + ",";
-  json += "\"psram_type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : "Inconnu") + "\",";
+  json += "\"psram_type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : T().unknown.str()) + "\",";
   json += "\"sram_kb\":" + String(detailedMemory.sramTotal / 1024.0, 2) + ",";
   json += "\"sram_free_kb\":" + String(detailedMemory.sramFree / 1024.0, 2) + ",";
   json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",";
