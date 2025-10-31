@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Modules de diagnostic (v3.4.0)
+# ESP32 Diagnostic Suite – Modules de diagnostic (v3.5.0)
 
-Ce guide détaille chaque module de diagnostic automatisé livré avec la version 3.4.0. Il décrit l'ordre d'exécution, les métriques
+Ce guide détaille chaque module de diagnostic automatisé livré avec la version 3.5.0. Il décrit l'ordre d'exécution, les métriques
 collectées et les clés d'exportation à surveiller lors de l'analyse des rapports.
 
 ## Pipeline d'exécution
@@ -11,7 +11,7 @@ bord web, la REST API et le logger série.
 2. **Connectivité** – lance des scans Wi-Fi, un scan BLE optionnel et vérifie la diffusion mDNS.
 3. **Débit réseau** – exécute des benchmarks ping et HTTP lorsque les identifiants Wi-Fi sont renseignés.
 4. **Mémoire & stockage** – mesure la PSRAM, la fragmentation du tas et l'intégrité lecture/écriture de la flash.
-5. **Balayage GPIO** – alterne les sorties numériques, lit les entrées analogiques et sorties PWM (routine touchpad retirée en 3.4.0).
+5. **Balayage GPIO** – alterne les sorties numériques, lit les entrées analogiques et sorties PWM (routine touchpad retirée en 3.5.0).
 6. **Bus périphériques** – valide I2C (primaire/secondaire), boucle SPI, boucle UART et capteurs OneWire.
 7. **Afficheur & LEDs** – lance les séquences OLED, animations NeoPixel et vérifie les timings de rafraîchissement.
 8. **Reporting** – assemble les résultats, met à jour le journal d'activité et publie les données pour export/API.
