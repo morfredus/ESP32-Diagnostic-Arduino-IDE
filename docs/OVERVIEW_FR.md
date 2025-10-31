@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Vue d'ensemble (v3.5.0)
+# ESP32 Diagnostic Suite – Vue d'ensemble (v3.5.1)
 
-La suite ESP32 Diagnostic fournit une boîte à outils prête pour la production afin de valider les cartes basées sur ESP32 avant déploiement. La version 3.5.0 met l'accent sur la stabilisation des opérations de maintenance, l'harmonisation des annotations du firmware et l'enrichissement d'une base de connaissances bilingue pour les équipes d'intégration et de support.
+La suite ESP32 Diagnostic fournit une boîte à outils prête pour la production afin de valider les cartes basées sur ESP32 avant déploiement. La version 3.5.1 met l'accent sur la stabilisation des opérations de maintenance, l'harmonisation des annotations du firmware et l'enrichissement d'une base de connaissances bilingue pour les équipes d'intégration et de support.
 
 ## Mission
 - Proposer une méthodologie homogène pour qualifier les cartes ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 et ESP32-H2.
@@ -16,7 +16,7 @@ La suite ESP32 Diagnostic fournit une boîte à outils prête pour la production
 | Localisation | Bascule FR/EN à l'exécution côté firmware (sortie série) et interface web. |
 | Extensibilité | Registre modulaire de tests, bus d'événements pour callbacks personnalisés et helpers OLED/NeoPixel optionnels. |
 
-## Focus de la version 3.5.0
+## Focus de la version 3.5.1
 - Centralisation des prototypes et builders JSON pour mutualiser l'entretien des exports diagnostics.
 - Correction des erreurs de compilation des helpers JSON et restauration des retours `String` sûrs dans la chaîne de traduction.
 - Mise à jour de la documentation bilingue pour refléter le retrait du diagnostic touchpad et l'harmonisation des libellés.

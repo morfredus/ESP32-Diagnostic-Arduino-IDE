@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Feature Matrix (v3.5.0)
+# ESP32 Diagnostic Suite – Feature Matrix (v3.5.1)
 
-This matrix summarises the diagnostic coverage for the most common Espressif boards supported by version 3.5.0. Use it to plan
+This matrix summarises the diagnostic coverage for the most common Espressif boards supported by version 3.5.1. Use it to plan
 validation campaigns and to verify whether optional peripherals require additional wiring.
 
 ## Legend
