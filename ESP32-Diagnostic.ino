@@ -673,6 +673,17 @@ String getFlashSpeed() {
   #endif
 }
 
+const char* getResetReasonKey() {
+  esp_reset_reason_t reason = esp_reset_reason();
+  switch (reason) {
+    case ESP_RST_POWERON: return "poweron";
+    case ESP_RST_SW: return "software_reset";
+    case ESP_RST_DEEPSLEEP: return "deepsleep_exit";
+    case ESP_RST_BROWNOUT: return "brownout";
+    default: return "other";
+  }
+}
+
 String getResetReason() {
   esp_reset_reason_t reason = esp_reset_reason();
   switch (reason) {
@@ -712,12 +723,25 @@ String getMemoryStatus() {
   else return T().critical.str();
 }
 
+const char* getWiFiSignalQualityKey() {
+  if (diagnosticData.wifiRSSI >= -50) return "excellent";
+  else if (diagnosticData.wifiRSSI >= -60) return "very_good";
+  else if (diagnosticData.wifiRSSI >= -70) return "good";
+  else if (diagnosticData.wifiRSSI >= -80) return "weak";
+  else return "very_weak";
+}
+
 String getWiFiSignalQuality() {
-  if (diagnosticData.wifiRSSI >= -50) return T().excellent.str();
-  else if (diagnosticData.wifiRSSI >= -60) return T().very_good.str();
-  else if (diagnosticData.wifiRSSI >= -70) return T().good.str();
-  else if (diagnosticData.wifiRSSI >= -80) return T().weak.str();
-  else return T().very_weak.str();
+  const char* key = getWiFiSignalQualityKey();
+  if (key == nullptr) {
+    return T().unknown.str();
+  }
+  if (strcmp(key, "excellent") == 0) return T().excellent.str();
+  if (strcmp(key, "very_good") == 0) return T().very_good.str();
+  if (strcmp(key, "good") == 0) return T().good.str();
+  if (strcmp(key, "weak") == 0) return T().weak.str();
+  if (strcmp(key, "very_weak") == 0) return T().very_weak.str();
+  return T().unknown.str();
 }
 
 String wifiAuthModeToString(wifi_auth_mode_t mode) {
@@ -3147,6 +3171,11 @@ String buildTranslationsJSON() {
   json += jsonField("cpu_cores", T().cpu_cores);
   json += jsonField("mac_wifi", T().mac_wifi);
   json += jsonField("last_reset", T().last_reset);
+  json += jsonField("poweron", T().poweron);
+  json += jsonField("software_reset", T().software_reset);
+  json += jsonField("deepsleep_exit", T().deepsleep_exit);
+  json += jsonField("brownout", T().brownout);
+  json += jsonField("other", T().other);
   json += jsonField("chip_features", T().chip_features);
   json += jsonField("sdk_version", T().sdk_version);
   json += jsonField("idf_version", T().idf_version);
@@ -3173,6 +3202,15 @@ String buildTranslationsJSON() {
   json += jsonField("total_size", T().total_size);
   json += jsonField("free", T().free);
   json += jsonField("used", T().used);
+  json += jsonField("excellent", T().excellent);
+  json += jsonField("very_good", T().very_good);
+  json += jsonField("good", T().good);
+  json += jsonField("warning", T().warning);
+  json += jsonField("critical", T().critical);
+  json += jsonField("weak", T().weak);
+  json += jsonField("very_weak", T().very_weak);
+  json += jsonField("none", T().none);
+  json += jsonField("unknown", T().unknown);
   json += jsonField("enable_psram_hint", T().enable_psram_hint);
   json += jsonField("not_detected", T().not_detected);
   json += jsonField("internal_sram", T().internal_sram);
@@ -3185,6 +3223,8 @@ String buildTranslationsJSON() {
   json += jsonField("ip_address", T().ip_address);
   json += jsonField("subnet_mask", T().subnet_mask);
   json += jsonField("gateway", T().gateway);
+  json += jsonField("dns", T().dns);
+  json += jsonField("ip_unavailable", T().ip_unavailable);
   json += jsonField("access", T().access);
   json += jsonField("bluetooth_section", T().bluetooth_section);
   json += jsonField("bluetooth_status", T().bluetooth_status);
@@ -3212,9 +3252,27 @@ String buildTranslationsJSON() {
   json += jsonField("bluetooth_client_connected", T().bluetooth_client_connected);
   json += jsonField("bluetooth_client_disconnected", T().bluetooth_client_disconnected);
   json += jsonField("bluetooth_notifications_label", T().bluetooth_notifications_label);
+  json += jsonField("gpio", T().gpio);
+  json += jsonField("status", T().status);
+  json += jsonField("config", T().config);
+  json += jsonField("test", T().test);
+  json += jsonField("turn_on", T().turn_on);
+  json += jsonField("turn_off", T().turn_off);
+  json += jsonField("turn_off_all", T().turn_off_all);
+  json += jsonField("blink", T().blink);
+  json += jsonField("fade", T().fade);
+  json += jsonField("off", T().off);
+  json += jsonField("neopixel", T().neopixel);
+  json += jsonField("animations", T().animations);
+  json += jsonField("led_count", T().led_count);
+  json += jsonField("rainbow", T().rainbow);
+  json += jsonField("chase", T().chase);
+  json += jsonField("color", T().color);
+  json += jsonField("custom_color", T().custom_color);
   json += jsonField("gpio_interfaces", T().gpio_interfaces);
   json += jsonField("total_gpio", T().total_gpio);
   json += jsonField("i2c_peripherals", T().i2c_peripherals);
+  json += jsonField("device_count", T().device_count);
   json += jsonField("detected_addresses", T().detected_addresses);
   json += jsonField("builtin_led", T().builtin_led);
   json += jsonField("oled_screen", T().oled_screen);
@@ -3239,6 +3297,7 @@ String buildTranslationsJSON() {
   json += jsonField("oled_displaying_message", T().oled_displaying_message);
   json += jsonField("custom_message", T().custom_message);
   json += jsonField("show_message", T().show_message);
+  json += jsonField("apply_color", T().apply_color);
   json += jsonField("adc_test", T().adc_test);
   json += jsonField("start_adc_test", T().start_adc_test);
   json += jsonField("pwm_test", T().pwm_test);
@@ -3264,10 +3323,12 @@ String buildTranslationsJSON() {
   json += jsonField("wifi_scanner", T().wifi_scanner);
   json += jsonField("performance_bench", T().performance_bench);
   json += jsonField("data_export", T().data_export);
+  json += jsonField("click_to_scan", T().click_to_scan);
   json += jsonField("updating", T().updating);
   json += jsonField("online", T().online);
   json += jsonField("offline", T().offline);
   json += jsonField("check_network", T().check_network);
+  json += jsonField("language_label", T().language_label);
   json += jsonField("language_updated", T().language_updated);
   json += jsonField("language_switch_error", T().language_switch_error);
   json += jsonField("translation_error", T().translation_error);
@@ -3287,6 +3348,16 @@ String buildTranslationsJSON() {
   json += jsonField("i2c_scan_result", T().i2c_scan_result);
   json += jsonField("gpio_invalid", T().gpio_invalid);
   json += jsonField("configuration_invalid", T().configuration_invalid);
+  json += jsonField("testing", T().testing);
+  json += jsonField("scan", T().scan);
+  json += jsonField("scanning", T().scanning);
+  json += jsonField("completed", T().completed);
+  json += jsonField("cores", T().cores);
+  json += jsonField("pins", T().pins);
+  json += jsonField("devices", T().devices);
+  json += jsonField("networks", T().networks);
+  json += jsonField("tested", T().tested);
+  json += jsonField("channels", T().channels);
   json += jsonField("oled_test_running", T().oled_test_running, true);
   json += "}";
 
@@ -4141,12 +4212,19 @@ a{color:inherit;}
   
   // Chip Info
   chunk += "<div class='section'><h2 data-i18n='chip_info'>" + String(T().chip_info) + "</h2><div class='info-grid'>";
-  String modelValue = diagnosticData.chipModel + " " + String(T().revision) + " " + diagnosticData.chipRevision;
+  String modelValue = diagnosticData.chipModel + " <span data-i18n='revision'>" + String(T().revision) + "</span> " + diagnosticData.chipRevision;
   appendInfoItem(chunk, "full_model", T().full_model, modelValue);
   String cpuValue = String(diagnosticData.cpuCores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz";
   appendInfoItem(chunk, "cpu_cores", T().cpu_cores, cpuValue);
   appendInfoItem(chunk, "mac_wifi", T().mac_wifi, diagnosticData.macAddress);
-  appendInfoItem(chunk, "last_reset", T().last_reset, getResetReason());
+  const char* resetKey = getResetReasonKey();
+  String resetAttrs;
+  if (resetKey != nullptr) {
+    resetAttrs = "data-i18n='";
+    resetAttrs += resetKey;
+    resetAttrs += "'";
+  }
+  appendInfoItem(chunk, "last_reset", T().last_reset, getResetReason(), resetAttrs);
   appendInfoItem(chunk, "chip_features", T().chip_features, getChipFeatures());
   appendInfoItem(chunk, "sdk_version", T().sdk_version, diagnosticData.sdkVersion);
   appendInfoItem(chunk, "idf_version", T().idf_version, diagnosticData.idfVersion);
@@ -4227,7 +4305,14 @@ a{color:inherit;}
   appendInfoItem(chunk, "connected_ssid", T().connected_ssid, diagnosticData.wifiSSID);
   String wifiRssi = String(diagnosticData.wifiRSSI) + " dBm";
   appendInfoItem(chunk, "signal_power", T().signal_power, wifiRssi);
-  appendInfoItem(chunk, "signal_quality", T().signal_quality, getWiFiSignalQuality());
+  const char* wifiQualityKey = getWiFiSignalQualityKey();
+  String wifiQualityAttrs;
+  if (wifiQualityKey != nullptr) {
+    wifiQualityAttrs = "data-i18n='";
+    wifiQualityAttrs += wifiQualityKey;
+    wifiQualityAttrs += "'";
+  }
+  appendInfoItem(chunk, "signal_quality", T().signal_quality, getWiFiSignalQuality(), wifiQualityAttrs);
   appendInfoItem(chunk, "ip_address", T().ip_address, diagnosticData.ipAddress);
   appendInfoItem(chunk, "subnet_mask", T().subnet_mask, WiFi.subnetMask().toString());
   appendInfoItem(chunk, "gateway", T().gateway, WiFi.gatewayIP().toString());
@@ -4245,10 +4330,10 @@ a{color:inherit;}
 
   // GPIO et I2C
   chunk = "<div class='section'><h2 data-i18n='gpio_interfaces'>" + String(T().gpio_interfaces) + "</h2><div class='info-grid'>";
-  String totalGPIOValue = String(diagnosticData.totalGPIO) + " " + String(T().pins);
+  String totalGPIOValue = String(diagnosticData.totalGPIO) + " <span data-i18n='pins'>" + String(T().pins) + "</span>";
   appendInfoItem(chunk, "total_gpio", T().total_gpio, totalGPIOValue);
   if (ENABLE_I2C_SCAN) {
-    String i2cCountValue = String(diagnosticData.i2cCount) + " " + String(T().devices);
+    String i2cCountValue = String(diagnosticData.i2cCount) + " <span data-i18n='devices'>" + String(T().devices) + "</span>";
     appendInfoItem(chunk, "i2c_peripherals", T().i2c_peripherals, i2cCountValue);
     if (diagnosticData.i2cCount > 0) {
       appendInfoItem(chunk, "detected_addresses", T().detected_addresses, diagnosticData.i2cDevices, String(), String(F("style='grid-column:1/-1'")));
@@ -4587,8 +4672,8 @@ a{color:inherit;}
   chunk += "h+=\"<div class='wifi-item'><div style='display:flex;justify-content:space-between'><div><strong>\"+s+\" \"+n.ssid+\"</strong><br><small>\"+details+\"</small></div><div style='font-size:1.2em;font-weight:bold'>\"+n.rssi+\" dBm</div></div></div>\";";
   chunk += "});}";
   chunk += "document.getElementById('wifi-results').innerHTML=h;";
-  chunk += "var wifiLabel=tr('wifi_networks_found','%COUNT% réseaux détectés','%COUNT% networks found');";
-  chunk += "document.getElementById('wifi-status').innerHTML=wifiLabel.replace('%COUNT%',data.networks.length);";
+  chunk += "var wifiLabel=tr('wifi_networks_found','{count} réseaux détectés','{count} networks found');";
+  chunk += "document.getElementById('wifi-status').innerHTML=wifiLabel.replace('{count}',data.networks.length);";
   chunk += "});";
   chunk += "}";
   chunk += "function scanI2C(){updateStatus('i2c-status',tr('scan','Scan...','Scan...'),null);fetch('/api/i2c-scan').then(function(r){return r.json();}).then(function(d){var label=tr('i2c_scan_result','I2C : %COUNT% périphérique(s)','I2C: %COUNT% device(s)');updateStatus('i2c-status',label.replace('%COUNT%',d.count),'success');var summary=document.getElementById('i2c-summary');if(summary){var countLabel=tr('device_count','Nombre de Périphériques','Device count');summary.textContent=d.count+' '+countLabel+' - '+d.devices;}}).catch(function(e){updateStatus('i2c-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
