@@ -6,13 +6,13 @@
 - Assurez-vous qu'aucune autre application n'occupe la pile BLE (redémarrez la carte).
 
 ## Le changement de langue n'a aucun effet
-- Assurez-vous d'exécuter le firmware 3.4.0 afin que les helpers JSON mutualisés fournissent des succès explicites (FR/EN), un HTTP 400 sur les codes non pris en charge et des libellés harmonisés.
+- Assurez-vous d'exécuter le firmware 3.5.0 afin que les liaisons de traduction en direct fournissent des succès explicites (FR/EN), un HTTP 400 sur les codes non pris en charge et des libellés harmonisés.
 - Vérifiez que `languages.h` est présent à côté du sketch et compilé correctement.
 - Videz le cache du navigateur (Ctrl+F5) pour recharger les traductions.
 - Contrôlez que `/api/get-translations` renvoie HTTP 200 via la console ou un client REST.
 
 ## Les diagnostics additionnels affichent « Non teste » sans accent
-- Passez en version 3.4.0 (ou toute maintenance 3.x ultérieure) pour conserver l'intitulé « Non testé » et bénéficier du retour `String` sécurisé dans la chaîne de traduction.
+- Passez en version 3.5.0 (ou toute maintenance 3.x ultérieure) pour conserver l'intitulé « Non testé » et bénéficier du rafraîchissement instantané des traductions sur les onglets de diagnostics.
 - Rafraîchissez le tableau de bord (Ctrl+F5) afin de recharger les traductions mises à jour.
 
 ## L'écran OLED reste noir
@@ -26,7 +26,7 @@
 - Rapprochez la carte du point d'accès ou testez un SSID 2,4 GHz.
 
 ## Alertes de fragmentation mémoire dans les exports
-- Appelez `/api/memory-details` et analysez le pourcentage de `fragmentation` ainsi que les drapeaux PSRAM fournis par les helpers JSON unifiés de la 3.4.0.
+- Appelez `/api/memory-details` et analysez le pourcentage de `fragmentation` ainsi que les drapeaux PSRAM en vérifiant que les libellés traduits correspondent à la langue active en 3.5.0.
 - Activez la PSRAM sur les cartes ESP32-S3 afin de garder le drapeau `psramAvailable` cohérent avec la documentation.
 - Si la fragmentation reste au-dessus de 20 %, redémarrez la carte puis relancez les diagnostics pour purger l'usage temporaire de la heap.
 
