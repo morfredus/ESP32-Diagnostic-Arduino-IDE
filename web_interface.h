@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v2.5.1
+ * WEB_INTERFACE.H - Interface Web Dynamique v3.5.0
  */
 
 #ifndef WEB_INTERFACE_H
@@ -322,7 +322,7 @@ String generateJavaScript() {
   // Initialisation - CORRIGÉE
   // --- [BUGFIX] Navigation onglets : délégation dès le chargement ---
   js += "document.addEventListener('DOMContentLoaded',function(){";
-  js += "console.log('Interface chargée');";
+  js += "console.log('ESP32 Diagnostic - '+tr('interface_loaded'));";
   js += "document.documentElement.setAttribute('lang',currentLang);";
   // --- [NEW FEATURE] Préchargement des traductions UI dynamiques ---
   js += "fetchTranslations().then(t=>{setTranslationsCache(t);updateInterfaceTexts();}).catch(err=>console.warn('Translations unavailable',err));";

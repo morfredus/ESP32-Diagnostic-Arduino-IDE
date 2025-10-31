@@ -4,7 +4,11 @@
 #include <Arduino.h>
 #include <pgmspace.h>
 
-// ========== SYSTÈME DE TRADUCTION ==========
+// ========== SYSTÈME DE TRADUCTION OPTIMISÉ v3.5.1 ==========
+// Optimisations appliquées :
+// - Élimination des doublons (scan/scanning)
+// - Harmonisation des clés similaires
+// - Conservation de toutes les fonctionnalités
 
 enum Language {
   LANG_FR = 0,
@@ -249,7 +253,6 @@ extern Language currentLanguage;
   X(unknown, "Inconnu", "Unknown") \
   X(testing, "Test...", "Testing...") \
   X(completed, "Terminé", "Completed") \
-  X(scan, "Scan...", "Scanning...") \
   X(scanning, "Scan...", "Scanning...") \
   X(cores, "coeurs", "cores") \
   X(pins, "broches", "pins") \
@@ -285,7 +288,10 @@ extern Language currentLanguage;
   X(i2c_scan_result, "I2C : %COUNT% périphérique(s)", "I2C: %COUNT% device(s)") \
   X(gpio_invalid, "GPIO invalide", "Invalid GPIO") \
   X(configuration_invalid, "Configuration invalide", "Invalid configuration") \
-  X(oled_test_running, "Test en cours (25s)...", "Testing (25s)...")
+  X(oled_test_running, "Test en cours (25s)...", "Testing (25s)...") \
+  X(message_displayed, "Message affiché", "Message displayed") \
+  X(seconds, "secondes", "seconds") \
+  X(interface_loaded, "Interface chargée", "Interface loaded")
 
 enum TranslationKey {
 #define DECL_KEY(identifier, fr, en) TR_##identifier,
