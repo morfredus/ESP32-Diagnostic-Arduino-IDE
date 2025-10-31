@@ -79,6 +79,7 @@ extern Language currentLanguage;
   X(subnet_mask, "Masque Sous-réseau", "Subnet Mask") \
   X(gateway, "Passerelle", "Gateway") \
   X(dns, "DNS", "DNS") \
+  X(ip_unavailable, "IP indisponible", "IP unavailable") \
   X(wifi_channel, "Canal WiFi", "WiFi Channel") \
   X(bluetooth_section, "Bluetooth", "Bluetooth") \
   X(bluetooth_status, "Statut Bluetooth", "Bluetooth Status") \
@@ -118,12 +119,19 @@ extern Language currentLanguage;
   X(status, "Statut", "Status") \
   X(config, "Config", "Config") \
   X(test, "Test", "Test") \
+  X(turn_on, "Allumer", "Turn on") \
+  X(turn_off, "Éteindre", "Turn off") \
+  X(turn_off_all, "Tout éteindre", "Turn everything off") \
   X(blink, "Blink", "Blink") \
   X(fade, "Fade", "Fade") \
   X(off, "Off", "Off") \
   X(neopixel, "NeoPixel", "NeoPixel") \
+  X(animations, "Animations", "Animations") \
+  X(led_count, "Nombre de LEDs", "LED count") \
   X(rainbow, "Rainbow", "Rainbow") \
+  X(chase, "Course", "Chase") \
   X(color, "Couleur", "Color") \
+  X(custom_color, "Couleur personnalisée", "Custom color") \
   X(full_test, "Test Complet", "Full Test") \
   X(oled_screen, "Écran OLED 0.96\" I2C", "OLED Screen 0.96\" I2C") \
   X(i2c_pins, "Pins I2C", "I2C Pins") \
@@ -135,6 +143,7 @@ extern Language currentLanguage;
   X(changes_pins, "Modifie les pins I2C et relance la détection", "Changes I2C pins and restarts detection") \
   X(custom_message, "Message personnalisé", "Custom message") \
   X(show_message, "Afficher Message", "Display Message") \
+  X(apply_color, "Appliquer la couleur", "Apply color") \
   X(no_detected, "Aucun écran OLED détecté. Vérifiez le câblage et les pins I2C ci-dessus.", "No OLED screen detected. Check wiring and I2C pins above.") \
   X(check_wiring, "Vérifiez le câblage et les pins I2C", "Check wiring and I2C pins") \
   X(oled_step_welcome, "Accueil", "Welcome") \
@@ -184,6 +193,7 @@ extern Language currentLanguage;
   X(gpio_desc, "Teste automatiquement l'ensemble des broches GPIO.", "Automatically exercises every GPIO pin.") \
   X(wifi_scanner, "Scanner WiFi", "WiFi Scanner") \
   X(scan_networks, "Scanner Réseaux WiFi", "Scan WiFi Networks") \
+  X(click_to_scan, "Cliquez pour scanner", "Click to scan") \
   X(wifi_desc, "Analyse les réseaux WiFi et leurs paramètres radio.", "Analyzes nearby WiFi networks and radio parameters.") \
   X(performance_bench, "Benchmarks de Performance", "Performance Benchmarks") \
   X(run_benchmarks, "Lancer Benchmarks", "Run Benchmarks") \
@@ -256,6 +266,7 @@ extern Language currentLanguage;
   X(online, "En ligne", "Online") \
   X(offline, "Hors ligne", "Offline") \
   X(check_network, "Vérifiez le réseau.", "Check the network.") \
+  X(language_label, "Langue", "Language") \
   X(language_updated, "Langue mise à jour", "Language updated") \
   X(language_switch_error, "Erreur changement langue", "Language switch error") \
   X(translation_error, "Erreur traduction", "Translation error") \
