@@ -35,7 +35,9 @@ void handleJavaScript() {
 // Génère le HTML principal
 String generateHTML() {
   const char* langCode = (currentLanguage == LANG_EN) ? "en" : "fr";
-  String html = "<!DOCTYPE html><html lang='";
+  String html;
+  html.reserve(9500);  // Reserve memory to avoid reallocations
+  html = "<!DOCTYPE html><html lang='";
   html += langCode;
   html += "'><head>";
   html += "<meta charset='UTF-8'>";
@@ -282,7 +284,9 @@ String generateHTML() {
 
 // Génère le JavaScript principal
 String generateJavaScript() {
-  String js = "console.log('ESP32 Diagnostic v";
+  String js;
+  js.reserve(45000);  // Reserve memory to avoid reallocations (~42KB final size)
+  js = "console.log('ESP32 Diagnostic v";
   js += DIAGNOSTIC_VERSION_STR;
   js += " - Initialisation');";
   js += "const UPDATE_INTERVAL=5000;";
