@@ -20,7 +20,7 @@ Le tableau de bord est organisé en onglets :
 - **Performance** – historique des benchmarks et métriques temps réel.
 - **Export** – téléchargement des rapports TXT/JSON/CSV ou ouverture de la vue imprimable.
 
-La version 3.4.11 finalise le pipeline de traduction en direct : chaque onglet (Vue d'ensemble, tests avancés, sans fil, GPIO, performances, exports) se met à jour instantanément lors d'un changement de langue.
+La version 3.5.0 finalise le pipeline de traduction en direct : chaque onglet (Vue d'ensemble, tests avancés, sans fil, GPIO, performances, exports) se met à jour instantanément lors d'un changement de langue.
 
 La barre de navigation s'adapte aux mobiles et conserve l'onglet actif.
 
@@ -46,14 +46,14 @@ Toutes les routes renvoient du JSON sauf mention contraire :
 - La sortie série reflète les actions clés (Wi-Fi, BLE, résultats de tests).
 - Les exports incluent les informations carte, la mémoire, les benchmarks, le scan Wi-Fi, les GPIO et l'état OLED.
 - Utilisez le JSON pour l'analyse automatisée et TXT/CSV pour la consultation manuelle.
-- Exploitez l'endpoint `/api/memory-details` lorsque les exports signalent une fragmentation et vérifiez que les libellés traduits se mettent à jour en basculant de langue sous la version 3.4.11.
+- Exploitez l'endpoint `/api/memory-details` lorsque les exports signalent une fragmentation et vérifiez que les libellés traduits se mettent à jour en basculant de langue sous la version 3.5.0.
 
 ## 7. Bonnes pratiques
 - Relancez un scan Wi-Fi après tout déplacement pour rafraîchir les RSSI.
 - Arrêtez les animations NeoPixel avant de couper l'alimentation des LED externes.
 - Après changement des broches OLED, exécutez `/api/oled-config` puis `/api/oled-test` pour valider le câblage.
 
-## 8. Checklist de débogage post-release (3.4.11)
+## 8. Checklist de débogage post-release (3.5.0)
 - Parcourez les onglets Vue d'ensemble, Tests avancés, GPIO, Sans fil, Performances et Export en basculant FR/EN afin de garantir que chaque badge, bouton et placeholder se met à jour sans rechargement.
 - Appelez `/api/set-language` pour confirmer que le firmware valide chaque bascule et réapplique le catalogue partagé sans générer de doublons.
 - Téléchargez les rapports TXT/JSON/CSV et vérifiez que les en-têtes, les évaluations de qualité de signal et les statuts de benchmark suivent la langue sélectionnée.
