@@ -4587,8 +4587,8 @@ a{color:inherit;}
   chunk += "h+=\"<div class='wifi-item'><div style='display:flex;justify-content:space-between'><div><strong>\"+s+\" \"+n.ssid+\"</strong><br><small>\"+details+\"</small></div><div style='font-size:1.2em;font-weight:bold'>\"+n.rssi+\" dBm</div></div></div>\";";
   chunk += "});}";
   chunk += "document.getElementById('wifi-results').innerHTML=h;";
-  chunk += "var wifiLabel=tr('wifi_networks_found','%COUNT% réseaux détectés','%COUNT% networks found');";
-  chunk += "document.getElementById('wifi-status').innerHTML=wifiLabel.replace('%COUNT%',data.networks.length);";
+  chunk += "var wifiLabel=tr('wifi_networks_found','{count} réseaux détectés','{count} networks found');";
+  chunk += "document.getElementById('wifi-status').innerHTML=wifiLabel.replace('{count}',data.networks.length);";
   chunk += "});";
   chunk += "}";
   chunk += "function scanI2C(){updateStatus('i2c-status',tr('scan','Scan...','Scan...'),null);fetch('/api/i2c-scan').then(function(r){return r.json();}).then(function(d){var label=tr('i2c_scan_result','I2C : %COUNT% périphérique(s)','I2C: %COUNT% device(s)');updateStatus('i2c-status',label.replace('%COUNT%',d.count),'success');var summary=document.getElementById('i2c-summary');if(summary){var countLabel=tr('device_count','Nombre de Périphériques','Device count');summary.textContent=d.count+' '+countLabel+' - '+d.devices;}}).catch(function(e){updateStatus('i2c-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
