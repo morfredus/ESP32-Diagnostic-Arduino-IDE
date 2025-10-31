@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <pgmspace.h>
 
-// ========== SYSTÈME DE TRADUCTION OPTIMISÉ v3.5.1 ==========
+// ========== SYSTÈME DE TRADUCTION OPTIMISÉ v3.5.3 ==========
 // Optimisations appliquées :
 // - Élimination des doublons (scan/scanning)
 // - Harmonisation des clés similaires
@@ -85,6 +85,7 @@ extern Language currentLanguage;
   X(dns, "DNS", "DNS") \
   X(ip_unavailable, "IP indisponible", "IP unavailable") \
   X(wifi_channel, "Canal WiFi", "WiFi Channel") \
+  X(wifi_open_auth, "Ouvert", "Open") \
   X(bluetooth_section, "Bluetooth", "Bluetooth") \
   X(bluetooth_status, "Statut Bluetooth", "Bluetooth Status") \
   X(bluetooth_name, "Nom diffusé", "Advertised Name") \
