@@ -2249,6 +2249,162 @@ void handleBenchmark() {
   });
 }
 
+void handleStatus() {
+  sendJsonResponse(200, {
+    jsonBoolField("connected", WiFi.status() == WL_CONNECTED),
+    jsonBoolField("bluetooth", bluetoothEnabled),
+    jsonStringField("uptime", String(millis()))
+  });
+}
+
+void handleSystemInfo() {
+  collectDiagnosticInfo();
+  String json;
+  json.reserve(600);
+  json = "{";
+  json += "\"chipModel\":\"" + diagnosticData.chipModel + "\",";
+  json += "\"chipRevision\":\"" + diagnosticData.chipRevision + "\",";
+  json += "\"cpuCores\":" + String(diagnosticData.cpuCores) + ",";
+  json += "\"cpuFreq\":" + String(diagnosticData.cpuFreqMHz) + ",";
+  json += "\"macAddress\":\"" + diagnosticData.macAddress + "\",";
+  json += "\"ipAddress\":\"" + diagnosticData.ipAddress + "\",";
+  json += "\"mdnsReady\":" + String(diagnosticData.mdnsAvailable ? "true" : "false") + ",";
+  json += "\"uptime\":" + String(diagnosticData.uptime);
+  if (diagnosticData.temperature != -999) {
+    json += ",\"temperature\":" + String(diagnosticData.temperature, 1);
+  }
+  json += "}";
+  server.send(200, "application/json", json);
+}
+
+void handleMemory() {
+  collectDetailedMemory();
+  String json;
+  json.reserve(500);
+  json = "{";
+  json += "\"heap\":{\"total\":" + String(diagnosticData.heapSize) +
+          ",\"free\":" + String(diagnosticData.freeHeap) +
+          ",\"used\":" + String(diagnosticData.heapSize - diagnosticData.freeHeap) + "},";
+  json += "\"psram\":{\"total\":" + String(detailedMemory.psramTotal) +
+          ",\"free\":" + String(detailedMemory.psramFree) +
+          ",\"used\":" + String(detailedMemory.psramUsed) + "},";
+  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1);
+  json += "}";
+  server.send(200, "application/json", json);
+}
+
+void handleWiFiInfo() {
+  collectDiagnosticInfo();
+  String json;
+  json.reserve(400);
+  json = "{";
+  json += "\"connected\":" + String(WiFi.status() == WL_CONNECTED ? "true" : "false") + ",";
+  json += "\"ssid\":\"" + diagnosticData.wifiSSID + "\",";
+  json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
+  json += "\"quality_key\":\"" + String(getWiFiSignalQualityKey()) + "\",";
+  json += "\"quality\":\"" + getWiFiSignalQuality() + "\",";
+  json += "\"ip\":\"" + diagnosticData.ipAddress + "\",";
+  json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",";
+  json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
+  json += "}";
+  server.send(200, "application/json", json);
+}
+
+void handlePeripherals() {
+  scanI2C();
+  String json;
+  json.reserve(300);
+  json = "{";
+  json += "\"i2c\":{\"count\":" + String(diagnosticData.i2cCount) +
+          ",\"devices\":\"" + diagnosticData.i2cDevices + "\"},";
+  json += "\"gpio\":{\"total\":" + String(diagnosticData.totalGPIO) +
+          ",\"list\":\"" + diagnosticData.gpioList + "\"}";
+  json += "}";
+  server.send(200, "application/json", json);
+}
+
+void handleLedsInfo() {
+  String json;
+  json.reserve(400);
+  json = "{";
+  json += "\"builtin\":{\"pin\":" + String(BUILTIN_LED_PIN) +
+          ",\"status\":\"" + builtinLedTestResult + "\"},";
+  json += "\"neopixel\":{\"pin\":" + String(LED_PIN) +
+          ",\"count\":" + String(LED_COUNT) +
+          ",\"status\":\"" + neopixelTestResult + "\"}";
+  json += "}";
+  server.send(200, "application/json", json);
+}
+
+void handleScreensInfo() {
+  String json;
+  json.reserve(300);
+  json = "{";
+  json += "\"oled\":{\"available\":" + String(oledAvailable ? "true" : "false") +
+          ",\"status\":\"" + oledTestResult + "\",";
+  json += "\"pins\":{\"sda\":" + String(I2C_SDA) + ",\"scl\":" + String(I2C_SCL) + "},";
+  json += "\"rotation\":" + String(oledRotation) + "}";
+  json += "}";
+  server.send(200, "application/json", json);
+}
+
+void handleOverview() {
+  collectDiagnosticInfo();
+  collectDetailedMemory();
+  scanI2C();
+
+  String json;
+  json.reserve(2500);  // Reserve memory for the complete overview response
+  json = "{";
+
+  // Chip info
+  json += "\"chip\":{";
+  json += "\"model\":\"" + diagnosticData.chipModel + "\",";
+  json += "\"revision\":\"" + diagnosticData.chipRevision + "\",";
+  json += "\"cores\":" + String(diagnosticData.cpuCores) + ",";
+  json += "\"freq\":" + String(diagnosticData.cpuFreqMHz) + ",";
+  json += "\"mac\":\"" + diagnosticData.macAddress + "\",";
+  json += "\"uptime\":" + String(diagnosticData.uptime);
+  if (diagnosticData.temperature != -999) {
+    json += ",\"temperature\":" + String(diagnosticData.temperature, 1);
+  } else {
+    json += ",\"temperature\":-999";
+  }
+  json += "},";
+
+  // Memory info
+  json += "\"memory\":{";
+  json += "\"flash\":{\"real\":" + String(detailedMemory.flashSizeReal) +
+          ",\"type\":\"" + getFlashType() + "\",\"speed\":\"" + getFlashSpeed() + "\"},";
+  json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) +
+          ",\"free\":" + String(detailedMemory.sramFree) +
+          ",\"used\":" + String(detailedMemory.sramUsed) + "},";
+  json += "\"psram\":{\"total\":" + String(detailedMemory.psramTotal) +
+          ",\"free\":" + String(detailedMemory.psramFree) +
+          ",\"used\":" + String(detailedMemory.psramUsed) + "},";
+  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1);
+  json += "},";
+
+  // WiFi info - Use translation key instead of translated string
+  json += "\"wifi\":{";
+  json += "\"ssid\":\"" + diagnosticData.wifiSSID + "\",";
+  json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
+  json += "\"quality_key\":\"" + String(getWiFiSignalQualityKey()) + "\",";  // Return key, not translated string
+  json += "\"quality\":\"" + getWiFiSignalQuality() + "\",";  // Keep for backward compatibility
+  json += "\"ip\":\"" + diagnosticData.ipAddress + "\"";
+  json += "},";
+
+  // GPIO info
+  json += "\"gpio\":{";
+  json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
+  json += "\"i2c_count\":" + String(diagnosticData.i2cCount) + ",";
+  json += "\"i2c_devices\":\"" + diagnosticData.i2cDevices + "\"";
+  json += "}";
+
+  json += "}";
+  server.send(200, "application/json", json);
+}
+
 void handleMemoryDetails() {
   collectDetailedMemory();
 
@@ -4792,7 +4948,17 @@ void setup() {
   // **NOUVELLES ROUTES MULTILINGUES**
   server.on("/api/set-language", handleSetLanguage);
   server.on("/api/get-translations", handleGetTranslations);
-  
+
+  // Data endpoints
+  server.on("/api/status", handleStatus);
+  server.on("/api/overview", handleOverview);
+  server.on("/api/system-info", handleSystemInfo);
+  server.on("/api/memory", handleMemory);
+  server.on("/api/wifi-info", handleWiFiInfo);
+  server.on("/api/peripherals", handlePeripherals);
+  server.on("/api/leds-info", handleLedsInfo);
+  server.on("/api/screens-info", handleScreensInfo);
+
   // GPIO & WiFi
   server.on("/api/test-gpio", handleTestGPIO);
   server.on("/api/wifi-scan", handleWiFiScan);
