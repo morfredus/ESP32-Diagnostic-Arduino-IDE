@@ -2,7 +2,7 @@
 
 Follow the steps below to deploy the ESP32 Diagnostic Suite on your board.
 
-> **Release 3.4.0:** Confirm the firmware banner and `DIAGNOSTIC_VERSION` constant report 3.4.0, then validate `/api/memory-details` and the bilingual UI to ensure the unified JSON helpers and translation fixes are active.
+> **Release 3.5.0:** Confirm the firmware banner and `DIAGNOSTIC_VERSION` constant report 3.5.0, then switch the dashboard language to verify the new live translation bindings refresh tests, wireless cards, and export buttons instantly.
 
 ## 1. Prerequisites
 - ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, or ESP32-H2 board (S3 recommended).
@@ -45,4 +45,4 @@ Detailed configuration notes are available in [CONFIG.md](CONFIG.md).
 3. Ensure **PSRAM** is enabled for ESP32-S3 boards to unlock advanced diagnostics.
 4. Click **Verify** to compile, then **Upload** to flash the firmware.
 
-Upon success, the serial monitor will display the firmware version and connection status. Run the memory inspector once (`/api/memory-details`) to confirm fragmentation and PSRAM status reporting matches the updated documentation.
+Upon success, the serial monitor will display the firmware version and connection status. Toggle between French and English on the web dashboard to ensure every status chip and export control updates without requiring a page reload.
