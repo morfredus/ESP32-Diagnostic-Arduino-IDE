@@ -163,6 +163,15 @@ extern Language currentLanguage;
   X(memory_stress, "Stress Test Mémoire", "Memory Stress Test") \
   X(stress_warning, "Peut ralentir l'ESP32 temporairement", "May temporarily slow the ESP32") \
   X(start_stress, "Lancer Stress Test", "Start Stress Test") \
+  X(test_in_progress, "Test en cours...", "Test in progress...") \
+  X(gpio_test_complete, "Terminé - {count} GPIO testés", "Completed - {count} GPIO tested") \
+  X(wifi_scan_in_progress, "Scan en cours...", "Scanning...") \
+  X(wifi_networks_found, "{count} réseaux détectés", "{count} networks found") \
+  X(wifi_channel, "Canal", "Channel") \
+  X(stress_running, "⚠️ Test en cours... Patientez", "⚠️ Test running... Please wait") \
+  X(cpu_time, "Temps CPU", "CPU Time") \
+  X(memory_time, "Temps Mémoire", "Memory Time") \
+  X(allocations_label, "Allocations", "Allocations") \
   X(i2c_desc, "Détecte les périphériques reliés au bus I2C.", "Detects peripherals connected on the I2C bus.") \
   X(adc_desc, "Contrôle les entrées analogiques pour valider l'ADC.", "Checks analog inputs to validate the ADC.") \
   X(pwm_desc, "Vérifie la génération de PWM sur les sorties sélectionnées.", "Verifies PWM generation on the selected outputs.") \

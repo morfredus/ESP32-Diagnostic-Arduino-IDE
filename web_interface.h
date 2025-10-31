@@ -676,62 +676,62 @@ String generateJavaScript() {
   js += "}";
 
   // FONCTIONS API - Tests
+  // --- [BUGFIX] Localisation dynamique des tests avancés ---
   js += "async function testADC(){";
-  js += "document.getElementById('adc-status').textContent='Test en cours...';";
+  js += "setStatus('adc-status',tr('test_in_progress'),null);";
   js += "const r=await fetch('/api/adc-test');const d=await r.json();";
-  js += "let h='';d.readings.forEach(rd=>{h+='<div class=\"info-item\"><div class=\"info-label\">GPIO '+rd.pin+'</div><div class=\"info-value\">'+rd.raw+' ('+rd.voltage.toFixed(2)+'V)</div></div>';});";
+  js += "let h='';d.readings.forEach(rd=>{h+='<div class=\\"info-item\\"><div class=\\"info-label\\">GPIO '+rd.pin+'</div><div class=\\"info-value\\">'+rd.raw+' ('+rd.voltage.toFixed(2)+'V)</div></div>';});";
   js += "document.getElementById('adc-results').innerHTML=h;";
-  js += "document.getElementById('adc-status').textContent=d.result;";
+  js += "setStatus('adc-status',d.result,null);";
   js += "}";
 
   js += "async function testAllGPIO(){";
-  js += "document.getElementById('gpio-status').textContent='Test en cours...';";
+  js += "setStatus('gpio-status',tr('test_in_progress'),null);";
   js += "const r=await fetch('/api/test-gpio');const d=await r.json();";
-  js += "let h='';d.results.forEach(g=>{h+='<div class=\"gpio-item '+(g.working?'gpio-ok':'gpio-fail')+'\">GPIO '+g.pin+'<br>'+(g.working?'✅ OK':'❌ FAIL')+'</div>';});";
+  js += "let h='';d.results.forEach(g=>{h+='<div class=\\"gpio-item '+(g.working?'gpio-ok':'gpio-fail')+'\\">GPIO '+g.pin+'<br>'+(g.working?'✅ OK':'❌ FAIL')+'</div>';});";
   js += "document.getElementById('gpio-results').innerHTML=h;";
-  js += "document.getElementById('gpio-status').textContent='Terminé - '+d.results.length+' GPIO testés';";
+  js += "setStatus('gpio-status',tr('gpio_test_complete').replace('{count}',d.results.length),null);";
   js += "}";
 
   js += "async function scanWiFi(){";
-  js += "document.getElementById('wifi-status').textContent='Scan en cours...';";
+  js += "setStatus('wifi-status',tr('wifi_scan_in_progress'),null);";
   js += "const r=await fetch('/api/wifi-scan');const d=await r.json();";
   js += "let h='';d.networks.forEach(n=>{";
   js += "const icon=n.rssi>=-60?'🟢':n.rssi>=-70?'🟡':'🔴';";
   js += "const color=n.rssi>=-60?'#28a745':n.rssi>=-70?'#ffc107':'#dc3545';";
-  js += "h+='<div class=\"wifi-item\"><div style=\"display:flex;justify-content:space-between\"><div><strong>'+icon+' '+n.ssid+'</strong><br><small>'+n.bssid+' | Canal '+n.channel+'</small></div>';";
-  js += "h+='<div style=\"font-size:1.3em;font-weight:bold;color:'+color+'\">'+n.rssi+' dBm</div></div></div>';";
+  js += "h+='<div class=\\"wifi-item\\"><div style=\\"display:flex;justify-content:space-between\\"><div><strong>'+icon+' '+n.ssid+'</strong><br><small>'+n.bssid+' | '+tr('wifi_channel')+' '+n.channel+'</small></div>';";
+  js += "h+='<div style=\\"font-size:1.3em;font-weight:bold;color:'+color+'\\">'+n.rssi+' dBm</div></div></div>';";
   js += "});";
   js += "document.getElementById('wifi-results').innerHTML=h;";
-  js += "document.getElementById('wifi-status').textContent=d.networks.length+' réseaux détectés';";
+  js += "setStatus('wifi-status',tr('wifi_networks_found').replace('{count}',d.networks.length),null);";
   js += "}";
 
   js += "async function runBenchmarks(){";
-  js += "document.getElementById('cpu-bench').textContent='Test en cours...';";
-  js += "document.getElementById('mem-bench').textContent='Test en cours...';";
+  js += "document.getElementById('cpu-bench').textContent=tr('test_in_progress');";
+  js += "document.getElementById('mem-bench').textContent=tr('test_in_progress');";
   js += "const r=await fetch('/api/benchmark');const d=await r.json();";
   js += "document.getElementById('cpu-bench').textContent=d.cpu+' µs';";
   js += "document.getElementById('mem-bench').textContent=d.memory+' µs';";
   js += "}";
 
   js += "async function runStressTest(){";
-  js += "document.getElementById('stress-status').textContent='⚠️ Test en cours... Patientez';";
-  js += "document.getElementById('stress-results').innerHTML='<div class=\"loading\"></div>';";
+  js += "setStatus('stress-status',tr('stress_running'),null);";
+  js += "document.getElementById('stress-results').innerHTML='<div class=\\"loading\\"></div>';";
   js += "try{";
   js += "const r=await fetch('/api/stress-test');";
   js += "const d=await r.json();";
   js += "let h='';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Temps CPU</div><div class=\"info-value\">'+d.cpu_time+' ms</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Temps Mémoire</div><div class=\"info-value\">'+d.mem_time+' ms</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Allocations</div><div class=\"info-value\">'+d.allocs_success+'/'+d.allocs_total+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\">Fragmentation</div><div class=\"info-value\">'+d.fragmentation.toFixed(1)+'%</div></div>';";
+  js += "h+='<div class=\\"info-item\\"><div class=\\"info-label\\" data-i18n=\\"cpu_time\\">'+tr('cpu_time')+'</div><div class=\\"info-value\\">'+d.cpu_time+' ms</div></div>';";
+  js += "h+='<div class=\\"info-item\\"><div class=\\"info-label\\" data-i18n=\\"memory_time\\">'+tr('memory_time')+'</div><div class=\\"info-value\\">'+d.mem_time+' ms</div></div>';";
+  js += "h+='<div class=\\"info-item\\"><div class=\\"info-label\\" data-i18n=\\"allocations_label\\">'+tr('allocations_label')+'</div><div class=\\"info-value\\">'+d.allocs_success+'/'+d.allocs_total+'</div></div>';";
+  js += "h+='<div class=\\"info-item\\"><div class=\\"info-label\\" data-i18n=\\"memory_fragmentation\\">'+tr('memory_fragmentation')+'</div><div class=\\"info-value\\">'+d.fragmentation.toFixed(1)+'%</div></div>';";
   js += "document.getElementById('stress-results').innerHTML=h;";
-  js += "document.getElementById('stress-status').textContent='✅ '+d.message;";
+  js += "setStatus('stress-status','✅ '+d.message,'success');";
   js += "}catch(e){";
-  js += "document.getElementById('stress-status').textContent='❌ Erreur: '+e;";
+  js += "setStatus('stress-status','❌ '+tr('error_label')+': '+e,'error');";
   js += "document.getElementById('stress-results').innerHTML='';";
   js += "}";
   js += "}";
-
   // Utility functions
   js += "function formatUptime(ms){";
   js += "const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60),d=Math.floor(h/24);";
