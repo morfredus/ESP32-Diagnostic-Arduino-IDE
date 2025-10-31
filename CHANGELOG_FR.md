@@ -2,6 +2,18 @@
 
 Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Version 3.4.11] - 2025-10-30
+### Ajouts
+- Extension des liaisons de traduction en direct sur les panneaux de diagnostics afin que les widgets sans fil, pager, GPIO et exports réutilisent le catalogue commun sans doublons.
+
+### Corrections
+- Résolution des métadonnées carte non traduites (cœurs CPU, adresses MAC, raisons de reset, métriques mémoire) pour que le changement de langue reste synchronisé sans rechargement.
+
+### Améliorations
+- Raffinement du rafraîchisseur de traduction côté client pour réappliquer instantanément préfixes, suffixes et placeholders lors d'une bascule de langue.
+
+---
+
 ## [Version 3.4.0] - 2025-10-29
 ### Ajouts
 - Mutualisation des prototypes des helpers JSON afin d'exposer des signatures cohérentes entre modules de diagnostic.
