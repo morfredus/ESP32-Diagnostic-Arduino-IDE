@@ -167,7 +167,6 @@ extern Language currentLanguage;
   X(gpio_test_complete, "Terminé - {count} GPIO testés", "Completed - {count} GPIO tested") \
   X(wifi_scan_in_progress, "Scan en cours...", "Scanning...") \
   X(wifi_networks_found, "{count} réseaux détectés", "{count} networks found") \
-  X(wifi_channel, "Canal", "Channel") \
   X(stress_running, "⚠️ Test en cours... Patientez", "⚠️ Test running... Please wait") \
   X(cpu_time, "Temps CPU", "CPU Time") \
   X(memory_time, "Temps Mémoire", "Memory Time") \
@@ -272,7 +271,6 @@ extern Language currentLanguage;
   X(error_label, "Erreur", "Error") \
   X(test_failed, "Test en échec", "Test failed") \
   X(gpio_summary_template, "Terminé - %COUNT% GPIO testés", "Done - %COUNT% GPIO tested") \
-  X(wifi_networks_found, "%COUNT% réseaux détectés", "%COUNT% networks found") \
   X(i2c_scan_result, "I2C : %COUNT% périphérique(s)", "I2C: %COUNT% device(s)") \
   X(gpio_invalid, "GPIO invalide", "Invalid GPIO") \
   X(configuration_invalid, "Configuration invalide", "Invalid configuration") \
