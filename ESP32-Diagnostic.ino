@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.4.10-dev
+ * ESP32 Diagnostic Suite v3.4.11-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.4.11-dev - Harmonisation des traductions dynamiques",
   "3.4.10-dev - Localisation instantanée des tests avancés",
   "3.4.09-dev - Actualisation instantanée des traductions",
   "3.4.08-dev - Localisation des tests avancés",
@@ -217,14 +218,13 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.4.10-dev"
+#define DIAGNOSTIC_VERSION "3.4.11-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
 
-// --- [BUGFIX] Préférence HTTPS contrôlable ---
 #if !defined(DIAGNOSTIC_PREFER_SECURE)
 #define DIAGNOSTIC_PREFER_SECURE 0
 #endif
@@ -465,7 +465,6 @@ float heapHistory[HISTORY_SIZE];
 float tempHistory[HISTORY_SIZE];
 int historyIndex = 0;
 
-// --- [BUGFIX] URL stable en HTTP par défaut ---
 String getStableAccessURL() {
   return buildAccessUrl(getStableAccessHost());
 }
@@ -673,6 +672,17 @@ String getFlashSpeed() {
   #endif
 }
 
+const char* getResetReasonKey() {
+  esp_reset_reason_t reason = esp_reset_reason();
+  switch (reason) {
+    case ESP_RST_POWERON: return "poweron";
+    case ESP_RST_SW: return "software_reset";
+    case ESP_RST_DEEPSLEEP: return "deepsleep_exit";
+    case ESP_RST_BROWNOUT: return "brownout";
+    default: return "other";
+  }
+}
+
 String getResetReason() {
   esp_reset_reason_t reason = esp_reset_reason();
   switch (reason) {
@@ -712,12 +722,25 @@ String getMemoryStatus() {
   else return T().critical.str();
 }
 
+const char* getWiFiSignalQualityKey() {
+  if (diagnosticData.wifiRSSI >= -50) return "excellent";
+  else if (diagnosticData.wifiRSSI >= -60) return "very_good";
+  else if (diagnosticData.wifiRSSI >= -70) return "good";
+  else if (diagnosticData.wifiRSSI >= -80) return "weak";
+  else return "very_weak";
+}
+
 String getWiFiSignalQuality() {
-  if (diagnosticData.wifiRSSI >= -50) return T().excellent.str();
-  else if (diagnosticData.wifiRSSI >= -60) return T().very_good.str();
-  else if (diagnosticData.wifiRSSI >= -70) return T().good.str();
-  else if (diagnosticData.wifiRSSI >= -80) return T().weak.str();
-  else return T().very_weak.str();
+  const char* key = getWiFiSignalQualityKey();
+  if (key == nullptr) {
+    return T().unknown.str();
+  }
+  if (strcmp(key, "excellent") == 0) return T().excellent.str();
+  if (strcmp(key, "very_good") == 0) return T().very_good.str();
+  if (strcmp(key, "good") == 0) return T().good.str();
+  if (strcmp(key, "weak") == 0) return T().weak.str();
+  if (strcmp(key, "very_weak") == 0) return T().very_weak.str();
+  return T().unknown.str();
 }
 
 String wifiAuthModeToString(wifi_auth_mode_t mode) {
@@ -2838,7 +2861,6 @@ static inline void appendInfoItem(String& chunk,
   }
   chunk += F("><div class='info-label");
   if (labelKey != nullptr && labelKey[0] != '\0') {
-    // --- [FIX] Attribut data-i18n correctement concaténé ---
     chunk += F(" data-i18n='");
     chunk += labelKey;
     chunk += F("'>");
@@ -3128,7 +3150,6 @@ void stopBluetooth() {
 }
 
 String buildTranslationsJSON() {
-  // --- [REFACTOR] Centralisation de la construction JSON des traductions ---
   String json = "{";
   json.reserve(1600);
   json += jsonField("title", T().title);
@@ -3147,6 +3168,11 @@ String buildTranslationsJSON() {
   json += jsonField("cpu_cores", T().cpu_cores);
   json += jsonField("mac_wifi", T().mac_wifi);
   json += jsonField("last_reset", T().last_reset);
+  json += jsonField("poweron", T().poweron);
+  json += jsonField("software_reset", T().software_reset);
+  json += jsonField("deepsleep_exit", T().deepsleep_exit);
+  json += jsonField("brownout", T().brownout);
+  json += jsonField("other", T().other);
   json += jsonField("chip_features", T().chip_features);
   json += jsonField("sdk_version", T().sdk_version);
   json += jsonField("idf_version", T().idf_version);
@@ -3173,6 +3199,15 @@ String buildTranslationsJSON() {
   json += jsonField("total_size", T().total_size);
   json += jsonField("free", T().free);
   json += jsonField("used", T().used);
+  json += jsonField("excellent", T().excellent);
+  json += jsonField("very_good", T().very_good);
+  json += jsonField("good", T().good);
+  json += jsonField("warning", T().warning);
+  json += jsonField("critical", T().critical);
+  json += jsonField("weak", T().weak);
+  json += jsonField("very_weak", T().very_weak);
+  json += jsonField("none", T().none);
+  json += jsonField("unknown", T().unknown);
   json += jsonField("enable_psram_hint", T().enable_psram_hint);
   json += jsonField("not_detected", T().not_detected);
   json += jsonField("internal_sram", T().internal_sram);
@@ -3185,6 +3220,8 @@ String buildTranslationsJSON() {
   json += jsonField("ip_address", T().ip_address);
   json += jsonField("subnet_mask", T().subnet_mask);
   json += jsonField("gateway", T().gateway);
+  json += jsonField("dns", T().dns);
+  json += jsonField("ip_unavailable", T().ip_unavailable);
   json += jsonField("access", T().access);
   json += jsonField("bluetooth_section", T().bluetooth_section);
   json += jsonField("bluetooth_status", T().bluetooth_status);
@@ -3212,13 +3249,30 @@ String buildTranslationsJSON() {
   json += jsonField("bluetooth_client_connected", T().bluetooth_client_connected);
   json += jsonField("bluetooth_client_disconnected", T().bluetooth_client_disconnected);
   json += jsonField("bluetooth_notifications_label", T().bluetooth_notifications_label);
+  json += jsonField("gpio", T().gpio);
+  json += jsonField("status", T().status);
+  json += jsonField("config", T().config);
+  json += jsonField("test", T().test);
+  json += jsonField("turn_on", T().turn_on);
+  json += jsonField("turn_off", T().turn_off);
+  json += jsonField("turn_off_all", T().turn_off_all);
+  json += jsonField("blink", T().blink);
+  json += jsonField("fade", T().fade);
+  json += jsonField("off", T().off);
+  json += jsonField("neopixel", T().neopixel);
+  json += jsonField("animations", T().animations);
+  json += jsonField("led_count", T().led_count);
+  json += jsonField("rainbow", T().rainbow);
+  json += jsonField("chase", T().chase);
+  json += jsonField("color", T().color);
+  json += jsonField("custom_color", T().custom_color);
   json += jsonField("gpio_interfaces", T().gpio_interfaces);
   json += jsonField("total_gpio", T().total_gpio);
   json += jsonField("i2c_peripherals", T().i2c_peripherals);
+  json += jsonField("device_count", T().device_count);
   json += jsonField("detected_addresses", T().detected_addresses);
   json += jsonField("builtin_led", T().builtin_led);
   json += jsonField("oled_screen", T().oled_screen);
-  // --- [BUGFIX] Export complet des traductions écran ---
   json += jsonField("status", T().status);
   json += jsonField("i2c_pins", T().i2c_pins);
   json += jsonField("rotation", T().rotation);
@@ -3239,6 +3293,7 @@ String buildTranslationsJSON() {
   json += jsonField("oled_displaying_message", T().oled_displaying_message);
   json += jsonField("custom_message", T().custom_message);
   json += jsonField("show_message", T().show_message);
+  json += jsonField("apply_color", T().apply_color);
   json += jsonField("adc_test", T().adc_test);
   json += jsonField("start_adc_test", T().start_adc_test);
   json += jsonField("pwm_test", T().pwm_test);
@@ -3264,10 +3319,12 @@ String buildTranslationsJSON() {
   json += jsonField("wifi_scanner", T().wifi_scanner);
   json += jsonField("performance_bench", T().performance_bench);
   json += jsonField("data_export", T().data_export);
+  json += jsonField("click_to_scan", T().click_to_scan);
   json += jsonField("updating", T().updating);
   json += jsonField("online", T().online);
   json += jsonField("offline", T().offline);
   json += jsonField("check_network", T().check_network);
+  json += jsonField("language_label", T().language_label);
   json += jsonField("language_updated", T().language_updated);
   json += jsonField("language_switch_error", T().language_switch_error);
   json += jsonField("translation_error", T().translation_error);
@@ -3287,6 +3344,16 @@ String buildTranslationsJSON() {
   json += jsonField("i2c_scan_result", T().i2c_scan_result);
   json += jsonField("gpio_invalid", T().gpio_invalid);
   json += jsonField("configuration_invalid", T().configuration_invalid);
+  json += jsonField("testing", T().testing);
+  json += jsonField("scan", T().scan);
+  json += jsonField("scanning", T().scanning);
+  json += jsonField("completed", T().completed);
+  json += jsonField("cores", T().cores);
+  json += jsonField("pins", T().pins);
+  json += jsonField("devices", T().devices);
+  json += jsonField("networks", T().networks);
+  json += jsonField("tested", T().tested);
+  json += jsonField("channels", T().channels);
   json += jsonField("oled_test_running", T().oled_test_running, true);
   json += "}";
 
@@ -4038,10 +4105,8 @@ a{color:inherit;}
   String bluetoothNotificationsValue = htmlEscape(String((unsigned long)bluetoothNotifyDisplay));
   String bluetoothDisableAttr = bluetoothCapable ? "" : " disabled";
   String bluetoothFeedbackText = bluetoothCapable ? "" : String(T().bluetooth_not_supported);
-  // --- [BUGFIX] Retrait du doublon IP sur l'interface legacy ---
   bool ipAvailable = diagnosticData.ipAddress.length() > 0;
   String accessHost = diagnosticData.ipAddress;
-  // --- [BUGFIX] Lien IP initial en HTTP ---
   String accessUrl = ipAvailable ? buildAccessUrl(accessHost) : String(T().not_detected);
   String accessUrlLegacy = ipAvailable ? buildAccessUrl(accessHost, false) : String();
   String accessUrlHref = ipAvailable ? accessUrl : String("#");
@@ -4141,12 +4206,19 @@ a{color:inherit;}
   
   // Chip Info
   chunk += "<div class='section'><h2 data-i18n='chip_info'>" + String(T().chip_info) + "</h2><div class='info-grid'>";
-  String modelValue = diagnosticData.chipModel + " " + String(T().revision) + " " + diagnosticData.chipRevision;
+  String modelValue = diagnosticData.chipModel + " <span data-i18n='revision'>" + String(T().revision) + "</span> " + diagnosticData.chipRevision;
   appendInfoItem(chunk, "full_model", T().full_model, modelValue);
   String cpuValue = String(diagnosticData.cpuCores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz";
   appendInfoItem(chunk, "cpu_cores", T().cpu_cores, cpuValue);
   appendInfoItem(chunk, "mac_wifi", T().mac_wifi, diagnosticData.macAddress);
-  appendInfoItem(chunk, "last_reset", T().last_reset, getResetReason());
+  const char* resetKey = getResetReasonKey();
+  String resetAttrs;
+  if (resetKey != nullptr) {
+    resetAttrs = "data-i18n='";
+    resetAttrs += resetKey;
+    resetAttrs += "'";
+  }
+  appendInfoItem(chunk, "last_reset", T().last_reset, getResetReason(), resetAttrs);
   appendInfoItem(chunk, "chip_features", T().chip_features, getChipFeatures());
   appendInfoItem(chunk, "sdk_version", T().sdk_version, diagnosticData.sdkVersion);
   appendInfoItem(chunk, "idf_version", T().idf_version, diagnosticData.idfVersion);
@@ -4227,7 +4299,14 @@ a{color:inherit;}
   appendInfoItem(chunk, "connected_ssid", T().connected_ssid, diagnosticData.wifiSSID);
   String wifiRssi = String(diagnosticData.wifiRSSI) + " dBm";
   appendInfoItem(chunk, "signal_power", T().signal_power, wifiRssi);
-  appendInfoItem(chunk, "signal_quality", T().signal_quality, getWiFiSignalQuality());
+  const char* wifiQualityKey = getWiFiSignalQualityKey();
+  String wifiQualityAttrs;
+  if (wifiQualityKey != nullptr) {
+    wifiQualityAttrs = "data-i18n='";
+    wifiQualityAttrs += wifiQualityKey;
+    wifiQualityAttrs += "'";
+  }
+  appendInfoItem(chunk, "signal_quality", T().signal_quality, getWiFiSignalQuality(), wifiQualityAttrs);
   appendInfoItem(chunk, "ip_address", T().ip_address, diagnosticData.ipAddress);
   appendInfoItem(chunk, "subnet_mask", T().subnet_mask, WiFi.subnetMask().toString());
   appendInfoItem(chunk, "gateway", T().gateway, WiFi.gatewayIP().toString());
@@ -4245,10 +4324,10 @@ a{color:inherit;}
 
   // GPIO et I2C
   chunk = "<div class='section'><h2 data-i18n='gpio_interfaces'>" + String(T().gpio_interfaces) + "</h2><div class='info-grid'>";
-  String totalGPIOValue = String(diagnosticData.totalGPIO) + " " + String(T().pins);
+  String totalGPIOValue = String(diagnosticData.totalGPIO) + " <span data-i18n='pins'>" + String(T().pins) + "</span>";
   appendInfoItem(chunk, "total_gpio", T().total_gpio, totalGPIOValue);
   if (ENABLE_I2C_SCAN) {
-    String i2cCountValue = String(diagnosticData.i2cCount) + " " + String(T().devices);
+    String i2cCountValue = String(diagnosticData.i2cCount) + " <span data-i18n='devices'>" + String(T().devices) + "</span>";
     appendInfoItem(chunk, "i2c_peripherals", T().i2c_peripherals, i2cCountValue);
     if (diagnosticData.i2cCount > 0) {
       appendInfoItem(chunk, "detected_addresses", T().detected_addresses, diagnosticData.i2cDevices, String(), String(F("style='grid-column:1/-1'")));
@@ -4296,7 +4375,6 @@ a{color:inherit;}
   String oledPinsValue = "SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL);
   appendInfoItem(chunk, nullptr, T().i2c_pins, oledPinsValue, String(F("id='oled-pins'")));
   appendInfoItem(chunk, nullptr, T().rotation, String(oledRotation), String(F("id='oled-rotation-display'")));
-  // --- [BUGFIX] Harmonisation des attributs de traduction OLED ---
   chunk += "<div class='info-item' style='grid-column:1/-1;text-align:center'>";
   chunk += "SDA: <input type='number' id='oledSDA' value='" + String(I2C_SDA) + "' min='0' max='48' style='width:70px'> ";
   chunk += "SCL: <input type='number' id='oledSCL' value='" + String(I2C_SCL) + "' min='0' max='48' style='width:70px'> ";
@@ -4334,38 +4412,67 @@ a{color:inherit;}
   chunk = "<div id='tests' class='tab-content'>";
   chunk += "<div class='section'><h2 data-i18n='i2c_peripherals'>" + String(T().i2c_peripherals) + "</h2><p class='section-description' data-i18n='i2c_desc'>" + String(T().i2c_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='scanI2C()'>" + String(T().rescan_i2c) + "</button>";
-  chunk += "<div id='i2c-status' class='status-live'>" + String(T().click_button) + "</div>";
+  chunk += "<button class='btn btn-primary' data-i18n='rescan_i2c' onclick='scanI2C()'>" + String(T().rescan_i2c) + "</button>";
+  chunk += "<div id='i2c-status' class='status-live' data-i18n-key='click_button'>" + String(T().click_button) + "</div>";
   chunk += "</div></div>";
+
   chunk += "<div class='section'><h2 data-i18n='adc_test'>" + String(T().adc_test) + "</h2><p class='section-description' data-i18n='adc_desc'>" + String(T().adc_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='testADC()'>" + String(T().test) + "</button>";
-  chunk += "<div id='adc-status' class='status-live'>" + adcTestResult + "</div>";
+  chunk += "<button class='btn btn-primary' data-i18n='test' onclick='testADC()'>" + String(T().test) + "</button>";
+  String adcDefault = String(T().not_tested);
+  String adcStatusAttrs = "id='adc-status' class='status-live'";
+  if (adcTestResult == adcDefault) {
+    adcStatusAttrs += " data-i18n-key='not_tested'";
+  }
+  chunk += "<div " + adcStatusAttrs + ">" + adcTestResult + "</div>";
   chunk += "</div><div id='adc-results' class='info-grid'></div></div>";
-  
+
   chunk += "<div class='section'><h2 data-i18n='pwm_test'>" + String(T().pwm_test) + "</h2><p class='section-description' data-i18n='pwm_desc'>" + String(T().pwm_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='testPWM()'>" + String(T().test) + "</button>";
-  chunk += "<div id='pwm-status' class='status-live'>" + pwmTestResult + "</div>";
+  chunk += "<button class='btn btn-primary' data-i18n='test' onclick='testPWM()'>" + String(T().test) + "</button>";
+  String pwmDefault = String(T().not_tested);
+  String pwmStatusAttrs = "id='pwm-status' class='status-live'";
+  if (pwmTestResult == pwmDefault) {
+    pwmStatusAttrs += " data-i18n-key='not_tested'";
+  }
+  chunk += "<div " + pwmStatusAttrs + ">" + pwmTestResult + "</div>";
   chunk += "</div></div>";
-  
+
   chunk += "<div class='section'><h2 data-i18n='spi_bus'>" + String(T().spi_bus) + "</h2><p class='section-description' data-i18n='spi_desc'>" + String(T().spi_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='scanSPI()'>" + String(T().scan) + "</button>";
-  chunk += "<div id='spi-status' class='status-live'>" + (spiInfo.length() > 0 ? spiInfo : String(T().click_button)) + "</div>";
+  chunk += "<button class='btn btn-primary' data-i18n='scan' onclick='scanSPI()'>" + String(T().scan) + "</button>";
+  bool hasSpiInfo = spiInfo.length() > 0;
+  chunk += "<div id='spi-status' class='status-live'";
+  if (!hasSpiInfo) {
+    chunk += "' data-i18n-key='click_button'";
+  } else {
+    chunk += "'";
+  }
+  chunk += ">" + (hasSpiInfo ? spiInfo : String(T().click_button)) + "</div>";
   chunk += "</div></div>";
-  
+
   chunk += "<div class='section'><h2 data-i18n='flash_partitions'>" + String(T().flash_partitions) + "</h2><p class='section-description' data-i18n='partitions_desc'>" + String(T().partitions_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='listPartitions()'>" + String(T().list_partitions) + "</button>";
-  chunk += "</div><div id='partitions-results' style='background:#fff;color:#0b1120;padding:15px;border-radius:10px;font-family:monospace;white-space:pre-wrap;font-size:0.85em'>";
+  chunk += "<button class='btn btn-primary' data-i18n='list_partitions' onclick='listPartitions()'>" + String(T().list_partitions) + "</button>";
+  chunk += "</div><div id='partitions-results' style='background:#fff;color:#0b1120;padding:15px;border-radius:10px;font-family:monospace;white-space:pre-wrap;font-size:0.85em'";
+  if (partitionsInfo.length() == 0) {
+    chunk += "' data-i18n-key='click_button'";
+  } else {
+    chunk += "'";
+  }
+  chunk += ">";
   chunk += partitionsInfo.length() > 0 ? partitionsInfo : String(T().click_button);
   chunk += "</div></div>";
-  
+
   chunk += "<div class='section'><h2 data-i18n='memory_stress'>" + String(T().memory_stress) + "</h2><p class='section-description' data-i18n='stress_desc'>" + String(T().stress_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-danger' onclick='stressTest()'>" + String(T().start_stress) + "</button>";
-  chunk += "<div id='stress-status' class='status-live'>" + stressTestResult + "</div>";
+  chunk += "<button class='btn btn-danger' data-i18n='start_stress' onclick='stressTest()'>" + String(T().start_stress) + "</button>";
+  String stressDefault = String(T().not_tested);
+  String stressStatusAttrs = "id='stress-status' class='status-live'";
+  if (stressTestResult == stressDefault) {
+    stressStatusAttrs += " data-i18n-key='not_tested'";
+  }
+  chunk += "<div " + stressStatusAttrs + ">" + stressTestResult + "</div>";
   chunk += "</div></div></div>";
   server.sendContent(chunk);
   
@@ -4373,8 +4480,8 @@ a{color:inherit;}
   chunk = "<div id='gpio' class='tab-content'>";
   chunk += "<div class='section'><h2 data-i18n='gpio_test'>" + String(T().gpio_test) + "</h2><p class='section-description' data-i18n='gpio_desc'>" + String(T().gpio_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='testAllGPIO()'>" + String(T().test_all_gpio) + "</button>";
-  chunk += "<div id='gpio-status' class='status-live'>" + String(T().click_to_test) + "</div>";
+  chunk += "<button class='btn btn-primary' data-i18n='test_all_gpio' onclick='testAllGPIO()'>" + String(T().test_all_gpio) + "</button>";
+  chunk += "<div id='gpio-status' class='status-live' data-i18n-key='click_to_test'>" + String(T().click_to_test) + "</div>";
   chunk += "</div>";
   chunk += "<div class='warning-callout' data-i18n='gpio_warning'>" + String(T().gpio_warning) + "</div>";
   chunk += "<div id='gpio-results' class='gpio-grid'></div></div></div>";
@@ -4384,8 +4491,8 @@ a{color:inherit;}
   chunk = "<div id='wireless' class='tab-content'>";
   chunk += "<div class='section'><h2 data-i18n='wifi_scanner'>" + String(T().wifi_scanner) + "</h2><p class='section-description' data-i18n='wifi_desc'>" + String(T().wifi_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='scanWiFi()'>" + String(T().scan_networks) + "</button>";
-  chunk += "<div id='wifi-status' class='status-live'>" + String(T().click_to_test) + "</div>";
+  chunk += "<button class='btn btn-primary' data-i18n='scan_networks' onclick='scanWiFi()'>" + String(T().scan_networks) + "</button>";
+  chunk += "<div id='wifi-status' class='status-live' data-i18n-key='click_to_test'>" + String(T().click_to_test) + "</div>";
   chunk += "</div><div id='wifi-results' class='wifi-list'></div></div>";
   chunk += "<div class='section'><h2 data-i18n='bluetooth_section'>" + String(T().bluetooth_section) + "</h2>";
   chunk += "<div class='info-grid'>";
@@ -4405,7 +4512,7 @@ a{color:inherit;}
   chunk += "<div style='display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:15px'>";
   chunk += "<button type='button' class='btn btn-success' data-i18n='bluetooth_enable' onclick=\"toggleBluetooth(true)\" data-bt-control='1'" + bluetoothDisableAttr + ">" + String(T().bluetooth_enable) + "</button>";
   chunk += "<button type='button' class='btn btn-warning' data-i18n='bluetooth_disable' onclick=\"toggleBluetooth(false)\" data-bt-control='1'" + bluetoothDisableAttr + ">" + String(T().bluetooth_disable) + "</button>";
-  chunk += "<input type='text' id='bluetoothNameInput' data-bt-control='1' value='" + bluetoothNameEscaped + "' placeholder='" + String(T().bluetooth_placeholder) + "'" + bluetoothDisableAttr + ">";
+  chunk += "<input type='text' id='bluetoothNameInput' data-bt-control='1' data-i18n-placeholder='bluetooth_placeholder' value='" + bluetoothNameEscaped + "' placeholder='" + String(T().bluetooth_placeholder) + "'" + bluetoothDisableAttr + ">";
   chunk += "<button type='button' class='btn btn-info' data-i18n='bluetooth_rename' onclick=\"renameBluetooth()\" data-bt-control='1'" + bluetoothDisableAttr + ">" + String(T().bluetooth_rename) + "</button>";
   chunk += "<button type='button' class='btn btn-danger' data-i18n='bluetooth_reset' onclick=\"resetBluetooth()\" data-bt-control='1'" + bluetoothDisableAttr + ">" + String(T().bluetooth_reset) + "</button>";
   chunk += "</div>";
@@ -4417,10 +4524,10 @@ a{color:inherit;}
   chunk = "<div id='benchmark' class='tab-content'>";
   chunk += "<div class='section'><h2 data-i18n='performance_bench'>" + String(T().performance_bench) + "</h2><p class='section-description' data-i18n='benchmark_desc'>" + String(T().benchmark_desc) + "</p>";
   chunk += "<div style='text-align:center;margin:20px 0'>";
-  chunk += "<button class='btn btn-primary' onclick='runBenchmarks()'>" + String(T().run_benchmarks) + "</button>";
+  chunk += "<button class='btn btn-primary' data-i18n='run_benchmarks' onclick='runBenchmarks()'>" + String(T().run_benchmarks) + "</button>";
   chunk += "</div><div id='benchmark-results' class='info-grid'>";
-  appendInfoItem(chunk, "cpu_benchmark", T().cpu_benchmark, String(T().not_tested), String(F("id='cpu-bench'")));
-  appendInfoItem(chunk, "memory_benchmark", T().memory_benchmark, String(T().not_tested), String(F("id='mem-bench'")));
+  appendInfoItem(chunk, "cpu_benchmark", T().cpu_benchmark, String(T().not_tested), String(F("id='cpu-bench' data-i18n-key='not_tested'")));
+  appendInfoItem(chunk, "memory_benchmark", T().memory_benchmark, String(T().not_tested), String(F("id='mem-bench' data-i18n-key='not_tested'")));
   appendInfoItem(chunk, "cpu_performance", T().cpu_performance, String(F("-")), String(F("id='cpu-perf'")));
   appendInfoItem(chunk, "memory_speed", T().memory_speed, String(F("-")), String(F("id='mem-speed'")));
   chunk += "</div></div></div>";
@@ -4431,21 +4538,21 @@ a{color:inherit;}
   chunk += "<div class='section'><h2 data-i18n='data_export'>" + String(T().data_export) + "</h2>";
   chunk += "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-top:20px'>";
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #667eea'>";
-  chunk += "<h3 style='color:#667eea;margin-bottom:15px'>" + String(T().txt_file) + "</h3>";
-  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String(T().readable_report) + "</p>";
-  chunk += "<a href='/export/txt' class='btn btn-primary'>" + String(T().download_txt) + "</a></div>";
+  chunk += "<h3 style='color:#667eea;margin-bottom:15px' data-i18n='txt_file'>" + String(T().txt_file) + "</h3>";
+  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px' data-i18n='readable_report'>" + String(T().readable_report) + "</p>";
+  chunk += "<a href='/export/txt' class='btn btn-primary' data-i18n='download_txt'>" + String(T().download_txt) + "</a></div>";
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #3a7bd5'>";
-  chunk += "<h3 style='color:#3a7bd5;margin-bottom:15px'>" + String(T().json_file) + "</h3>";
-  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String(T().structured_format) + "</p>";
-  chunk += "<a href='/export/json' class='btn btn-info'>" + String(T().download_json) + "</a></div>";
+  chunk += "<h3 style='color:#3a7bd5;margin-bottom:15px' data-i18n='json_file'>" + String(T().json_file) + "</h3>";
+  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px' data-i18n='structured_format'>" + String(T().structured_format) + "</p>";
+  chunk += "<a href='/export/json' class='btn btn-info' data-i18n='download_json'>" + String(T().download_json) + "</a></div>";
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #56ab2f'>";
-  chunk += "<h3 style='color:#56ab2f;margin-bottom:15px'>" + String(T().csv_file) + "</h3>";
-  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String(T().for_excel) + "</p>";
-  chunk += "<a href='/export/csv' class='btn btn-success'>" + String(T().download_csv) + "</a></div>";
+  chunk += "<h3 style='color:#56ab2f;margin-bottom:15px' data-i18n='csv_file'>" + String(T().csv_file) + "</h3>";
+  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px' data-i18n='for_excel'>" + String(T().for_excel) + "</p>";
+  chunk += "<a href='/export/csv' class='btn btn-success' data-i18n='download_csv'>" + String(T().download_csv) + "</a></div>";
   chunk += "<div style='text-align:center;padding:30px;background:#fff;border-radius:10px;border:2px solid #667eea'>";
-  chunk += "<h3 style='color:#667eea;margin-bottom:15px'>" + String(T().printable_version) + "</h3>";
-  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px'>" + String(T().pdf_format) + "</p>";
-  chunk += "<a href='/print' target='_blank' class='btn btn-primary'>" + String(T().open) + "</a></div>";
+  chunk += "<h3 style='color:#667eea;margin-bottom:15px' data-i18n='printable_version'>" + String(T().printable_version) + "</h3>";
+  chunk += "<p style='font-size:0.9em;color:#666;margin-bottom:15px' data-i18n='pdf_format'>" + String(T().pdf_format) + "</p>";
+  chunk += "<a href='/print' target='_blank' class='btn btn-primary' data-i18n='open'>" + String(T().open) + "</a></div>";
   chunk += "</div></div></div>";
   chunk += "</div>"; // Fermeture tabContainer
   chunk += "</main>";
@@ -4460,13 +4567,12 @@ a{color:inherit;}
   chunk += "var ignoreHashChange=false;";
   chunk += "var navDropdown=null;";
   chunk += "function preferredAccessScheme(){return window.location.protocol==='https:'?'https://':'http://';}";
-  // --- [NEW FEATURE] Harmonisation du schéma des liens d'accès ---
   chunk += "function applyAccessLinkScheme(){var links=document.querySelectorAll('[data-access-host]');if(!links||!links.length){return;}var preferSecure=(preferredAccessScheme()==='https://');for(var i=0;i<links.length;i++){var link=links[i];if(!link){continue;}var host=link.getAttribute('data-access-host');if(!host){continue;}var secure=link.getAttribute('data-secure')||'https://';var legacy=link.getAttribute('data-legacy')||'http://';var scheme=preferSecure?secure:legacy;var labelHost=link.getAttribute('data-access-label')||host;var legacyLabel=link.getAttribute('data-legacy-label');link.href=scheme+host;if(!preferSecure&&legacyLabel){link.textContent=legacyLabel;}else{link.textContent=scheme+labelHost;}}}";
   chunk += "document.documentElement.setAttribute('lang',currentLang);";
   chunk += "function tr(key,fr,en){var dict=window.translations||{};var value=dict&&dict[key];if(typeof value==='string'){return value;}if(currentLang==='fr'){return typeof fr!=='undefined'?fr:(typeof en!=='undefined'?en:key);}return typeof en!=='undefined'?en:(typeof fr!=='undefined'?fr:key);}";
   chunk += "function showInlineMessage(text,state){var holder=document.getElementById('inlineMessage');if(!holder){return;}holder.className='inline-message';if(!text){return;}holder.textContent=text;holder.classList.add('show');if(state){holder.classList.add(state);}}";
   chunk += "function clearInlineMessage(){var holder=document.getElementById('inlineMessage');if(!holder){return;}holder.className='inline-message';holder.textContent='';}";
-  chunk += "function updateStatus(id,text,state){var el=document.getElementById(id);if(el){el.textContent=text;el.classList.remove('success','error');if(state){el.classList.add(state);}}if(state==='error'||state==='success'){showInlineMessage(text,state);}else if(text===''){clearInlineMessage();}}";
+  chunk += "function updateStatus(id,text,state,key){var el=document.getElementById(id);if(el){if(typeof key==='string'&&key.length){el.setAttribute('data-i18n-key',key);}else if(key===null){el.removeAttribute('data-i18n-key');}else if(typeof key==='undefined'&&typeof text!=='undefined'&&text!==null){el.removeAttribute('data-i18n-key');}if(typeof text!=='undefined'&&text!==null){el.textContent=text;}el.classList.remove('success','error');if(state){el.classList.add(state);}}if(state==='error'||state==='success'){showInlineMessage(text,state);}else if(text===''){clearInlineMessage();}}";
   chunk += "function connectionLabelText(online){return online?tr('online','En ligne','Online'):tr('offline','Hors ligne','Offline');}";
   chunk += "function updateStatusIndicator(online){connectionState=!!online;var indicator=document.getElementById('statusIndicator');var label=document.getElementById('connectionLabel');if(indicator){indicator.classList.remove('status-online','status-offline');indicator.classList.add(online?'status-online':'status-offline');}if(label){label.textContent=connectionLabelText(online);}var wifiDot=document.getElementById('wifiStatusDot');if(wifiDot){wifiDot.classList.remove('offline');if(!online){wifiDot.classList.add('offline');}}var wifiValue=document.getElementById('wifiStatusValue');if(wifiValue){var offlineText=wifiValue.getAttribute('data-offline');var onlineText=wifiValue.getAttribute('data-online');if(!online&&offlineText){wifiValue.textContent=offlineText;}else if(online&&onlineText){wifiValue.textContent=onlineText;}}if(!online){showInlineMessage(connectionLabelText(false)+' — '+tr('check_network','Vérifiez le réseau.','Check the network.'),'error');}else{clearInlineMessage();}}";
   chunk += "function updateUptimeDisplay(){var el=document.getElementById('uptime-display');if(!el){return;}var days=parseInt(el.getAttribute('data-days')||'0',10);var hours=parseInt(el.getAttribute('data-hours')||'0',10);var minutes=parseInt(el.getAttribute('data-minutes')||'0',10);var tr=window.translations||null;var dayLabel=(tr&&tr.days)?tr.days:(currentLang==='fr'?'jours':'days');var hourLabel=(tr&&tr.hours)?tr.hours:(currentLang==='fr'?'heures':'hours');var minuteLabel=(tr&&tr.minutes)?tr.minutes:(currentLang==='fr'?'minutes':'minutes');var pieces=[];if(days>0){pieces.push(days+' '+dayLabel);}if(hours>0||pieces.length){pieces.push(hours+' '+hourLabel);}if(minutes>0||pieces.length===0){pieces.push(minutes+' '+minuteLabel);}el.textContent=pieces.join(' ');}";
@@ -4496,12 +4602,14 @@ a{color:inherit;}
   chunk += "fetch('/api/get-translations').then(function(r){return r.json();}).then(function(translations){";
   chunk += "window.translations=translations;";
   chunk += "var indicator=document.getElementById('updateIndicator');if(indicator&&translations.updating){indicator.textContent=translations.updating;}";
-  // --- [FIX] Préserver la fonction tr() lors du rafraîchissement des traductions ---
   chunk += "var mainTitle=document.getElementById('main-title');if(mainTitle){var versionSpan=mainTitle.querySelector('.version-tag');if(versionSpan){var versionLabel=(translations.version||'v');versionSpan.textContent=versionLabel+'" + String(DIAGNOSTIC_VERSION) + "';}}";
   chunk += "var nodes=document.querySelectorAll('[data-i18n]');";
-  chunk += "for(var i=0;i<nodes.length;i++){var key=nodes[i].getAttribute('data-i18n');if(!key){continue;}var value=translations[key];if(typeof value==='undefined'){continue;}if(key==='enable_psram_hint'){var psramType=nodes[i].getAttribute('data-psram-type')||'';nodes[i].textContent=value.replace('%TYPE%',psramType);}else{nodes[i].textContent=value;}}";
+  chunk += "for(var i=0;i<nodes.length;i++){var el=nodes[i];var key=el.getAttribute('data-i18n');if(!key){continue;}var value=translations[key];if(typeof value==='undefined'){continue;}if(key==='enable_psram_hint'){var psramType=el.getAttribute('data-psram-type')||'';value=value.replace('%TYPE%',psramType);}var prefix=el.getAttribute('data-i18n-prefix')||'';var suffix=el.getAttribute('data-i18n-suffix')||'';el.textContent=prefix+value+suffix;}";
+  chunk += "var keyed=document.querySelectorAll('[data-i18n-key]');";
+  chunk += "for(var j=0;j<keyed.length;j++){var target=keyed[j];var dynamicKey=target.getAttribute('data-i18n-key');if(!dynamicKey){continue;}var text=translations[dynamicKey];if(typeof text==='undefined'){continue;}var prefix=target.getAttribute('data-i18n-prefix')||'';var suffix=target.getAttribute('data-i18n-suffix')||'';target.textContent=prefix+text+suffix;}";
+  chunk += "var placeholders=document.querySelectorAll('[data-i18n-placeholder]');";
+  chunk += "for(var p=0;p<placeholders.length;p++){var field=placeholders[p];var placeholderKey=field.getAttribute('data-i18n-placeholder');if(!placeholderKey){continue;}var placeholderText=translations[placeholderKey];if(typeof placeholderText==='undefined'){continue;}var prefix=field.getAttribute('data-i18n-placeholder-prefix')||'';var suffix=field.getAttribute('data-i18n-placeholder-suffix')||'';field.setAttribute('placeholder',prefix+placeholderText+suffix);}";
   chunk += "if(translations.nav_select_label){var navLabel=document.querySelector('label[for=\\'navSelector\\']');if(navLabel){navLabel.textContent=translations.nav_select_label;}if(navDropdown){navDropdown.setAttribute('aria-label',translations.nav_select_label);}}";
-  chunk += "var btInput=document.getElementById('bluetoothNameInput');if(btInput&&translations.bluetooth_placeholder){btInput.setAttribute('placeholder',translations.bluetooth_placeholder);}";
   chunk += "var wifiValue=document.getElementById('wifiStatusValue');if(wifiValue&&translations.not_detected){wifiValue.setAttribute('data-offline',translations.not_detected);if(!connectionState){wifiValue.textContent=translations.not_detected;}}";
   chunk += "var btSummary=document.getElementById('bluetoothSummary');if(btSummary){if(translations.bluetooth_disabled){btSummary.setAttribute('data-disabled',translations.bluetooth_disabled);}if(translations.bluetooth_not_supported){btSummary.setAttribute('data-unsupported',translations.bluetooth_not_supported);}var supported=btSummary.getAttribute('data-supported');var btDot=document.getElementById('bluetoothStatusDot');var offlineState=btDot&&btDot.classList.contains('offline');if(offlineState){var offlineText=(supported==='false')?(translations.bluetooth_not_supported||btSummary.getAttribute('data-offline')):(translations.bluetooth_disabled||btSummary.getAttribute('data-offline'));if(offlineText){btSummary.textContent=offlineText;btSummary.setAttribute('data-offline',offlineText);}}}";
   chunk += "var btSupport=document.getElementById('bluetooth-support');if(btSupport){if(translations.bluetooth_support_yes){btSupport.setAttribute('data-yes',translations.bluetooth_support_yes);}if(translations.bluetooth_support_no){btSupport.setAttribute('data-no',translations.bluetooth_support_no);}var supportState=btSupport.getAttribute('data-supported')==='true';var yesValue=btSupport.getAttribute('data-yes')||'';var noValue=btSupport.getAttribute('data-no')||'';if(supportState&&yesValue){btSupport.textContent=yesValue;}else if(!supportState&&noValue){btSupport.textContent=noValue;}}";
@@ -4523,77 +4631,33 @@ a{color:inherit;}
   chunk += "window.addEventListener('hashchange',function(){if(ignoreHashChange){return;}var target=window.location.hash?window.location.hash.substring(1):'overview';if(target==='wifi'){target='wireless';}showTab(target,null,false);});";
   chunk += "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){initNavigation();applyAccessLinkScheme();});}else{initNavigation();applyAccessLinkScheme();}";
 
-  chunk += "function configBuiltinLED(){var fallback=tr('gpio_invalid','GPIO invalide','Invalid GPIO');updateStatus('builtin-led-status',tr('configuring','Configuration...','Configuring...'),null);fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';updateStatus('builtin-led-status',d.message||fallback,state);}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
-  chunk += "function testBuiltinLED(){updateStatus('builtin-led-status',tr('testing','Test...','Testing...'),null);fetch('/api/builtin-led-test').then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';var fallback=tr('test_failed','Test en échec','Test failed');updateStatus('builtin-led-status',d.result||fallback,state);}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function configBuiltinLED(){var fallback=tr('gpio_invalid','GPIO invalide','Invalid GPIO');updateStatus('builtin-led-status',tr('configuring','Configuration...','Configuring...'),null,'configuring');fetch('/api/builtin-led-config?gpio='+document.getElementById('ledGPIO').value).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';updateStatus('builtin-led-status',d.message||fallback,state,null);}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error',null);});}";
+  chunk += "function testBuiltinLED(){updateStatus('builtin-led-status',tr('testing','Test...','Testing...'),null,'testing');fetch('/api/builtin-led-test').then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';var fallback=tr('test_failed','Test en échec','Test failed');updateStatus('builtin-led-status',d.result||fallback,state,null);}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error',null);});}";
   chunk += "function ledBlink(){fetch('/api/builtin-led-control?action=blink').then(function(r){return r.json();}).then(function(d){updateStatus('builtin-led-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
   chunk += "function ledFade(){fetch('/api/builtin-led-control?action=fade').then(function(r){return r.json();}).then(function(d){updateStatus('builtin-led-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
   chunk += "function ledOff(){fetch('/api/builtin-led-control?action=off').then(function(r){return r.json();}).then(function(d){updateStatus('builtin-led-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('builtin-led-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
 
-  chunk += "function configNeoPixel(){updateStatus('neopixel-status',tr('configuring','Configuration...','Configuring...'),null);fetch('/api/neopixel-config?gpio='+document.getElementById('neoGPIO').value+'&count='+document.getElementById('neoCount').value).then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
-  chunk += "function testNeoPixel(){updateStatus('neopixel-status',tr('testing','Test...','Testing...'),null);fetch('/api/neopixel-test').then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.result,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function configNeoPixel(){updateStatus('neopixel-status',tr('configuring','Configuration...','Configuring...'),null,'configuring');fetch('/api/neopixel-config?gpio='+document.getElementById('neoGPIO').value+'&count='+document.getElementById('neoCount').value).then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.message,d.success?'success':'error',null);}).catch(function(e){updateStatus('neopixel-status',tr('error_label','Erreur','Error')+': '+e,'error',null);});}";
+  chunk += "function testNeoPixel(){updateStatus('neopixel-status',tr('testing','Test...','Testing...'),null,'testing');fetch('/api/neopixel-test').then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.result,d.success?'success':'error',null);}).catch(function(e){updateStatus('neopixel-status',tr('error_label','Erreur','Error')+': '+e,'error',null);});}";
   chunk += "function neoPattern(p){fetch('/api/neopixel-pattern?pattern='+p).then(function(r){return r.json();}).then(function(d){updateStatus('neopixel-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
   chunk += "function neoCustomColor(){var c=document.getElementById('neoColor').value;var r=parseInt(c.substr(1,2),16);var g=parseInt(c.substr(3,2),16);var b=parseInt(c.substr(5,2),16);updateStatus('neopixel-status','RGB('+r+','+g+','+b+')...',null);fetch('/api/neopixel-color?r='+r+'&g='+g+'&b='+b).then(function(rsp){return rsp.json();}).then(function(d){updateStatus('neopixel-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('neopixel-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
 
-  chunk += "function testOLED(){updateStatus('oled-status',tr('oled_test_running','Test en cours (25s)...','Testing (25s)...'),null);fetch('/api/oled-test').then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.result,d.success?'success':'error');}).catch(function(e){updateStatus('oled-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
-  chunk += "function oledStep(step){updateStatus('oled-status','" + String(T().testing) + "',null);fetch('/api/oled-step?step='+step).then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('oled-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
-  chunk += "function oledMessage(){var msg=document.getElementById('oledMsg').value;if(!msg){updateStatus('oled-status','" + String(T().custom_message) + "','error');return;}updateStatus('oled-status',tr('transmission','Transmission...','Transmitting...'),null);fetch('/api/oled-message?message='+encodeURIComponent(msg)).then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.message,d.success?'success':'error');}).catch(function(e){updateStatus('oled-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
-  chunk += "function configOLED(){updateStatus('oled-status',tr('reconfiguring','Reconfiguration...','Reconfiguring...'),null);var params='sda='+document.getElementById('oledSDA').value+'&scl='+document.getElementById('oledSCL').value+'&rotation='+document.getElementById('oledRotation').value;fetch('/api/oled-config?'+params).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';var fallback=tr('configuration_invalid','Configuration invalide','Invalid configuration');updateStatus('oled-status',d.message||fallback,state);if(d.success&&typeof d.sda!=='undefined'){document.getElementById('oledSDA').value=d.sda;}if(d.success){var pins=document.getElementById('oled-pins');if(pins){pins.textContent='SDA:'+d.sda+' SCL:'+d.scl;}}if(d.success){var rotDisplay=document.getElementById('oled-rotation-display');if(rotDisplay){rotDisplay.textContent=d.rotation;}}}).catch(function(e){updateStatus('oled-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function testOLED(){updateStatus('oled-status',tr('oled_test_running','Test en cours (25s)...','Testing (25s)...'),null,'oled_test_running');fetch('/api/oled-test').then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.result,d.success?'success':'error',null);}).catch(function(e){updateStatus('oled-status',tr('error_label','Erreur','Error')+': '+e,'error',null);});}";
+  chunk += "function oledStep(step){updateStatus('oled-status',tr('testing','Test...','Testing...'),null,'testing');fetch('/api/oled-step?step='+step).then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.message,d.success?'success':'error',null);}).catch(function(e){updateStatus('oled-status',tr('error_label','Erreur','Error')+': '+e,'error',null);});}";
+  chunk += "function oledMessage(){var msg=document.getElementById('oledMsg').value;if(!msg){updateStatus('oled-status',tr('custom_message','Message personnalisé','Custom message'),'error','custom_message');return;}updateStatus('oled-status',tr('transmission','Transmission...','Transmitting...'),null,'transmission');fetch('/api/oled-message?message='+encodeURIComponent(msg)).then(function(r){return r.json();}).then(function(d){updateStatus('oled-status',d.message,d.success?'success':'error',null);}).catch(function(e){updateStatus('oled-status',tr('error_label','Erreur','Error')+': '+e,'error',null);});}";
+  chunk += "function configOLED(){updateStatus('oled-status',tr('reconfiguring','Reconfiguration...','Reconfiguring...'),null,'reconfiguring');var params='sda='+document.getElementById('oledSDA').value+'&scl='+document.getElementById('oledSCL').value+'&rotation='+document.getElementById('oledRotation').value;fetch('/api/oled-config?'+params).then(function(r){return r.json();}).then(function(d){var state=d.success?'success':'error';var fallback=tr('configuration_invalid','Configuration invalide','Invalid configuration');updateStatus('oled-status',d.message||fallback,state,null);if(d.success&&typeof d.sda!=='undefined'){document.getElementById('oledSDA').value=d.sda;}if(d.success){var pins=document.getElementById('oled-pins');if(pins){pins.textContent='SDA:'+d.sda+' SCL:'+d.scl;}}if(d.success){var rotDisplay=document.getElementById('oled-rotation-display');if(rotDisplay){rotDisplay.textContent=d.rotation;}}}).catch(function(e){updateStatus('oled-status',tr('error_label','Erreur','Error')+': '+e,'error',null);});}";
 
-  // --- [FIX] Normalisation JS tests ADC/GPIO/WiFi ---
-  chunk += "function testADC(){";
-  chunk += "document.getElementById('adc-status').innerHTML=tr('testing','Test...','Testing...');";
-  chunk += "fetch('/api/adc-test').then(function(r){return r.json();}).then(function(data){";
-  chunk += "var h='';";
-  chunk += "if(data.readings&&data.readings.forEach){data.readings.forEach(function(a){";
-  chunk += "h+=\"<div class='info-item'><div class='info-label'>GPIO \"+a.pin+\"</div><div class='info-value'>\"+a.raw+\" (\"+a.voltage.toFixed(2)+\"V)</div></div>\";";
-  chunk += "});}";
-  chunk += "document.getElementById('adc-results').innerHTML=h;";
-  chunk += "document.getElementById('adc-status').innerHTML=data.result;";
-  chunk += "});";
-  chunk += "}";
-  chunk += "function testPWM(){document.getElementById('pwm-status').innerHTML=tr('testing','Test...','Testing...');fetch('/api/pwm-test').then(function(r){return r.json();}).then(function(d){document.getElementById('pwm-status').innerHTML=d.result;});}";
-  chunk += "function scanSPI(){document.getElementById('spi-status').innerHTML=tr('scan','Scan...','Scan...');fetch('/api/spi-scan').then(function(r){return r.json();}).then(function(d){document.getElementById('spi-status').innerHTML=d.info;});}";
-  chunk += "function listPartitions(){document.getElementById('partitions-results').innerHTML=tr('scan','Scan...','Scan...');fetch('/api/partitions-list').then(function(r){return r.json();}).then(function(d){document.getElementById('partitions-results').innerHTML=d.partitions;});}";
-  chunk += "function stressTest(){document.getElementById('stress-status').innerHTML=tr('testing','Test...','Testing...');fetch('/api/stress-test').then(function(r){return r.json();}).then(function(d){document.getElementById('stress-status').innerHTML=d.result;});}";
+  chunk += "function testADC(){var status=document.getElementById('adc-status');if(status){status.setAttribute('data-i18n-key','testing');status.textContent=tr('testing','Test...','Testing...');}fetch('/api/adc-test').then(function(r){return r.json();}).then(function(data){var h='';if(data.readings&&data.readings.forEach){data.readings.forEach(function(a){h+=\"<div class='info-item'><div class='info-label'>GPIO \"+a.pin+\"</div><div class='info-value'>\"+a.raw+\" (\"+a.voltage.toFixed(2)+\"V)</div></div>\";});}document.getElementById('adc-results').innerHTML=h;if(status){status.removeAttribute('data-i18n-key');status.textContent=data.result;}});}";
+  chunk += "function testPWM(){var status=document.getElementById('pwm-status');if(status){status.setAttribute('data-i18n-key','testing');status.textContent=tr('testing','Test...','Testing...');}fetch('/api/pwm-test').then(function(r){return r.json();}).then(function(d){if(status){status.removeAttribute('data-i18n-key');status.textContent=d.result;}});}";
+  chunk += "function scanSPI(){var status=document.getElementById('spi-status');if(status){status.setAttribute('data-i18n-key','scan');status.textContent=tr('scan','Scan...','Scan...');}fetch('/api/spi-scan').then(function(r){return r.json();}).then(function(d){if(status){status.removeAttribute('data-i18n-key');status.textContent=d.info;}});}";
+  chunk += "function listPartitions(){var container=document.getElementById('partitions-results');if(container){container.setAttribute('data-i18n-key','scan');container.textContent=tr('scan','Scan...','Scan...');}fetch('/api/partitions-list').then(function(r){return r.json();}).then(function(d){if(container){container.removeAttribute('data-i18n-key');container.innerHTML=d.partitions;}});}";
+  chunk += "function stressTest(){var status=document.getElementById('stress-status');if(status){status.setAttribute('data-i18n-key','testing');status.textContent=tr('testing','Test...','Testing...');}fetch('/api/stress-test').then(function(r){return r.json();}).then(function(d){if(status){status.removeAttribute('data-i18n-key');status.textContent=d.result;}});}";
 
-  chunk += "function testAllGPIO(){";
-  chunk += "document.getElementById('gpio-status').innerHTML=tr('testing','Test...','Testing...');";
-  chunk += "fetch('/api/test-gpio').then(function(r){return r.json();}).then(function(data){";
-  chunk += "var h='';";
-  chunk += "if(data.results&&data.results.forEach){data.results.forEach(function(g){";
-  chunk += "h+=\"<div class='gpio-item \"+(g.working?\"gpio-ok\":\"gpio-fail\")+\"'>GPIO \"+g.pin+\"<br>\"+(g.working?\"OK\":\"FAIL\")+\"</div>\";";
-  chunk += "});}";
-  chunk += "document.getElementById('gpio-results').innerHTML=h;";
-  chunk += "var template=tr('gpio_summary_template','Terminé - %COUNT% GPIO testés','Done - %COUNT% GPIO tested');";
-  chunk += "document.getElementById('gpio-status').innerHTML=template.replace('%COUNT%',data.results.length);";
-  chunk += "});";
-  chunk += "}";
-  chunk += "function scanWiFi(){";
-  chunk += "document.getElementById('wifi-status').innerHTML=tr('scan','Scan...','Scan...');";
-  chunk += "fetch('/api/wifi-scan').then(function(r){return r.json();}).then(function(data){";
-  chunk += "var h='';";
-  chunk += "if(data.networks&&data.networks.forEach){data.networks.forEach(function(n){";
-  chunk += "var s=n.rssi>=-60?'🟢':(n.rssi>=-70?'🟡':'🔴');";
-  chunk += "var freq=(n.freq&&n.freq>0)?n.freq+' MHz':'';";
-  chunk += "var pieces=[];";
-  chunk += "if(n.bssid){pieces.push(n.bssid);}";
-  chunk += "if(n.channel){pieces.push('Ch'+n.channel);}";
-  chunk += "if(n.band){pieces.push(n.band);}";
-  chunk += "if(freq){pieces.push(freq);}";
-  chunk += "if(n.bandwidth){pieces.push(n.bandwidth);}";
-  chunk += "if(n.phy){pieces.push(n.phy);}";
-  chunk += "if(n.encryption&&n.encryption!=='-'){pieces.push(n.encryption);}";
-  chunk += "var details=pieces.join(' | ');";
-  chunk += "h+=\"<div class='wifi-item'><div style='display:flex;justify-content:space-between'><div><strong>\"+s+\" \"+n.ssid+\"</strong><br><small>\"+details+\"</small></div><div style='font-size:1.2em;font-weight:bold'>\"+n.rssi+\" dBm</div></div></div>\";";
-  chunk += "});}";
-  chunk += "document.getElementById('wifi-results').innerHTML=h;";
-  chunk += "var wifiLabel=tr('wifi_networks_found','%COUNT% réseaux détectés','%COUNT% networks found');";
-  chunk += "document.getElementById('wifi-status').innerHTML=wifiLabel.replace('%COUNT%',data.networks.length);";
-  chunk += "});";
-  chunk += "}";
-  chunk += "function scanI2C(){updateStatus('i2c-status',tr('scan','Scan...','Scan...'),null);fetch('/api/i2c-scan').then(function(r){return r.json();}).then(function(d){var label=tr('i2c_scan_result','I2C : %COUNT% périphérique(s)','I2C: %COUNT% device(s)');updateStatus('i2c-status',label.replace('%COUNT%',d.count),'success');var summary=document.getElementById('i2c-summary');if(summary){var countLabel=tr('device_count','Nombre de Périphériques','Device count');summary.textContent=d.count+' '+countLabel+' - '+d.devices;}}).catch(function(e){updateStatus('i2c-status',tr('error_label','Erreur','Error')+': '+e,'error');});}";
+  chunk += "function testAllGPIO(){var status=document.getElementById('gpio-status');if(status){status.setAttribute('data-i18n-key','testing');status.textContent=tr('testing','Test...','Testing...');}fetch('/api/test-gpio').then(function(r){return r.json();}).then(function(data){var h='';if(data.results&&data.results.forEach){data.results.forEach(function(g){h+=\"<div class='gpio-item \"+(g.working?\"gpio-ok\":\"gpio-fail\")+\"'>GPIO \"+g.pin+\"<br>\"+(g.working?\"OK\":\"FAIL\")+\"</div>\";});}document.getElementById('gpio-results').innerHTML=h;var template=tr('gpio_summary_template','Terminé - %COUNT% GPIO testés','Done - %COUNT% GPIO tested');if(status){status.removeAttribute('data-i18n-key');status.textContent=template.replace('%COUNT%',data.results.length);}});}";
+  chunk += "function scanWiFi(){var status=document.getElementById('wifi-status');if(status){status.setAttribute('data-i18n-key','scan');status.textContent=tr('scan','Scan...','Scan...');}fetch('/api/wifi-scan').then(function(r){return r.json();}).then(function(data){var h='';if(data.networks&&data.networks.forEach){data.networks.forEach(function(n){var s=n.rssi>=-60?'🟢':(n.rssi>=-70?'🟡':'🔴');var freq=(n.freq&&n.freq>0)?n.freq+' MHz':'';var pieces=[];if(n.bssid){pieces.push(n.bssid);}if(n.channel){pieces.push('Ch'+n.channel);}if(n.band){pieces.push(n.band);}if(freq){pieces.push(freq);}if(n.bandwidth){pieces.push(n.bandwidth);}if(n.phy){pieces.push(n.phy);}if(n.encryption&&n.encryption!=='-'){pieces.push(n.encryption);}var details=pieces.join(' | ');h+=\"<div class='wifi-item'><div style='display:flex;justify-content:space-between'><div><strong>\"+s+\" \"+n.ssid+\"</strong><br><small>\"+details+\"</small></div><div style='font-size:1.2em;font-weight:bold'>\"+n.rssi+\" dBm</div></div></div>\";});}document.getElementById('wifi-results').innerHTML=h;var wifiLabel=tr('wifi_networks_found','{count} réseaux détectés','{count} networks found');if(status){status.removeAttribute('data-i18n-key');status.textContent=wifiLabel.replace('{count}',data.networks.length);}});}";
+  chunk += "function scanI2C(){updateStatus('i2c-status',tr('scan','Scan...','Scan...'),null,'scan');fetch('/api/i2c-scan').then(function(r){return r.json();}).then(function(d){var label=tr('i2c_scan_result','I2C : %COUNT% périphérique(s)','I2C: %COUNT% device(s)');updateStatus('i2c-status',label.replace('%COUNT%',d.count),'success');var summary=document.getElementById('i2c-summary');if(summary){var countLabel=tr('device_count','Nombre de Périphériques','Device count');summary.textContent=d.count+' '+countLabel+' - '+d.devices;}}).catch(function(e){updateStatus('i2c-status',tr('error_label','Erreur','Error')+': '+e,'error',null);});}";
 
-  chunk += "function runBenchmarks(){document.getElementById('cpu-bench').innerHTML='Test...';document.getElementById('mem-bench').innerHTML='Test...';fetch('/api/benchmark').then(function(r){return r.json();}).then(function(data){document.getElementById('cpu-bench').innerHTML=data.cpu+' us';document.getElementById('mem-bench').innerHTML=data.memory+' us';document.getElementById('cpu-perf').innerHTML=data.cpuPerf.toFixed(2)+' MFLOPS';document.getElementById('mem-speed').innerHTML=data.memSpeed.toFixed(2)+' MB/s';});}";
+  chunk += "function runBenchmarks(){var cpu=document.getElementById('cpu-bench');var mem=document.getElementById('mem-bench');if(cpu){cpu.setAttribute('data-i18n-key','testing');cpu.textContent=tr('testing','Test...','Testing...');}if(mem){mem.setAttribute('data-i18n-key','testing');mem.textContent=tr('testing','Test...','Testing...');}fetch('/api/benchmark').then(function(r){return r.json();}).then(function(data){if(cpu){cpu.removeAttribute('data-i18n-key');cpu.textContent=data.cpu+' us';}if(mem){mem.removeAttribute('data-i18n-key');mem.textContent=data.memory+' us';}var perf=document.getElementById('cpu-perf');if(perf){perf.textContent=data.cpuPerf.toFixed(2)+' MFLOPS';}var speed=document.getElementById('mem-speed');if(speed){speed.textContent=data.memSpeed.toFixed(2)+' MB/s';}});}";
 
   chunk += "</script></body></html>";
   server.sendContent(chunk);
