@@ -14,7 +14,7 @@ We welcome improvements that strengthen the diagnostic experience while keeping 
 - Keep English and French documentation in sync.
 - When editing READMEs or guides, state the tested firmware version.
 - Use concise, technical language and avoid promising future features that are not implemented.
-- Mention 3.4.0 when confirming maintenance work so the unified JSON helpers, bilingual changelog, and `DIAGNOSTIC_VERSION` stay aligned with the hardened language endpoint checks.
+- Mention 3.4.11 when confirming maintenance work so the live translation bindings, bilingual changelog, and `DIAGNOSTIC_VERSION` remain aligned with the refreshed language-switch workflow.
 
 ## Issue reporting
 File bug reports via [GitHub Issues](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/issues/new/choose) and include:

@@ -1,11 +1,11 @@
-# ESP32 Diagnostic Suite (v3.4.0)
+# ESP32 Diagnostic Suite (v3.4.11)
 
 Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de bord web interactif, tests matériels automatisés et contenus bilingues (FR/EN). Le firmware cible l'Arduino Core 3.3.2 et prend en charge les familles ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 et ESP32-H2.
 
-## Points clés de la version 3.4.0
-- Centralisation des prototypes et builders JSON pour simplifier la maintenance des exports diagnostics.
-- Correction des cas limites de compilation des helpers JSON et rétablissement des retours `String` sûrs après l'optimisation des traductions.
-- Harmonisation des libellés FR/EN tout en retirant le diagnostic touchpad historique du plan d'exécution par défaut.
+## Points clés de la version 3.4.11
+- Finalisation du rafraîchissement multilingue : chaque cartouche, statut et action d'export se met désormais à jour instantanément lors d'un changement de langue.
+- Réutilisation du catalogue de traduction pour les volets Wi-Fi, Bluetooth, GPIO et exports afin d'éliminer tout doublon de chaîne dans l'UI et l'API.
+- Documentation entièrement révisée pour refléter le processus de maintenance des traductions dynamiques introduit tout au long du cycle 3.4.x.
 
 ## Structure du projet
 - `ESP32-Diagnostic.ino` – point d'entrée du firmware et ordonnanceur des diagnostics.

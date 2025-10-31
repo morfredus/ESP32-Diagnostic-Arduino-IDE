@@ -6,13 +6,13 @@
 - Ensure no other application is holding the BLE stack (restart the board).
 
 ## Language switch does not change texts
-- Ensure you are running firmware 3.4.0 so the unified JSON helpers back `/api/set-language` with explicit FR/EN successes, 400 responses for unsupported codes, and harmonised labels.
+- Ensure you are running firmware 3.4.11 so the refreshed live translation bindings back `/api/set-language` with explicit FR/EN successes, 400 responses for unsupported codes, and harmonised labels.
 - Verify `languages.h` is present alongside the sketch and compiles correctly.
 - Clear the browser cache (Ctrl+F5) to reload the translation bundle.
 - Confirm `/api/get-translations` returns HTTP 200 using the browser console or a REST client.
 
 ## Additional diagnostics show "Non teste" without accent
-- Flash firmware 3.4.0 (or any later 3.x maintenance build) so the French catalogue keeps the "Non testé" placeholder and benefits from the restored translation-safe `String` handling.
+- Flash firmware 3.4.11 (or any later 3.x maintenance build) so the French catalogue keeps the "Non testé" placeholder and benefits from the instant translation refresh across diagnostics tabs.
 - Refresh the dashboard (Ctrl+F5) to reload cached translations after updating.
 
 ## OLED screen stays blank
@@ -26,7 +26,7 @@
 - Move closer to the access point or try a 2.4 GHz-only SSID.
 
 ## Memory fragmentation warnings in exports
-- Call `/api/memory-details` and review the `fragmentation` percentage alongside the PSRAM flags produced by the unified JSON helpers in 3.4.0.
+- Call `/api/memory-details` and review the `fragmentation` percentage alongside the PSRAM flags while confirming the translated labels match the active language in 3.4.11.
 - Ensure PSRAM is enabled on ESP32-S3 boards to keep the `psramAvailable` flag consistent with the new documentation.
 - If fragmentation stays above 20%, power-cycle the board and re-run diagnostics to clear transient heap usage.
 
