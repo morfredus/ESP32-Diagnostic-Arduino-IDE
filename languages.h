@@ -254,6 +254,7 @@ extern Language currentLanguage;
   X(testing, "Test...", "Testing...") \
   X(completed, "Terminé", "Completed") \
   X(scanning, "Scan...", "Scanning...") \
+  X(scan, "Scan...", "Scanning...") \
   X(cores, "coeurs", "cores") \
   X(pins, "broches", "pins") \
   X(devices, "périphérique(s)", "device(s)") \
