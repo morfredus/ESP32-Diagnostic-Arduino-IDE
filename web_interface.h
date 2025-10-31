@@ -484,7 +484,7 @@ String generateJavaScript() {
   js += "h+='<div class=\"section\"><h2 data-i18n=\"wifi_connection\" data-i18n-prefix=\"📡 \">'+tr('wifi_connection')+'</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"connected_ssid\">'+tr('connected_ssid')+'</div><div class=\"info-value\">'+(d.wifi.ssid||'')+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"signal_power\">'+tr('signal_power')+'</div><div class=\"info-value\">'+d.wifi.rssi+' dBm</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"signal_quality\">'+tr('signal_quality')+'</div><div class=\"info-value\">'+d.wifi.quality+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"signal_quality\">'+tr('signal_quality')+'</div><div class=\"info-value\">'+(d.wifi.quality_key?tr(d.wifi.quality_key):d.wifi.quality)+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"ip_address\">'+tr('ip_address')+'</div><div class=\"info-value\">'+(d.wifi.ip||'')+'</div></div>';";
   js += "h+='</div></div>';";
 
