@@ -6,70 +6,7 @@
  * Auteur: morfredus
  */
 
-#if defined(__GNUC__)
-  #define DIAGNOSTIC_UNUSED __attribute__((unused))
-#else
-  #define DIAGNOSTIC_UNUSED
-#endif
-
-static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
-  "3.5.0 - Publication de la version 3.5.0 pour mise en production",
-  "3.4.11 - Publication documentation et harmonisation finale des traductions dynamiques",
-  "3.4.11-dev - Harmonisation des traductions dynamiques",
-  "3.4.10-dev - Localisation instantanée des tests avancés",
-  "3.4.09-dev - Actualisation instantanée des traductions",
-  "3.4.08-dev - Localisation des tests avancés",
-  "3.4.07-dev - Harmonisation des traductions OLED",
-  "3.4.06-dev - Localisation des statuts et actions OLED",
-  "3.4.05-dev - Centralisation des traductions OLED dans languages.h",
-  "3.4.04-dev - Correction des traductions des commandes écran",
-  "3.4.03-dev - Traduction dynamique des actions écran OLED",
-  "3.4.02-dev - Repli HTTP automatique si HTTPS indisponible",
-  "3.4.01-dev - Préférence HTTPS et repli intelligent",
-  "3.4.0 - Stabilisation JSON et documentation 3.4.x",
-  "3.4.0-dev - Nettoyage des commentaires et harmonisation Bluetooth",
-  "3.3.10-dev - Prototypes des helpers JSON mutualisés",
-  "3.3.09-dev - Unification des handlers périphériques",
-  "3.3.08-dev - Correctifs compilation helpers JSON",
-  "3.3.07-dev - Mutualisation des réponses HTTP JSON",
-  "3.3.06-dev - Corrections des retours String après optimisation de la traduction",
-  "3.3.05-dev - Levée de l'ambiguïté String/const char* des traductions",
-  "3.3.04-dev - Conversion String pour la table de traduction",
-  "3.3.03-dev - Optimisation de la table de traduction",
-  "3.3.02-dev - Harmonisation bilingue des libellés UI",
-  "3.3.01-dev - Retrait du diagnostic touchpad devenu obsolète",
-  "3.2.21-maint - Nettoyage des bannières et consolidation de l'historique",
-  "3.2.20-dev - Correction de l'attribut data-i18n dans appendInfoItem",
-  "3.2.19-dev - Correction de la collision tr() lors du changement de langue",
-  "3.2.18-dev - Suppression du double échappement JS dynamique",
-  "3.2.17-dev - Correction des chaînes JS des tests dynamiques",
-  "3.2.16-dev - Localisation étendue des chaînes UI dynamiques",
-  "3.2.15-dev - Réduction du gabarit HTML et allègement du sketch",
-  "3.2.14-dev - Harmonisation des traductions UI dynamiques",
-  "3.2.13-dev - Retrait final du doublon IP sur le bandeau legacy",
-  "3.2.12-dev - Bandeau sans doublon IP",
-  "3.2.11-dev - Bandeau d'accès compact et lien IP unique",
-  "3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi",
-  "3.2.09-dev - Restauration complète de mDNS sur ESP32-S3",
-  "3.2.08-dev - Correction de l'initialisation WiFi pour mDNS",
-  "3.2.07-dev - Compatibilité mDNS multi-environnements",
-  "3.2.06-dev - Restauration mDNS fiable et lien d'accès constant",
-  "3.2.05-dev - Suppression du service mDNS instable",
-  "3.2.04-dev - Reconstruction du serveur mDNS",
-  "3.2.02-dev - Ajustement du maintien mDNS sans appel update()",
-  "3.2.01-dev - Correction de la publication mDNS",
-  "3.2.0-doc - Consolidation des guides après la campagne de tests",
-  "3.1.19-doc - Scission du changelog FR/EN et rafraîchissement de la documentation",
-  "3.1.18-doc - Documentation 3.1.18 et durcissement du changement de langue",
-  "3.1.17-maint - Nettoyage de commentaires superflus et renforcement de la sélection de langue",
-  "3.1.16 - Bandeau sticky unifié et correctifs navigation/traductions",
-  "3.1.15-maint - Harmonisation de la documentation et rappel des libellés par défaut",
-  "3.1.14-maint - Corrections de messages d'état et amélioration de l'échappement HTML",
-  "3.1.13-dev - Bandeau sticky unifié et retrait du test tactile des exports",
-  "3.1.12-dev - Alignement du numéro de version dans le bandeau principal"
-};
-
-#undef DIAGNOSTIC_UNUSED
+// Version history removed to save flash memory (~4-5 KB)
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -1935,7 +1872,9 @@ void collectDiagnosticInfo() {
 // ========== HANDLERS API ==========
 void handleTestGPIO() {
   testAllGPIOs();
-  String json = "{\"results\":[";
+  String json;
+  json.reserve(gpioResults.size() * 40 + 20);  // Estimate size to avoid reallocations
+  json = "{\"results\":[";
   for (size_t i = 0; i < gpioResults.size(); i++) {
     if (i > 0) json += ",";
     json += "{\"pin\":" + String(gpioResults[i].pin) + ",\"working\":" + String(gpioResults[i].working ? "true" : "false") + "}";
@@ -1946,7 +1885,9 @@ void handleTestGPIO() {
 
 void handleWiFiScan() {
   scanWiFiNetworks();
-  String json = "{\"networks\":[";
+  String json;
+  json.reserve(wifiNetworks.size() * 150 + 20);  // Estimate size to avoid reallocations
+  json = "{\"networks\":[";
   for (size_t i = 0; i < wifiNetworks.size(); i++) {
     if (i > 0) json += ",";
     json += "{\"ssid\":\"" + wifiNetworks[i].ssid + "\",\"rssi\":" + String(wifiNetworks[i].rssi) +
@@ -2195,10 +2136,12 @@ void handleOLEDMessage() {
 
 void handleADCTest() {
   testADC();
-  String json = "{\"readings\":[";
+  String json;
+  json.reserve(adcReadings.size() * 60 + 50);  // Estimate size to avoid reallocations
+  json = "{\"readings\":[";
   for (size_t i = 0; i < adcReadings.size(); i++) {
     if (i > 0) json += ",";
-    json += "{\"pin\":" + String(adcReadings[i].pin) + ",\"raw\":" + String(adcReadings[i].rawValue) + 
+    json += "{\"pin\":" + String(adcReadings[i].pin) + ",\"raw\":" + String(adcReadings[i].rawValue) +
             ",\"voltage\":" + String(adcReadings[i].voltage, 2) + "}";
   }
   json += "],\"result\":\"" + adcTestResult + "\"}";
@@ -2244,8 +2187,10 @@ void handleBenchmark() {
 
 void handleMemoryDetails() {
   collectDetailedMemory();
-  
-  String json = "{\"flash\":{\"real\":" + String(detailedMemory.flashSizeReal) + ",\"chip\":" + String(detailedMemory.flashSizeChip) + "},";
+
+  String json;
+  json.reserve(450);  // Reserve memory to avoid reallocations
+  json = "{\"flash\":{\"real\":" + String(detailedMemory.flashSizeReal) + ",\"chip\":" + String(detailedMemory.flashSizeChip) + "},";
   json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") +
           ",\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") +
           ",\"supported\":" + String(detailedMemory.psramBoardSupported ? "true" : "false") +
@@ -2253,7 +2198,7 @@ void handleMemoryDetails() {
           ",\"total\":" + String(detailedMemory.psramTotal) + ",\"free\":" + String(detailedMemory.psramFree) + "},";
   json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) + ",\"free\":" + String(detailedMemory.sramFree) + "},";
   json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",\"status\":\"" + detailedMemory.memoryStatus + "\"}";
-  
+
   server.send(200, "application/json", json);
 }
 
@@ -2261,8 +2206,10 @@ void handleMemoryDetails() {
 void handleExportTXT() {
   collectDiagnosticInfo();
   collectDetailedMemory();
-  
-  String txt = "========================================\r\n";
+
+  String txt;
+  txt.reserve(4500);  // Reserve memory to avoid reallocations during export
+  txt = "========================================\r\n";
   txt += String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "\r\n";
   txt += "========================================\r\n\r\n";
   
@@ -2366,8 +2313,10 @@ void handleExportJSON() {
   collectDiagnosticInfo();
   collectDetailedMemory();
   String stableUrl = getStableAccessURL();
-  
-  String json = "{";
+
+  String json;
+  json.reserve(3500);  // Reserve memory to avoid reallocations during export
+  json = "{";
   json += "\"chip\":{";
   json += "\"model\":\"" + diagnosticData.chipModel + "\",";
   json += "\"revision\":\"" + diagnosticData.chipRevision + "\",";
@@ -2473,8 +2422,10 @@ void handleExportJSON() {
 void handleExportCSV() {
   collectDiagnosticInfo();
   collectDetailedMemory();
-  
-  String csv = String(T().category) + "," + String(T().parameter) + "," + String(T().value) + "\r\n";
+
+  String csv;
+  csv.reserve(4000);  // Reserve memory to avoid reallocations during export
+  csv = String(T().category) + "," + String(T().parameter) + "," + String(T().value) + "\r\n";
   
   csv += "Chip," + String(T().model) + "," + diagnosticData.chipModel + "\r\n";
   csv += "Chip," + String(T().revision) + "," + diagnosticData.chipRevision + "\r\n";
@@ -2803,7 +2754,9 @@ static inline void appendJsonField(String& json, bool& first, const JsonFieldSpe
 }
 
 String buildJsonObject(std::initializer_list<JsonFieldSpec> fields) {
-  String json = "{";
+  String json;
+  json.reserve(fields.size() * 50 + 10);  // Estimate size based on field count
+  json = "{";
   bool first = true;
   for (const auto& field : fields) {
     appendJsonField(json, first, field);
@@ -2819,7 +2772,9 @@ inline void sendJsonResponse(int statusCode, std::initializer_list<JsonFieldSpec
 static String buildActionResponseJson(bool success,
                                       const String& message,
                                       std::initializer_list<JsonFieldSpec> extraFields) {
-  String json = "{";
+  String json;
+  json.reserve(extraFields.size() * 50 + message.length() + 50);  // Estimate size
+  json = "{";
   bool first = true;
   appendJsonField(json, first, jsonBoolField("success", success));
   if (message.length() > 0) {
@@ -2881,7 +2836,9 @@ static inline void appendInfoItem(String& chunk,
 }
 
 String jsonField(const char* key, const char* value, bool last = false) {
-  String field = "\"";
+  String field;
+  field.reserve(strlen(key) + strlen(value) + 10);  // Estimate size to avoid reallocation
+  field = "\"";
   field += key;
   field += "\":\"";
   field += jsonEscape(value);
@@ -3153,7 +3110,7 @@ void stopBluetooth() {
 
 String buildTranslationsJSON() {
   String json = "{";
-  json.reserve(1600);
+  json.reserve(8000);  // Increased reserve to avoid reallocations (~200+ fields)
   json += jsonField("title", T().title);
   json += jsonField("version", T().version);
   json += jsonField("nav_overview", T().nav_overview);
