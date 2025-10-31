@@ -19,7 +19,7 @@ The dashboard is organised into tabs:
 - **Wi-Fi** – detailed scan results (RSSI, channel, security, PHY, bandwidth).
 - **Performance** – benchmark history and runtime metrics.
 - **Export** – download TXT/JSON/CSV reports or open the printable report.
-- Release 3.5.0 finalises the live translation pipeline so toggling languages refreshes overview metrics, advanced tests, wireless statuses, and export controls instantly.
+- Release 3.5.1 finalises the live translation pipeline so toggling languages refreshes overview metrics, advanced tests, wireless statuses, and export controls instantly.
 
 The navigation bar collapses gracefully on mobile devices and preserves active tab state.
 
@@ -45,14 +45,14 @@ All endpoints return JSON unless stated otherwise:
 - Serial output mirrors key actions (Wi-Fi status, BLE state, test results).
 - Exported reports include board information, memory breakdown, benchmark metrics, Wi-Fi scan, GPIO results, and OLED status.
 - Keep JSON exports for machine parsing and TXT/CSV for manual analysis.
-- Use the `/api/memory-details` endpoint when reports warn about fragmentation and confirm the translated metric labels update as you switch languages under release 3.5.0.
+- Use the `/api/memory-details` endpoint when reports warn about fragmentation and confirm the translated metric labels update as you switch languages under release 3.5.1.
 
 ## 7. Best practices
 - Re-run Wi-Fi scans after moving the device to a new location to refresh RSSI values.
 - Stop NeoPixel animations before powering down external LEDs to avoid ghosting.
 - When changing OLED pins, run `/api/oled-config` followed by `/api/oled-test` to validate wiring.
 
-## 8. Post-release debugging checklist (3.5.0)
+## 8. Post-release debugging checklist (3.5.1)
 - Cycle through the Overview, Advanced Tests, GPIO, Wireless, Performance, and Export tabs while toggling FR/EN to ensure every badge, button, and placeholder updates without a reload.
 - Call `/api/set-language` to double-check the firmware acknowledges each switch and reapplies the shared catalog without duplicating keys.
 - Download TXT/JSON/CSV reports and confirm their section headers, signal quality strings, and benchmark statuses follow the selected language.

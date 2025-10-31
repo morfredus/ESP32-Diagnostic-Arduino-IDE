@@ -2,7 +2,7 @@
 
 Follow the steps below to deploy the ESP32 Diagnostic Suite on your board.
 
-> **Release 3.5.0:** Confirm the firmware banner and `DIAGNOSTIC_VERSION` constant report 3.5.0, then switch the dashboard language to verify the new live translation bindings refresh tests, wireless cards, and export buttons instantly.
+> **Release 3.5.1:** Confirm the firmware banner and `DIAGNOSTIC_VERSION` constant report 3.5.1, then switch the dashboard language to verify the new live translation bindings refresh tests, wireless cards, and export buttons instantly.
 
 ## 1. Prerequisites
 - ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, or ESP32-H2 board (S3 recommended).

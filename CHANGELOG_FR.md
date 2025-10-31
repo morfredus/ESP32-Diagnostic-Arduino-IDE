@@ -2,7 +2,7 @@
 
 Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Version 3.5.0] - 2025-10-30
+## [Version 3.5.1] - 2025-10-30
 ### Ajouts
 - Extension des liaisons de traduction en direct sur les panneaux de diagnostics afin que les widgets sans fil, pager, GPIO et exports réutilisent le catalogue commun sans doublons.
 

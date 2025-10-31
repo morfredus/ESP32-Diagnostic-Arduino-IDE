@@ -2,7 +2,7 @@
 
 All notable changes to ESP32 Diagnostic Suite are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Version 3.5.0] - 2025-10-30
+## [Version 3.5.1] - 2025-10-31
 ### Added
 - Extended live translation bindings across diagnostics panels so wireless, pager, GPIO, and export widgets reuse the shared catalog without duplicates.
 
