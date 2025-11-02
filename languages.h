@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <pgmspace.h>
 
-// ========== SYSTÈME DE TRADUCTION OPTIMISÉ v3.5.3 ==========
+// ========== SYSTÈME DE TRADUCTION OPTIMISÉ v3.6.00 ==========
 // Optimisations appliquées :
 // - Élimination des doublons (scan/scanning)
 // - Harmonisation des clés similaires
@@ -293,7 +293,50 @@ extern Language currentLanguage;
   X(oled_test_running, "Test en cours (25s)...", "Testing (25s)...") \
   X(message_displayed, "Message affiché", "Message displayed") \
   X(seconds, "secondes", "seconds") \
-  X(interface_loaded, "Interface chargée", "Interface loaded")
+  X(interface_loaded, "Interface chargée", "Interface loaded") \
+  X(rgb_led, "LED RGB", "RGB LED") \
+  X(rgb_led_desc, "Test de la LED RGB (3 canaux R, G, B)", "Test RGB LED (3 channels R, G, B)") \
+  X(rgb_led_pins, "Pins RGB (R, G, B)", "RGB Pins (R, G, B)") \
+  X(test_rgb_led, "Tester LED RGB", "Test RGB LED") \
+  X(set_color, "Définir couleur", "Set Color") \
+  X(red, "Rouge", "Red") \
+  X(green, "Vert", "Green") \
+  X(blue, "Bleu", "Blue") \
+  X(white, "Blanc", "White") \
+  X(buzzer, "Buzzer", "Buzzer") \
+  X(buzzer_desc, "Test du buzzer avec différentes fréquences", "Test buzzer with different frequencies") \
+  X(buzzer_pin, "Pin Buzzer", "Buzzer Pin") \
+  X(test_buzzer, "Tester Buzzer", "Test Buzzer") \
+  X(play_tone, "Jouer tonalité", "Play Tone") \
+  X(beep, "Bip", "Beep") \
+  X(melody, "Mélodie", "Melody") \
+  X(dht11_sensor, "Capteur DHT11", "DHT11 Sensor") \
+  X(dht11_desc, "Capteur de température et d'humidité", "Temperature and Humidity Sensor") \
+  X(dht11_pin, "Pin DHT11", "DHT11 Pin") \
+  X(test_dht11, "Lire DHT11", "Read DHT11") \
+  X(temperature, "Température", "Temperature") \
+  X(humidity, "Humidité", "Humidity") \
+  X(light_sensor, "Capteur de Luminosité", "Light Sensor") \
+  X(light_sensor_desc, "Capteur de luminosité analogique", "Analog Light Sensor") \
+  X(light_sensor_pin, "Pin Capteur Luminosité", "Light Sensor Pin") \
+  X(test_light_sensor, "Lire Luminosité", "Read Light Sensor") \
+  X(light_level, "Niveau de Lumière", "Light Level") \
+  X(distance_sensor, "Capteur de Distance", "Distance Sensor") \
+  X(distance_sensor_desc, "Capteur ultrason HC-SR04", "HC-SR04 Ultrasonic Sensor") \
+  X(distance_pins, "Pins (Trig, Echo)", "Pins (Trig, Echo)") \
+  X(test_distance_sensor, "Mesurer Distance", "Measure Distance") \
+  X(distance, "Distance", "Distance") \
+  X(motion_sensor, "Capteur de Présence", "Motion Sensor") \
+  X(motion_sensor_desc, "Détecteur de mouvement PIR", "PIR Motion Detector") \
+  X(motion_sensor_pin, "Pin Capteur Présence", "Motion Sensor Pin") \
+  X(test_motion_sensor, "Tester Présence", "Test Motion") \
+  X(motion_detected, "Mouvement détecté", "Motion detected") \
+  X(no_motion, "Aucun mouvement", "No motion") \
+  X(nav_sensors, "Capteurs", "Sensors") \
+  X(sensors_section, "Tests des Capteurs", "Sensors Tests") \
+  X(apply_config, "Appliquer Config", "Apply Config") \
+  X(pin_configuration, "Configuration des Pins", "Pin Configuration") \
+  X(refresh_data, "Actualiser", "Refresh")
 
 enum TranslationKey {
 #define DECL_KEY(identifier, fr, en) TR_##identifier,
