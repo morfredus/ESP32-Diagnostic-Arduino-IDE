@@ -244,25 +244,19 @@ String generateHTML() {
   html += "' data-placeholder-key='ip_unavailable'>";
   html += ipLabelValue;
   html += "</strong></a></div>";
-  // --- [BUGFIX] Navigation initiale alignée sur languages.h ---
+  // --- [REORGANIZATION] Navigation ergonomique par thème fonctionnel ---
   html += "<div class='nav'>";
   html += "<button type='button' class='nav-btn active' data-tab='overview' data-i18n='nav_overview' onclick=\"showTab('overview',this);\">";
   html += htmlEscape(T().nav_overview.str());
   html += "</button>";
-  html += "<button type='button' class='nav-btn' data-tab='leds' data-i18n='nav_leds' onclick=\"showTab('leds',this);\">";
-  html += htmlEscape(T().nav_leds.str());
-  html += "</button>";
-  html += "<button type='button' class='nav-btn' data-tab='screens' data-i18n='nav_screens' onclick=\"showTab('screens',this);\">";
-  html += htmlEscape(T().nav_screens.str());
-  html += "</button>";
-  html += "<button type='button' class='nav-btn' data-tab='tests' data-i18n='nav_tests' onclick=\"showTab('tests',this);\">";
-  html += htmlEscape(T().nav_tests.str());
+  html += "<button type='button' class='nav-btn' data-tab='display-signal' data-i18n='nav_display_signal' onclick=\"showTab('display-signal',this);\">";
+  html += htmlEscape(T().nav_display_signal.str());
   html += "</button>";
   html += "<button type='button' class='nav-btn' data-tab='sensors' data-i18n='nav_sensors' onclick=\"showTab('sensors',this);\">";
   html += htmlEscape(T().nav_sensors.str());
   html += "</button>";
-  html += "<button type='button' class='nav-btn' data-tab='gpio' data-i18n='nav_gpio' onclick=\"showTab('gpio',this);\">";
-  html += htmlEscape(T().nav_gpio.str());
+  html += "<button type='button' class='nav-btn' data-tab='hardware-tests' data-i18n='nav_hardware_tests' onclick=\"showTab('hardware-tests',this);\">";
+  html += htmlEscape(T().nav_hardware_tests.str());
   html += "</button>";
   html += "<button type='button' class='nav-btn' data-tab='wifi' data-i18n='nav_wireless' onclick=\"showTab('wifi',this);\">";
   html += htmlEscape(T().nav_wireless.str());
@@ -435,11 +429,9 @@ String generateJavaScript() {
   js += "tab.classList.add('active');";
   js += "try{";
   js += "if(tabName==='overview'){const r=await fetch('/api/overview');const d=await r.json();tab.innerHTML=buildOverview(d);}";
-  js += "else if(tabName==='leds'){const r=await fetch('/api/leds-info');const d=await r.json();tab.innerHTML=buildLeds(d);}";
-  js += "else if(tabName==='screens'){const r=await fetch('/api/screens-info');const d=await r.json();tab.innerHTML=buildScreens(d);}";
-  js += "else if(tabName==='tests'){tab.innerHTML=buildTests();}";
+  js += "else if(tabName==='display-signal'){const leds=await fetch('/api/leds-info');const screens=await fetch('/api/screens-info');const ld=await leds.json();const sd=await screens.json();tab.innerHTML=buildDisplaySignal(ld,sd);}";
   js += "else if(tabName==='sensors'){tab.innerHTML=buildSensors();}";
-  js += "else if(tabName==='gpio'){tab.innerHTML=buildGpio();}";
+  js += "else if(tabName==='hardware-tests'){tab.innerHTML=buildHardwareTests();}";
   js += "else if(tabName==='wifi'){tab.innerHTML=buildWifi();}";
   js += "else if(tabName==='benchmark'){tab.innerHTML=buildBenchmark();}";
   js += "else if(tabName==='export'){tab.innerHTML=buildExport();}";
@@ -639,11 +631,13 @@ String generateJavaScript() {
   js += "}";
 
   // --- [NEW FEATURE] Build Sensors - localisation complète ---
-  js += "function buildSensors(){";
-  js += "let h='<div class=\"section\"><h2 data-i18n=\"sensors_section\" data-i18n-prefix=\"📡 \">'+tr('sensors_section')+'</h2>';";
+  // --- [REORGANIZATION] Build Display & Signal - Combine LEDs, Screens, RGB, Buzzer ---
+  js += "function buildDisplaySignal(ledsData,screensData){";
+  js += "let h=buildLeds(ledsData);";
+  js += "h+=buildScreens(screensData);";
 
   // LED RGB Section
-  js += "h+='<h3 data-i18n=\"rgb_led\" data-i18n-prefix=\"💡 \">'+tr('rgb_led')+'</h3>';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"rgb_led\" data-i18n-prefix=\"💡 \">'+tr('rgb_led')+'</h2>';";
   js += "h+='<p data-i18n=\"rgb_led_desc\">'+tr('rgb_led_desc')+'</p>';";
   js += "h+='<div class=\"card\"><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"rgb_led_pins\">'+tr('rgb_led_pins')+'</div>';";
@@ -662,7 +656,7 @@ String generateJavaScript() {
   js += "h+='</div><div id=\"rgb-status\" class=\"status-live\" data-i18n=\"click_to_test\">'+tr('click_to_test')+'</div></div>';";
 
   // Buzzer Section
-  js += "h+='<h3 data-i18n=\"buzzer\" data-i18n-prefix=\"🔔 \">'+tr('buzzer')+'</h3>';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"buzzer\" data-i18n-prefix=\"🔔 \">'+tr('buzzer')+'</h2>';";
   js += "h+='<p data-i18n=\"buzzer_desc\">'+tr('buzzer_desc')+'</p>';";
   js += "h+='<div class=\"card\"><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"buzzer_pin\">'+tr('buzzer_pin')+'</div>';";
@@ -673,6 +667,20 @@ String generateJavaScript() {
   js += "h+='<button class=\"btn btn-primary\" onclick=\"testBuzzer()\" data-i18n=\"test_buzzer\" data-i18n-prefix=\"▶️ \">'+tr('test_buzzer')+'</button> ';";
   js += "h+='<button class=\"btn btn-warning\" onclick=\"playTone(1000,300)\" data-i18n=\"beep\">'+tr('beep')+'</button>';";
   js += "h+='</div><div id=\"buzzer-status\" class=\"status-live\" data-i18n=\"click_to_test\">'+tr('click_to_test')+'</div></div>';";
+
+  js += "return h;";
+  js += "}";
+
+  // --- [REORGANIZATION] Build Hardware Tests - Combine GPIO, ADC, PWM, Stress ---
+  js += "function buildHardwareTests(){";
+  js += "let h=buildGpio();";
+  js += "h+=buildTests();";
+  js += "return h;";
+  js += "}";
+
+  // --- [REORGANIZATION] Build Sensors - Environmental sensors only (DHT11, Light, Distance, Motion) ---
+  js += "function buildSensors(){";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"sensors_section\" data-i18n-prefix=\"📡 \">'+tr('sensors_section')+'</h2>';";
 
   // DHT11 Section
   js += "h+='<h3 data-i18n=\"dht11_sensor\" data-i18n-prefix=\"🌡️ \">'+tr('dht11_sensor')+'</h3>';";
