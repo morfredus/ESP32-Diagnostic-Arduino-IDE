@@ -436,12 +436,12 @@ String generateJavaScript() {
   js += "else if(tabName==='benchmark'){tab.innerHTML=buildBenchmark();}";
   js += "else if(tabName==='export'){tab.innerHTML=buildExport();}";
   js += "updateInterfaceTexts();";
-  js += "}catch(e){tab.innerHTML='<div class=\"section\"><h2 data-i18n=\"error_label\" data-i18n-prefix=\"❌ \">'+tr('error_label')+'</h2><p>'+String(e)+'</p></div>';updateInterfaceTexts();}";
+  js += "}catch(e){tab.innerHTML='<div class=\"section\"><h2 data-i18n=\"error_label\" data-i18n-prefix=\"❌\">'+tr('error_label')+'</h2><p>'+String(e)+'</p></div>';updateInterfaceTexts();}";
   js += "}";
 
     // Build Overview - localisation complète
   js += "function buildOverview(d){";
-  js += "let h='<div class=\"section\"><h2 data-i18n=\"chip_info\" data-i18n-prefix=\"🔧 \">'+tr('chip_info')+'</h2><div class=\"info-grid\">';";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"chip_info\" data-i18n-prefix=\"🔧\">'+tr('chip_info')+'</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"full_model\">'+tr('full_model')+'</div><div class=\"info-value\">'+d.chip.model+' <span data-i18n=\"revision\">'+tr('revision')+'</span> '+d.chip.revision+'</div></div>';";
   js += "const cpuSummary=d.chip.cores+' <span data-i18n=\"cores\">'+tr('cores')+'</span> @ '+d.chip.freq+' MHz';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"cpu_cores\">'+tr('cpu_cores')+'</div><div class=\"info-value\">'+cpuSummary+'</div></div>';";
@@ -450,14 +450,14 @@ String generateJavaScript() {
   js += "if(d.chip.temperature!==-999){h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"cpu_temp\">'+tr('cpu_temp')+'</div><div class=\"info-value\" id=\"temperature\">'+d.chip.temperature.toFixed(1)+' °C</div></div>'; }";
   js += "h+='</div></div>';";
 
-  js += "h+='<div class=\"section\"><h2 data-i18n=\"memory_details\" data-i18n-prefix=\"💾 \">'+tr('memory_details')+'</h2>';";
-  js += "h+='<h3 data-i18n=\"flash_memory\" data-i18n-prefix=\"📦 \">'+tr('flash_memory')+'</h3><div class=\"info-grid\">';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"memory_details\" data-i18n-prefix=\"💾\">'+tr('memory_details')+'</h2>';";
+  js += "h+='<h3 data-i18n=\"flash_memory\" data-i18n-prefix=\"📦\">'+tr('flash_memory')+'</h3><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"real_size\">'+tr('real_size')+'</div><div class=\"info-value\">'+(d.memory.flash.real/1048576).toFixed(2)+' MB</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"flash_type\">'+tr('flash_type')+'</div><div class=\"info-value\">'+d.memory.flash.type+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"flash_speed\">'+tr('flash_speed')+'</div><div class=\"info-value\">'+d.memory.flash.speed+' MHz</div></div>';";
   js += "h+='</div>';";
 
-  js += "h+='<h3 data-i18n=\"internal_sram\" data-i18n-prefix=\"🧠 \">'+tr('internal_sram')+'</h3><div class=\"info-grid\">';";
+  js += "h+='<h3 data-i18n=\"internal_sram\" data-i18n-prefix=\"🧠\">'+tr('internal_sram')+'</h3><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"total_size\">'+tr('total_size')+'</div><div class=\"info-value\" id=\"sram-total\">'+(d.memory.sram.total/1024).toFixed(2)+' KB</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"free\">'+tr('free')+'</div><div class=\"info-value\" id=\"sram-free\">'+(d.memory.sram.free/1024).toFixed(2)+' KB</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"used\">'+tr('used')+'</div><div class=\"info-value\" id=\"sram-used\">'+(d.memory.sram.used/1024).toFixed(2)+' KB</div></div>';";
@@ -467,7 +467,7 @@ String generateJavaScript() {
   js += "h+='<div class=\"progress-bar\"><div class=\"progress-fill\" id=\"sram-progress\" style=\"width:'+sramPct+'%\">'+sramPct+'%</div></div>';";
 
   js += "if(d.memory.psram.total>0){";
-  js += "h+='<h3 data-i18n=\"psram_external\" data-i18n-prefix=\"📦 \">'+tr('psram_external')+'</h3><div class=\"info-grid\">';";
+  js += "h+='<h3 data-i18n=\"psram_external\" data-i18n-prefix=\"📦\">'+tr('psram_external')+'</h3><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"total_size\">'+tr('total_size')+'</div><div class=\"info-value\" id=\"psram-total\">'+(d.memory.psram.total/1048576).toFixed(2)+' MB</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"free\">'+tr('free')+'</div><div class=\"info-value\" id=\"psram-free\">'+(d.memory.psram.free/1048576).toFixed(2)+' MB</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"used\">'+tr('used')+'</div><div class=\"info-value\" id=\"psram-used\">'+(d.memory.psram.used/1048576).toFixed(2)+' MB</div></div>';";
@@ -477,14 +477,14 @@ String generateJavaScript() {
   js += "}";
   js += "h+='</div>';";
 
-  js += "h+='<div class=\"section\"><h2 data-i18n=\"wifi_connection\" data-i18n-prefix=\"📡 \">'+tr('wifi_connection')+'</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"wifi_connection\" data-i18n-prefix=\"📡\">'+tr('wifi_connection')+'</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"connected_ssid\">'+tr('connected_ssid')+'</div><div class=\"info-value\">'+(d.wifi.ssid||'')+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"signal_power\">'+tr('signal_power')+'</div><div class=\"info-value\">'+d.wifi.rssi+' dBm</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"signal_quality\">'+tr('signal_quality')+'</div><div class=\"info-value\">'+(d.wifi.quality_key?tr(d.wifi.quality_key):d.wifi.quality)+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"ip_address\">'+tr('ip_address')+'</div><div class=\"info-value\">'+(d.wifi.ip||'')+'</div></div>';";
   js += "h+='</div></div>';";
 
-  js += "h+='<div class=\"section\"><h2 data-i18n=\"gpio_interfaces\" data-i18n-prefix=\"🔌 \">'+tr('gpio_interfaces')+'</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"gpio_interfaces\" data-i18n-prefix=\"🔌\">'+tr('gpio_interfaces')+'</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"total_gpio\">'+tr('total_gpio')+'</div><div class=\"info-value\">'+d.gpio.total+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"i2c_peripherals\">'+tr('i2c_peripherals')+'</div><div class=\"info-value\">'+d.gpio.i2c_count+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1\"><div class=\"info-label\" data-i18n=\"detected_addresses\">'+tr('detected_addresses')+'</div><div class=\"info-value\">'+(d.gpio.i2c_devices||'')+'</div></div>';";
@@ -494,7 +494,7 @@ String generateJavaScript() {
 
   // Build LEDs - localisation complète
   js += "function buildLeds(d){";
-  js += "let h='<div class=\"section\"><h2 data-i18n=\"builtin_led\" data-i18n-prefix=\"💡 \">'+tr('builtin_led')+'</h2><div class=\"info-grid\">';";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"builtin_led\" data-i18n-prefix=\"💡\">'+tr('builtin_led')+'</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"gpio\">'+tr('gpio')+'</div><div class=\"info-value\"><span data-i18n=\"gpio\">'+tr('gpio')+'</span> '+d.builtin.pin+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"status\">'+tr('status')+'</div><div class=\"info-value\" id=\"builtin-led-status\">'+(d.builtin.status||'')+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
@@ -505,7 +505,7 @@ String generateJavaScript() {
   js += "h+='<button class=\"btn btn-danger\" data-i18n=\"turn_off\" data-i18n-prefix=\"⭕ \\" onclick=\"ledOff()\">'+tr('turn_off')+'</button>';";
   js += "h+='</div></div></div>';";
 
-  js += "h+='<div class=\"section\"><h2 data-i18n=\"neopixel\" data-i18n-prefix=\"🌈 \">'+tr('neopixel')+'</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"neopixel\" data-i18n-prefix=\"🌈\">'+tr('neopixel')+'</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"gpio\">'+tr('gpio')+'</div><div class=\"info-value\"><span data-i18n=\"gpio\">'+tr('gpio')+'</span> '+d.neopixel.pin+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"led_count\">'+tr('led_count')+'</div><div class=\"info-value\">'+d.neopixel.count+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"status\">'+tr('status')+'</div><div class=\"info-value\" id=\"neopixel-status\">'+(d.neopixel.status||'')+'</div></div>';";
@@ -528,7 +528,7 @@ String generateJavaScript() {
   js += "function buildScreens(d){";
   js += "const rotation=(typeof d.oled.rotation!=='undefined')?d.oled.rotation:0;";
   js += "const hasOled=d&&d.oled&&((typeof d.oled.available==='undefined')?true:!!d.oled.available);";
-  js += "let h='<div class=\"section\"><h2 data-i18n=\"oled_screen\" data-i18n-prefix=\"🖥️ \">'+tr('oled_screen')+'</h2><div class=\"info-grid\">';";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"oled_screen\" data-i18n-prefix=\"🖥️\">'+tr('oled_screen')+'</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"status\">'+tr('status')+'</div><div class=\"info-value\" id=\"oled-status\">'+(d.oled.status||'')+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"i2c_pins\">'+tr('i2c_pins')+'</div><div class=\"info-value\" id=\"oled-pins\">SDA:'+d.oled.pins.sda+' SCL:'+d.oled.pins.scl+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"rotation\">'+tr('rotation')+'</div><div class=\"info-value\" id=\"oled-rotation-display\">'+rotation+'</div></div>';";
@@ -539,26 +539,26 @@ String generateJavaScript() {
   js += "h+='<span data-i18n=\\"rotation\\" data-i18n-suffix=\\" :\\">'+tr('rotation')+'</span> <select id=\\"oledRotation\\" style=\\"width:90px;padding:10px;border:2px solid #ddd;border-radius:5px\\">';";
   js += "for(let i=0;i<4;i++){h+='<option value=\\\''+i+'\\\''+(i===rotation?' selected':'')+'>'+i+'</option>';};";
   js += "h+='</select> ';";
-  js += "h+='<button class=\\"btn btn-info\\" data-i18n=\\"apply_redetect\\" data-i18n-prefix=\\"🔄 \\" onclick=\\"configOLED()\\">'+tr('apply_redetect')+'</button>';";
+  js += "h+='<button class=\\"btn btn-info\\" data-i18n=\\"apply_redetect\\" data-i18n-prefix=\\"🔄\\" onclick=\\"configOLED()\\">'+tr('apply_redetect')+'</button>';";
   js += "h+='</div>';";
   js += "if(hasOled){";
-  js += "h+='<div style=\\"margin-top:15px\\"><button class=\\"btn btn-primary\\" data-i18n=\\"full_test\\" data-i18n-prefix=\\"🧪 \\" data-i18n-suffix=\\" (25s)\\" onclick=\\"testOLED()\\">'+tr('full_test')+'</button></div>';";
+  js += "h+='<div style=\\"margin-top:15px\\"><button class=\\"btn btn-primary\\" data-i18n=\\"full_test\\" data-i18n-prefix=\\"🧪\\" data-i18n-suffix=\\" (25s)\\" onclick=\\"testOLED()\\">'+tr('full_test')+'</button></div>';";
   js += "h+='<div class=\\"oled-step-grid\\" style=\\"margin-top:15px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px\\">';";
-  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_welcome\\" data-i18n-prefix=\\"🏁 \\" onclick=\\"oledStep(\\\'welcome\\\')\\">'+tr('oled_step_welcome')+'</button>';";
-  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_big_text\\" data-i18n-prefix=\\"🔠 \\" onclick=\\"oledStep(\\\'big_text\\\')\\">'+tr('oled_step_big_text')+'</button>';";
-  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_text_sizes\\" data-i18n-prefix=\\"🔤 \\" onclick=\\"oledStep(\\\'text_sizes\\\')\\">'+tr('oled_step_text_sizes')+'</button>';";
-  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_shapes\\" data-i18n-prefix=\\"🟦 \\" onclick=\\"oledStep(\\\'shapes\\\')\\">'+tr('oled_step_shapes')+'</button>';";
-  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_horizontal_lines\\" data-i18n-prefix=\\"📏 \\" onclick=\\"oledStep(\\\'horizontal_lines\\\')\\">'+tr('oled_step_horizontal_lines')+'</button>';";
-  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_diagonals\\" data-i18n-prefix=\\"📐 \\" onclick=\\"oledStep(\\\'diagonals\\\')\\">'+tr('oled_step_diagonals')+'</button>';";
-  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_moving_square\\" data-i18n-prefix=\\"[SQ] \\" onclick=\\"oledStep(\\\'moving_square\\\')\\">'+tr('oled_step_moving_square')+'</button>';";
-  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_progress_bar\\" data-i18n-prefix=\\"📊 \\" onclick=\\"oledStep(\\\'progress_bar\\\')\\">'+tr('oled_step_progress_bar')+'</button>';";
-  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_scroll_text\\" data-i18n-prefix=\\"📜 \\" onclick=\\"oledStep(\\\'scroll_text\\\')\\">'+tr('oled_step_scroll_text')+'</button>';";
-  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_final_message\\" data-i18n-prefix=\\"[OK] \\" onclick=\\"oledStep(\\\'final_message\\\')\\">'+tr('oled_step_final_message')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_welcome\\" data-i18n-prefix=\\"🏁\\" onclick=\\"oledStep(\\\'welcome\\\')\\">'+tr('oled_step_welcome')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_big_text\\" data-i18n-prefix=\\"🔠\\" onclick=\\"oledStep(\\\'big_text\\\')\\">'+tr('oled_step_big_text')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_text_sizes\\" data-i18n-prefix=\\"🔤\\" onclick=\\"oledStep(\\\'text_sizes\\\')\\">'+tr('oled_step_text_sizes')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_shapes\\" data-i18n-prefix=\\"🟦\\" onclick=\\"oledStep(\\\'shapes\\\')\\">'+tr('oled_step_shapes')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_horizontal_lines\\" data-i18n-prefix=\\"📏\\" onclick=\\"oledStep(\\\'horizontal_lines\\\')\\">'+tr('oled_step_horizontal_lines')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_diagonals\\" data-i18n-prefix=\\"📐\\" onclick=\\"oledStep(\\\'diagonals\\\')\\">'+tr('oled_step_diagonals')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_moving_square\\" data-i18n-prefix=\\"[SQ]\\" onclick=\\"oledStep(\\\'moving_square\\\')\\">'+tr('oled_step_moving_square')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_progress_bar\\" data-i18n-prefix=\\"📊\\" onclick=\\"oledStep(\\\'progress_bar\\\')\\">'+tr('oled_step_progress_bar')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_scroll_text\\" data-i18n-prefix=\\"📜\\" onclick=\\"oledStep(\\\'scroll_text\\\')\\">'+tr('oled_step_scroll_text')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_final_message\\" data-i18n-prefix=\\"[OK]\\" onclick=\\"oledStep(\\\'final_message\\\')\\">'+tr('oled_step_final_message')+'</button>';";
   js += "h+='</div>';";
   js += "h+='<div style=\\"margin-top:15px\\">';";
   js += "h+='<label for=\\"oledText\\" style=\\"display:block;margin-bottom:8px;font-weight:bold;color:#667eea\\" data-i18n=\\"custom_message\\">'+tr('custom_message')+'</label>';";
   js += "h+='<textarea id=\\"oledText\\" rows=\\"3\\" style=\\"width:100%;padding:10px;border:2px solid #ddd;border-radius:8px\\" data-i18n-placeholder=\\"custom_message\\" placeholder=\\"'+tr('custom_message')+'\\"></textarea>';";
-  js += "h+='<div style=\\"margin-top:10px\\"><button class=\\"btn btn-success\\" data-i18n=\\"show_message\\" data-i18n-prefix=\\"📤 \\" onclick=\\"oledDisplayText()\\">'+tr('show_message')+'</button></div>';";
+  js += "h+='<div style=\\"margin-top:10px\\"><button class=\\"btn btn-success\\" data-i18n=\\"show_message\\" data-i18n-prefix=\\"📤\\" onclick=\\"oledDisplayText()\\">'+tr('show_message')+'</button></div>';";
   js += "h+='<p style=\\"margin-top:12px;color:#555\\" data-i18n=\\"changes_pins\\">'+tr('changes_pins')+'</p>';";
   js += "}else{";
   js += "h+='<p class=\\"status-live error\\" data-i18n=\\"no_detected\\">'+tr('no_detected')+'</p>';";
@@ -571,15 +571,15 @@ String generateJavaScript() {
   // Build Tests - localisation complète
   js += "function buildTests(){";
   js += "let h='';";
-  js += "h+='<div class=\"section\"><h2 data-i18n=\"adc_test\" data-i18n-prefix=\"📊 \">'+tr('adc_test')+'</h2>';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"adc_test\" data-i18n-prefix=\"📊\">'+tr('adc_test')+'</h2>';";
   js += "h+='<p data-i18n=\"adc_desc\">'+tr('adc_desc')+'</p>';";
   js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"start_adc_test\" data-i18n-prefix=\"▶️ \\" onclick=\"testADC()\">'+tr('start_adc_test')+'</button></div>';";
   js += "h+='<div id=\"adc-status\" class=\"status-live\" data-i18n=\"click_to_test\">'+tr('click_to_test')+'</div>';";
   js += "h+='<div id=\"adc-results\" class=\"info-grid\"></div></div>';";
-  js += "h+='<div class=\"section\"><h2 data-i18n=\"memory_stress\" data-i18n-prefix=\"🔥 \">'+tr('memory_stress')+'</h2>';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"memory_stress\" data-i18n-prefix=\"🔥\">'+tr('memory_stress')+'</h2>';";
   js += "h+='<p data-i18n=\"stress_desc\">'+tr('stress_desc')+'</p>';";
   js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-danger\" data-i18n=\"start_stress\" data-i18n-prefix=\"🚀 \\" onclick=\"runStressTest()\">'+tr('start_stress')+'</button></div>';";
-  js += "h+='<p style=\"color:#dc3545;font-weight:bold;text-align:center\" data-i18n=\"stress_warning\" data-i18n-prefix=\"⚠️ \">'+tr('stress_warning')+'</p>';";
+  js += "h+='<p style=\"color:#dc3545;font-weight:bold;text-align:center\" data-i18n=\"stress_warning\" data-i18n-prefix=\"⚠️\">'+tr('stress_warning')+'</p>';";
   js += "h+='<div id=\"stress-status\" class=\"status-live\" data-i18n=\"not_tested\">'+tr('not_tested')+'</div>';";
   js += "h+='<div id=\"stress-results\" class=\"info-grid\"></div></div>';";
   js += "return h;";
@@ -587,7 +587,7 @@ String generateJavaScript() {
 
   // Build GPIO - localisation complète
   js += "function buildGpio(){";
-  js += "let h='<div class=\"section\"><h2 data-i18n=\"gpio_test\" data-i18n-prefix=\"🔌 \">'+tr('gpio_test')+'</h2>';";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"gpio_test\" data-i18n-prefix=\"🔌\">'+tr('gpio_test')+'</h2>';";
   js += "h+='<p data-i18n=\"gpio_desc\">'+tr('gpio_desc')+'</p>';";
   js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"test_all_gpio\" data-i18n-prefix=\"🧪 \\" onclick=\"testAllGPIO()\">'+tr('test_all_gpio')+'</button></div>';";
   js += "h+='<div id=\"gpio-status\" class=\"status-live\" data-i18n=\"click_to_test\">'+tr('click_to_test')+'</div>';";
@@ -598,7 +598,7 @@ String generateJavaScript() {
 
   // Build WiFi - localisation complète
   js += "function buildWifi(){";
-  js += "let h='<div class=\"section\"><h2 data-i18n=\"wifi_scanner\" data-i18n-prefix=\"📡 \">'+tr('wifi_scanner')+'</h2>';";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"wifi_scanner\" data-i18n-prefix=\"📡\">'+tr('wifi_scanner')+'</h2>';";
   js += "h+='<p data-i18n=\"wifi_desc\">'+tr('wifi_desc')+'</p>';";
   js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"scan_networks\" data-i18n-prefix=\"🔍 \\" onclick=\"scanWiFi()\">'+tr('scan_networks')+'</button></div>';";
   js += "h+='<div id=\"wifi-status\" class=\"status-live\" data-i18n=\"click_to_scan\">'+tr('click_to_scan')+'</div>';";
@@ -608,7 +608,7 @@ String generateJavaScript() {
 
   // Build Benchmark - localisation complète
   js += "function buildBenchmark(){";
-  js += "let h='<div class=\"section\"><h2 data-i18n=\"performance_bench\" data-i18n-prefix=\"⚡ \">'+tr('performance_bench')+'</h2>';";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"performance_bench\" data-i18n-prefix=\"⚡\">'+tr('performance_bench')+'</h2>';";
   js += "h+='<p data-i18n=\"benchmark_desc\">'+tr('benchmark_desc')+'</p>';";
   js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"run_benchmarks\" data-i18n-prefix=\"🚀 \\" onclick=\"runBenchmarks()\">'+tr('run_benchmarks')+'</button></div>';";
   js += "h+='<div class=\"info-grid\" id=\"benchmark-results\">';";
@@ -620,12 +620,12 @@ String generateJavaScript() {
 
   // Build Export - localisation complète
   js += "function buildExport(){";
-  js += "let h='<div class=\"section\"><h2 data-i18n=\"data_export\" data-i18n-prefix=\"💾 \">'+tr('data_export')+'</h2>';";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"data_export\" data-i18n-prefix=\"💾\">'+tr('data_export')+'</h2>';";
   js += "h+='<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-top:20px\">';";
-  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#667eea\" data-i18n=\"txt_file\">'+tr('txt_file')+'</h3><p style=\"font-size:0.9em;color:#666;margin:15px 0\" data-i18n=\"readable_report\">'+tr('readable_report')+'</p><a href=\"/export/txt\" class=\"btn btn-primary\" data-i18n=\"download_txt\" data-i18n-prefix=\"📥 \">'+tr('download_txt')+'</a></div>';";
-  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#3a7bd5\" data-i18n=\"json_file\">'+tr('json_file')+'</h3><p style=\"font-size:0.9em;color:#666;margin:15px 0\" data-i18n=\"structured_format\">'+tr('structured_format')+'</p><a href=\"/export/json\" class=\"btn btn-info\" data-i18n=\"download_json\" data-i18n-prefix=\"📥 \">'+tr('download_json')+'</a></div>';";
-  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#56ab2f\" data-i18n=\"csv_file\">'+tr('csv_file')+'</h3><p style=\"font-size:0.9em;color:#666;margin:15px 0\" data-i18n=\"for_excel\">'+tr('for_excel')+'</p><a href=\"/export/csv\" class=\"btn btn-success\" data-i18n=\"download_csv\" data-i18n-prefix=\"📥 \">'+tr('download_csv')+'</a></div>';";
-  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#667eea\" data-i18n=\"printable_version\">'+tr('printable_version')+'</h3><p style=\"font-size:0.9em;color:#666;margin:15px 0\" data-i18n=\"pdf_format\">'+tr('pdf_format')+'</p><a href=\"/print\" target=\"_blank\" class=\"btn btn-primary\" data-i18n=\"open\" data-i18n-prefix=\"🖨️ \">'+tr('open')+'</a></div>';";
+  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#667eea\" data-i18n=\"txt_file\">'+tr('txt_file')+'</h3><p style=\"font-size:0.9em;color:#666;margin:15px 0\" data-i18n=\"readable_report\">'+tr('readable_report')+'</p><a href=\"/export/txt\" class=\"btn btn-primary\" data-i18n=\"download_txt\" data-i18n-prefix=\"📥\">'+tr('download_txt')+'</a></div>';";
+  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#3a7bd5\" data-i18n=\"json_file\">'+tr('json_file')+'</h3><p style=\"font-size:0.9em;color:#666;margin:15px 0\" data-i18n=\"structured_format\">'+tr('structured_format')+'</p><a href=\"/export/json\" class=\"btn btn-info\" data-i18n=\"download_json\" data-i18n-prefix=\"📥\">'+tr('download_json')+'</a></div>';";
+  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#56ab2f\" data-i18n=\"csv_file\">'+tr('csv_file')+'</h3><p style=\"font-size:0.9em;color:#666;margin:15px 0\" data-i18n=\"for_excel\">'+tr('for_excel')+'</p><a href=\"/export/csv\" class=\"btn btn-success\" data-i18n=\"download_csv\" data-i18n-prefix=\"📥\">'+tr('download_csv')+'</a></div>';";
+  js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#667eea\" data-i18n=\"printable_version\">'+tr('printable_version')+'</h3><p style=\"font-size:0.9em;color:#666;margin:15px 0\" data-i18n=\"pdf_format\">'+tr('pdf_format')+'</p><a href=\"/print\" target=\"_blank\" class=\"btn btn-primary\" data-i18n=\"open\" data-i18n-prefix=\"🖨️\">'+tr('open')+'</a></div>';";
   js += "h+='</div></div>';";
   js += "return h;";
   js += "}";
@@ -637,7 +637,7 @@ String generateJavaScript() {
   js += "h+=buildScreens(screensData);";
 
   // LED RGB Section
-  js += "h+='<div class=\"section\"><h2 data-i18n=\"rgb_led\" data-i18n-prefix=\"💡 \">'+tr('rgb_led')+'</h2>';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"rgb_led\" data-i18n-prefix=\"💡\">'+tr('rgb_led')+'</h2>';";
   js += "h+='<p data-i18n=\"rgb_led_desc\">'+tr('rgb_led_desc')+'</p>';";
   js += "h+='<div class=\"card\"><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"rgb_led_pins\">'+tr('rgb_led_pins')+'</div>';";
@@ -647,7 +647,7 @@ String generateJavaScript() {
   js += "h+='<input type=\"number\" id=\"rgbPinB\" value=\"12\" style=\"width:60px\" placeholder=\"B\"/>';";
   js += "h+='<button class=\"btn btn-info\" onclick=\"applyRGBConfig()\" data-i18n=\"apply_config\">'+tr('apply_config')+'</button></div></div></div>';";
   js += "h+='<div style=\"text-align:center;margin:15px 0\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testRGBLed()\" data-i18n=\"test_rgb_led\" data-i18n-prefix=\"▶️ \">'+tr('test_rgb_led')+'</button> ';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testRGBLed()\" data-i18n=\"test_rgb_led\" data-i18n-prefix=\"▶️\">'+tr('test_rgb_led')+'</button> ';";
   js += "h+='<button class=\"btn btn-danger\" onclick=\"setRGBColor(255,0,0)\" data-i18n=\"red\">'+tr('red')+'</button> ';";
   js += "h+='<button class=\"btn btn-success\" onclick=\"setRGBColor(0,255,0)\" data-i18n=\"green\">'+tr('green')+'</button> ';";
   js += "h+='<button class=\"btn btn-info\" onclick=\"setRGBColor(0,0,255)\" data-i18n=\"blue\">'+tr('blue')+'</button> ';";
@@ -656,7 +656,7 @@ String generateJavaScript() {
   js += "h+='</div><div id=\"rgb-status\" class=\"status-live\" data-i18n=\"click_to_test\">'+tr('click_to_test')+'</div></div>';";
 
   // Buzzer Section
-  js += "h+='<div class=\"section\"><h2 data-i18n=\"buzzer\" data-i18n-prefix=\"🔔 \">'+tr('buzzer')+'</h2>';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"buzzer\" data-i18n-prefix=\"🔔\">'+tr('buzzer')+'</h2>';";
   js += "h+='<p data-i18n=\"buzzer_desc\">'+tr('buzzer_desc')+'</p>';";
   js += "h+='<div class=\"card\"><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"buzzer_pin\">'+tr('buzzer_pin')+'</div>';";
@@ -664,7 +664,7 @@ String generateJavaScript() {
   js += "h+='<input type=\"number\" id=\"buzzerPin\" value=\"16\" style=\"width:80px\"/>';";
   js += "h+='<button class=\"btn btn-info\" onclick=\"applyBuzzerConfig()\" data-i18n=\"apply_config\">'+tr('apply_config')+'</button></div></div></div>';";
   js += "h+='<div style=\"text-align:center;margin:15px 0\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testBuzzer()\" data-i18n=\"test_buzzer\" data-i18n-prefix=\"▶️ \">'+tr('test_buzzer')+'</button> ';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testBuzzer()\" data-i18n=\"test_buzzer\" data-i18n-prefix=\"▶️\">'+tr('test_buzzer')+'</button> ';";
   js += "h+='<button class=\"btn btn-warning\" onclick=\"playTone(1000,300)\" data-i18n=\"beep\">'+tr('beep')+'</button>';";
   js += "h+='</div><div id=\"buzzer-status\" class=\"status-live\" data-i18n=\"click_to_test\">'+tr('click_to_test')+'</div></div>';";
 
@@ -680,10 +680,10 @@ String generateJavaScript() {
 
   // --- [REORGANIZATION] Build Sensors - Environmental sensors only (DHT11, Light, Distance, Motion) ---
   js += "function buildSensors(){";
-  js += "let h='<div class=\"section\"><h2 data-i18n=\"sensors_section\" data-i18n-prefix=\"📡 \">'+tr('sensors_section')+'</h2>';";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"sensors_section\" data-i18n-prefix=\"📡\">'+tr('sensors_section')+'</h2>';";
 
   // DHT11 Section
-  js += "h+='<h3 data-i18n=\"dht11_sensor\" data-i18n-prefix=\"🌡️ \">'+tr('dht11_sensor')+'</h3>';";
+  js += "h+='<h3 data-i18n=\"dht11_sensor\" data-i18n-prefix=\"🌡️\">'+tr('dht11_sensor')+'</h3>';";
   js += "h+='<p data-i18n=\"dht11_desc\">'+tr('dht11_desc')+'</p>';";
   js += "h+='<div class=\"card\"><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"dht11_pin\">'+tr('dht11_pin')+'</div>';";
@@ -691,12 +691,12 @@ String generateJavaScript() {
   js += "h+='<input type=\"number\" id=\"dht11Pin\" value=\"4\" style=\"width:80px\"/>';";
   js += "h+='<button class=\"btn btn-info\" onclick=\"applyDHT11Config()\" data-i18n=\"apply_config\">'+tr('apply_config')+'</button></div></div></div>';";
   js += "h+='<div style=\"text-align:center;margin:15px 0\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testDHT11()\" data-i18n=\"test_dht11\" data-i18n-prefix=\"▶️ \">'+tr('test_dht11')+'</button>';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testDHT11()\" data-i18n=\"test_dht11\" data-i18n-prefix=\"▶️\">'+tr('test_dht11')+'</button>';";
   js += "h+='</div><div id=\"dht11-status\" class=\"status-live\" data-i18n=\"click_to_test\">'+tr('click_to_test')+'</div>';";
   js += "h+='<div id=\"dht11-results\" class=\"info-grid\"></div></div>';";
 
   // Light Sensor Section
-  js += "h+='<h3 data-i18n=\"light_sensor\" data-i18n-prefix=\"☀️ \">'+tr('light_sensor')+'</h3>';";
+  js += "h+='<h3 data-i18n=\"light_sensor\" data-i18n-prefix=\"☀️\">'+tr('light_sensor')+'</h3>';";
   js += "h+='<p data-i18n=\"light_sensor_desc\">'+tr('light_sensor_desc')+'</p>';";
   js += "h+='<div class=\"card\"><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"light_sensor_pin\">'+tr('light_sensor_pin')+'</div>';";
@@ -704,12 +704,12 @@ String generateJavaScript() {
   js += "h+='<input type=\"number\" id=\"lightPin\" value=\"17\" style=\"width:80px\"/>';";
   js += "h+='<button class=\"btn btn-info\" onclick=\"applyLightConfig()\" data-i18n=\"apply_config\">'+tr('apply_config')+'</button></div></div></div>';";
   js += "h+='<div style=\"text-align:center;margin:15px 0\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testLightSensor()\" data-i18n=\"test_light_sensor\" data-i18n-prefix=\"▶️ \">'+tr('test_light_sensor')+'</button>';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testLightSensor()\" data-i18n=\"test_light_sensor\" data-i18n-prefix=\"▶️\">'+tr('test_light_sensor')+'</button>';";
   js += "h+='</div><div id=\"light-status\" class=\"status-live\" data-i18n=\"click_to_test\">'+tr('click_to_test')+'</div>';";
   js += "h+='<div id=\"light-results\" class=\"info-grid\"></div></div>';";
 
   // Distance Sensor Section
-  js += "h+='<h3 data-i18n=\"distance_sensor\" data-i18n-prefix=\"📏 \">'+tr('distance_sensor')+'</h3>';";
+  js += "h+='<h3 data-i18n=\"distance_sensor\" data-i18n-prefix=\"📏\">'+tr('distance_sensor')+'</h3>';";
   js += "h+='<p data-i18n=\"distance_sensor_desc\">'+tr('distance_sensor_desc')+'</p>';";
   js += "h+='<div class=\"card\"><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"distance_pins\">'+tr('distance_pins')+'</div>';";
@@ -718,12 +718,12 @@ String generateJavaScript() {
   js += "h+='<input type=\"number\" id=\"distEcho\" value=\"8\" style=\"width:60px\" placeholder=\"Echo\"/>';";
   js += "h+='<button class=\"btn btn-info\" onclick=\"applyDistanceConfig()\" data-i18n=\"apply_config\">'+tr('apply_config')+'</button></div></div></div>';";
   js += "h+='<div style=\"text-align:center;margin:15px 0\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testDistanceSensor()\" data-i18n=\"test_distance_sensor\" data-i18n-prefix=\"▶️ \">'+tr('test_distance_sensor')+'</button>';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testDistanceSensor()\" data-i18n=\"test_distance_sensor\" data-i18n-prefix=\"▶️\">'+tr('test_distance_sensor')+'</button>';";
   js += "h+='</div><div id=\"distance-status\" class=\"status-live\" data-i18n=\"click_to_test\">'+tr('click_to_test')+'</div>';";
   js += "h+='<div id=\"distance-results\" class=\"info-grid\"></div></div>';";
 
   // Motion Sensor Section
-  js += "h+='<h3 data-i18n=\"motion_sensor\" data-i18n-prefix=\"👁️ \">'+tr('motion_sensor')+'</h3>';";
+  js += "h+='<h3 data-i18n=\"motion_sensor\" data-i18n-prefix=\"👁️\">'+tr('motion_sensor')+'</h3>';";
   js += "h+='<p data-i18n=\"motion_sensor_desc\">'+tr('motion_sensor_desc')+'</p>';";
   js += "h+='<div class=\"card\"><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"motion_sensor_pin\">'+tr('motion_sensor_pin')+'</div>';";
@@ -731,7 +731,7 @@ String generateJavaScript() {
   js += "h+='<input type=\"number\" id=\"motionPin\" value=\"6\" style=\"width:80px\"/>';";
   js += "h+='<button class=\"btn btn-info\" onclick=\"applyMotionConfig()\" data-i18n=\"apply_config\">'+tr('apply_config')+'</button></div></div></div>';";
   js += "h+='<div style=\"text-align:center;margin:15px 0\">';";
-  js += "h+='<button class=\"btn btn-primary\" onclick=\"testMotionSensor()\" data-i18n=\"test_motion_sensor\" data-i18n-prefix=\"▶️ \">'+tr('test_motion_sensor')+'</button>';";
+  js += "h+='<button class=\"btn btn-primary\" onclick=\"testMotionSensor()\" data-i18n=\"test_motion_sensor\" data-i18n-prefix=\"▶️\">'+tr('test_motion_sensor')+'</button>';";
   js += "h+='</div><div id=\"motion-status\" class=\"status-live\" data-i18n=\"click_to_test\">'+tr('click_to_test')+'</div>';";
   js += "h+='<div id=\"motion-results\" class=\"info-grid\"></div></div>';";
 
