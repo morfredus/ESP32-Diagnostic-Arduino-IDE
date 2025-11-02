@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <pgmspace.h>
 
-// ========== SYSTÈME DE TRADUCTION OPTIMISÉ v3.6.00 ==========
+// ========== SYSTÈME DE TRADUCTION OPTIMISÉ v3.6.01 ==========
 // Optimisations appliquées :
 // - Élimination des doublons (scan/scanning)
 // - Harmonisation des clés similaires
@@ -23,6 +23,9 @@ extern Language currentLanguage;
   X(access, "Accès", "Access") \
   X(or_text, "ou", "or") \
   X(nav_overview, "Vue d'ensemble", "Overview") \
+  X(nav_display_signal, "Affichage & Signal", "Display & Signal") \
+  X(nav_sensors, "Capteurs", "Sensors") \
+  X(nav_hardware_tests, "Tests Matériel", "Hardware Tests") \
   X(nav_leds, "LEDs", "LEDs") \
   X(nav_screens, "Écrans", "Screens") \
   X(nav_tests, "Tests Avancés", "Advanced Tests") \
@@ -332,8 +335,9 @@ extern Language currentLanguage;
   X(test_motion_sensor, "Tester Présence", "Test Motion") \
   X(motion_detected, "Mouvement détecté", "Motion detected") \
   X(no_motion, "Aucun mouvement", "No motion") \
-  X(nav_sensors, "Capteurs", "Sensors") \
   X(sensors_section, "Tests des Capteurs", "Sensors Tests") \
+  X(display_signal_section, "Affichage & Signal", "Display & Signal") \
+  X(hardware_tests_section, "Tests Matériel", "Hardware Tests") \
   X(apply_config, "Appliquer Config", "Apply Config") \
   X(pin_configuration, "Configuration des Pins", "Pin Configuration") \
   X(refresh_data, "Actualiser", "Refresh")
