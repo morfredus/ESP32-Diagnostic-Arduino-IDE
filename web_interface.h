@@ -550,10 +550,10 @@ String generateJavaScript() {
   js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_shapes\\" data-i18n-prefix=\\"🟦 \\" onclick=\\"oledStep(\\\'shapes\\\')\\">'+tr('oled_step_shapes')+'</button>';";
   js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_horizontal_lines\\" data-i18n-prefix=\\"📏 \\" onclick=\\"oledStep(\\\'horizontal_lines\\\')\\">'+tr('oled_step_horizontal_lines')+'</button>';";
   js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_diagonals\\" data-i18n-prefix=\\"📐 \\" onclick=\\"oledStep(\\\'diagonals\\\')\\">'+tr('oled_step_diagonals')+'</button>';";
-  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_moving_square\\" data-i18n-prefix=\\"⬜ \\" onclick=\\"oledStep(\\\'moving_square\\\')\\">'+tr('oled_step_moving_square')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_moving_square\\" data-i18n-prefix=\\"[SQ] \\" onclick=\\"oledStep(\\\'moving_square\\\')\\">'+tr('oled_step_moving_square')+'</button>';";
   js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_progress_bar\\" data-i18n-prefix=\\"📊 \\" onclick=\\"oledStep(\\\'progress_bar\\\')\\">'+tr('oled_step_progress_bar')+'</button>';";
   js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_scroll_text\\" data-i18n-prefix=\\"📜 \\" onclick=\\"oledStep(\\\'scroll_text\\\')\\">'+tr('oled_step_scroll_text')+'</button>';";
-  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_final_message\\" data-i18n-prefix=\\"✅ \\" onclick=\\"oledStep(\\\'final_message\\\')\\">'+tr('oled_step_final_message')+'</button>';";
+  js += "h+='<button class=\\"btn btn-secondary\\" data-i18n=\\"oled_step_final_message\\" data-i18n-prefix=\\"[OK] \\" onclick=\\"oledStep(\\\'final_message\\\')\\">'+tr('oled_step_final_message')+'</button>';";
   js += "h+='</div>';";
   js += "h+='<div style=\\"margin-top:15px\\">';";
   js += "h+='<label for=\\"oledText\\" style=\\"display:block;margin-bottom:8px;font-weight:bold;color:#667eea\\" data-i18n=\\"custom_message\\">'+tr('custom_message')+'</label>';";
