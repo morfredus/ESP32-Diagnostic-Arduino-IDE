@@ -22,11 +22,6 @@ String buildTranslationsJSON();
 String generateHTML();
 String generateJavaScript();
 
-// Implémentation de handleRoot()
-void handleRoot() {
-  server.send(200, "text/html; charset=utf-8", generateHTML());
-}
-
 // Implémentation de handleJavaScript()
 void handleJavaScript() {
   server.send(200, "application/javascript; charset=utf-8", generateJavaScript());
@@ -573,12 +568,12 @@ String generateJavaScript() {
   js += "let h='';";
   js += "h+='<div class=\"section\"><h2 data-i18n=\"adc_test\" data-i18n-prefix=\"📊\">'+tr('adc_test')+'</h2>';";
   js += "h+='<p data-i18n=\"adc_desc\">'+tr('adc_desc')+'</p>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"start_adc_test\" data-i18n-prefix=\"▶️" onclick=\"testADC()\">'+tr('start_adc_test')+'</button></div>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"start_adc_test\" data-i18n-prefix=\"▶️\" onclick=\"testADC()\">'+tr('start_adc_test')+'</button></div>';";
   js += "h+='<div id=\"adc-status\" class=\"status-live\" data-i18n=\"click_to_test\">'+tr('click_to_test')+'</div>';";
   js += "h+='<div id=\"adc-results\" class=\"info-grid\"></div></div>';";
   js += "h+='<div class=\"section\"><h2 data-i18n=\"memory_stress\" data-i18n-prefix=\"🔥\">'+tr('memory_stress')+'</h2>';";
   js += "h+='<p data-i18n=\"stress_desc\">'+tr('stress_desc')+'</p>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-danger\" data-i18n=\"start_stress\" data-i18n-prefix=\"🚀" onclick=\"runStressTest()\">'+tr('start_stress')+'</button></div>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-danger\" data-i18n=\"start_stress\" data-i18n-prefix=\"🚀\" onclick=\"runStressTest()\">'+tr('start_stress')+'</button></div>';";
   js += "h+='<p style=\"color:#dc3545;font-weight:bold;text-align:center\" data-i18n=\"stress_warning\" data-i18n-prefix=\"⚠️\">'+tr('stress_warning')+'</p>';";
   js += "h+='<div id=\"stress-status\" class=\"status-live\" data-i18n=\"not_tested\">'+tr('not_tested')+'</div>';";
   js += "h+='<div id=\"stress-results\" class=\"info-grid\"></div></div>';";
@@ -589,7 +584,7 @@ String generateJavaScript() {
   js += "function buildGpio(){";
   js += "let h='<div class=\"section\"><h2 data-i18n=\"gpio_test\" data-i18n-prefix=\"🔌\">'+tr('gpio_test')+'</h2>';";
   js += "h+='<p data-i18n=\"gpio_desc\">'+tr('gpio_desc')+'</p>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"test_all_gpio\" data-i18n-prefix=\"🧪" onclick=\"testAllGPIO()\">'+tr('test_all_gpio')+'</button></div>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"test_all_gpio\" data-i18n-prefix=\"🧪\" onclick=\"testAllGPIO()\">'+tr('test_all_gpio')+'</button></div>';";
   js += "h+='<div id=\"gpio-status\" class=\"status-live\" data-i18n=\"click_to_test\">'+tr('click_to_test')+'</div>';";
   js += "h+='<p style=\"margin-top:10px;color:#555\" data-i18n=\"gpio_warning\">'+tr('gpio_warning')+'</p>';";
   js += "h+='<div id=\"gpio-results\" class=\"gpio-grid\"></div></div>';";
@@ -600,7 +595,7 @@ String generateJavaScript() {
   js += "function buildWifi(){";
   js += "let h='<div class=\"section\"><h2 data-i18n=\"wifi_scanner\" data-i18n-prefix=\"📡\">'+tr('wifi_scanner')+'</h2>';";
   js += "h+='<p data-i18n=\"wifi_desc\">'+tr('wifi_desc')+'</p>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"scan_networks\" data-i18n-prefix=\"🔍" onclick=\"scanWiFi()\">'+tr('scan_networks')+'</button></div>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"scan_networks\" data-i18n-prefix=\"🔍\" onclick=\"scanWiFi()\">'+tr('scan_networks')+'</button></div>';";
   js += "h+='<div id=\"wifi-status\" class=\"status-live\" data-i18n=\"click_to_scan\">'+tr('click_to_scan')+'</div>';";
   js += "h+='<div id=\"wifi-results\" class=\"wifi-list\"></div></div>';";
   js += "return h;";
@@ -610,7 +605,7 @@ String generateJavaScript() {
   js += "function buildBenchmark(){";
   js += "let h='<div class=\"section\"><h2 data-i18n=\"performance_bench\" data-i18n-prefix=\"⚡\">'+tr('performance_bench')+'</h2>';";
   js += "h+='<p data-i18n=\"benchmark_desc\">'+tr('benchmark_desc')+'</p>';";
-  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"run_benchmarks\" data-i18n-prefix=\"🚀" onclick=\"runBenchmarks()\">'+tr('run_benchmarks')+'</button></div>';";
+  js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"run_benchmarks\" data-i18n-prefix=\"🚀\" onclick=\"runBenchmarks()\">'+tr('run_benchmarks')+'</button></div>';";
   js += "h+='<div class=\"info-grid\" id=\"benchmark-results\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"cpu_benchmark\">'+tr('cpu_benchmark')+'</div><div class=\"info-value\" id=\"cpu-bench\" data-i18n=\"not_tested\">'+tr('not_tested')+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"memory_benchmark\">'+tr('memory_benchmark')+'</div><div class=\"info-value\" id=\"mem-bench\" data-i18n=\"not_tested\">'+tr('not_tested')+'</div></div>';";
