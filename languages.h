@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <pgmspace.h>
 
-// ========== SYSTÈME DE TRADUCTION OPTIMISÉ v3.6.01 ==========
+// ========== SYSTÈME DE TRADUCTION OPTIMISÉ v3.6.02 ==========
 // Optimisations appliquées :
 // - Élimination des doublons (scan/scanning)
 // - Harmonisation des clés similaires
