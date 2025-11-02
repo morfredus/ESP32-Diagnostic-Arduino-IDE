@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.6.05-dev - Correction echappement emojis dans data-i18n-prefix pour compilation",
   "3.6.04-dev - Remplacement des icones OLED non ASCII pour compilation",
   "3.6.03-dev - Inclusion interface web pour exposer handleJavaScript()",
   "3.6.02-dev - Correction route /js/app.js manquante pour chargement JavaScript UI",
@@ -232,7 +233,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.04-dev"
+#define DIAGNOSTIC_VERSION "3.6.05-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
