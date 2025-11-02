@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.6.04-dev
+ * ESP32 Diagnostic Suite v3.5.1
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,14 +13,6 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
-  "3.6.05-dev - Correction echappement emojis dans data-i18n-prefix pour compilation",
-  "3.6.04-dev - Remplacement des icones OLED non ASCII pour compilation",
-  "3.6.03-dev - Inclusion interface web pour exposer handleJavaScript()",
-  "3.6.02-dev - Correction route /js/app.js manquante pour chargement JavaScript UI",
-  "3.6.01-dev - Reorganisation UI ergonomique par themes (Affichage, Capteurs, Tests materiel)",
-  "3.6.00-dev - Ajout gestion capteurs (LED RGB, Buzzer, DHT11, Luminosite, Distance, Mouvement)",
-  "3.5.3-dev - Correction traductions hardcodées (Message affiche, Inconnu, WiFi Open)",
-  "3.5.2-dev - Ajout endpoints API manquants et correction traductions Overview",
   "3.5.1 - Restauration historique des versions",
   "3.5.0 - Publication de la version 3.5.0 pour mise en production",
   "3.4.11 - Publication documentation et harmonisation finale des traductions dynamiques",
@@ -195,10 +187,6 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 // Système de traduction
 #include "languages.h"
 
-// --- [BUGFIX] Exposition des handlers d'interface web ---
-struct DiagnosticInfo;
-#include "web_interface.h"
-
 Language currentLanguage = LANG_FR;
 
 static String buildActionResponseJson(bool success,
@@ -233,7 +221,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.05-dev"
+#define DIAGNOSTIC_VERSION "3.5.1"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -283,27 +271,6 @@ int I2C_SDA = 21;
 #define SCREEN_ADDRESS 0x3C
 
 uint8_t oledRotation = 0;
-
-// --- [NEW FEATURE] LED RGB (pins modifiables via web) ---
-int RGB_LED_PIN_R = 14;
-int RGB_LED_PIN_G = 13;
-int RGB_LED_PIN_B = 12;
-
-// --- [NEW FEATURE] Buzzer (pin modifiable via web) ---
-int BUZZER_PIN = 16;
-
-// --- [NEW FEATURE] DHT11 Temperature & Humidity Sensor (pin modifiable via web) ---
-int DHT11_PIN = 4;
-
-// --- [NEW FEATURE] Light Sensor (pin modifiable via web) ---
-int LIGHT_SENSOR_PIN = 17;
-
-// --- [NEW FEATURE] Ultrasonic Distance Sensor HC-SR04 (pins modifiables via web) ---
-int DISTANCE_TRIG_PIN = 7;
-int DISTANCE_ECHO_PIN = 8;
-
-// --- [NEW FEATURE] PIR Motion Sensor (pin modifiable via web) ---
-int MOTION_SENSOR_PIN = 6;
 
 // ========== OBJETS GLOBAUX ==========
 WebServer server(80);
@@ -387,30 +354,6 @@ String pwmTestResult = String(T().not_tested);
 String partitionsInfo = "";
 String spiInfo = "";
 String stressTestResult = String(T().not_tested);
-
-// --- [NEW FEATURE] Résultats de tests des nouveaux capteurs ---
-String rgbLedTestResult = String(T().not_tested);
-bool rgbLedAvailable = false;
-
-String buzzerTestResult = String(T().not_tested);
-bool buzzerAvailable = false;
-
-String dht11TestResult = String(T().not_tested);
-bool dht11Available = false;
-float dht11Temperature = -999.0;
-float dht11Humidity = -999.0;
-
-String lightSensorTestResult = String(T().not_tested);
-bool lightSensorAvailable = false;
-int lightSensorValue = -1;
-
-String distanceSensorTestResult = String(T().not_tested);
-bool distanceSensorAvailable = false;
-float distanceValue = -1.0;
-
-String motionSensorTestResult = String(T().not_tested);
-bool motionSensorAvailable = false;
-bool motionDetected = false;
 
 // ========== STRUCTURES ==========
 struct DiagnosticInfo {
@@ -803,10 +746,9 @@ String getWiFiSignalQuality() {
   return T().unknown.str();
 }
 
-// --- [TRANSLATION FIX] Use translation keys for WiFi auth modes ---
 String wifiAuthModeToString(wifi_auth_mode_t mode) {
   switch (mode) {
-    case WIFI_AUTH_OPEN: return T().wifi_open_auth.str();
+    case WIFI_AUTH_OPEN: return (currentLanguage == LANG_FR) ? "Ouvert" : "Open";
 #ifdef WIFI_AUTH_WEP
     case WIFI_AUTH_WEP: return "WEP";
 #endif
@@ -828,7 +770,7 @@ String wifiAuthModeToString(wifi_auth_mode_t mode) {
 #ifdef WIFI_AUTH_OWE
     case WIFI_AUTH_OWE: return "OWE";
 #endif
-    default: return T().unknown.str();
+    default: return "Inconnu";
   }
 }
 
@@ -1080,7 +1022,7 @@ void printPSRAMDiagnostic() {
   
   Serial.println("\r\nFlags de compilation detectes (indication du type supporte par la carte):");
   bool anyFlag = false;
-  String psramType = detailedMemory.psramType ? detailedMemory.psramType : T().unknown.str();
+  String psramType = detailedMemory.psramType ? detailedMemory.psramType : "Inconnu";
   
   #ifdef CONFIG_SPIRAM
     Serial.println("  ✓ CONFIG_SPIRAM");
@@ -1855,261 +1797,6 @@ void listPartitions() {
   Serial.printf("Total: %d partitions\r\n", count);
 }
 
-// --- [NEW FEATURE] TEST LED RGB ---
-void testRGBLed() {
-  Serial.println("\r\n=== TEST LED RGB ===");
-
-  if (RGB_LED_PIN_R < 0 || RGB_LED_PIN_G < 0 || RGB_LED_PIN_B < 0) {
-    rgbLedTestResult = String(T().configuration_invalid);
-    rgbLedAvailable = false;
-    Serial.println("LED RGB: Configuration invalide");
-    return;
-  }
-
-  pinMode(RGB_LED_PIN_R, OUTPUT);
-  pinMode(RGB_LED_PIN_G, OUTPUT);
-  pinMode(RGB_LED_PIN_B, OUTPUT);
-
-  Serial.printf("Test LED RGB - R:%d G:%d B:%d\r\n", RGB_LED_PIN_R, RGB_LED_PIN_G, RGB_LED_PIN_B);
-
-  digitalWrite(RGB_LED_PIN_R, LOW);
-  digitalWrite(RGB_LED_PIN_G, LOW);
-  digitalWrite(RGB_LED_PIN_B, LOW);
-  delay(200);
-
-  digitalWrite(RGB_LED_PIN_R, HIGH);
-  delay(300);
-  digitalWrite(RGB_LED_PIN_R, LOW);
-
-  digitalWrite(RGB_LED_PIN_G, HIGH);
-  delay(300);
-  digitalWrite(RGB_LED_PIN_G, LOW);
-
-  digitalWrite(RGB_LED_PIN_B, HIGH);
-  delay(300);
-  digitalWrite(RGB_LED_PIN_B, LOW);
-
-  rgbLedTestResult = String(T().ok);
-  rgbLedAvailable = true;
-  Serial.println("LED RGB: OK");
-}
-
-void setRGBLedColor(int r, int g, int b) {
-  if (RGB_LED_PIN_R >= 0 && RGB_LED_PIN_G >= 0 && RGB_LED_PIN_B >= 0) {
-    analogWrite(RGB_LED_PIN_R, r);
-    analogWrite(RGB_LED_PIN_G, g);
-    analogWrite(RGB_LED_PIN_B, b);
-  }
-}
-
-// --- [NEW FEATURE] TEST BUZZER ---
-void testBuzzer() {
-  Serial.println("\r\n=== TEST BUZZER ===");
-
-  if (BUZZER_PIN < 0) {
-    buzzerTestResult = String(T().configuration_invalid);
-    buzzerAvailable = false;
-    Serial.println("Buzzer: Configuration invalide");
-    return;
-  }
-
-  pinMode(BUZZER_PIN, OUTPUT);
-  Serial.printf("Test Buzzer - Pin:%d\r\n", BUZZER_PIN);
-
-  tone(BUZZER_PIN, 1000, 200);
-  delay(300);
-  tone(BUZZER_PIN, 1500, 200);
-  delay(300);
-  tone(BUZZER_PIN, 2000, 200);
-  delay(300);
-  noTone(BUZZER_PIN);
-
-  buzzerTestResult = String(T().ok);
-  buzzerAvailable = true;
-  Serial.println("Buzzer: OK");
-}
-
-void playBuzzerTone(int frequency, int duration) {
-  if (BUZZER_PIN >= 0) {
-    tone(BUZZER_PIN, frequency, duration);
-  }
-}
-
-// --- [NEW FEATURE] TEST DHT11 ---
-void testDHT11() {
-  Serial.println("\r\n=== TEST DHT11 ===");
-
-  if (DHT11_PIN < 0) {
-    dht11TestResult = String(T().configuration_invalid);
-    dht11Available = false;
-    Serial.println("DHT11: Configuration invalide");
-    return;
-  }
-
-  Serial.printf("Lecture DHT11 - Pin:%d\r\n", DHT11_PIN);
-
-  pinMode(DHT11_PIN, OUTPUT);
-  digitalWrite(DHT11_PIN, LOW);
-  delay(20);
-  digitalWrite(DHT11_PIN, HIGH);
-  delayMicroseconds(40);
-  pinMode(DHT11_PIN, INPUT_PULLUP);
-
-  uint8_t data[5] = {0};
-  uint8_t bits[40] = {0};
-
-  unsigned long timeout = millis();
-  while (digitalRead(DHT11_PIN) == HIGH) {
-    if (millis() - timeout > 100) {
-      dht11TestResult = String(T().error_label);
-      dht11Available = false;
-      Serial.println("DHT11: Timeout");
-      return;
-    }
-  }
-
-  timeout = millis();
-  while (digitalRead(DHT11_PIN) == LOW) {
-    if (millis() - timeout > 100) {
-      dht11TestResult = String(T().error_label);
-      dht11Available = false;
-      Serial.println("DHT11: Timeout");
-      return;
-    }
-  }
-
-  timeout = millis();
-  while (digitalRead(DHT11_PIN) == HIGH) {
-    if (millis() - timeout > 100) {
-      dht11TestResult = String(T().error_label);
-      dht11Available = false;
-      Serial.println("DHT11: Timeout");
-      return;
-    }
-  }
-
-  for (int i = 0; i < 40; i++) {
-    timeout = micros();
-    while (digitalRead(DHT11_PIN) == LOW) {
-      if (micros() - timeout > 100) break;
-    }
-
-    unsigned long t = micros();
-    timeout = micros();
-    while (digitalRead(DHT11_PIN) == HIGH) {
-      if (micros() - timeout > 100) break;
-    }
-
-    if ((micros() - t) > 40) {
-      bits[i] = 1;
-    }
-  }
-
-  for (int i = 0; i < 5; i++) {
-    data[i] = 0;
-    for (int j = 0; j < 8; j++) {
-      data[i] <<= 1;
-      data[i] |= bits[i * 8 + j];
-    }
-  }
-
-  if (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF)) {
-    dht11Humidity = data[0];
-    dht11Temperature = data[2];
-    dht11TestResult = String(T().ok);
-    dht11Available = true;
-    Serial.printf("DHT11: T=%.1f°C H=%.1f%%\r\n", dht11Temperature, dht11Humidity);
-  } else {
-    dht11TestResult = String(T().error_label);
-    dht11Available = false;
-    Serial.println("DHT11: Checksum error");
-  }
-}
-
-// --- [NEW FEATURE] TEST LIGHT SENSOR ---
-void testLightSensor() {
-  Serial.println("\r\n=== TEST LIGHT SENSOR ===");
-
-  if (LIGHT_SENSOR_PIN < 0) {
-    lightSensorTestResult = String(T().configuration_invalid);
-    lightSensorAvailable = false;
-    Serial.println("Light Sensor: Configuration invalide");
-    return;
-  }
-
-  pinMode(LIGHT_SENSOR_PIN, INPUT);
-  Serial.printf("Lecture Light Sensor - Pin:%d\r\n", LIGHT_SENSOR_PIN);
-
-  int sum = 0;
-  for (int i = 0; i < 10; i++) {
-    sum += analogRead(LIGHT_SENSOR_PIN);
-    delay(10);
-  }
-  lightSensorValue = sum / 10;
-
-  lightSensorTestResult = String(T().ok);
-  lightSensorAvailable = true;
-  Serial.printf("Light Sensor: %d\r\n", lightSensorValue);
-}
-
-// --- [NEW FEATURE] TEST DISTANCE SENSOR ---
-void testDistanceSensor() {
-  Serial.println("\r\n=== TEST DISTANCE SENSOR (HC-SR04) ===");
-
-  if (DISTANCE_TRIG_PIN < 0 || DISTANCE_ECHO_PIN < 0) {
-    distanceSensorTestResult = String(T().configuration_invalid);
-    distanceSensorAvailable = false;
-    Serial.println("Distance Sensor: Configuration invalide");
-    return;
-  }
-
-  pinMode(DISTANCE_TRIG_PIN, OUTPUT);
-  pinMode(DISTANCE_ECHO_PIN, INPUT);
-
-  Serial.printf("Distance Sensor - Trig:%d Echo:%d\r\n", DISTANCE_TRIG_PIN, DISTANCE_ECHO_PIN);
-
-  digitalWrite(DISTANCE_TRIG_PIN, LOW);
-  delayMicroseconds(2);
-  digitalWrite(DISTANCE_TRIG_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(DISTANCE_TRIG_PIN, LOW);
-
-  long duration = pulseIn(DISTANCE_ECHO_PIN, HIGH, 30000);
-
-  if (duration > 0) {
-    distanceValue = duration * 0.034 / 2;
-    distanceSensorTestResult = String(T().ok);
-    distanceSensorAvailable = true;
-    Serial.printf("Distance: %.2f cm\r\n", distanceValue);
-  } else {
-    distanceSensorTestResult = String(T().error_label);
-    distanceSensorAvailable = false;
-    Serial.println("Distance Sensor: No echo");
-  }
-}
-
-// --- [NEW FEATURE] TEST MOTION SENSOR ---
-void testMotionSensor() {
-  Serial.println("\r\n=== TEST MOTION SENSOR (PIR) ===");
-
-  if (MOTION_SENSOR_PIN < 0) {
-    motionSensorTestResult = String(T().configuration_invalid);
-    motionSensorAvailable = false;
-    Serial.println("Motion Sensor: Configuration invalide");
-    return;
-  }
-
-  pinMode(MOTION_SENSOR_PIN, INPUT);
-  Serial.printf("Motion Sensor - Pin:%d\r\n", MOTION_SENSOR_PIN);
-
-  delay(100);
-  motionDetected = digitalRead(MOTION_SENSOR_PIN);
-
-  motionSensorTestResult = String(T().ok);
-  motionSensorAvailable = true;
-  Serial.printf("Motion: %s\r\n", motionDetected ? "Detected" : "None");
-}
-
 // ========== TEST STRESS MÉMOIRE ==========
 void memoryStressTest() {
   Serial.println("\r\n=== STRESS TEST MEMOIRE ===");
@@ -2508,8 +2195,7 @@ void handleOLEDMessage() {
 
   String message = server.arg("message");
   oledShowMessage(message);
-  // --- [TRANSLATION FIX] Use translation key instead of hardcoded string ---
-  sendOperationSuccess(T().message_displayed.str());
+  sendOperationSuccess(String("Message affiche"));
 }
 
 void handleADCTest() {
@@ -2546,140 +2232,6 @@ void handleStressTest() {
   sendJsonResponse(200, { jsonStringField("result", stressTestResult) });
 }
 
-// --- [NEW FEATURE] Handlers API pour les nouveaux capteurs ---
-void handleRGBLedConfig() {
-  if (server.hasArg("r") && server.hasArg("g") && server.hasArg("b")) {
-    RGB_LED_PIN_R = server.arg("r").toInt();
-    RGB_LED_PIN_G = server.arg("g").toInt();
-    RGB_LED_PIN_B = server.arg("b").toInt();
-    sendActionResponse(200, true, String(T().ok));
-  } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
-  }
-}
-
-void handleRGBLedTest() {
-  testRGBLed();
-  sendJsonResponse(200, {
-    jsonBoolField("success", rgbLedAvailable),
-    jsonStringField("result", rgbLedTestResult)
-  });
-}
-
-void handleRGBLedColor() {
-  if (server.hasArg("r") && server.hasArg("g") && server.hasArg("b")) {
-    int r = server.arg("r").toInt();
-    int g = server.arg("g").toInt();
-    int b = server.arg("b").toInt();
-    setRGBLedColor(r, g, b);
-    sendActionResponse(200, true, "RGB(" + String(r) + "," + String(g) + "," + String(b) + ")");
-  } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
-  }
-}
-
-void handleBuzzerConfig() {
-  if (server.hasArg("pin")) {
-    BUZZER_PIN = server.arg("pin").toInt();
-    sendActionResponse(200, true, String(T().ok));
-  } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
-  }
-}
-
-void handleBuzzerTest() {
-  testBuzzer();
-  sendJsonResponse(200, {
-    jsonBoolField("success", buzzerAvailable),
-    jsonStringField("result", buzzerTestResult)
-  });
-}
-
-void handleBuzzerTone() {
-  if (server.hasArg("freq") && server.hasArg("duration")) {
-    int freq = server.arg("freq").toInt();
-    int duration = server.arg("duration").toInt();
-    playBuzzerTone(freq, duration);
-    sendActionResponse(200, true, String(freq) + "Hz");
-  } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
-  }
-}
-
-void handleDHT11Config() {
-  if (server.hasArg("pin")) {
-    DHT11_PIN = server.arg("pin").toInt();
-    sendActionResponse(200, true, String(T().ok));
-  } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
-  }
-}
-
-void handleDHT11Test() {
-  testDHT11();
-  sendJsonResponse(200, {
-    jsonBoolField("success", dht11Available),
-    jsonStringField("result", dht11TestResult),
-    jsonFloatField("temperature", dht11Temperature, 1),
-    jsonFloatField("humidity", dht11Humidity, 1)
-  });
-}
-
-void handleLightSensorConfig() {
-  if (server.hasArg("pin")) {
-    LIGHT_SENSOR_PIN = server.arg("pin").toInt();
-    sendActionResponse(200, true, String(T().ok));
-  } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
-  }
-}
-
-void handleLightSensorTest() {
-  testLightSensor();
-  sendJsonResponse(200, {
-    jsonBoolField("success", lightSensorAvailable),
-    jsonStringField("result", lightSensorTestResult),
-    jsonNumberField("value", lightSensorValue)
-  });
-}
-
-void handleDistanceSensorConfig() {
-  if (server.hasArg("trig") && server.hasArg("echo")) {
-    DISTANCE_TRIG_PIN = server.arg("trig").toInt();
-    DISTANCE_ECHO_PIN = server.arg("echo").toInt();
-    sendActionResponse(200, true, String(T().ok));
-  } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
-  }
-}
-
-void handleDistanceSensorTest() {
-  testDistanceSensor();
-  sendJsonResponse(200, {
-    jsonBoolField("success", distanceSensorAvailable),
-    jsonStringField("result", distanceSensorTestResult),
-    jsonFloatField("distance", distanceValue, 2)
-  });
-}
-
-void handleMotionSensorConfig() {
-  if (server.hasArg("pin")) {
-    MOTION_SENSOR_PIN = server.arg("pin").toInt();
-    sendActionResponse(200, true, String(T().ok));
-  } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
-  }
-}
-
-void handleMotionSensorTest() {
-  testMotionSensor();
-  sendJsonResponse(200, {
-    jsonBoolField("success", motionSensorAvailable),
-    jsonStringField("result", motionSensorTestResult),
-    jsonBoolField("motion", motionDetected)
-  });
-}
-
 void handleBenchmark() {
   unsigned long cpuTime = benchmarkCPU();
   unsigned long memTime = benchmarkMemory();
@@ -2697,162 +2249,6 @@ void handleBenchmark() {
   });
 }
 
-void handleStatus() {
-  sendJsonResponse(200, {
-    jsonBoolField("connected", WiFi.status() == WL_CONNECTED),
-    jsonBoolField("bluetooth", bluetoothEnabled),
-    jsonStringField("uptime", String(millis()))
-  });
-}
-
-void handleSystemInfo() {
-  collectDiagnosticInfo();
-  String json;
-  json.reserve(600);
-  json = "{";
-  json += "\"chipModel\":\"" + diagnosticData.chipModel + "\",";
-  json += "\"chipRevision\":\"" + diagnosticData.chipRevision + "\",";
-  json += "\"cpuCores\":" + String(diagnosticData.cpuCores) + ",";
-  json += "\"cpuFreq\":" + String(diagnosticData.cpuFreqMHz) + ",";
-  json += "\"macAddress\":\"" + diagnosticData.macAddress + "\",";
-  json += "\"ipAddress\":\"" + diagnosticData.ipAddress + "\",";
-  json += "\"mdnsReady\":" + String(diagnosticData.mdnsAvailable ? "true" : "false") + ",";
-  json += "\"uptime\":" + String(diagnosticData.uptime);
-  if (diagnosticData.temperature != -999) {
-    json += ",\"temperature\":" + String(diagnosticData.temperature, 1);
-  }
-  json += "}";
-  server.send(200, "application/json", json);
-}
-
-void handleMemory() {
-  collectDetailedMemory();
-  String json;
-  json.reserve(500);
-  json = "{";
-  json += "\"heap\":{\"total\":" + String(diagnosticData.heapSize) +
-          ",\"free\":" + String(diagnosticData.freeHeap) +
-          ",\"used\":" + String(diagnosticData.heapSize - diagnosticData.freeHeap) + "},";
-  json += "\"psram\":{\"total\":" + String(detailedMemory.psramTotal) +
-          ",\"free\":" + String(detailedMemory.psramFree) +
-          ",\"used\":" + String(detailedMemory.psramUsed) + "},";
-  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1);
-  json += "}";
-  server.send(200, "application/json", json);
-}
-
-void handleWiFiInfo() {
-  collectDiagnosticInfo();
-  String json;
-  json.reserve(400);
-  json = "{";
-  json += "\"connected\":" + String(WiFi.status() == WL_CONNECTED ? "true" : "false") + ",";
-  json += "\"ssid\":\"" + diagnosticData.wifiSSID + "\",";
-  json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
-  json += "\"quality_key\":\"" + String(getWiFiSignalQualityKey()) + "\",";
-  json += "\"quality\":\"" + getWiFiSignalQuality() + "\",";
-  json += "\"ip\":\"" + diagnosticData.ipAddress + "\",";
-  json += "\"gateway\":\"" + WiFi.gatewayIP().toString() + "\",";
-  json += "\"dns\":\"" + WiFi.dnsIP().toString() + "\"";
-  json += "}";
-  server.send(200, "application/json", json);
-}
-
-void handlePeripherals() {
-  scanI2C();
-  String json;
-  json.reserve(300);
-  json = "{";
-  json += "\"i2c\":{\"count\":" + String(diagnosticData.i2cCount) +
-          ",\"devices\":\"" + diagnosticData.i2cDevices + "\"},";
-  json += "\"gpio\":{\"total\":" + String(diagnosticData.totalGPIO) +
-          ",\"list\":\"" + diagnosticData.gpioList + "\"}";
-  json += "}";
-  server.send(200, "application/json", json);
-}
-
-void handleLedsInfo() {
-  String json;
-  json.reserve(400);
-  json = "{";
-  json += "\"builtin\":{\"pin\":" + String(BUILTIN_LED_PIN) +
-          ",\"status\":\"" + builtinLedTestResult + "\"},";
-  json += "\"neopixel\":{\"pin\":" + String(LED_PIN) +
-          ",\"count\":" + String(LED_COUNT) +
-          ",\"status\":\"" + neopixelTestResult + "\"}";
-  json += "}";
-  server.send(200, "application/json", json);
-}
-
-void handleScreensInfo() {
-  String json;
-  json.reserve(300);
-  json = "{";
-  json += "\"oled\":{\"available\":" + String(oledAvailable ? "true" : "false") +
-          ",\"status\":\"" + oledTestResult + "\",";
-  json += "\"pins\":{\"sda\":" + String(I2C_SDA) + ",\"scl\":" + String(I2C_SCL) + "},";
-  json += "\"rotation\":" + String(oledRotation) + "}";
-  json += "}";
-  server.send(200, "application/json", json);
-}
-
-void handleOverview() {
-  collectDiagnosticInfo();
-  collectDetailedMemory();
-  scanI2C();
-
-  String json;
-  json.reserve(2500);  // Reserve memory for the complete overview response
-  json = "{";
-
-  // Chip info
-  json += "\"chip\":{";
-  json += "\"model\":\"" + diagnosticData.chipModel + "\",";
-  json += "\"revision\":\"" + diagnosticData.chipRevision + "\",";
-  json += "\"cores\":" + String(diagnosticData.cpuCores) + ",";
-  json += "\"freq\":" + String(diagnosticData.cpuFreqMHz) + ",";
-  json += "\"mac\":\"" + diagnosticData.macAddress + "\",";
-  json += "\"uptime\":" + String(diagnosticData.uptime);
-  if (diagnosticData.temperature != -999) {
-    json += ",\"temperature\":" + String(diagnosticData.temperature, 1);
-  } else {
-    json += ",\"temperature\":-999";
-  }
-  json += "},";
-
-  // Memory info
-  json += "\"memory\":{";
-  json += "\"flash\":{\"real\":" + String(detailedMemory.flashSizeReal) +
-          ",\"type\":\"" + getFlashType() + "\",\"speed\":\"" + getFlashSpeed() + "\"},";
-  json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) +
-          ",\"free\":" + String(detailedMemory.sramFree) +
-          ",\"used\":" + String(detailedMemory.sramUsed) + "},";
-  json += "\"psram\":{\"total\":" + String(detailedMemory.psramTotal) +
-          ",\"free\":" + String(detailedMemory.psramFree) +
-          ",\"used\":" + String(detailedMemory.psramUsed) + "},";
-  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1);
-  json += "},";
-
-  // WiFi info - Use translation key instead of translated string
-  json += "\"wifi\":{";
-  json += "\"ssid\":\"" + diagnosticData.wifiSSID + "\",";
-  json += "\"rssi\":" + String(diagnosticData.wifiRSSI) + ",";
-  json += "\"quality_key\":\"" + String(getWiFiSignalQualityKey()) + "\",";  // Return key, not translated string
-  json += "\"quality\":\"" + getWiFiSignalQuality() + "\",";  // Keep for backward compatibility
-  json += "\"ip\":\"" + diagnosticData.ipAddress + "\"";
-  json += "},";
-
-  // GPIO info
-  json += "\"gpio\":{";
-  json += "\"total\":" + String(diagnosticData.totalGPIO) + ",";
-  json += "\"i2c_count\":" + String(diagnosticData.i2cCount) + ",";
-  json += "\"i2c_devices\":\"" + diagnosticData.i2cDevices + "\"";
-  json += "}";
-
-  json += "}";
-  server.send(200, "application/json", json);
-}
-
 void handleMemoryDetails() {
   collectDetailedMemory();
 
@@ -2862,7 +2258,7 @@ void handleMemoryDetails() {
   json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") +
           ",\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") +
           ",\"supported\":" + String(detailedMemory.psramBoardSupported ? "true" : "false") +
-          ",\"type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : T().unknown.str()) + "\"" +
+          ",\"type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : "Inconnu") + "\"" +
           ",\"total\":" + String(detailedMemory.psramTotal) + ",\"free\":" + String(detailedMemory.psramFree) + "},";
   json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) + ",\"free\":" + String(detailedMemory.sramFree) + "},";
   json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",\"status\":\"" + detailedMemory.memoryStatus + "\"}";
@@ -3007,7 +2403,7 @@ void handleExportJSON() {
   json += "\"psram_free_mb\":" + String(detailedMemory.psramFree / 1048576.0, 2) + ",";
   json += "\"psram_available\":" + String(detailedMemory.psramAvailable ? "true" : "false") + ",";
   json += "\"psram_supported\":" + String(detailedMemory.psramBoardSupported ? "true" : "false") + ",";
-  json += "\"psram_type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : T().unknown.str()) + "\",";
+  json += "\"psram_type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : "Inconnu") + "\",";
   json += "\"sram_kb\":" + String(detailedMemory.sramTotal / 1024.0, 2) + ",";
   json += "\"sram_free_kb\":" + String(detailedMemory.sramFree / 1024.0, 2) + ",";
   json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",";
@@ -5392,22 +4788,11 @@ void setup() {
 
   // ========== ROUTES SERVEUR ==========
   server.on("/", handleRoot);
-  server.on("/js/app.js", handleJavaScript);
-
+  
   // **NOUVELLES ROUTES MULTILINGUES**
   server.on("/api/set-language", handleSetLanguage);
   server.on("/api/get-translations", handleGetTranslations);
-
-  // Data endpoints
-  server.on("/api/status", handleStatus);
-  server.on("/api/overview", handleOverview);
-  server.on("/api/system-info", handleSystemInfo);
-  server.on("/api/memory", handleMemory);
-  server.on("/api/wifi-info", handleWiFiInfo);
-  server.on("/api/peripherals", handlePeripherals);
-  server.on("/api/leds-info", handleLedsInfo);
-  server.on("/api/screens-info", handleScreensInfo);
-
+  
   // GPIO & WiFi
   server.on("/api/test-gpio", handleTestGPIO);
   server.on("/api/wifi-scan", handleWiFiScan);
@@ -5442,28 +4827,7 @@ void setup() {
   server.on("/api/spi-scan", handleSPIScan);
   server.on("/api/partitions-list", handlePartitionsList);
   server.on("/api/stress-test", handleStressTest);
-
-  // --- [NEW FEATURE] Routes API pour les nouveaux capteurs ---
-  server.on("/api/rgb-led-config", handleRGBLedConfig);
-  server.on("/api/rgb-led-test", handleRGBLedTest);
-  server.on("/api/rgb-led-color", handleRGBLedColor);
-
-  server.on("/api/buzzer-config", handleBuzzerConfig);
-  server.on("/api/buzzer-test", handleBuzzerTest);
-  server.on("/api/buzzer-tone", handleBuzzerTone);
-
-  server.on("/api/dht11-config", handleDHT11Config);
-  server.on("/api/dht11-test", handleDHT11Test);
-
-  server.on("/api/light-sensor-config", handleLightSensorConfig);
-  server.on("/api/light-sensor-test", handleLightSensorTest);
-
-  server.on("/api/distance-sensor-config", handleDistanceSensorConfig);
-  server.on("/api/distance-sensor-test", handleDistanceSensorTest);
-
-  server.on("/api/motion-sensor-config", handleMotionSensorConfig);
-  server.on("/api/motion-sensor-test", handleMotionSensorTest);
-
+  
   // Performance & Mémoire
   server.on("/api/benchmark", handleBenchmark);
   server.on("/api/memory-details", handleMemoryDetails);
