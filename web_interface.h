@@ -1,5 +1,5 @@
 /*
- * WEB_INTERFACE.H - Interface Web Dynamique v3.5.1
+ * WEB_INTERFACE.H - Interface Web Dynamique v3.6.16
  */
 
 #ifndef WEB_INTERFACE_H
@@ -683,7 +683,7 @@ String generateJavaScript() {
   // --- [REORGANIZATION] Build Display & Signal - Combine LEDs, Screens, RGB, Buzzer ---
   js += "function buildDisplaySignal(ledsData,screensData){";
   // --- [NEW FEATURE] Introduction Affichage & Signal ---
-  js += "let h='<div class=\\"section\\"><p data-i18n=\\"display_signal_intro\\">'+tr('display_signal_intro')+'</p></div>';";
+  js += "let h='<div class=\\\"section\\\"><p data-i18n=\\\"display_signal_intro\\\">'+tr('display_signal_intro')+'</p></div>';";
   js += "h+=buildLeds(ledsData);";
   js += "h+=buildScreens(screensData);";
 

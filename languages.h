@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <pgmspace.h>
 
-// ========== SYSTÈME DE TRADUCTION OPTIMISÉ v3.6.02 ==========
+// ========== SYSTÈME DE TRADUCTION OPTIMISÉ v3.6.16 ==========
 // Optimisations appliquées :
 // - Élimination des doublons (scan/scanning)
 // - Harmonisation des clés similaires
@@ -90,7 +90,6 @@ extern Language currentLanguage;
   X(wifi_channel, "Canal WiFi", "WiFi Channel") \
   X(wifi_open_auth, "Ouvert", "Open") \
   X(bluetooth_section, "Bluetooth", "Bluetooth") \
-  // --- [NEW FEATURE] Descriptions supplémentaires pour l'onglet Sans fil --- \
   X(bluetooth_desc, "Gérez l'état, le nom et la diffusion Bluetooth.", "Manage Bluetooth state, name, and advertising.") \
   X(bluetooth_status, "Statut Bluetooth", "Bluetooth Status") \
   X(bluetooth_name, "Nom diffusé", "Advertised Name") \
@@ -106,7 +105,6 @@ extern Language currentLanguage;
   X(bluetooth_enabled, "Bluetooth activé", "Bluetooth Enabled") \
   X(bluetooth_advertising, "Diffusion active", "Advertising Active") \
   X(bluetooth_not_advertising, "Diffusion arrêtée", "Advertising Stopped") \
-  /* --- [NEW FEATURE] Scan Bluetooth --- */ \
   X(bluetooth_scan, "Scanner les périphériques Bluetooth", "Scan Bluetooth Devices") \
   X(bluetooth_scan_hint, "Activez le BLE sur vos appareils proches avant de scanner.", "Enable BLE on nearby devices before scanning.") \
   X(bluetooth_scan_in_progress, "Scan Bluetooth en cours...", "Scanning Bluetooth...") \
@@ -130,7 +128,6 @@ extern Language currentLanguage;
   X(detected_addresses, "Adresses détectées", "Detected Addresses") \
   X(rescan_i2c, "Relancer le scan I2C", "Re-scan I2C") \
   X(builtin_led, "LED intégrée", "Built-in LED") \
-  // --- [NEW FEATURE] Descriptions supplémentaires pour Affichage & Signal --- \
   X(builtin_led_desc, "Contrôlez la LED embarquée et vérifiez sa réponse.", "Control the onboard LED and confirm it responds.") \
   X(gpio, "GPIO", "GPIO") \
   X(status, "Statut", "Status") \
@@ -229,7 +226,6 @@ extern Language currentLanguage;
   X(not_tested, "Non testé", "Not tested") \
   X(benchmark_desc, "Mesure les performances CPU et mémoire du module.", "Measures CPU and memory performance of the module.") \
   X(data_export, "Export des données", "Data Export") \
-  // --- [NEW FEATURE] Description supplémentaire pour l'export --- \
   X(export_intro, "Téléchargez les rapports de diagnostic dans le format souhaité.", "Download diagnostic reports in the format you need.") \
   X(txt_file, "Fichier TXT", "TXT File") \
   X(readable_report, "Rapport texte lisible", "Readable text report") \
@@ -311,7 +307,6 @@ extern Language currentLanguage;
   X(gpio_summary_template, "Terminé - %COUNT% GPIO testés", "Done - %COUNT% GPIO tested") \
   X(i2c_scan_result, "I2C : %COUNT% périphérique(s)", "I2C: %COUNT% device(s)") \
   X(gpio_invalid, "GPIO invalide", "Invalid GPIO") \
-  X(configuration_invalid, "Configuration invalide", "Invalid configuration") \
   X(oled_test_running, "Test en cours (25s)...", "Testing (25s)...") \
   X(message_displayed, "Message affiché", "Message displayed") \
   X(seconds, "secondes", "seconds") \
@@ -357,7 +352,6 @@ extern Language currentLanguage;
   X(motion_detected, "Mouvement détecté", "Motion detected") \
   X(no_motion, "Aucun mouvement", "No motion") \
   X(sensors_section, "Tests des capteurs", "Sensor Tests") \
-  // --- [NEW FEATURE] Descriptions supplémentaires pour les capteurs --- \
   X(sensors_intro, "Configurez et testez les capteurs connectés à l'ESP32.", "Configure and test the sensors connected to the ESP32.") \
   X(display_signal_section, "Affichage & Signal", "Display & Signal") \
   X(display_signal_intro, "Préparez les sorties visuelles et sonores pour vos diagnostics.", "Prepare visual and audio outputs for your diagnostics.") \
@@ -366,12 +360,15 @@ extern Language currentLanguage;
   X(pin_configuration, "Configuration des pins", "Pin Configuration") \
   X(refresh_data, "Actualiser", "Refresh")
 
+// --- Contenu de languages.h à partir de TranslationKey ---
 enum TranslationKey {
 #define DECL_KEY(identifier, fr, en) TR_##identifier,
   TRANSLATION_MAP(DECL_KEY)
 #undef DECL_KEY
   TR_COUNT
 };
+
+#define T() TranslationAccessor(&currentLanguage)
 
 static const char* const TRANSLATIONS_FR[] PROGMEM = {
 #define DECL_FR(identifier, fr, en) fr,
@@ -415,20 +412,10 @@ class TranslationAccessor {
 #undef INIT_FIELD
   }
 
+  // Déclaration des champs pour l'accès
 #define DECL_FIELD(identifier, fr, en) TranslationField identifier;
   TRANSLATION_MAP(DECL_FIELD)
 #undef DECL_FIELD
 };
 
-inline const TranslationAccessor& T() {
-  static TranslationAccessor accessor(&currentLanguage);
-  return accessor;
-}
-
-inline void setLanguage(Language lang) {
-  currentLanguage = lang;
-}
-
-#undef TRANSLATION_MAP
-
-#endif
+#endif // LANGUAGES_H
