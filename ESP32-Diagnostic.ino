@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.6.15-dev
+ * ESP32 Diagnostic Suite v3.6.16-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.6.16-dev - Add configurable LED and NeoPixel pins via web UI, implement chase pattern",
   "3.6.15-dev - Add missing UI translations across wireless, sensors, export, and display tabs",
   "3.6.14-dev - Fix Bluetooth scan UI escaping for compilation",
   "3.6.13-dev - Fix translation map continuation and stabilize BLE scanning",
@@ -242,7 +243,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.15-dev"
+#define DIAGNOSTIC_VERSION "3.6.16-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -1498,6 +1499,37 @@ void neopixelFade(uint32_t color) {
   strip->setBrightness(255);
 }
 
+// --- [NEW FEATURE] Effet chenillard pour NeoPixel ---
+void neopixelChase() {
+  if (!strip) return;
+  uint32_t colors[] = {
+    strip->Color(255, 0, 0),    // Rouge
+    strip->Color(0, 255, 0),    // Vert
+    strip->Color(0, 0, 255),    // Bleu
+    strip->Color(255, 255, 0),  // Jaune
+    strip->Color(255, 0, 255),  // Magenta
+    strip->Color(0, 255, 255)   // Cyan
+  };
+  int numColors = sizeof(colors) / sizeof(colors[0]);
+
+  for(int cycle = 0; cycle < 3; cycle++) {
+    for(int colorIndex = 0; colorIndex < numColors; colorIndex++) {
+      for(int pos = 0; pos < LED_COUNT; pos++) {
+        strip->clear();
+        for(int i = 0; i < LED_COUNT; i++) {
+          if((i + pos) % 3 == 0) {
+            strip->setPixelColor(i, colors[colorIndex]);
+          }
+        }
+        strip->show();
+        delay(100);
+      }
+    }
+  }
+  strip->clear();
+  strip->show();
+}
+
 void applyOLEDOrientation() {
   oled.setRotation(oledRotation & 0x03);
 }
@@ -2417,6 +2449,9 @@ void handleNeoPixelPattern() {
   } else if (pattern == "fade") {
     neopixelFade(strip->Color(0, 0, 255));
     message = String(T().fade) + " " + String(T().ok);
+  } else if (pattern == "chase") {
+    neopixelChase();
+    message = String(T().chase) + " " + String(T().ok);
   } else if (pattern == "off") {
     strip->clear();
     strip->show();

@@ -146,6 +146,10 @@ extern Language currentLanguage;
   X(neopixel_desc, "Pilotez vos bandes NeoPixel et testez les animations.", "Drive your NeoPixel strips and test animations.") \
   X(animations, "Animations", "Animations") \
   X(led_count, "Nombre de LEDs", "LED Count") \
+  X(configure_gpio, "Configurer GPIO", "Configure GPIO") \
+  X(configure_led_pin, "Configurer le pin de la LED", "Configure LED pin") \
+  X(configure_neopixel, "Configurer NeoPixel", "Configure NeoPixel") \
+  X(apply_configuration, "Appliquer la configuration", "Apply Configuration") \
   X(rainbow, "Arc-en-ciel", "Rainbow") \
   X(chase, "Chenillard", "Chase") \
   X(color, "Couleur", "Color") \
