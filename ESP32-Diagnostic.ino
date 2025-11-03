@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.6.12-dev
+ * ESP32 Diagnostic Suite v3.6.13-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.6.13-dev - Fix translation map continuation and stabilize BLE scanning",
   "3.6.12-dev - Add Bluetooth overview metrics and wireless controls",
   "3.6.11-dev - Provide MDNS_HOSTNAME_STR definition for consistent linkage",
   "3.6.10-dev - Replace handleRoot() to use modern generateHTML() with dynamic tab navigation",
@@ -239,7 +240,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.12-dev"
+#define DIAGNOSTIC_VERSION "3.6.13-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -3809,6 +3810,23 @@ void dispatchBluetoothTelemetry() {
                 static_cast<unsigned long>(bluetoothNotifyCounter),
                 static_cast<unsigned long>(uptimeSeconds));
 }
+
+// --- [BUGFIX] Helpers to abstract BLE scan results across stacks ---
+static int getScanResultCount(BLEScanResults& results) {
+  return results.getCount();
+}
+
+static int getScanResultCount(BLEScanResults* results) {
+  return (results != nullptr) ? results->getCount() : 0;
+}
+
+static BLEAdvertisedDevice getScanResultDevice(BLEScanResults& results, int index) {
+  return results.getDevice(index);
+}
+
+static BLEAdvertisedDevice getScanResultDevice(BLEScanResults* results, int index) {
+  return (results != nullptr) ? results->getDevice(index) : BLEAdvertisedDevice();
+}
 #endif
 
 bool startBluetooth() {
@@ -4293,16 +4311,16 @@ void handleBluetoothScan() {
   }
 
   scanner->setActiveScan(true);
-  BLEScanResults results = scanner->start(5, false);
-  int count = results.getCount();
+  // --- [BUGFIX] Harmonise BLE scan results pointer/object handling ---
+  auto rawResults = scanner->start(5, false);
+  int count = getScanResultCount(rawResults);
 
   String devicesJson;
   devicesJson.reserve(static_cast<size_t>(count) * 80U);
   for (int i = 0; i < count; ++i) {
-    BLEAdvertisedDevice device = results.getDevice(i);
+    BLEAdvertisedDevice device = getScanResultDevice(rawResults, i);
     String name = device.haveName() ? String(device.getName().c_str()) : String(T().unknown);
-    std::string addressStd = device.getAddress().toString();
-    String address = String(addressStd.c_str());
+    String address = String(device.getAddress().toString().c_str());
     int rssi = device.getRSSI();
     if (i > 0) {
       devicesJson += ',';
@@ -4312,7 +4330,8 @@ void handleBluetoothScan() {
     devicesJson += "\"rssi\":" + String(rssi) + "}";
   }
 
-  results.clear();
+  scanner->stop();
+  scanner->clearResults();
 
   if (resumeAdvertising && advertising) {
     advertising->start();
