@@ -148,6 +148,9 @@ extern Language currentLanguage;
   X(led_count, "Nombre de LEDs", "LED Count") \
   X(rainbow, "Arc-en-ciel", "Rainbow") \
   X(chase, "Chenillard", "Chase") \
+  X(configure_led_pin, "Configurer le pin de la LED", "Configure LED pin") \
+  X(configure_neopixel, "Configurer NeoPixel", "Configure NeoPixel") \
+  X(apply_configuration, "Appliquer la configuration", "Apply Configuration") \
   X(color, "Couleur", "Color") \
   X(custom_color, "Couleur personnalisée", "Custom Color") \
   X(full_test, "Test complet", "Full Test") \
