@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.6.20-dev
+ * ESP32 Diagnostic Suite v3.6.21-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.6.21-dev - Restore async test runner declarations for compilation",
   "3.6.20-dev - Reduce hardware test latency with faster routines",
   "3.6.19-dev - Compact translation JSON map to shrink firmware size",
   "3.6.18-dev - Restore language switch helper after translation refactor",
@@ -217,6 +218,8 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 
 Language currentLanguage = LANG_FR;
 
+struct TranslationJsonEntry;
+
 // --- [BUGFIX] Restauration du sélecteur de langue ---
 static inline void setLanguage(Language lang) {
   switch (lang) {
@@ -261,7 +264,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.20-dev"
+#define DIAGNOSTIC_VERSION "3.6.21-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -410,6 +413,73 @@ String builtinLedTestResult = String(T().not_tested);
 bool oledTested = false;
 bool oledAvailable = false;
 String oledTestResult = String(T().not_tested);
+
+// --- [NEW FEATURE] Exécution asynchrone des tests matériels ---
+typedef void (*TestRoutine)();
+
+struct AsyncTestRunner {
+  const char* taskName;
+  TaskHandle_t taskHandle;
+  volatile bool running;
+};
+
+struct AsyncTestTaskArgs {
+  AsyncTestRunner* runner;
+  TestRoutine routine;
+};
+
+static void asyncTestTask(void* parameters) {
+  AsyncTestTaskArgs* args = static_cast<AsyncTestTaskArgs*>(parameters);
+  if (args && args->routine) {
+    args->routine();
+  }
+  if (args) {
+    if (args->runner) {
+      args->runner->running = false;
+      args->runner->taskHandle = nullptr;
+    }
+    delete args;
+  }
+  vTaskDelete(nullptr);
+}
+
+static bool startAsyncTest(AsyncTestRunner& runner,
+                           TestRoutine routine,
+                           bool& alreadyRunning,
+                           uint32_t stackSize = 4096,
+                           UBaseType_t priority = 1) {
+  alreadyRunning = runner.running;
+  if (runner.running) {
+    return false;
+  }
+
+  AsyncTestTaskArgs* args = new AsyncTestTaskArgs{&runner, routine};
+  runner.running = true;
+
+#if CONFIG_FREERTOS_UNICORE
+  const BaseType_t targetCore = tskNO_AFFINITY;
+#else
+  const BaseType_t targetCore = 1;
+#endif
+
+  BaseType_t result = xTaskCreatePinnedToCore(asyncTestTask,
+                                              runner.taskName,
+                                              stackSize,
+                                              args,
+                                              priority,
+                                              &runner.taskHandle,
+                                              targetCore);
+  if (result != pdPASS) {
+    runner.running = false;
+    runner.taskHandle = nullptr;
+    delete args;
+    alreadyRunning = false;
+    return false;
+  }
+
+  alreadyRunning = false;
+  return true;
+}
 
 // --- [NEW FEATURE] Orchestrateurs asynchrones des tests lents ---
 static AsyncTestRunner builtinLedTestRunner = {"BuiltinLEDTest", nullptr, false};
