@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.6.08-dev
+ * ESP32 Diagnostic Suite v3.6.09-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.6.09-dev - Fix DiagnosticInfo incomplete type by reordering web_interface.h inclusion",
   "3.6.08-dev - Fix emoji prefix escaping in test sections and resolve handleRoot() duplication",
   "3.6.07-dev - Systematic fix of quote escaping in web_interface.h for successful compilation",
   "3.6.06-dev - Correction echappement guillemets et emojis dans web_interface.h pour compilation",
@@ -198,10 +199,6 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 // Système de traduction
 #include "languages.h"
 
-// --- [BUGFIX] Exposition des handlers d'interface web ---
-struct DiagnosticInfo;
-#include "web_interface.h"
-
 Language currentLanguage = LANG_FR;
 
 static String buildActionResponseJson(bool success,
@@ -236,7 +233,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.08-dev"
+#define DIAGNOSTIC_VERSION "3.6.09-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -464,6 +461,9 @@ struct DiagnosticInfo {
   bool oledAvailable;
   String oledResult;
 } diagnosticData;
+
+// --- [BUGFIX] Include web interface after DiagnosticInfo definition ---
+#include "web_interface.h"
 
 struct DetailedMemoryInfo {
   uint32_t flashSizeReal;
