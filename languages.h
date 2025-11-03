@@ -269,6 +269,7 @@ extern Language currentLanguage;
   X(weak, "Faible", "Weak") \
   X(very_weak, "Très faible", "Very weak") \
   X(none, "Aucune", "None") \
+  X(configuration_invalid, "Configuration invalide", "Invalid configuration") \
   X(unknown, "Inconnu", "Unknown") \
   X(testing, "Test...", "Testing...") \
   X(completed, "Terminé", "Completed") \
