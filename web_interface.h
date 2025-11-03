@@ -253,7 +253,7 @@ String generateHTML() {
   html += "<button type='button' class='nav-btn' data-tab='hardware-tests' data-i18n='nav_hardware_tests' onclick=\"showTab('hardware-tests',this);\">";
   html += htmlEscape(T().nav_hardware_tests.str());
   html += "</button>";
-  html += "<button type='button' class='nav-btn' data-tab='wifi' data-i18n='nav_wireless' onclick=\"showTab('wifi',this);\">";
+  html += "<button type='button' class='nav-btn' data-tab='wireless' data-i18n='nav_wireless' onclick=\"showTab('wireless',this);\">";
   html += htmlEscape(T().nav_wireless.str());
   html += "</button>";
   html += "<button type='button' class='nav-btn' data-tab='benchmark' data-i18n='nav_benchmark' onclick=\"showTab('benchmark',this);\">";
@@ -427,7 +427,7 @@ String generateJavaScript() {
   js += "else if(tabName==='display-signal'){const leds=await fetch('/api/leds-info');const screens=await fetch('/api/screens-info');const ld=await leds.json();const sd=await screens.json();tab.innerHTML=buildDisplaySignal(ld,sd);}";
   js += "else if(tabName==='sensors'){tab.innerHTML=buildSensors();}";
   js += "else if(tabName==='hardware-tests'){tab.innerHTML=buildHardwareTests();}";
-  js += "else if(tabName==='wifi'){tab.innerHTML=buildWifi();}";
+  js += "else if(tabName==='wireless'){tab.innerHTML=buildWireless();await refreshBluetoothStatus();}";
   js += "else if(tabName==='benchmark'){tab.innerHTML=buildBenchmark();}";
   js += "else if(tabName==='export'){tab.innerHTML=buildExport();}";
   js += "updateInterfaceTexts();";
@@ -478,6 +478,22 @@ String generateJavaScript() {
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"signal_quality\">'+tr('signal_quality')+'</div><div class=\"info-value\">'+(d.wifi.quality_key?tr(d.wifi.quality_key):d.wifi.quality)+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"ip_address\">'+tr('ip_address')+'</div><div class=\"info-value\">'+(d.wifi.ip||'')+'</div></div>';";
   js += "h+='</div></div>';";
+
+  js += "if(d.bluetooth){";
+  js += "const bt=d.bluetooth;";
+  js += "const supportKey=bt.support_key||(bt.supported?'bluetooth_support_yes':'bluetooth_support_no');";
+  js += "const statusText=bt.status_key?tr(bt.status_key):(bt.status||'');";
+  js += "const advertisingText=bt.advertising_key?tr(bt.advertising_key):(bt.advertising_label||'');";
+  js += "const connectionText=bt.connection_key?tr(bt.connection_key):(bt.connection_label||'');";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"bluetooth_section\" data-i18n-prefix=\"🅱️\">'+tr('bluetooth_section')+'</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_support_label\">'+tr('bluetooth_support_label')+'</div><div class=\"info-value\" id=\"overview-bt-support\">'+tr(supportKey)+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_status\">'+tr('bluetooth_status')+'</div><div class=\"info-value\" id=\"overview-bt-status\">'+statusText+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_name\">'+tr('bluetooth_name')+'</div><div class=\"info-value\" id=\"overview-bt-name\">'+(bt.name||'')+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_mac\">'+tr('bluetooth_mac')+'</div><div class=\"info-value\" id=\"overview-bt-mac\">'+(bt.mac||'')+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_advertising_label\">'+tr('bluetooth_advertising_label')+'</div><div class=\"info-value\" id=\"overview-bt-advertising\">'+advertisingText+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_connection_label\">'+tr('bluetooth_connection_label')+'</div><div class=\"info-value\" id=\"overview-bt-connection\">'+connectionText+'</div></div>';";
+  js += "h+='</div></div>';";
+  js += "}";
 
   js += "h+='<div class=\"section\"><h2 data-i18n=\"gpio_interfaces\" data-i18n-prefix=\"🔌\">'+tr('gpio_interfaces')+'</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"total_gpio\">'+tr('total_gpio')+'</div><div class=\"info-value\">'+d.gpio.total+'</div></div>';";
@@ -591,13 +607,42 @@ String generateJavaScript() {
   js += "return h;";
   js += "}";
 
-  // Build WiFi - localisation complète
-  js += "function buildWifi(){";
+  // --- [NEW FEATURE] Onglet Sans fil combiné WiFi/Bluetooth ---
+  js += "function buildWireless(){";
   js += "let h='<div class=\"section\"><h2 data-i18n=\"wifi_scanner\" data-i18n-prefix=\"📡\">'+tr('wifi_scanner')+'</h2>';";
   js += "h+='<p data-i18n=\"wifi_desc\">'+tr('wifi_desc')+'</p>';";
   js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"scan_networks\" data-i18n-prefix=\"🔍\" onclick=\"scanWiFi()\">'+tr('scan_networks')+'</button></div>';";
   js += "h+='<div id=\"wifi-status\" class=\"status-live\" data-i18n=\"click_to_scan\">'+tr('click_to_scan')+'</div>';";
   js += "h+='<div id=\"wifi-results\" class=\"wifi-list\"></div></div>';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"bluetooth_section\" data-i18n-prefix=\"🅱️\">'+tr('bluetooth_section')+'</h2>';";
+  js += "h+='<div class=\"info-grid\">';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_support_label\">'+tr('bluetooth_support_label')+'</div><div class=\"info-value\" id=\"bluetooth-support\" data-i18n=\"bluetooth_support_no\">'+tr('bluetooth_support_no')+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_status\">'+tr('bluetooth_status')+'</div><div class=\"info-value\" id=\"bluetooth-status\" data-i18n=\"bluetooth_disabled\">'+tr('bluetooth_disabled')+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_name\">'+tr('bluetooth_name')+'</div><div class=\"info-value\" id=\"bluetooth-name\"></div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_mac\">'+tr('bluetooth_mac')+'</div><div class=\"info-value\" id=\"bluetooth-mac\"></div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_advertising_label\">'+tr('bluetooth_advertising_label')+'</div><div class=\"info-value\" id=\"bluetooth-advertising\" data-i18n=\"bluetooth_not_advertising\">'+tr('bluetooth_not_advertising')+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_connection_label\">'+tr('bluetooth_connection_label')+'</div><div class=\"info-value\" id=\"bluetooth-connection\" data-i18n=\"bluetooth_client_disconnected\">'+tr('bluetooth_client_disconnected')+'</div></div>';";
+  js += "h+='</div>';";
+  js += "h+='<div class=\"card\" style=\"margin-top:15px\">';";
+  js += "h+='<div style=\"text-align:center\">';";
+  js += "h+='<input type=\"text\" id=\"bluetoothNameInput\" maxlength=\"29\" style=\"width:260px;padding:10px;border:2px solid #ddd;border-radius:8px\" data-i18n-placeholder=\"bluetooth_placeholder\" placeholder=\"'+tr('bluetooth_placeholder')+'\">';";
+  js += "h+='<div style=\"margin-top:10px\">';";
+  js += "h+='<button id=\"bluetooth-enable-btn\" class=\"btn btn-success\" data-i18n=\"bluetooth_enable\" data-i18n-prefix=\"▶️\" onclick=\"setBluetoothState(true)\">'+tr('bluetooth_enable')+'</button> ';";
+  js += "h+='<button id=\"bluetooth-disable-btn\" class=\"btn btn-danger\" data-i18n=\"bluetooth_disable\" data-i18n-prefix=\"⏹️\" onclick=\"setBluetoothState(false)\">'+tr('bluetooth_disable')+'</button>';";
+  js += "h+='</div>';";
+  js += "h+='<div style=\"margin-top:10px\">';";
+  js += "h+='<button class=\"btn btn-primary\" data-i18n=\"bluetooth_rename\" data-i18n-prefix=\"✏️\" onclick=\"renameBluetooth()\">'+tr('bluetooth_rename')+'</button> ';";
+  js += "h+='<button class=\"btn btn-warning\" data-i18n=\"bluetooth_reset\" data-i18n-prefix=\"♻️\" onclick=\"resetBluetoothName()\">'+tr('bluetooth_reset')+'</button>';";
+  js += "h+='</div>';";
+  js += "h+='</div>';";
+  js += "h+='<div id=\"bluetooth-action-status\" class=\"status-live\" data-i18n=\"bluetooth_status\">'+tr('bluetooth_status')+'</div>';";
+  js += "h+='</div>';";
+  js += "h+='<div class=\"card\" style=\"margin-top:20px\">';";
+  js += "h+='<div style=\"text-align:center\"><button class=\"btn btn-info\" data-i18n=\"bluetooth_scan\" data-i18n-prefix=\"🔍\" onclick=\"scanBluetoothDevices()\">'+tr('bluetooth_scan')+'</button></div>';";
+  js += "h+='<p style=\"margin-top:10px;color:#555\" data-i18n=\"bluetooth_scan_hint\">'+tr('bluetooth_scan_hint')+'</p>';";
+  js += "h+='<div id=\"bluetooth-scan-status\" class=\"status-live\" data-i18n=\"click_to_scan\">'+tr('click_to_scan')+'</div>';";
+  js += "h+='<div id=\"bluetooth-scan-results\" class=\"info-grid\"></div>';";
+  js += "h+='</div></div>';";
   js += "return h;";
   js += "}";
 
@@ -849,6 +894,54 @@ String generateJavaScript() {
   js += "setStatus('wifi-status',{key:'wifi_networks_found',replacements:{count:d.networks.length}},null);";
   js += "}";
 
+  // --- [NEW FEATURE] Fonctions Bluetooth Sans fil ---
+  js += "function applyBluetoothStatus(d){";
+  js += "if(!d){return;}";
+  js += "const support=document.getElementById('bluetooth-support');";
+  js += "if(support){if(d.support_key){setElementTranslation(support,{key:d.support_key});}else{setElementTranslation(support,{key:d.supported?'bluetooth_support_yes':'bluetooth_support_no'});}}";
+  js += "const status=document.getElementById('bluetooth-status');";
+  js += "if(status){if(d.status_key){setElementTranslation(status,{key:d.status_key});}else if(typeof d.status==='string'){clearTranslationAttributes(status);status.textContent=d.status;}}";
+  js += "const name=document.getElementById('bluetooth-name');";
+  js += "if(name){clearTranslationAttributes(name);name.textContent=d.name||'';}";
+  js += "const nameInput=document.getElementById('bluetoothNameInput');";
+  js += "if(nameInput&&typeof d.name==='string'){nameInput.value=d.name;}";
+  js += "const mac=document.getElementById('bluetooth-mac');";
+  js += "if(mac){clearTranslationAttributes(mac);mac.textContent=d.mac||'';}";
+  js += "const advertising=document.getElementById('bluetooth-advertising');";
+  js += "if(advertising){if(d.advertising_key){setElementTranslation(advertising,{key:d.advertising_key});}else if(typeof d.advertising_label==='string'){clearTranslationAttributes(advertising);advertising.textContent=d.advertising_label;}}";
+  js += "const connection=document.getElementById('bluetooth-connection');";
+  js += "if(connection){if(d.connection_key){setElementTranslation(connection,{key:d.connection_key});}else if(typeof d.connection_label==='string'){clearTranslationAttributes(connection);connection.textContent=d.connection_label;}}";
+  js += "const enableBtn=document.getElementById('bluetooth-enable-btn');";
+  js += "if(enableBtn){enableBtn.disabled=!d.supported||!!d.enabled;}";
+  js += "const disableBtn=document.getElementById('bluetooth-disable-btn');";
+  js += "if(disableBtn){disableBtn.disabled=!d.supported||!d.enabled;}";
+  js += "}";
+
+  js += "async function refreshBluetoothStatus(){";
+  js += "try{const r=await fetch('/api/bluetooth/status');const data=await r.json();applyBluetoothStatus(data);setStatus('bluetooth-action-status',data.message,data.success?'success':'error');}catch(e){setStatus('bluetooth-action-status',{key:'bluetooth_error',suffix:': '+String(e)},'error');}}";
+
+  js += "async function setBluetoothState(enable){";
+  js += "setStatus('bluetooth-action-status',{key:enable?'bluetooth_enable':'bluetooth_disable'},null);";
+  js += "try{const r=await fetch('/api/bluetooth/toggle?state='+(enable?'on':'off'));const data=await r.json();applyBluetoothStatus(data);setStatus('bluetooth-action-status',data.message,data.success?'success':'error');}catch(e){setStatus('bluetooth-action-status',{key:'bluetooth_error',suffix:': '+String(e)},'error');}}";
+
+  js += "async function renameBluetooth(){";
+  js += "const input=document.getElementById('bluetoothNameInput');";
+  js += "if(!input){return;}";
+  js += "const value=input.value?input.value.trim():'';";
+  js += "if(!value){setStatus('bluetooth-action-status',{key:'bluetooth_invalid_name'},'error');return;}";
+  js += "setStatus('bluetooth-action-status',{key:'bluetooth_rename'},null);";
+  js += "try{const r=await fetch('/api/bluetooth/name?name='+encodeURIComponent(value));const data=await r.json();applyBluetoothStatus(data);setStatus('bluetooth-action-status',data.message,data.success?'success':'error');}catch(e){setStatus('bluetooth-action-status',{key:'bluetooth_error',suffix:': '+String(e)},'error');}}";
+
+  js += "async function resetBluetoothName(){";
+  js += "setStatus('bluetooth-action-status',{key:'bluetooth_reset'},null);";
+  js += "try{const r=await fetch('/api/bluetooth/reset');const data=await r.json();applyBluetoothStatus(data);setStatus('bluetooth-action-status',data.message,data.success?'success':'error');}catch(e){setStatus('bluetooth-action-status',{key:'bluetooth_error',suffix:': '+String(e)},'error');}}";
+
+  js += "async function scanBluetoothDevices(){";
+  js += "setStatus('bluetooth-scan-status',{key:'bluetooth_scan_in_progress'},null);";
+  js += "const container=document.getElementById('bluetooth-scan-results');";
+  js += "if(container){container.innerHTML='<div class=\"loading\"></div>';}";
+  js += "try{const r=await fetch('/api/bluetooth/scan');const data=await r.json();applyBluetoothStatus(data);let h='';if(Array.isArray(data.devices)){data.devices.forEach(dev=>{const rssi=typeof dev.rssi==='number'?dev.rssi:0;const badge=rssi>=-60?'badge-success':(rssi>=-75?'badge-warning':'badge-danger');const label=dev.name||tr('unknown');const address=dev.address||'';h+='<div class=\"info-item\"><div class=\"info-label\">'+label+'</div><div class=\"info-value\"><span class=\"badge '+badge+'\">'+rssi+' dBm</span><br>'+address+'</div></div>';});}if(container){container.innerHTML=h;}setStatus('bluetooth-scan-status',data.message,data.success?'success':'error');}catch(e){if(container){container.innerHTML='';}setStatus('bluetooth-scan-status',{key:'bluetooth_error',suffix:': '+String(e)},'error');}}";
+
   js += "async function runBenchmarks(){";
   js += "setElementTranslation(document.getElementById('cpu-bench'),{key:'test_in_progress'});";
   js += "setElementTranslation(document.getElementById('mem-bench'),{key:'test_in_progress'});";
@@ -1034,6 +1127,21 @@ String generateJavaScript() {
   js += "if(pp){const pct=((d.psram.used/d.psram.total)*100).toFixed(1);pp.style.width=pct+'%';pp.textContent=pct+'%';}";
   js += "}";
   js += "const f=document.getElementById('fragmentation');if(f)f.textContent=d.fragmentation.toFixed(1)+'%';";
+  js += "if(d.bluetooth){";
+  js += "const bt=d.bluetooth;";
+  js += "const support=document.getElementById('overview-bt-support');";
+  js += "if(support){const supportKey=bt.support_key||(bt.supported?'bluetooth_support_yes':'bluetooth_support_no');setElementTranslation(support,{key:supportKey});}";
+  js += "const status=document.getElementById('overview-bt-status');";
+  js += "if(status){if(bt.status_key){setElementTranslation(status,{key:bt.status_key});}else if(typeof bt.status==='string'){clearTranslationAttributes(status);status.textContent=bt.status;}}";
+  js += "const name=document.getElementById('overview-bt-name');";
+  js += "if(name){clearTranslationAttributes(name);name.textContent=bt.name||'';}";
+  js += "const mac=document.getElementById('overview-bt-mac');";
+  js += "if(mac){clearTranslationAttributes(mac);mac.textContent=bt.mac||'';}";
+  js += "const advertising=document.getElementById('overview-bt-advertising');";
+  js += "if(advertising){if(bt.advertising_key){setElementTranslation(advertising,{key:bt.advertising_key});}else if(typeof bt.advertising_label==='string'){clearTranslationAttributes(advertising);advertising.textContent=bt.advertising_label;}}";
+  js += "const connection=document.getElementById('overview-bt-connection');";
+  js += "if(connection){if(bt.connection_key){setElementTranslation(connection,{key:bt.connection_key});}else if(typeof bt.connection_label==='string'){clearTranslationAttributes(connection);connection.textContent=bt.connection_label;}}";
+  js += "}";
   js += "}";
 
   // Changement de langue
