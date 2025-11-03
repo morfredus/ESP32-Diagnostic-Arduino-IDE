@@ -104,7 +104,7 @@ extern Language currentLanguage;
   X(bluetooth_enabled, "Bluetooth activé", "Bluetooth Enabled") \
   X(bluetooth_advertising, "Diffusion active", "Advertising Active") \
   X(bluetooth_not_advertising, "Diffusion arrêtée", "Advertising Stopped") \
-  // --- [NEW FEATURE] Scan Bluetooth ---
+  /* --- [NEW FEATURE] Scan Bluetooth --- */ \
   X(bluetooth_scan, "Scanner les périphériques Bluetooth", "Scan Bluetooth Devices") \
   X(bluetooth_scan_hint, "Activez le BLE sur vos appareils proches avant de scanner.", "Enable BLE on nearby devices before scanning.") \
   X(bluetooth_scan_in_progress, "Scan Bluetooth en cours...", "Scanning Bluetooth...") \
