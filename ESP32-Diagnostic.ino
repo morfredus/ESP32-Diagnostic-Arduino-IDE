@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.6.10-dev
+ * ESP32 Diagnostic Suite v3.6.13-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,9 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.6.13-dev - Fix translation map continuation and stabilize BLE scanning",
+  "3.6.12-dev - Add Bluetooth overview metrics and wireless controls",
+  "3.6.11-dev - Provide MDNS_HOSTNAME_STR definition for consistent linkage",
   "3.6.10-dev - Replace handleRoot() to use modern generateHTML() with dynamic tab navigation",
   "3.6.09-dev - Fix DiagnosticInfo incomplete type by reordering web_interface.h inclusion",
   "3.6.08-dev - Fix emoji prefix escaping in test sections and resolve handleRoot() duplication",
@@ -160,6 +163,8 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include <BLEScan.h>
+#include <BLEAdvertisedDevice.h>
 
 #define BLE_STACK_SUPPORTED 1
 
@@ -182,6 +187,7 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 #endif
 #include <vector>
 #include <cstring>
+#include <string>
 #include <initializer_list>
 #include "json_helpers.h"
 
@@ -234,12 +240,14 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.10-dev"
+#define DIAGNOSTIC_VERSION "3.6.13-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
+// --- [BUGFIX] Définition centralisée du nom d'hôte mDNS ---
+const char* MDNS_HOSTNAME_STR = DIAGNOSTIC_HOSTNAME;
 
 #if !defined(DIAGNOSTIC_PREFER_SECURE)
 #define DIAGNOSTIC_PREFER_SECURE 0
@@ -2702,11 +2710,61 @@ void handleBenchmark() {
 }
 
 void handleStatus() {
-  sendJsonResponse(200, {
-    jsonBoolField("connected", WiFi.status() == WL_CONNECTED),
-    jsonBoolField("bluetooth", bluetoothEnabled),
-    jsonStringField("uptime", String(millis()))
-  });
+  collectDiagnosticInfo();
+  collectDetailedMemory();
+
+  bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+  unsigned long currentUptime = millis();
+
+  String btStatus = getBluetoothStateLabel();
+  String btAdvertisingLabel = (bluetoothCapable && bluetoothAdvertising)
+                                  ? String(T().bluetooth_advertising)
+                                  : String(T().bluetooth_not_advertising);
+  const char* btSupportKey = getBluetoothSupportKey();
+  const char* btStatusKey = getBluetoothStateKey();
+  const char* btAdvKey = getBluetoothAdvertisingKey();
+#if BLE_STACK_SUPPORTED
+  bool btConnected = bluetoothCapable && bluetoothClientConnected;
+  const char* btConnectionKey = getBluetoothConnectionKey();
+  String btConnectionLabel = btConnected ? String(T().bluetooth_client_connected)
+                                         : String(T().bluetooth_client_disconnected);
+#else
+  bool btConnected = false;
+  const char* btConnectionKey = "bluetooth_client_disconnected";
+  String btConnectionLabel = String(T().bluetooth_client_disconnected);
+#endif
+
+  String json;
+  json.reserve(400);
+  json = "{";
+  json += "\"connected\":" + String(wifiConnected ? "true" : "false") + ",";
+  json += "\"uptime\":" + String(currentUptime) + ",";
+  json += "\"temperature\":" + String(diagnosticData.temperature) + ",";
+  json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) +
+          ",\"free\":" + String(detailedMemory.sramFree) +
+          ",\"used\":" + String(detailedMemory.sramUsed) + "},";
+  json += "\"psram\":{\"total\":" + String(detailedMemory.psramTotal) +
+          ",\"free\":" + String(detailedMemory.psramFree) +
+          ",\"used\":" + String(detailedMemory.psramUsed) + "},";
+  json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",";
+  json += "\"bluetooth\":{";
+  json += "\"supported\":" + String(bluetoothCapable ? "true" : "false") + ",";
+  json += "\"enabled\":" + String((bluetoothCapable && bluetoothEnabled) ? "true" : "false") + ",";
+  json += "\"advertising\":" + String((bluetoothCapable && bluetoothAdvertising) ? "true" : "false") + ",";
+  json += "\"connected\":" + String(btConnected ? "true" : "false") + ",";
+  json += "\"support_key\":\"" + String(btSupportKey) + "\",";
+  json += "\"status_key\":\"" + String(btStatusKey) + "\",";
+  json += "\"advertising_key\":\"" + String(btAdvKey) + "\",";
+  json += "\"connection_key\":\"" + String(btConnectionKey) + "\",";
+  json += "\"status\":\"" + jsonEscape(btStatus.c_str()) + "\",";
+  json += "\"advertising_label\":\"" + jsonEscape(btAdvertisingLabel.c_str()) + "\",";
+  json += "\"connection_label\":\"" + jsonEscape(btConnectionLabel.c_str()) + "\",";
+  json += "\"name\":\"" + jsonEscape(bluetoothDeviceName.c_str()) + "\",";
+  json += "\"mac\":\"" + jsonEscape(diagnosticData.bluetoothAddress.c_str()) + "\"";
+  json += "}";
+  json += "}";
+
+  server.send(200, "application/json", json);
 }
 
 void handleSystemInfo() {
@@ -2844,6 +2902,40 @@ void handleOverview() {
   json += "\"quality_key\":\"" + String(getWiFiSignalQualityKey()) + "\",";  // Return key, not translated string
   json += "\"quality\":\"" + getWiFiSignalQuality() + "\",";  // Keep for backward compatibility
   json += "\"ip\":\"" + diagnosticData.ipAddress + "\"";
+  json += "},";
+
+  // --- [NEW FEATURE] Synthèse Bluetooth ---
+  String btStatus = getBluetoothStateLabel();
+  String btAdvertisingLabel = (bluetoothCapable && bluetoothAdvertising)
+                                  ? String(T().bluetooth_advertising)
+                                  : String(T().bluetooth_not_advertising);
+  const char* btStatusKey = getBluetoothStateKey();
+  const char* btAdvKey = getBluetoothAdvertisingKey();
+  const char* btSupportKey = getBluetoothSupportKey();
+#if BLE_STACK_SUPPORTED
+  bool btConnected = bluetoothCapable && bluetoothClientConnected;
+  const char* btConnectionKey = getBluetoothConnectionKey();
+  String btConnectionLabel = btConnected ? String(T().bluetooth_client_connected)
+                                         : String(T().bluetooth_client_disconnected);
+#else
+  bool btConnected = false;
+  const char* btConnectionKey = "bluetooth_client_disconnected";
+  String btConnectionLabel = String(T().bluetooth_client_disconnected);
+#endif
+  json += "\"bluetooth\":{";
+  json += "\"supported\":" + String(bluetoothCapable ? "true" : "false") + ",";
+  json += "\"enabled\":" + String((bluetoothCapable && bluetoothEnabled) ? "true" : "false") + ",";
+  json += "\"advertising\":" + String((bluetoothCapable && bluetoothAdvertising) ? "true" : "false") + ",";
+  json += "\"connected\":" + String(btConnected ? "true" : "false") + ",";
+  json += "\"support_key\":\"" + String(btSupportKey) + "\",";
+  json += "\"status_key\":\"" + String(btStatusKey) + "\",";
+  json += "\"advertising_key\":\"" + String(btAdvKey) + "\",";
+  json += "\"connection_key\":\"" + String(btConnectionKey) + "\",";
+  json += "\"status\":\"" + jsonEscape(btStatus.c_str()) + "\",";
+  json += "\"advertising_label\":\"" + jsonEscape(btAdvertisingLabel.c_str()) + "\",";
+  json += "\"connection_label\":\"" + jsonEscape(btConnectionLabel.c_str()) + "\",";
+  json += "\"name\":\"" + jsonEscape(bluetoothDeviceName.c_str()) + "\",";
+  json += "\"mac\":\"" + jsonEscape(diagnosticData.bluetoothAddress.c_str()) + "\"";
   json += "},";
 
   // GPIO info
@@ -3608,20 +3700,77 @@ String getBluetoothSummaryLabel() {
   return summary;
 }
 
+// --- [NEW FEATURE] Clefs i18n pour l'état Bluetooth ---
+const char* getBluetoothStateKey() {
+  if (!bluetoothCapable) {
+    return "bluetooth_not_supported";
+  }
+  if (!bluetoothEnabled) {
+    return "bluetooth_disabled";
+  }
+#if BLE_STACK_SUPPORTED
+  if (bluetoothClientConnected) {
+    return "bluetooth_enabled";
+  }
+#endif
+  if (bluetoothAdvertising) {
+    return "bluetooth_advertising";
+  }
+  return "bluetooth_not_advertising";
+}
+
+const char* getBluetoothAdvertisingKey() {
+  if (!bluetoothCapable) {
+    return "bluetooth_not_supported";
+  }
+  return bluetoothAdvertising ? "bluetooth_advertising" : "bluetooth_not_advertising";
+}
+
+const char* getBluetoothSupportKey() {
+  return bluetoothCapable ? "bluetooth_support_yes" : "bluetooth_support_no";
+}
+
+#if BLE_STACK_SUPPORTED
+const char* getBluetoothConnectionKey() {
+  return bluetoothClientConnected ? "bluetooth_client_connected" : "bluetooth_client_disconnected";
+}
+#endif
+
 String buildBluetoothJSON(bool success, const String& message) {
   syncBluetoothDiagnostics();
+
+  String status = getBluetoothStateLabel();
+  String summary = getBluetoothSummaryLabel();
+  String advertisingLabel = (bluetoothCapable && bluetoothAdvertising)
+                                ? String(T().bluetooth_advertising)
+                                : String(T().bluetooth_not_advertising);
+#if BLE_STACK_SUPPORTED
+  bool connected = bluetoothCapable && bluetoothClientConnected;
+  String connectionLabel = connected ? String(T().bluetooth_client_connected)
+                                     : String(T().bluetooth_client_disconnected);
+  const char* connectionKey = getBluetoothConnectionKey();
+#else
+  bool connected = false;
+  String connectionLabel = String(T().bluetooth_client_disconnected);
+  const char* connectionKey = "bluetooth_client_disconnected";
+#endif
 
   String json = "{";
   json += "\"success\":" + String(success ? "true" : "false") + ",";
   json += "\"supported\":" + String(bluetoothCapable ? "true" : "false") + ",";
   json += "\"enabled\":" + String((bluetoothCapable && bluetoothEnabled) ? "true" : "false") + ",";
   json += "\"advertising\":" + String((bluetoothCapable && bluetoothAdvertising) ? "true" : "false") + ",";
+  json += "\"connected\":" + String(connected ? "true" : "false") + ",";
+  json += "\"support_key\":\"" + jsonEscape(getBluetoothSupportKey()) + "\",";
+  json += "\"status_key\":\"" + jsonEscape(getBluetoothStateKey()) + "\",";
+  json += "\"advertising_key\":\"" + jsonEscape(getBluetoothAdvertisingKey()) + "\",";
+  json += "\"connection_key\":\"" + jsonEscape(connectionKey) + "\",";
   json += "\"name\":\"" + jsonEscape(bluetoothDeviceName.c_str()) + "\",";
   json += "\"mac\":\"" + jsonEscape(diagnosticData.bluetoothAddress.c_str()) + "\",";
-  String status = getBluetoothStateLabel();
   json += "\"status\":\"" + jsonEscape(status.c_str()) + "\",";
-  String summary = getBluetoothSummaryLabel();
   json += "\"summary\":\"" + jsonEscape(summary.c_str()) + "\",";
+  json += "\"advertising_label\":\"" + jsonEscape(advertisingLabel.c_str()) + "\",";
+  json += "\"connection_label\":\"" + jsonEscape(connectionLabel.c_str()) + "\",";
   json += "\"message\":\"" + jsonEscape(message.c_str()) + "\"";
   json += "}";
   return json;
@@ -3660,6 +3809,23 @@ void dispatchBluetoothTelemetry() {
   Serial.printf("[BLE] Notification #%lu envoyée (%lus)\n",
                 static_cast<unsigned long>(bluetoothNotifyCounter),
                 static_cast<unsigned long>(uptimeSeconds));
+}
+
+// --- [BUGFIX] Helpers to abstract BLE scan results across stacks ---
+static int getScanResultCount(BLEScanResults& results) {
+  return results.getCount();
+}
+
+static int getScanResultCount(BLEScanResults* results) {
+  return (results != nullptr) ? results->getCount() : 0;
+}
+
+static BLEAdvertisedDevice getScanResultDevice(BLEScanResults& results, int index) {
+  return results.getDevice(index);
+}
+
+static BLEAdvertisedDevice getScanResultDevice(BLEScanResults* results, int index) {
+  return (results != nullptr) ? results->getDevice(index) : BLEAdvertisedDevice();
 }
 #endif
 
@@ -3869,6 +4035,11 @@ String buildTranslationsJSON() {
   json += jsonField("bluetooth_enabled", T().bluetooth_enabled);
   json += jsonField("bluetooth_advertising", T().bluetooth_advertising);
   json += jsonField("bluetooth_not_advertising", T().bluetooth_not_advertising);
+  // --- [NEW FEATURE] Textes scan Bluetooth ---
+  json += jsonField("bluetooth_scan", T().bluetooth_scan);
+  json += jsonField("bluetooth_scan_hint", T().bluetooth_scan_hint);
+  json += jsonField("bluetooth_scan_in_progress", T().bluetooth_scan_in_progress);
+  json += jsonField("bluetooth_devices_found", T().bluetooth_devices_found);
   json += jsonField("bluetooth_updated", T().bluetooth_updated);
   json += jsonField("bluetooth_error", T().bluetooth_error);
   json += jsonField("bluetooth_reset_done", T().bluetooth_reset_done);
@@ -4096,6 +4267,99 @@ void handleBluetoothReset() {
   server.send(200, "application/json", buildBluetoothJSON(success, message));
 }
 
+// --- [NEW FEATURE] Scan Bluetooth depuis l'API ---
+void handleBluetoothScan() {
+#if BLE_STACK_SUPPORTED
+  if (!bluetoothCapable) {
+    server.send(200, "application/json", buildBluetoothJSON(false, String(T().bluetooth_not_supported)));
+    return;
+  }
+
+  bool startedForScan = false;
+  bool resumeAdvertising = false;
+  BLEAdvertising* advertising = nullptr;
+
+  if (!bluetoothEnabled) {
+    if (!startBluetooth()) {
+      server.send(200, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
+      return;
+    }
+    startedForScan = true;
+  }
+
+  if (bluetoothAdvertising) {
+    advertising = BLEDevice::getAdvertising();
+    if (advertising) {
+      advertising->stop();
+    }
+    bluetoothAdvertising = false;
+    resumeAdvertising = true;
+  }
+
+  BLEScan* scanner = BLEDevice::getScan();
+  if (!scanner) {
+    if (resumeAdvertising && advertising) {
+      advertising->start();
+      BLEDevice::startAdvertising();
+      bluetoothAdvertising = true;
+    }
+    if (startedForScan) {
+      stopBluetooth();
+    }
+    server.send(200, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
+    return;
+  }
+
+  scanner->setActiveScan(true);
+  // --- [BUGFIX] Harmonise BLE scan results pointer/object handling ---
+  auto rawResults = scanner->start(5, false);
+  int count = getScanResultCount(rawResults);
+
+  String devicesJson;
+  devicesJson.reserve(static_cast<size_t>(count) * 80U);
+  for (int i = 0; i < count; ++i) {
+    BLEAdvertisedDevice device = getScanResultDevice(rawResults, i);
+    String name = device.haveName() ? String(device.getName().c_str()) : String(T().unknown);
+    String address = String(device.getAddress().toString().c_str());
+    int rssi = device.getRSSI();
+    if (i > 0) {
+      devicesJson += ',';
+    }
+    devicesJson += "{\"name\":\"" + jsonEscape(name.c_str()) + "\",";
+    devicesJson += "\"address\":\"" + jsonEscape(address.c_str()) + "\",";
+    devicesJson += "\"rssi\":" + String(rssi) + "}";
+  }
+
+  scanner->stop();
+  scanner->clearResults();
+
+  if (resumeAdvertising && advertising) {
+    advertising->start();
+    BLEDevice::startAdvertising();
+    bluetoothAdvertising = true;
+  }
+
+  if (startedForScan) {
+    stopBluetooth();
+  }
+
+  String message = String(T().bluetooth_devices_found);
+  message.replace("%COUNT%", String(count));
+  message.replace("%count%", String(count));
+
+  String base = buildBluetoothJSON(true, message);
+  if (base.endsWith("}")) {
+    base.remove(base.length() - 1);
+    base += ",\"devices\":[";
+    base += devicesJson;
+    base += "]}";
+  }
+  server.send(200, "application/json", base);
+#else
+  server.send(200, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
+#endif
+}
+
 // ========== INTERFACE WEB PRINCIPALE MULTILINGUE ==========
 // --- [NEW FEATURE] Modern web interface with dynamic tabs ---
 void handleRoot() {
@@ -4227,6 +4491,8 @@ void setup() {
   server.on("/api/bluetooth/toggle", handleBluetoothToggle);
   server.on("/api/bluetooth/name", handleBluetoothName);
   server.on("/api/bluetooth/reset", handleBluetoothReset);
+  // --- [NEW FEATURE] Endpoint scan Bluetooth ---
+  server.on("/api/bluetooth/scan", handleBluetoothScan);
   
   // LED intégrée
   server.on("/api/builtin-led-config", handleBuiltinLEDConfig);
