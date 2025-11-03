@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.6.16-dev
+ * ESP32 Diagnostic Suite v3.6.21-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,11 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.6.21-dev - Restore async test runner declarations for compilation",
+  "3.6.20-dev - Reduce hardware test latency with faster routines",
+  "3.6.19-dev - Compact translation JSON map to shrink firmware size",
+  "3.6.18-dev - Restore language switch helper after translation refactor",
+  "3.6.17-dev - Segment translation JSON builder to fix relocation overflow",
   "3.6.16-dev - Add configurable LED and NeoPixel pins via web UI, implement chase pattern",
   "3.6.15-dev - Add missing UI translations across wireless, sensors, export, and display tabs",
   "3.6.14-dev - Fix Bluetooth scan UI escaping for compilation",
@@ -96,6 +101,8 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 #include <WebServer.h>
 
 #if defined(ARDUINO_ARCH_ESP32)
+  #include <freertos/FreeRTOS.h>
+  #include <freertos/task.h>
   #if defined(__has_include)
     #if __has_include(<ESPmDNS.h>)
       #include <ESPmDNS.h>
@@ -211,6 +218,20 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 
 Language currentLanguage = LANG_FR;
 
+struct TranslationJsonEntry;
+
+// --- [BUGFIX] Restauration du sélecteur de langue ---
+static inline void setLanguage(Language lang) {
+  switch (lang) {
+    case LANG_FR:
+    case LANG_EN:
+      currentLanguage = lang;
+      break;
+    default:
+      break;
+  }
+}
+
 static String buildActionResponseJson(bool success,
                                       const String& message,
                                       std::initializer_list<JsonFieldSpec> extraFields = {});
@@ -243,7 +264,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.16-dev"
+#define DIAGNOSTIC_VERSION "3.6.21-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -392,6 +413,80 @@ String builtinLedTestResult = String(T().not_tested);
 bool oledTested = false;
 bool oledAvailable = false;
 String oledTestResult = String(T().not_tested);
+
+// --- [NEW FEATURE] Exécution asynchrone des tests matériels ---
+typedef void (*TestRoutine)();
+
+struct AsyncTestRunner {
+  const char* taskName;
+  TaskHandle_t taskHandle;
+  volatile bool running;
+};
+
+struct AsyncTestTaskArgs {
+  AsyncTestRunner* runner;
+  TestRoutine routine;
+};
+
+static void asyncTestTask(void* parameters) {
+  AsyncTestTaskArgs* args = static_cast<AsyncTestTaskArgs*>(parameters);
+  if (args && args->routine) {
+    args->routine();
+  }
+  if (args) {
+    if (args->runner) {
+      args->runner->running = false;
+      args->runner->taskHandle = nullptr;
+    }
+    delete args;
+  }
+  vTaskDelete(nullptr);
+}
+
+static bool startAsyncTest(AsyncTestRunner& runner,
+                           TestRoutine routine,
+                           bool& alreadyRunning,
+                           uint32_t stackSize = 4096,
+                           UBaseType_t priority = 1) {
+  alreadyRunning = runner.running;
+  if (runner.running) {
+    return false;
+  }
+
+  AsyncTestTaskArgs* args = new AsyncTestTaskArgs{&runner, routine};
+  runner.running = true;
+
+#if CONFIG_FREERTOS_UNICORE
+  const BaseType_t targetCore = tskNO_AFFINITY;
+#else
+  const BaseType_t targetCore = 1;
+#endif
+
+  BaseType_t result = xTaskCreatePinnedToCore(asyncTestTask,
+                                              runner.taskName,
+                                              stackSize,
+                                              args,
+                                              priority,
+                                              &runner.taskHandle,
+                                              targetCore);
+  if (result != pdPASS) {
+    runner.running = false;
+    runner.taskHandle = nullptr;
+    delete args;
+    alreadyRunning = false;
+    return false;
+  }
+
+  alreadyRunning = false;
+  return true;
+}
+
+// --- [NEW FEATURE] Orchestrateurs asynchrones des tests lents ---
+static AsyncTestRunner builtinLedTestRunner = {"BuiltinLEDTest", nullptr, false};
+static AsyncTestRunner neopixelTestRunner = {"NeoPixelTest", nullptr, false};
+static AsyncTestRunner oledTestRunner = {"OLEDTest", nullptr, false};
+static AsyncTestRunner rgbLedTestRunner = {"RgbLedTest", nullptr, false};
+static AsyncTestRunner buzzerTestRunner = {"BuzzerTest", nullptr, false};
 
 // Tests additionnels
 String adcTestResult = String(T().not_tested);
@@ -1295,11 +1390,11 @@ bool testSingleGPIO(int pin) {
   
   pinMode(pin, OUTPUT);
   digitalWrite(pin, HIGH);
-  delay(10);
+  delayMicroseconds(250);
   bool highOk = digitalRead(pin) == HIGH;
-  
+
   digitalWrite(pin, LOW);
-  delay(10);
+  delayMicroseconds(250);
   bool lowOk = digitalRead(pin) == LOW;
   
   pinMode(pin, INPUT);
@@ -1361,18 +1456,20 @@ void testBuiltinLED() {
   
   for(int i = 0; i < 5; i++) {
     digitalWrite(BUILTIN_LED_PIN, HIGH);
-    delay(200);
+    delay(80);
     digitalWrite(BUILTIN_LED_PIN, LOW);
-    delay(200);
+    delay(80);
   }
-  
-  for(int i = 0; i <= 255; i += 5) {
+
+  for(int i = 0; i <= 255; i += 51) {
     analogWrite(BUILTIN_LED_PIN, i);
-    delay(10);
+    delay(25);
+    yield();
   }
-  for(int i = 255; i >= 0; i -= 5) {
+  for(int i = 255; i >= 0; i -= 51) {
     analogWrite(BUILTIN_LED_PIN, i);
-    delay(10);
+    delay(25);
+    yield();
   }
   
   digitalWrite(BUILTIN_LED_PIN, LOW);
@@ -1425,20 +1522,21 @@ void testNeoPixel() {
   
   strip->setPixelColor(0, strip->Color(255, 0, 0));
   strip->show();
-  delay(500);
-  
+  delay(160);
+
   strip->setPixelColor(0, strip->Color(0, 255, 0));
   strip->show();
-  delay(500);
-  
+  delay(160);
+
   strip->setPixelColor(0, strip->Color(0, 0, 255));
   strip->show();
-  delay(500);
-  
-  for(int i = 0; i < 256; i += 32) {
+  delay(160);
+
+  for(int i = 0; i < 256; i += 64) {
     strip->setPixelColor(0, strip->gamma32(strip->ColorHSV(i * 256)));
     strip->show();
-    delay(50);
+    delay(28);
+    yield();
   }
   
   strip->clear();
@@ -1475,10 +1573,10 @@ void neopixelBlink(uint32_t color, int times) {
   for(int i = 0; i < times; i++) {
     strip->fill(color);
     strip->show();
-    delay(300);
+    delay(120);
     strip->clear();
     strip->show();
-    delay(300);
+    delay(120);
   }
 }
 
@@ -1572,7 +1670,7 @@ void oledStepWelcome() {
   oled.printf("I2C: 0x%02X\r\n", SCREEN_ADDRESS);
   oled.printf("SDA:%d SCL:%d", I2C_SDA, I2C_SCL);
   oled.display();
-  delay(2000);
+  delay(700);
 }
 
 void oledStepBigText() {
@@ -1584,7 +1682,7 @@ void oledStepBigText() {
   oled.setCursor(20, 20);
   oled.println("ESP32");
   oled.display();
-  delay(1500);
+  delay(450);
 }
 
 void oledStepTextSizes() {
@@ -1600,7 +1698,7 @@ void oledStepTextSizes() {
   oled.setTextSize(1);
   oled.println("Retour taille 1");
   oled.display();
-  delay(2000);
+  delay(550);
 }
 
 void oledStepShapes() {
@@ -1613,7 +1711,7 @@ void oledStepShapes() {
   oled.fillCircle(65, 50, 10, SSD1306_WHITE);
   oled.drawTriangle(95, 30, 85, 10, 105, 10, SSD1306_WHITE);
   oled.display();
-  delay(2000);
+  delay(550);
 }
 
 void oledStepHorizontalLines() {
@@ -1624,7 +1722,7 @@ void oledStepHorizontalLines() {
     oled.drawLine(0, i, SCREEN_WIDTH, i, SSD1306_WHITE);
   }
   oled.display();
-  delay(1500);
+  delay(350);
 }
 
 void oledStepDiagonals() {
@@ -1636,17 +1734,18 @@ void oledStepDiagonals() {
     oled.drawLine(SCREEN_WIDTH - 1, 0, i, SCREEN_HEIGHT - 1, SSD1306_WHITE);
   }
   oled.display();
-  delay(1500);
+  delay(350);
 }
 
 void oledStepMovingSquare() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
-  for (int x = 0; x < SCREEN_WIDTH - 20; x += 4) {
+  for (int x = 0; x < SCREEN_WIDTH - 20; x += 6) {
     oled.clearDisplay();
     oled.fillRect(x, 22, 20, 20, SSD1306_WHITE);
     oled.display();
-    delay(20);
+    delay(12);
+    yield();
   }
 }
 
@@ -1658,33 +1757,35 @@ void oledStepProgressBar() {
   oled.setTextColor(SSD1306_WHITE);
   oled.setCursor(20, 10);
   oled.println(String(T().loading));
-  for (int i = 0; i <= 100; i += 5) {
+  for (int i = 0; i <= 100; i += 10) {
     oled.drawRect(10, 30, 108, 15, SSD1306_WHITE);
     oled.fillRect(12, 32, i, 11, SSD1306_WHITE);
     oled.setCursor(45, 50);
     oled.printf("%d%%", i);
     oled.display();
-    delay(100);
+    delay(45);
+    yield();
     if (i < 100) {
       oled.fillRect(12, 32, i, 11, SSD1306_BLACK);
       oled.fillRect(45, 50, 40, 10, SSD1306_BLACK);
     }
   }
-  delay(1000);
+  delay(300);
 }
 
 void oledStepScrollText() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
   String scrollText = "  DIAGNOSTIC ESP32 COMPLET - OLED 0.96 pouces I2C  ";
-  for (int offset = 0; offset < scrollText.length() * 6; offset += 2) {
+  for (int offset = 0; offset < scrollText.length() * 6; offset += 6) {
     oled.clearDisplay();
     oled.setTextSize(1);
     oled.setTextColor(SSD1306_WHITE);
     oled.setCursor(-offset, 28);
     oled.print(scrollText);
     oled.display();
-    delay(30);
+    delay(12);
+    yield();
   }
 }
 
@@ -1698,7 +1799,7 @@ void oledStepFinalMessage() {
   oled.println("TEST OK!");
   oled.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
   oled.display();
-  delay(2000);
+  delay(600);
   oled.clearDisplay();
   oled.display();
 }
@@ -1841,7 +1942,8 @@ void testPWM() {
   for(int duty = 0; duty <= 255; duty += 51) {
     ledcWrite(testPin, duty);
     Serial.printf("PWM duty: %d/255\r\n", duty);
-    delay(200);
+    delay(80);
+    yield();
   }
   
   ledcWrite(testPin, 0);
@@ -1921,18 +2023,18 @@ void testRGBLed() {
   digitalWrite(RGB_LED_PIN_R, LOW);
   digitalWrite(RGB_LED_PIN_G, LOW);
   digitalWrite(RGB_LED_PIN_B, LOW);
-  delay(200);
+  delay(120);
 
   digitalWrite(RGB_LED_PIN_R, HIGH);
-  delay(300);
+  delay(150);
   digitalWrite(RGB_LED_PIN_R, LOW);
 
   digitalWrite(RGB_LED_PIN_G, HIGH);
-  delay(300);
+  delay(150);
   digitalWrite(RGB_LED_PIN_G, LOW);
 
   digitalWrite(RGB_LED_PIN_B, HIGH);
-  delay(300);
+  delay(150);
   digitalWrite(RGB_LED_PIN_B, LOW);
 
   rgbLedTestResult = String(T().ok);
@@ -1962,12 +2064,12 @@ void testBuzzer() {
   pinMode(BUZZER_PIN, OUTPUT);
   Serial.printf("Test Buzzer - Pin:%d\r\n", BUZZER_PIN);
 
-  tone(BUZZER_PIN, 1000, 200);
-  delay(300);
-  tone(BUZZER_PIN, 1500, 200);
-  delay(300);
-  tone(BUZZER_PIN, 2000, 200);
-  delay(300);
+  tone(BUZZER_PIN, 1000, 160);
+  delay(220);
+  tone(BUZZER_PIN, 1500, 160);
+  delay(220);
+  tone(BUZZER_PIN, 2000, 160);
+  delay(220);
   noTone(BUZZER_PIN);
 
   buzzerTestResult = String(T().ok);
@@ -2087,11 +2189,13 @@ void testLightSensor() {
   Serial.printf("Lecture Light Sensor - Pin:%d\r\n", LIGHT_SENSOR_PIN);
 
   int sum = 0;
-  for (int i = 0; i < 10; i++) {
+  const int samples = 6;
+  for (int i = 0; i < samples; i++) {
     sum += analogRead(LIGHT_SENSOR_PIN);
-    delay(10);
+    delay(8);
+    yield();
   }
-  lightSensorValue = sum / 10;
+  lightSensorValue = sum / samples;
 
   lightSensorTestResult = String(T().ok);
   lightSensorAvailable = true;
@@ -2148,7 +2252,8 @@ void testMotionSensor() {
   pinMode(MOTION_SENSOR_PIN, INPUT);
   Serial.printf("Motion Sensor - Pin:%d\r\n", MOTION_SENSOR_PIN);
 
-  delay(100);
+  delay(30);
+  yield();
   motionDetected = digitalRead(MOTION_SENSOR_PIN);
 
   motionSensorTestResult = String(T().ok);
@@ -2292,6 +2397,30 @@ void collectDiagnosticInfo() {
   historyIndex = (historyIndex + 1) % HISTORY_SIZE;
 }
 
+// --- [NEW FEATURE] Routines de tests en tâche de fond ---
+static void runBuiltinLedTestTask() {
+  resetBuiltinLEDTest();
+  testBuiltinLED();
+}
+
+static void runNeopixelTestTask() {
+  resetNeoPixelTest();
+  testNeoPixel();
+}
+
+static void runOledTestTask() {
+  resetOLEDTest();
+  testOLED();
+}
+
+static void runRgbLedTestTask() {
+  testRGBLed();
+}
+
+static void runBuzzerTestTask() {
+  testBuzzer();
+}
+
 // ========== HANDLERS API ==========
 void handleTestGPIO() {
   testAllGPIOs();
@@ -2346,9 +2475,29 @@ void handleBuiltinLEDConfig() {
 }
 
 void handleBuiltinLEDTest() {
+  bool alreadyRunning = false;
+  bool started = startAsyncTest(builtinLedTestRunner, runBuiltinLedTestTask, alreadyRunning);
+
+  if (started) {
+    sendActionResponse(202, true, String(T().test_in_progress), {
+      jsonBoolField("running", true),
+      jsonStringField("result", builtinLedTestResult)
+    });
+    return;
+  }
+
+  if (alreadyRunning) {
+    sendActionResponse(200, true, String(T().test_in_progress), {
+      jsonBoolField("running", true),
+      jsonStringField("result", builtinLedTestResult)
+    });
+    return;
+  }
+
   resetBuiltinLEDTest();
   testBuiltinLED();
   sendActionResponse(200, builtinLedAvailable, builtinLedTestResult, {
+    jsonBoolField("running", false),
     jsonStringField("result", builtinLedTestResult)
   });
 }
@@ -2419,9 +2568,32 @@ void handleNeoPixelConfig() {
 }
 
 void handleNeoPixelTest() {
+  bool alreadyRunning = false;
+  bool started = startAsyncTest(neopixelTestRunner, runNeopixelTestTask, alreadyRunning);
+
+  if (started) {
+    sendActionResponse(202, true, String(T().test_in_progress), {
+      jsonBoolField("running", true),
+      jsonBoolField("available", neopixelAvailable),
+      jsonStringField("result", neopixelTestResult)
+    });
+    return;
+  }
+
+  if (alreadyRunning) {
+    sendActionResponse(200, true, String(T().test_in_progress), {
+      jsonBoolField("running", true),
+      jsonBoolField("available", neopixelAvailable),
+      jsonStringField("result", neopixelTestResult)
+    });
+    return;
+  }
+
   resetNeoPixelTest();
   testNeoPixel();
   sendActionResponse(200, neopixelAvailable, neopixelTestResult, {
+    jsonBoolField("running", false),
+    jsonBoolField("available", neopixelAvailable),
     jsonStringField("result", neopixelTestResult)
   });
 }
@@ -2518,9 +2690,32 @@ void handleOLEDConfig() {
 }
 
 void handleOLEDTest() {
+  bool alreadyRunning = false;
+  bool started = startAsyncTest(oledTestRunner, runOledTestTask, alreadyRunning, 6144, 1);
+
+  if (started) {
+    sendActionResponse(202, true, String(T().test_in_progress), {
+      jsonBoolField("running", true),
+      jsonBoolField("available", oledAvailable),
+      jsonStringField("result", oledTestResult)
+    });
+    return;
+  }
+
+  if (alreadyRunning) {
+    sendActionResponse(200, true, String(T().test_in_progress), {
+      jsonBoolField("running", true),
+      jsonBoolField("available", oledAvailable),
+      jsonStringField("result", oledTestResult)
+    });
+    return;
+  }
+
   resetOLEDTest();
   testOLED();
   sendActionResponse(200, oledAvailable, oledTestResult, {
+    jsonBoolField("running", false),
+    jsonBoolField("available", oledAvailable),
     jsonStringField("result", oledTestResult)
   });
 }
@@ -2608,8 +2803,30 @@ void handleRGBLedConfig() {
 }
 
 void handleRGBLedTest() {
+  bool alreadyRunning = false;
+  bool started = startAsyncTest(rgbLedTestRunner, runRgbLedTestTask, alreadyRunning, 3072, 1);
+
+  if (started) {
+    sendJsonResponse(202, {
+      jsonBoolField("running", true),
+      jsonBoolField("success", rgbLedAvailable),
+      jsonStringField("result", rgbLedTestResult)
+    });
+    return;
+  }
+
+  if (alreadyRunning) {
+    sendJsonResponse(200, {
+      jsonBoolField("running", true),
+      jsonBoolField("success", rgbLedAvailable),
+      jsonStringField("result", rgbLedTestResult)
+    });
+    return;
+  }
+
   testRGBLed();
   sendJsonResponse(200, {
+    jsonBoolField("running", false),
     jsonBoolField("success", rgbLedAvailable),
     jsonStringField("result", rgbLedTestResult)
   });
@@ -2637,8 +2854,30 @@ void handleBuzzerConfig() {
 }
 
 void handleBuzzerTest() {
+  bool alreadyRunning = false;
+  bool started = startAsyncTest(buzzerTestRunner, runBuzzerTestTask, alreadyRunning, 3072, 1);
+
+  if (started) {
+    sendJsonResponse(202, {
+      jsonBoolField("running", true),
+      jsonBoolField("success", buzzerAvailable),
+      jsonStringField("result", buzzerTestResult)
+    });
+    return;
+  }
+
+  if (alreadyRunning) {
+    sendJsonResponse(200, {
+      jsonBoolField("running", true),
+      jsonBoolField("success", buzzerAvailable),
+      jsonStringField("result", buzzerTestResult)
+    });
+    return;
+  }
+
   testBuzzer();
   sendJsonResponse(200, {
+    jsonBoolField("running", false),
     jsonBoolField("success", buzzerAvailable),
     jsonStringField("result", buzzerTestResult)
   });
@@ -3636,15 +3875,33 @@ static inline void appendInfoItem(String& chunk,
   chunk += F("</div></div>");
 }
 
-String jsonField(const char* key, const char* value, bool last = false) {
-  String field;
-  field.reserve(strlen(key) + strlen(value) + 10);  // Estimate size to avoid reallocation
-  field = "\"";
-  field += key;
-  field += "\":\"";
-  field += jsonEscape(value);
-  field += last ? "\"" : "\",";
-  return field;
+// --- [NEW FEATURE] Table de mapping JSON compacte ---
+struct TranslationJsonEntry {
+  const char* key;
+  TranslationField TranslationAccessor::* field;
+};
+
+static inline void appendTranslationEntry(String& json,
+                                          const TranslationAccessor& translations,
+                                          const TranslationJsonEntry& entry) {
+  if (json.length() > 1) {
+    json += ',';
+  }
+
+  json += '"';
+  json += entry.key;
+  json += "\":\"";
+  json += jsonEscape((translations.*(entry.field)).c_str());
+  json += '"';
+}
+
+template <size_t N>
+static inline void appendTranslationEntries(String& json,
+                                            const TranslationAccessor& translations,
+                                            const TranslationJsonEntry (&entries)[N]) {
+  for (size_t i = 0; i < N; ++i) {
+    appendTranslationEntry(json, translations, entries[i]);
+  }
 }
 
 String sanitizeBluetoothName(const String& raw) {
@@ -3983,217 +4240,255 @@ void stopBluetooth() {
   bluetoothAdvertising = false;
 }
 
+// --- [NEW FEATURE] Segmentation du JSON de traduction ---
+static inline void appendOverviewTranslations(String& json, const TranslationAccessor& translations) {
+  static const TranslationJsonEntry kEntries[] = {
+      {"title", &TranslationAccessor::title},
+      {"version", &TranslationAccessor::version},
+      {"nav_overview", &TranslationAccessor::nav_overview},
+      {"nav_leds", &TranslationAccessor::nav_leds},
+      {"nav_screens", &TranslationAccessor::nav_screens},
+      {"nav_tests", &TranslationAccessor::nav_tests},
+      {"nav_gpio", &TranslationAccessor::nav_gpio},
+      {"nav_wireless", &TranslationAccessor::nav_wireless},
+      {"nav_benchmark", &TranslationAccessor::nav_benchmark},
+      {"nav_export", &TranslationAccessor::nav_export},
+      {"nav_select_label", &TranslationAccessor::nav_select_label},
+      {"chip_info", &TranslationAccessor::chip_info},
+      {"full_model", &TranslationAccessor::full_model},
+      {"cpu_cores", &TranslationAccessor::cpu_cores},
+      {"mac_wifi", &TranslationAccessor::mac_wifi},
+      {"last_reset", &TranslationAccessor::last_reset},
+      {"poweron", &TranslationAccessor::poweron},
+      {"software_reset", &TranslationAccessor::software_reset},
+      {"deepsleep_exit", &TranslationAccessor::deepsleep_exit},
+      {"brownout", &TranslationAccessor::brownout},
+      {"other", &TranslationAccessor::other},
+      {"chip_features", &TranslationAccessor::chip_features},
+      {"sdk_version", &TranslationAccessor::sdk_version},
+      {"idf_version", &TranslationAccessor::idf_version},
+      {"uptime", &TranslationAccessor::uptime},
+      {"cpu_temp", &TranslationAccessor::cpu_temp},
+      {"revision", &TranslationAccessor::revision},
+      {"days", &TranslationAccessor::days},
+      {"hours", &TranslationAccessor::hours},
+      {"minutes", &TranslationAccessor::minutes},
+      {"memory_details", &TranslationAccessor::memory_details},
+      {"flash_memory", &TranslationAccessor::flash_memory},
+      {"real_size", &TranslationAccessor::real_size},
+      {"configured_ide", &TranslationAccessor::configured_ide},
+      {"configuration", &TranslationAccessor::configuration},
+      {"correct", &TranslationAccessor::correct},
+      {"to_fix", &TranslationAccessor::to_fix},
+      {"flash_type", &TranslationAccessor::flash_type},
+      {"flash_speed", &TranslationAccessor::flash_speed},
+      {"psram_external", &TranslationAccessor::psram_external},
+      {"hardware_status", &TranslationAccessor::hardware_status},
+      {"detected_active", &TranslationAccessor::detected_active},
+      {"supported_not_enabled", &TranslationAccessor::supported_not_enabled},
+      {"ide_config", &TranslationAccessor::ide_config},
+      {"total_size", &TranslationAccessor::total_size},
+      {"free", &TranslationAccessor::free},
+      {"used", &TranslationAccessor::used},
+      {"excellent", &TranslationAccessor::excellent},
+      {"very_good", &TranslationAccessor::very_good},
+      {"good", &TranslationAccessor::good},
+      {"warning", &TranslationAccessor::warning},
+      {"critical", &TranslationAccessor::critical},
+      {"weak", &TranslationAccessor::weak},
+      {"very_weak", &TranslationAccessor::very_weak},
+      {"none", &TranslationAccessor::none},
+      {"unknown", &TranslationAccessor::unknown},
+      {"enable_psram_hint", &TranslationAccessor::enable_psram_hint},
+      {"not_detected", &TranslationAccessor::not_detected},
+      {"internal_sram", &TranslationAccessor::internal_sram},
+      {"memory_fragmentation", &TranslationAccessor::memory_fragmentation},
+      {"refresh_memory", &TranslationAccessor::refresh_memory},
+      {"wifi_connection", &TranslationAccessor::wifi_connection},
+      {"connected_ssid", &TranslationAccessor::connected_ssid},
+      {"signal_power", &TranslationAccessor::signal_power},
+      {"signal_quality", &TranslationAccessor::signal_quality},
+      {"ip_address", &TranslationAccessor::ip_address},
+      {"subnet_mask", &TranslationAccessor::subnet_mask},
+      {"gateway", &TranslationAccessor::gateway},
+      {"dns", &TranslationAccessor::dns},
+      {"ip_unavailable", &TranslationAccessor::ip_unavailable},
+      {"access", &TranslationAccessor::access},
+      {"bluetooth_section", &TranslationAccessor::bluetooth_section},
+      {"bluetooth_status", &TranslationAccessor::bluetooth_status},
+      {"bluetooth_name", &TranslationAccessor::bluetooth_name},
+      {"bluetooth_mac", &TranslationAccessor::bluetooth_mac},
+      {"bluetooth_actions", &TranslationAccessor::bluetooth_actions},
+      {"bluetooth_enable", &TranslationAccessor::bluetooth_enable},
+      {"bluetooth_disable", &TranslationAccessor::bluetooth_disable},
+      {"bluetooth_rename", &TranslationAccessor::bluetooth_rename},
+      {"bluetooth_reset", &TranslationAccessor::bluetooth_reset},
+      {"bluetooth_placeholder", &TranslationAccessor::bluetooth_placeholder},
+      {"bluetooth_not_supported", &TranslationAccessor::bluetooth_not_supported},
+      {"bluetooth_disabled", &TranslationAccessor::bluetooth_disabled},
+      {"bluetooth_enabled", &TranslationAccessor::bluetooth_enabled},
+      {"bluetooth_advertising", &TranslationAccessor::bluetooth_advertising},
+      {"bluetooth_not_advertising", &TranslationAccessor::bluetooth_not_advertising},
+  };
+  appendTranslationEntries(json, translations, kEntries);
+}
+
+static inline void appendBluetoothScanTranslations(String& json, const TranslationAccessor& translations) {
+  static const TranslationJsonEntry kEntries[] = {
+      {"bluetooth_scan", &TranslationAccessor::bluetooth_scan},
+      {"bluetooth_scan_hint", &TranslationAccessor::bluetooth_scan_hint},
+      {"bluetooth_scan_in_progress", &TranslationAccessor::bluetooth_scan_in_progress},
+      {"bluetooth_devices_found", &TranslationAccessor::bluetooth_devices_found},
+      {"bluetooth_updated", &TranslationAccessor::bluetooth_updated},
+      {"bluetooth_error", &TranslationAccessor::bluetooth_error},
+      {"bluetooth_reset_done", &TranslationAccessor::bluetooth_reset_done},
+      {"bluetooth_support_label", &TranslationAccessor::bluetooth_support_label},
+      {"bluetooth_support_yes", &TranslationAccessor::bluetooth_support_yes},
+      {"bluetooth_support_no", &TranslationAccessor::bluetooth_support_no},
+      {"bluetooth_advertising_label", &TranslationAccessor::bluetooth_advertising_label},
+      {"bluetooth_connection_label", &TranslationAccessor::bluetooth_connection_label},
+      {"bluetooth_client_connected", &TranslationAccessor::bluetooth_client_connected},
+      {"bluetooth_client_disconnected", &TranslationAccessor::bluetooth_client_disconnected},
+      {"bluetooth_notifications_label", &TranslationAccessor::bluetooth_notifications_label},
+  };
+  appendTranslationEntries(json, translations, kEntries);
+}
+
+static inline void appendHardwareUiTranslations(String& json, const TranslationAccessor& translations) {
+  static const TranslationJsonEntry kEntries[] = {
+      {"gpio", &TranslationAccessor::gpio},
+      {"status", &TranslationAccessor::status},
+      {"config", &TranslationAccessor::config},
+      {"test", &TranslationAccessor::test},
+      {"turn_on", &TranslationAccessor::turn_on},
+      {"turn_off", &TranslationAccessor::turn_off},
+      {"turn_off_all", &TranslationAccessor::turn_off_all},
+      {"blink", &TranslationAccessor::blink},
+      {"fade", &TranslationAccessor::fade},
+      {"off", &TranslationAccessor::off},
+      {"neopixel", &TranslationAccessor::neopixel},
+      {"animations", &TranslationAccessor::animations},
+      {"led_count", &TranslationAccessor::led_count},
+      {"rainbow", &TranslationAccessor::rainbow},
+      {"chase", &TranslationAccessor::chase},
+      {"color", &TranslationAccessor::color},
+      {"custom_color", &TranslationAccessor::custom_color},
+      {"gpio_interfaces", &TranslationAccessor::gpio_interfaces},
+      {"total_gpio", &TranslationAccessor::total_gpio},
+      {"i2c_peripherals", &TranslationAccessor::i2c_peripherals},
+      {"device_count", &TranslationAccessor::device_count},
+      {"detected_addresses", &TranslationAccessor::detected_addresses},
+      {"builtin_led", &TranslationAccessor::builtin_led},
+      {"oled_screen", &TranslationAccessor::oled_screen},
+      {"status", &TranslationAccessor::status},
+      {"i2c_pins", &TranslationAccessor::i2c_pins},
+      {"rotation", &TranslationAccessor::rotation},
+      {"apply_redetect", &TranslationAccessor::apply_redetect},
+      {"full_test", &TranslationAccessor::full_test},
+      {"oled_step_welcome", &TranslationAccessor::oled_step_welcome},
+      {"oled_step_big_text", &TranslationAccessor::oled_step_big_text},
+      {"oled_step_text_sizes", &TranslationAccessor::oled_step_text_sizes},
+      {"oled_step_shapes", &TranslationAccessor::oled_step_shapes},
+      {"oled_step_horizontal_lines", &TranslationAccessor::oled_step_horizontal_lines},
+      {"oled_step_diagonals", &TranslationAccessor::oled_step_diagonals},
+      {"oled_step_moving_square", &TranslationAccessor::oled_step_moving_square},
+      {"oled_step_progress_bar", &TranslationAccessor::oled_step_progress_bar},
+      {"oled_step_scroll_text", &TranslationAccessor::oled_step_scroll_text},
+      {"oled_step_final_message", &TranslationAccessor::oled_step_final_message},
+      {"oled_step_running", &TranslationAccessor::oled_step_running},
+      {"oled_message_required", &TranslationAccessor::oled_message_required},
+      {"oled_displaying_message", &TranslationAccessor::oled_displaying_message},
+      {"custom_message", &TranslationAccessor::custom_message},
+      {"show_message", &TranslationAccessor::show_message},
+  };
+  appendTranslationEntries(json, translations, kEntries);
+}
+
+static inline void appendTestFlowTranslations(String& json, const TranslationAccessor& translations) {
+  static const TranslationJsonEntry kEntries[] = {
+      {"apply_color", &TranslationAccessor::apply_color},
+      {"adc_test", &TranslationAccessor::adc_test},
+      {"start_adc_test", &TranslationAccessor::start_adc_test},
+      {"pwm_test", &TranslationAccessor::pwm_test},
+      {"spi_bus", &TranslationAccessor::spi_bus},
+      {"flash_partitions", &TranslationAccessor::flash_partitions},
+      {"memory_stress", &TranslationAccessor::memory_stress},
+      {"stress_warning", &TranslationAccessor::stress_warning},
+      {"start_stress", &TranslationAccessor::start_stress},
+      {"gpio_test", &TranslationAccessor::gpio_test},
+      {"test_all_gpio", &TranslationAccessor::test_all_gpio},
+      {"click_to_test", &TranslationAccessor::click_to_test},
+      {"not_tested", &TranslationAccessor::not_tested},
+      {"gpio_warning", &TranslationAccessor::gpio_warning},
+      {"i2c_desc", &TranslationAccessor::i2c_desc},
+      {"adc_desc", &TranslationAccessor::adc_desc},
+      {"pwm_desc", &TranslationAccessor::pwm_desc},
+      {"spi_desc", &TranslationAccessor::spi_desc},
+      {"partitions_desc", &TranslationAccessor::partitions_desc},
+      {"stress_desc", &TranslationAccessor::stress_desc},
+  };
+  appendTranslationEntries(json, translations, kEntries);
+}
+
+static inline void appendStatusAndSummaryTranslations(String& json, const TranslationAccessor& translations) {
+  static const TranslationJsonEntry kEntries[] = {
+      {"gpio_desc", &TranslationAccessor::gpio_desc},
+      {"wifi_desc", &TranslationAccessor::wifi_desc},
+      {"benchmark_desc", &TranslationAccessor::benchmark_desc},
+      {"wifi_scanner", &TranslationAccessor::wifi_scanner},
+      {"performance_bench", &TranslationAccessor::performance_bench},
+      {"data_export", &TranslationAccessor::data_export},
+      {"click_to_scan", &TranslationAccessor::click_to_scan},
+      {"updating", &TranslationAccessor::updating},
+      {"online", &TranslationAccessor::online},
+      {"offline", &TranslationAccessor::offline},
+      {"check_network", &TranslationAccessor::check_network},
+      {"language_label", &TranslationAccessor::language_label},
+      {"language_updated", &TranslationAccessor::language_updated},
+      {"language_switch_error", &TranslationAccessor::language_switch_error},
+      {"translation_error", &TranslationAccessor::translation_error},
+      {"bluetooth_invalid_name", &TranslationAccessor::bluetooth_invalid_name},
+      {"bluetooth_enabling", &TranslationAccessor::bluetooth_enabling},
+      {"bluetooth_disabling", &TranslationAccessor::bluetooth_disabling},
+      {"bluetooth_updating", &TranslationAccessor::bluetooth_updating},
+      {"bluetooth_resetting", &TranslationAccessor::bluetooth_resetting},
+      {"loading", &TranslationAccessor::loading},
+      {"configuring", &TranslationAccessor::configuring},
+      {"reconfiguring", &TranslationAccessor::reconfiguring},
+      {"transmission", &TranslationAccessor::transmission},
+      {"error_label", &TranslationAccessor::error_label},
+      {"test_failed", &TranslationAccessor::test_failed},
+      {"gpio_summary_template", &TranslationAccessor::gpio_summary_template},
+      {"wifi_networks_found", &TranslationAccessor::wifi_networks_found},
+      {"i2c_scan_result", &TranslationAccessor::i2c_scan_result},
+      {"gpio_invalid", &TranslationAccessor::gpio_invalid},
+      {"configuration_invalid", &TranslationAccessor::configuration_invalid},
+      {"testing", &TranslationAccessor::testing},
+      {"scan", &TranslationAccessor::scan},
+      {"scanning", &TranslationAccessor::scanning},
+      {"completed", &TranslationAccessor::completed},
+      {"cores", &TranslationAccessor::cores},
+      {"pins", &TranslationAccessor::pins},
+      {"devices", &TranslationAccessor::devices},
+      {"networks", &TranslationAccessor::networks},
+      {"tested", &TranslationAccessor::tested},
+      {"channels", &TranslationAccessor::channels},
+      {"oled_test_running", &TranslationAccessor::oled_test_running},
+  };
+  appendTranslationEntries(json, translations, kEntries);
+}
+
 String buildTranslationsJSON() {
+  const TranslationAccessor translations = T();
   String json = "{";
   json.reserve(8000);  // Increased reserve to avoid reallocations (~200+ fields)
-  json += jsonField("title", T().title);
-  json += jsonField("version", T().version);
-  json += jsonField("nav_overview", T().nav_overview);
-  json += jsonField("nav_leds", T().nav_leds);
-  json += jsonField("nav_screens", T().nav_screens);
-  json += jsonField("nav_tests", T().nav_tests);
-  json += jsonField("nav_gpio", T().nav_gpio);
-  json += jsonField("nav_wireless", T().nav_wireless);
-  json += jsonField("nav_benchmark", T().nav_benchmark);
-  json += jsonField("nav_export", T().nav_export);
-  json += jsonField("nav_select_label", T().nav_select_label);
-  json += jsonField("chip_info", T().chip_info);
-  json += jsonField("full_model", T().full_model);
-  json += jsonField("cpu_cores", T().cpu_cores);
-  json += jsonField("mac_wifi", T().mac_wifi);
-  json += jsonField("last_reset", T().last_reset);
-  json += jsonField("poweron", T().poweron);
-  json += jsonField("software_reset", T().software_reset);
-  json += jsonField("deepsleep_exit", T().deepsleep_exit);
-  json += jsonField("brownout", T().brownout);
-  json += jsonField("other", T().other);
-  json += jsonField("chip_features", T().chip_features);
-  json += jsonField("sdk_version", T().sdk_version);
-  json += jsonField("idf_version", T().idf_version);
-  json += jsonField("uptime", T().uptime);
-  json += jsonField("cpu_temp", T().cpu_temp);
-  json += jsonField("revision", T().revision);
-  json += jsonField("days", T().days);
-  json += jsonField("hours", T().hours);
-  json += jsonField("minutes", T().minutes);
-  json += jsonField("memory_details", T().memory_details);
-  json += jsonField("flash_memory", T().flash_memory);
-  json += jsonField("real_size", T().real_size);
-  json += jsonField("configured_ide", T().configured_ide);
-  json += jsonField("configuration", T().configuration);
-  json += jsonField("correct", T().correct);
-  json += jsonField("to_fix", T().to_fix);
-  json += jsonField("flash_type", T().flash_type);
-  json += jsonField("flash_speed", T().flash_speed);
-  json += jsonField("psram_external", T().psram_external);
-  json += jsonField("hardware_status", T().hardware_status);
-  json += jsonField("detected_active", T().detected_active);
-  json += jsonField("supported_not_enabled", T().supported_not_enabled);
-  json += jsonField("ide_config", T().ide_config);
-  json += jsonField("total_size", T().total_size);
-  json += jsonField("free", T().free);
-  json += jsonField("used", T().used);
-  json += jsonField("excellent", T().excellent);
-  json += jsonField("very_good", T().very_good);
-  json += jsonField("good", T().good);
-  json += jsonField("warning", T().warning);
-  json += jsonField("critical", T().critical);
-  json += jsonField("weak", T().weak);
-  json += jsonField("very_weak", T().very_weak);
-  json += jsonField("none", T().none);
-  json += jsonField("unknown", T().unknown);
-  json += jsonField("enable_psram_hint", T().enable_psram_hint);
-  json += jsonField("not_detected", T().not_detected);
-  json += jsonField("internal_sram", T().internal_sram);
-  json += jsonField("memory_fragmentation", T().memory_fragmentation);
-  json += jsonField("refresh_memory", T().refresh_memory);
-  json += jsonField("wifi_connection", T().wifi_connection);
-  json += jsonField("connected_ssid", T().connected_ssid);
-  json += jsonField("signal_power", T().signal_power);
-  json += jsonField("signal_quality", T().signal_quality);
-  json += jsonField("ip_address", T().ip_address);
-  json += jsonField("subnet_mask", T().subnet_mask);
-  json += jsonField("gateway", T().gateway);
-  json += jsonField("dns", T().dns);
-  json += jsonField("ip_unavailable", T().ip_unavailable);
-  json += jsonField("access", T().access);
-  json += jsonField("bluetooth_section", T().bluetooth_section);
-  json += jsonField("bluetooth_status", T().bluetooth_status);
-  json += jsonField("bluetooth_name", T().bluetooth_name);
-  json += jsonField("bluetooth_mac", T().bluetooth_mac);
-  json += jsonField("bluetooth_actions", T().bluetooth_actions);
-  json += jsonField("bluetooth_enable", T().bluetooth_enable);
-  json += jsonField("bluetooth_disable", T().bluetooth_disable);
-  json += jsonField("bluetooth_rename", T().bluetooth_rename);
-  json += jsonField("bluetooth_reset", T().bluetooth_reset);
-  json += jsonField("bluetooth_placeholder", T().bluetooth_placeholder);
-  json += jsonField("bluetooth_not_supported", T().bluetooth_not_supported);
-  json += jsonField("bluetooth_disabled", T().bluetooth_disabled);
-  json += jsonField("bluetooth_enabled", T().bluetooth_enabled);
-  json += jsonField("bluetooth_advertising", T().bluetooth_advertising);
-  json += jsonField("bluetooth_not_advertising", T().bluetooth_not_advertising);
-  // --- [NEW FEATURE] Textes scan Bluetooth ---
-  json += jsonField("bluetooth_scan", T().bluetooth_scan);
-  json += jsonField("bluetooth_scan_hint", T().bluetooth_scan_hint);
-  json += jsonField("bluetooth_scan_in_progress", T().bluetooth_scan_in_progress);
-  json += jsonField("bluetooth_devices_found", T().bluetooth_devices_found);
-  json += jsonField("bluetooth_updated", T().bluetooth_updated);
-  json += jsonField("bluetooth_error", T().bluetooth_error);
-  json += jsonField("bluetooth_reset_done", T().bluetooth_reset_done);
-  json += jsonField("bluetooth_support_label", T().bluetooth_support_label);
-  json += jsonField("bluetooth_support_yes", T().bluetooth_support_yes);
-  json += jsonField("bluetooth_support_no", T().bluetooth_support_no);
-  json += jsonField("bluetooth_advertising_label", T().bluetooth_advertising_label);
-  json += jsonField("bluetooth_connection_label", T().bluetooth_connection_label);
-  json += jsonField("bluetooth_client_connected", T().bluetooth_client_connected);
-  json += jsonField("bluetooth_client_disconnected", T().bluetooth_client_disconnected);
-  json += jsonField("bluetooth_notifications_label", T().bluetooth_notifications_label);
-  json += jsonField("gpio", T().gpio);
-  json += jsonField("status", T().status);
-  json += jsonField("config", T().config);
-  json += jsonField("test", T().test);
-  json += jsonField("turn_on", T().turn_on);
-  json += jsonField("turn_off", T().turn_off);
-  json += jsonField("turn_off_all", T().turn_off_all);
-  json += jsonField("blink", T().blink);
-  json += jsonField("fade", T().fade);
-  json += jsonField("off", T().off);
-  json += jsonField("neopixel", T().neopixel);
-  json += jsonField("animations", T().animations);
-  json += jsonField("led_count", T().led_count);
-  json += jsonField("rainbow", T().rainbow);
-  json += jsonField("chase", T().chase);
-  json += jsonField("color", T().color);
-  json += jsonField("custom_color", T().custom_color);
-  json += jsonField("gpio_interfaces", T().gpio_interfaces);
-  json += jsonField("total_gpio", T().total_gpio);
-  json += jsonField("i2c_peripherals", T().i2c_peripherals);
-  json += jsonField("device_count", T().device_count);
-  json += jsonField("detected_addresses", T().detected_addresses);
-  json += jsonField("builtin_led", T().builtin_led);
-  json += jsonField("oled_screen", T().oled_screen);
-  json += jsonField("status", T().status);
-  json += jsonField("i2c_pins", T().i2c_pins);
-  json += jsonField("rotation", T().rotation);
-  json += jsonField("apply_redetect", T().apply_redetect);
-  json += jsonField("full_test", T().full_test);
-  json += jsonField("oled_step_welcome", T().oled_step_welcome);
-  json += jsonField("oled_step_big_text", T().oled_step_big_text);
-  json += jsonField("oled_step_text_sizes", T().oled_step_text_sizes);
-  json += jsonField("oled_step_shapes", T().oled_step_shapes);
-  json += jsonField("oled_step_horizontal_lines", T().oled_step_horizontal_lines);
-  json += jsonField("oled_step_diagonals", T().oled_step_diagonals);
-  json += jsonField("oled_step_moving_square", T().oled_step_moving_square);
-  json += jsonField("oled_step_progress_bar", T().oled_step_progress_bar);
-  json += jsonField("oled_step_scroll_text", T().oled_step_scroll_text);
-  json += jsonField("oled_step_final_message", T().oled_step_final_message);
-  json += jsonField("oled_step_running", T().oled_step_running);
-  json += jsonField("oled_message_required", T().oled_message_required);
-  json += jsonField("oled_displaying_message", T().oled_displaying_message);
-  json += jsonField("custom_message", T().custom_message);
-  json += jsonField("show_message", T().show_message);
-  json += jsonField("apply_color", T().apply_color);
-  json += jsonField("adc_test", T().adc_test);
-  json += jsonField("start_adc_test", T().start_adc_test);
-  json += jsonField("pwm_test", T().pwm_test);
-  json += jsonField("spi_bus", T().spi_bus);
-  json += jsonField("flash_partitions", T().flash_partitions);
-  json += jsonField("memory_stress", T().memory_stress);
-  json += jsonField("stress_warning", T().stress_warning);
-  json += jsonField("start_stress", T().start_stress);
-  json += jsonField("gpio_test", T().gpio_test);
-  json += jsonField("test_all_gpio", T().test_all_gpio);
-  json += jsonField("click_to_test", T().click_to_test);
-  json += jsonField("not_tested", T().not_tested);
-  json += jsonField("gpio_warning", T().gpio_warning);
-  json += jsonField("i2c_desc", T().i2c_desc);
-  json += jsonField("adc_desc", T().adc_desc);
-  json += jsonField("pwm_desc", T().pwm_desc);
-  json += jsonField("spi_desc", T().spi_desc);
-  json += jsonField("partitions_desc", T().partitions_desc);
-  json += jsonField("stress_desc", T().stress_desc);
-  json += jsonField("gpio_desc", T().gpio_desc);
-  json += jsonField("wifi_desc", T().wifi_desc);
-  json += jsonField("benchmark_desc", T().benchmark_desc);
-  json += jsonField("wifi_scanner", T().wifi_scanner);
-  json += jsonField("performance_bench", T().performance_bench);
-  json += jsonField("data_export", T().data_export);
-  json += jsonField("click_to_scan", T().click_to_scan);
-  json += jsonField("updating", T().updating);
-  json += jsonField("online", T().online);
-  json += jsonField("offline", T().offline);
-  json += jsonField("check_network", T().check_network);
-  json += jsonField("language_label", T().language_label);
-  json += jsonField("language_updated", T().language_updated);
-  json += jsonField("language_switch_error", T().language_switch_error);
-  json += jsonField("translation_error", T().translation_error);
-  json += jsonField("bluetooth_invalid_name", T().bluetooth_invalid_name);
-  json += jsonField("bluetooth_enabling", T().bluetooth_enabling);
-  json += jsonField("bluetooth_disabling", T().bluetooth_disabling);
-  json += jsonField("bluetooth_updating", T().bluetooth_updating);
-  json += jsonField("bluetooth_resetting", T().bluetooth_resetting);
-  json += jsonField("loading", T().loading);
-  json += jsonField("configuring", T().configuring);
-  json += jsonField("reconfiguring", T().reconfiguring);
-  json += jsonField("transmission", T().transmission);
-  json += jsonField("error_label", T().error_label);
-  json += jsonField("test_failed", T().test_failed);
-  json += jsonField("gpio_summary_template", T().gpio_summary_template);
-  json += jsonField("wifi_networks_found", T().wifi_networks_found);
-  json += jsonField("i2c_scan_result", T().i2c_scan_result);
-  json += jsonField("gpio_invalid", T().gpio_invalid);
-  json += jsonField("configuration_invalid", T().configuration_invalid);
-  json += jsonField("testing", T().testing);
-  json += jsonField("scan", T().scan);
-  json += jsonField("scanning", T().scanning);
-  json += jsonField("completed", T().completed);
-  json += jsonField("cores", T().cores);
-  json += jsonField("pins", T().pins);
-  json += jsonField("devices", T().devices);
-  json += jsonField("networks", T().networks);
-  json += jsonField("tested", T().tested);
-  json += jsonField("channels", T().channels);
-  json += jsonField("oled_test_running", T().oled_test_running, true);
+
+  appendOverviewTranslations(json, translations);
+  appendBluetoothScanTranslations(json, translations);
+  appendHardwareUiTranslations(json, translations);
+  appendTestFlowTranslations(json, translations);
+  appendStatusAndSummaryTranslations(json, translations);
+
   json += "}";
 
   return json;
