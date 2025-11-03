@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.6.19-dev
+ * ESP32 Diagnostic Suite v3.6.20-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.6.20-dev - Reduce hardware test latency with faster routines",
   "3.6.19-dev - Compact translation JSON map to shrink firmware size",
   "3.6.18-dev - Restore language switch helper after translation refactor",
   "3.6.17-dev - Segment translation JSON builder to fix relocation overflow",
@@ -99,6 +100,8 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 #include <WebServer.h>
 
 #if defined(ARDUINO_ARCH_ESP32)
+  #include <freertos/FreeRTOS.h>
+  #include <freertos/task.h>
   #if defined(__has_include)
     #if __has_include(<ESPmDNS.h>)
       #include <ESPmDNS.h>
@@ -258,7 +261,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.19-dev"
+#define DIAGNOSTIC_VERSION "3.6.20-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -407,6 +410,13 @@ String builtinLedTestResult = String(T().not_tested);
 bool oledTested = false;
 bool oledAvailable = false;
 String oledTestResult = String(T().not_tested);
+
+// --- [NEW FEATURE] Orchestrateurs asynchrones des tests lents ---
+static AsyncTestRunner builtinLedTestRunner = {"BuiltinLEDTest", nullptr, false};
+static AsyncTestRunner neopixelTestRunner = {"NeoPixelTest", nullptr, false};
+static AsyncTestRunner oledTestRunner = {"OLEDTest", nullptr, false};
+static AsyncTestRunner rgbLedTestRunner = {"RgbLedTest", nullptr, false};
+static AsyncTestRunner buzzerTestRunner = {"BuzzerTest", nullptr, false};
 
 // Tests additionnels
 String adcTestResult = String(T().not_tested);
@@ -1310,11 +1320,11 @@ bool testSingleGPIO(int pin) {
   
   pinMode(pin, OUTPUT);
   digitalWrite(pin, HIGH);
-  delay(10);
+  delayMicroseconds(250);
   bool highOk = digitalRead(pin) == HIGH;
-  
+
   digitalWrite(pin, LOW);
-  delay(10);
+  delayMicroseconds(250);
   bool lowOk = digitalRead(pin) == LOW;
   
   pinMode(pin, INPUT);
@@ -1376,18 +1386,20 @@ void testBuiltinLED() {
   
   for(int i = 0; i < 5; i++) {
     digitalWrite(BUILTIN_LED_PIN, HIGH);
-    delay(200);
+    delay(80);
     digitalWrite(BUILTIN_LED_PIN, LOW);
-    delay(200);
+    delay(80);
   }
-  
-  for(int i = 0; i <= 255; i += 5) {
+
+  for(int i = 0; i <= 255; i += 51) {
     analogWrite(BUILTIN_LED_PIN, i);
-    delay(10);
+    delay(25);
+    yield();
   }
-  for(int i = 255; i >= 0; i -= 5) {
+  for(int i = 255; i >= 0; i -= 51) {
     analogWrite(BUILTIN_LED_PIN, i);
-    delay(10);
+    delay(25);
+    yield();
   }
   
   digitalWrite(BUILTIN_LED_PIN, LOW);
@@ -1440,20 +1452,21 @@ void testNeoPixel() {
   
   strip->setPixelColor(0, strip->Color(255, 0, 0));
   strip->show();
-  delay(500);
-  
+  delay(160);
+
   strip->setPixelColor(0, strip->Color(0, 255, 0));
   strip->show();
-  delay(500);
-  
+  delay(160);
+
   strip->setPixelColor(0, strip->Color(0, 0, 255));
   strip->show();
-  delay(500);
-  
-  for(int i = 0; i < 256; i += 32) {
+  delay(160);
+
+  for(int i = 0; i < 256; i += 64) {
     strip->setPixelColor(0, strip->gamma32(strip->ColorHSV(i * 256)));
     strip->show();
-    delay(50);
+    delay(28);
+    yield();
   }
   
   strip->clear();
@@ -1490,10 +1503,10 @@ void neopixelBlink(uint32_t color, int times) {
   for(int i = 0; i < times; i++) {
     strip->fill(color);
     strip->show();
-    delay(300);
+    delay(120);
     strip->clear();
     strip->show();
-    delay(300);
+    delay(120);
   }
 }
 
@@ -1587,7 +1600,7 @@ void oledStepWelcome() {
   oled.printf("I2C: 0x%02X\r\n", SCREEN_ADDRESS);
   oled.printf("SDA:%d SCL:%d", I2C_SDA, I2C_SCL);
   oled.display();
-  delay(2000);
+  delay(700);
 }
 
 void oledStepBigText() {
@@ -1599,7 +1612,7 @@ void oledStepBigText() {
   oled.setCursor(20, 20);
   oled.println("ESP32");
   oled.display();
-  delay(1500);
+  delay(450);
 }
 
 void oledStepTextSizes() {
@@ -1615,7 +1628,7 @@ void oledStepTextSizes() {
   oled.setTextSize(1);
   oled.println("Retour taille 1");
   oled.display();
-  delay(2000);
+  delay(550);
 }
 
 void oledStepShapes() {
@@ -1628,7 +1641,7 @@ void oledStepShapes() {
   oled.fillCircle(65, 50, 10, SSD1306_WHITE);
   oled.drawTriangle(95, 30, 85, 10, 105, 10, SSD1306_WHITE);
   oled.display();
-  delay(2000);
+  delay(550);
 }
 
 void oledStepHorizontalLines() {
@@ -1639,7 +1652,7 @@ void oledStepHorizontalLines() {
     oled.drawLine(0, i, SCREEN_WIDTH, i, SSD1306_WHITE);
   }
   oled.display();
-  delay(1500);
+  delay(350);
 }
 
 void oledStepDiagonals() {
@@ -1651,17 +1664,18 @@ void oledStepDiagonals() {
     oled.drawLine(SCREEN_WIDTH - 1, 0, i, SCREEN_HEIGHT - 1, SSD1306_WHITE);
   }
   oled.display();
-  delay(1500);
+  delay(350);
 }
 
 void oledStepMovingSquare() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
-  for (int x = 0; x < SCREEN_WIDTH - 20; x += 4) {
+  for (int x = 0; x < SCREEN_WIDTH - 20; x += 6) {
     oled.clearDisplay();
     oled.fillRect(x, 22, 20, 20, SSD1306_WHITE);
     oled.display();
-    delay(20);
+    delay(12);
+    yield();
   }
 }
 
@@ -1673,33 +1687,35 @@ void oledStepProgressBar() {
   oled.setTextColor(SSD1306_WHITE);
   oled.setCursor(20, 10);
   oled.println(String(T().loading));
-  for (int i = 0; i <= 100; i += 5) {
+  for (int i = 0; i <= 100; i += 10) {
     oled.drawRect(10, 30, 108, 15, SSD1306_WHITE);
     oled.fillRect(12, 32, i, 11, SSD1306_WHITE);
     oled.setCursor(45, 50);
     oled.printf("%d%%", i);
     oled.display();
-    delay(100);
+    delay(45);
+    yield();
     if (i < 100) {
       oled.fillRect(12, 32, i, 11, SSD1306_BLACK);
       oled.fillRect(45, 50, 40, 10, SSD1306_BLACK);
     }
   }
-  delay(1000);
+  delay(300);
 }
 
 void oledStepScrollText() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
   String scrollText = "  DIAGNOSTIC ESP32 COMPLET - OLED 0.96 pouces I2C  ";
-  for (int offset = 0; offset < scrollText.length() * 6; offset += 2) {
+  for (int offset = 0; offset < scrollText.length() * 6; offset += 6) {
     oled.clearDisplay();
     oled.setTextSize(1);
     oled.setTextColor(SSD1306_WHITE);
     oled.setCursor(-offset, 28);
     oled.print(scrollText);
     oled.display();
-    delay(30);
+    delay(12);
+    yield();
   }
 }
 
@@ -1713,7 +1729,7 @@ void oledStepFinalMessage() {
   oled.println("TEST OK!");
   oled.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
   oled.display();
-  delay(2000);
+  delay(600);
   oled.clearDisplay();
   oled.display();
 }
@@ -1856,7 +1872,8 @@ void testPWM() {
   for(int duty = 0; duty <= 255; duty += 51) {
     ledcWrite(testPin, duty);
     Serial.printf("PWM duty: %d/255\r\n", duty);
-    delay(200);
+    delay(80);
+    yield();
   }
   
   ledcWrite(testPin, 0);
@@ -1936,18 +1953,18 @@ void testRGBLed() {
   digitalWrite(RGB_LED_PIN_R, LOW);
   digitalWrite(RGB_LED_PIN_G, LOW);
   digitalWrite(RGB_LED_PIN_B, LOW);
-  delay(200);
+  delay(120);
 
   digitalWrite(RGB_LED_PIN_R, HIGH);
-  delay(300);
+  delay(150);
   digitalWrite(RGB_LED_PIN_R, LOW);
 
   digitalWrite(RGB_LED_PIN_G, HIGH);
-  delay(300);
+  delay(150);
   digitalWrite(RGB_LED_PIN_G, LOW);
 
   digitalWrite(RGB_LED_PIN_B, HIGH);
-  delay(300);
+  delay(150);
   digitalWrite(RGB_LED_PIN_B, LOW);
 
   rgbLedTestResult = String(T().ok);
@@ -1977,12 +1994,12 @@ void testBuzzer() {
   pinMode(BUZZER_PIN, OUTPUT);
   Serial.printf("Test Buzzer - Pin:%d\r\n", BUZZER_PIN);
 
-  tone(BUZZER_PIN, 1000, 200);
-  delay(300);
-  tone(BUZZER_PIN, 1500, 200);
-  delay(300);
-  tone(BUZZER_PIN, 2000, 200);
-  delay(300);
+  tone(BUZZER_PIN, 1000, 160);
+  delay(220);
+  tone(BUZZER_PIN, 1500, 160);
+  delay(220);
+  tone(BUZZER_PIN, 2000, 160);
+  delay(220);
   noTone(BUZZER_PIN);
 
   buzzerTestResult = String(T().ok);
@@ -2102,11 +2119,13 @@ void testLightSensor() {
   Serial.printf("Lecture Light Sensor - Pin:%d\r\n", LIGHT_SENSOR_PIN);
 
   int sum = 0;
-  for (int i = 0; i < 10; i++) {
+  const int samples = 6;
+  for (int i = 0; i < samples; i++) {
     sum += analogRead(LIGHT_SENSOR_PIN);
-    delay(10);
+    delay(8);
+    yield();
   }
-  lightSensorValue = sum / 10;
+  lightSensorValue = sum / samples;
 
   lightSensorTestResult = String(T().ok);
   lightSensorAvailable = true;
@@ -2163,7 +2182,8 @@ void testMotionSensor() {
   pinMode(MOTION_SENSOR_PIN, INPUT);
   Serial.printf("Motion Sensor - Pin:%d\r\n", MOTION_SENSOR_PIN);
 
-  delay(100);
+  delay(30);
+  yield();
   motionDetected = digitalRead(MOTION_SENSOR_PIN);
 
   motionSensorTestResult = String(T().ok);
@@ -2307,6 +2327,30 @@ void collectDiagnosticInfo() {
   historyIndex = (historyIndex + 1) % HISTORY_SIZE;
 }
 
+// --- [NEW FEATURE] Routines de tests en tâche de fond ---
+static void runBuiltinLedTestTask() {
+  resetBuiltinLEDTest();
+  testBuiltinLED();
+}
+
+static void runNeopixelTestTask() {
+  resetNeoPixelTest();
+  testNeoPixel();
+}
+
+static void runOledTestTask() {
+  resetOLEDTest();
+  testOLED();
+}
+
+static void runRgbLedTestTask() {
+  testRGBLed();
+}
+
+static void runBuzzerTestTask() {
+  testBuzzer();
+}
+
 // ========== HANDLERS API ==========
 void handleTestGPIO() {
   testAllGPIOs();
@@ -2361,9 +2405,29 @@ void handleBuiltinLEDConfig() {
 }
 
 void handleBuiltinLEDTest() {
+  bool alreadyRunning = false;
+  bool started = startAsyncTest(builtinLedTestRunner, runBuiltinLedTestTask, alreadyRunning);
+
+  if (started) {
+    sendActionResponse(202, true, String(T().test_in_progress), {
+      jsonBoolField("running", true),
+      jsonStringField("result", builtinLedTestResult)
+    });
+    return;
+  }
+
+  if (alreadyRunning) {
+    sendActionResponse(200, true, String(T().test_in_progress), {
+      jsonBoolField("running", true),
+      jsonStringField("result", builtinLedTestResult)
+    });
+    return;
+  }
+
   resetBuiltinLEDTest();
   testBuiltinLED();
   sendActionResponse(200, builtinLedAvailable, builtinLedTestResult, {
+    jsonBoolField("running", false),
     jsonStringField("result", builtinLedTestResult)
   });
 }
@@ -2434,9 +2498,32 @@ void handleNeoPixelConfig() {
 }
 
 void handleNeoPixelTest() {
+  bool alreadyRunning = false;
+  bool started = startAsyncTest(neopixelTestRunner, runNeopixelTestTask, alreadyRunning);
+
+  if (started) {
+    sendActionResponse(202, true, String(T().test_in_progress), {
+      jsonBoolField("running", true),
+      jsonBoolField("available", neopixelAvailable),
+      jsonStringField("result", neopixelTestResult)
+    });
+    return;
+  }
+
+  if (alreadyRunning) {
+    sendActionResponse(200, true, String(T().test_in_progress), {
+      jsonBoolField("running", true),
+      jsonBoolField("available", neopixelAvailable),
+      jsonStringField("result", neopixelTestResult)
+    });
+    return;
+  }
+
   resetNeoPixelTest();
   testNeoPixel();
   sendActionResponse(200, neopixelAvailable, neopixelTestResult, {
+    jsonBoolField("running", false),
+    jsonBoolField("available", neopixelAvailable),
     jsonStringField("result", neopixelTestResult)
   });
 }
@@ -2533,9 +2620,32 @@ void handleOLEDConfig() {
 }
 
 void handleOLEDTest() {
+  bool alreadyRunning = false;
+  bool started = startAsyncTest(oledTestRunner, runOledTestTask, alreadyRunning, 6144, 1);
+
+  if (started) {
+    sendActionResponse(202, true, String(T().test_in_progress), {
+      jsonBoolField("running", true),
+      jsonBoolField("available", oledAvailable),
+      jsonStringField("result", oledTestResult)
+    });
+    return;
+  }
+
+  if (alreadyRunning) {
+    sendActionResponse(200, true, String(T().test_in_progress), {
+      jsonBoolField("running", true),
+      jsonBoolField("available", oledAvailable),
+      jsonStringField("result", oledTestResult)
+    });
+    return;
+  }
+
   resetOLEDTest();
   testOLED();
   sendActionResponse(200, oledAvailable, oledTestResult, {
+    jsonBoolField("running", false),
+    jsonBoolField("available", oledAvailable),
     jsonStringField("result", oledTestResult)
   });
 }
@@ -2623,8 +2733,30 @@ void handleRGBLedConfig() {
 }
 
 void handleRGBLedTest() {
+  bool alreadyRunning = false;
+  bool started = startAsyncTest(rgbLedTestRunner, runRgbLedTestTask, alreadyRunning, 3072, 1);
+
+  if (started) {
+    sendJsonResponse(202, {
+      jsonBoolField("running", true),
+      jsonBoolField("success", rgbLedAvailable),
+      jsonStringField("result", rgbLedTestResult)
+    });
+    return;
+  }
+
+  if (alreadyRunning) {
+    sendJsonResponse(200, {
+      jsonBoolField("running", true),
+      jsonBoolField("success", rgbLedAvailable),
+      jsonStringField("result", rgbLedTestResult)
+    });
+    return;
+  }
+
   testRGBLed();
   sendJsonResponse(200, {
+    jsonBoolField("running", false),
     jsonBoolField("success", rgbLedAvailable),
     jsonStringField("result", rgbLedTestResult)
   });
@@ -2652,8 +2784,30 @@ void handleBuzzerConfig() {
 }
 
 void handleBuzzerTest() {
+  bool alreadyRunning = false;
+  bool started = startAsyncTest(buzzerTestRunner, runBuzzerTestTask, alreadyRunning, 3072, 1);
+
+  if (started) {
+    sendJsonResponse(202, {
+      jsonBoolField("running", true),
+      jsonBoolField("success", buzzerAvailable),
+      jsonStringField("result", buzzerTestResult)
+    });
+    return;
+  }
+
+  if (alreadyRunning) {
+    sendJsonResponse(200, {
+      jsonBoolField("running", true),
+      jsonBoolField("success", buzzerAvailable),
+      jsonStringField("result", buzzerTestResult)
+    });
+    return;
+  }
+
   testBuzzer();
   sendJsonResponse(200, {
+    jsonBoolField("running", false),
     jsonBoolField("success", buzzerAvailable),
     jsonStringField("result", buzzerTestResult)
   });
@@ -3619,6 +3773,73 @@ inline void sendOperationError(int statusCode,
                                const String& message,
                                std::initializer_list<JsonFieldSpec> extraFields) {
   sendActionResponse(statusCode, false, message, extraFields);
+}
+
+// --- [NEW FEATURE] Exécution asynchrone des tests matériels ---
+typedef void (*TestRoutine)();
+
+struct AsyncTestRunner {
+  const char* taskName;
+  TaskHandle_t taskHandle;
+  volatile bool running;
+};
+
+struct AsyncTestTaskArgs {
+  AsyncTestRunner* runner;
+  TestRoutine routine;
+};
+
+static void asyncTestTask(void* parameters) {
+  AsyncTestTaskArgs* args = static_cast<AsyncTestTaskArgs*>(parameters);
+  if (args && args->routine) {
+    args->routine();
+  }
+  if (args) {
+    if (args->runner) {
+      args->runner->running = false;
+      args->runner->taskHandle = nullptr;
+    }
+    delete args;
+  }
+  vTaskDelete(nullptr);
+}
+
+static bool startAsyncTest(AsyncTestRunner& runner,
+                           TestRoutine routine,
+                           bool& alreadyRunning,
+                           uint32_t stackSize = 4096,
+                           UBaseType_t priority = 1) {
+  alreadyRunning = runner.running;
+  if (runner.running) {
+    return false;
+  }
+
+  AsyncTestTaskArgs* args = new AsyncTestTaskArgs{&runner, routine};
+  runner.running = true;
+
+#if CONFIG_FREERTOS_UNICORE
+  const BaseType_t targetCore = tskNO_AFFINITY;
+#else
+  const BaseType_t targetCore = 1;
+#endif
+
+  BaseType_t result = xTaskCreatePinnedToCore(asyncTestTask,
+                                              runner.taskName,
+                                              stackSize,
+                                              args,
+                                              priority,
+                                              &runner.taskHandle,
+                                              targetCore);
+  if (result != pdPASS) {
+    runner.running = false;
+    runner.taskHandle = nullptr;
+    delete args;
+    alreadyRunning = false;
+    return false;
+  }
+
+  alreadyRunning = false;
+  return true;
 }
 
 static inline void appendInfoItem(String& chunk,
