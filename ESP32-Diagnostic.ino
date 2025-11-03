@@ -3845,6 +3845,73 @@ inline void sendOperationError(int statusCode,
   sendActionResponse(statusCode, false, message, extraFields);
 }
 
+// --- [NEW FEATURE] Exécution asynchrone des tests matériels ---
+typedef void (*TestRoutine)();
+
+struct AsyncTestRunner {
+  const char* taskName;
+  TaskHandle_t taskHandle;
+  volatile bool running;
+};
+
+struct AsyncTestTaskArgs {
+  AsyncTestRunner* runner;
+  TestRoutine routine;
+};
+
+static void asyncTestTask(void* parameters) {
+  AsyncTestTaskArgs* args = static_cast<AsyncTestTaskArgs*>(parameters);
+  if (args && args->routine) {
+    args->routine();
+  }
+  if (args) {
+    if (args->runner) {
+      args->runner->running = false;
+      args->runner->taskHandle = nullptr;
+    }
+    delete args;
+  }
+  vTaskDelete(nullptr);
+}
+
+static bool startAsyncTest(AsyncTestRunner& runner,
+                           TestRoutine routine,
+                           bool& alreadyRunning,
+                           uint32_t stackSize = 4096,
+                           UBaseType_t priority = 1) {
+  alreadyRunning = runner.running;
+  if (runner.running) {
+    return false;
+  }
+
+  AsyncTestTaskArgs* args = new AsyncTestTaskArgs{&runner, routine};
+  runner.running = true;
+
+#if CONFIG_FREERTOS_UNICORE
+  const BaseType_t targetCore = tskNO_AFFINITY;
+#else
+  const BaseType_t targetCore = 1;
+#endif
+
+  BaseType_t result = xTaskCreatePinnedToCore(asyncTestTask,
+                                              runner.taskName,
+                                              stackSize,
+                                              args,
+                                              priority,
+                                              &runner.taskHandle,
+                                              targetCore);
+  if (result != pdPASS) {
+    runner.running = false;
+    runner.taskHandle = nullptr;
+    delete args;
+    alreadyRunning = false;
+    return false;
+  }
+
+  alreadyRunning = false;
+  return true;
+}
+
 static inline void appendInfoItem(String& chunk,
                                   const char* labelKey,
                                   const char* labelText,
