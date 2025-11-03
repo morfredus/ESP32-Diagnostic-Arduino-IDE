@@ -505,7 +505,7 @@ String generateJavaScript() {
 
   // Build LEDs - localisation complète
   js += "function buildLeds(d){";
-  js += "let h='<div class=\"section\"><h2 data-i18n=\"builtin_led\" data-i18n-prefix=\"💡\">'+tr('builtin_led')+'</h2><div class=\"info-grid\">';";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"builtin_led\" data-i18n-prefix=\"💡\">'+tr('builtin_led')+'</h2><p data-i18n=\"builtin_led_desc\">'+tr('builtin_led_desc')+'</p><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"gpio\">'+tr('gpio')+'</div><div class=\"info-value\"><span data-i18n=\"gpio\">'+tr('gpio')+'</span> '+d.builtin.pin+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"status\">'+tr('status')+'</div><div class=\"info-value\" id=\"builtin-led-status\">'+(d.builtin.status||'')+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
@@ -516,7 +516,7 @@ String generateJavaScript() {
   js += "h+='<button class=\"btn btn-danger\" data-i18n=\"turn_off\" data-i18n-prefix=\"⭕\" onclick=\"ledOff()\">'+tr('turn_off')+'</button>';";
   js += "h+='</div></div></div>';";
 
-  js += "h+='<div class=\"section\"><h2 data-i18n=\"neopixel\" data-i18n-prefix=\"🌈\">'+tr('neopixel')+'</h2><div class=\"info-grid\">';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"neopixel\" data-i18n-prefix=\"🌈\">'+tr('neopixel')+'</h2><p data-i18n=\"neopixel_desc\">'+tr('neopixel_desc')+'</p><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"gpio\">'+tr('gpio')+'</div><div class=\"info-value\"><span data-i18n=\"gpio\">'+tr('gpio')+'</span> '+d.neopixel.pin+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"led_count\">'+tr('led_count')+'</div><div class=\"info-value\">'+d.neopixel.count+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"status\">'+tr('status')+'</div><div class=\"info-value\" id=\"neopixel-status\">'+(d.neopixel.status||'')+'</div></div>';";
@@ -541,12 +541,12 @@ String generateJavaScript() {
   js += "const hasOled=d&&d.oled&&((typeof d.oled.available==='undefined')?true:!!d.oled.available);";
   js += "let h='<div class=\"section\"><h2 data-i18n=\"oled_screen\" data-i18n-prefix=\"🖥️\">'+tr('oled_screen')+'</h2><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"status\">'+tr('status')+'</div><div class=\"info-value\" id=\"oled-status\">'+(d.oled.status||'')+'</div></div>';";
-  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"i2c_pins\">'+tr('i2c_pins')+'</div><div class=\"info-value\" id=\"oled-pins\">SDA:'+d.oled.pins.sda+' SCL:'+d.oled.pins.scl+'</div></div>';";
+  js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"i2c_pins\">'+tr('i2c_pins')+'</div><div class=\"info-value\" id=\"oled-pins\"><span data-i18n=\"label_sda\" data-i18n-suffix=\" :\">'+tr('label_sda')+'</span>'+d.oled.pins.sda+' <span data-i18n=\"label_scl\" data-i18n-suffix=\" :\">'+tr('label_scl')+'</span>'+d.oled.pins.scl+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"rotation\">'+tr('rotation')+'</div><div class=\"info-value\" id=\"oled-rotation-display\">'+rotation+'</div></div>';";
   js += "h+='</div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
-  js += "h+='SDA: <input type=\"number\" id=\"oledSDA\" value=\"'+d.oled.pins.sda+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
-  js += "h+='SCL: <input type=\"number\" id=\"oledSCL\" value=\"'+d.oled.pins.scl+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
+  js += "h+='<span data-i18n=\"label_sda\" data-i18n-suffix=\" :\">'+tr('label_sda')+'</span><input type=\"number\" id=\"oledSDA\" value=\"'+d.oled.pins.sda+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
+  js += "h+='<span data-i18n=\"label_scl\" data-i18n-suffix=\" :\">'+tr('label_scl')+'</span><input type=\"number\" id=\"oledSCL\" value=\"'+d.oled.pins.scl+'\" min=\"0\" max=\"48\" style=\"width:70px\"> ';";
   js += "h+='<span data-i18n=\"rotation\" data-i18n-suffix=\" :\">'+tr('rotation')+'</span> <select id=\"oledRotation\" style=\"width:90px;padding:10px;border:2px solid #ddd;border-radius:5px\">';";
   js += "for(let i=0;i<4;i++){h+='<option value=\\\''+i+'\\\''+(i===rotation?' selected':'')+'>'+i+'</option>';};";
   js += "h+='</select> ';";
@@ -608,13 +608,14 @@ String generateJavaScript() {
   js += "}";
 
   // --- [NEW FEATURE] Onglet Sans fil combiné WiFi/Bluetooth ---
+  // --- [NEW FEATURE] Description introductive Sans fil ---
   js += "function buildWireless(){";
-  js += "let h='<div class=\"section\"><h2 data-i18n=\"wifi_scanner\" data-i18n-prefix=\"📡\">'+tr('wifi_scanner')+'</h2>';";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"wifi_scanner\" data-i18n-prefix=\"📡\">'+tr('wifi_scanner')+'</h2><p data-i18n=\"wireless_intro\">'+tr('wireless_intro')+'</p>';";
   js += "h+='<p data-i18n=\"wifi_desc\">'+tr('wifi_desc')+'</p>';";
   js += "h+='<div style=\"text-align:center;margin:20px 0\"><button class=\"btn btn-primary\" data-i18n=\"scan_networks\" data-i18n-prefix=\"🔍\" onclick=\"scanWiFi()\">'+tr('scan_networks')+'</button></div>';";
   js += "h+='<div id=\"wifi-status\" class=\"status-live\" data-i18n=\"click_to_scan\">'+tr('click_to_scan')+'</div>';";
   js += "h+='<div id=\"wifi-results\" class=\"wifi-list\"></div></div>';";
-  js += "h+='<div class=\"section\"><h2 data-i18n=\"bluetooth_section\" data-i18n-prefix=\"🅱️\">'+tr('bluetooth_section')+'</h2>';";
+  js += "h+='<div class=\"section\"><h2 data-i18n=\"bluetooth_section\" data-i18n-prefix=\"🅱️\">'+tr('bluetooth_section')+'</h2><p data-i18n=\"bluetooth_desc\">'+tr('bluetooth_desc')+'</p>';";
   js += "h+='<div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_support_label\">'+tr('bluetooth_support_label')+'</div><div class=\"info-value\" id=\"bluetooth-support\" data-i18n=\"bluetooth_support_no\">'+tr('bluetooth_support_no')+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"bluetooth_status\">'+tr('bluetooth_status')+'</div><div class=\"info-value\" id=\"bluetooth-status\" data-i18n=\"bluetooth_disabled\">'+tr('bluetooth_disabled')+'</div></div>';";
@@ -659,8 +660,9 @@ String generateJavaScript() {
   js += "}";
 
   // Build Export - localisation complète
+  // --- [NEW FEATURE] Description export multiformat ---
   js += "function buildExport(){";
-  js += "let h='<div class=\"section\"><h2 data-i18n=\"data_export\" data-i18n-prefix=\"💾\">'+tr('data_export')+'</h2>';";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"data_export\" data-i18n-prefix=\"💾\">'+tr('data_export')+'</h2><p data-i18n=\"export_intro\">'+tr('export_intro')+'</p>';";
   js += "h+='<div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-top:20px\">';";
   js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#667eea\" data-i18n=\"txt_file\">'+tr('txt_file')+'</h3><p style=\"font-size:0.9em;color:#666;margin:15px 0\" data-i18n=\"readable_report\">'+tr('readable_report')+'</p><a href=\"/export/txt\" class=\"btn btn-primary\" data-i18n=\"download_txt\" data-i18n-prefix=\"📥\">'+tr('download_txt')+'</a></div>';";
   js += "h+='<div class=\"card\" style=\"text-align:center;padding:30px\"><h3 style=\"color:#3a7bd5\" data-i18n=\"json_file\">'+tr('json_file')+'</h3><p style=\"font-size:0.9em;color:#666;margin:15px 0\" data-i18n=\"structured_format\">'+tr('structured_format')+'</p><a href=\"/export/json\" class=\"btn btn-info\" data-i18n=\"download_json\" data-i18n-prefix=\"📥\">'+tr('download_json')+'</a></div>';";
@@ -673,7 +675,9 @@ String generateJavaScript() {
   // --- [NEW FEATURE] Build Sensors - localisation complète ---
   // --- [REORGANIZATION] Build Display & Signal - Combine LEDs, Screens, RGB, Buzzer ---
   js += "function buildDisplaySignal(ledsData,screensData){";
-  js += "let h=buildLeds(ledsData);";
+  // --- [NEW FEATURE] Introduction Affichage & Signal ---
+  js += "let h='<div class=\\"section\\"><p data-i18n=\\"display_signal_intro\\">'+tr('display_signal_intro')+'</p></div>';";
+  js += "h+=buildLeds(ledsData);";
   js += "h+=buildScreens(screensData);";
 
   // LED RGB Section
@@ -719,8 +723,9 @@ String generateJavaScript() {
   js += "}";
 
   // --- [REORGANIZATION] Build Sensors - Environmental sensors only (DHT11, Light, Distance, Motion) ---
+  // --- [NEW FEATURE] Introduction Capteurs ---
   js += "function buildSensors(){";
-  js += "let h='<div class=\"section\"><h2 data-i18n=\"sensors_section\" data-i18n-prefix=\"📡\">'+tr('sensors_section')+'</h2>';";
+  js += "let h='<div class=\"section\"><h2 data-i18n=\"sensors_section\" data-i18n-prefix=\"📡\">'+tr('sensors_section')+'</h2><p data-i18n=\"sensors_intro\">'+tr('sensors_intro')+'</p>';";
 
   // DHT11 Section
   js += "h+='<h3 data-i18n=\"dht11_sensor\" data-i18n-prefix=\"🌡️\">'+tr('dht11_sensor')+'</h3>';";
@@ -754,8 +759,8 @@ String generateJavaScript() {
   js += "h+='<div class=\"card\"><div class=\"info-grid\">';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"distance_pins\">'+tr('distance_pins')+'</div>';";
   js += "h+='<div style=\"display:flex;gap:5px\">';";
-  js += "h+='<input type=\"number\" id=\"distTrig\" value=\"7\" style=\"width:60px\" placeholder=\"Trig\"/>';";
-  js += "h+='<input type=\"number\" id=\"distEcho\" value=\"8\" style=\"width:60px\" placeholder=\"Echo\"/>';";
+  js += "h+='<input type=\"number\" id=\"distTrig\" value=\"7\" style=\"width:60px\" data-i18n-placeholder=\"label_trig\" placeholder=\"'+tr('label_trig')+'\"/>';";
+  js += "h+='<input type=\"number\" id=\"distEcho\" value=\"8\" style=\"width:60px\" data-i18n-placeholder=\"label_echo\" placeholder=\"'+tr('label_echo')+'\"/>';";
   js += "h+='<button class=\"btn btn-info\" onclick=\"applyDistanceConfig()\" data-i18n=\"apply_config\">'+tr('apply_config')+'</button></div></div></div>';";
   js += "h+='<div style=\"text-align:center;margin:15px 0\">';";
   js += "h+='<button class=\"btn btn-primary\" onclick=\"testDistanceSensor()\" data-i18n=\"test_distance_sensor\" data-i18n-prefix=\"▶️\">'+tr('test_distance_sensor')+'</button>';";
@@ -859,7 +864,7 @@ String generateJavaScript() {
   js += "const statusPayload=d.message?{text:d.message}:{key:'configuration_invalid'};";
   js += "setStatus('oled-status',statusPayload,d.success?'success':'error');";
   js += "if(d.success){if(typeof d.sda!=='undefined'){document.getElementById('oledSDA').value=d.sda;document.getElementById('oledSCL').value=d.scl;}";
-  js += "const pins=document.getElementById('oled-pins');if(pins){pins.textContent='SDA:'+d.sda+' SCL:'+d.scl;}const rotDisplay=document.getElementById('oled-rotation-display');if(rotDisplay){rotDisplay.textContent=d.rotation;}if(document.getElementById('oledRotation')){document.getElementById('oledRotation').value=d.rotation;}}";
+  js += "const pins=document.getElementById('oled-pins');if(pins){pins.innerHTML='<span data-i18n=\"label_sda\" data-i18n-suffix=\" :\">'+tr('label_sda')+'</span>'+d.sda+' <span data-i18n=\"label_scl\" data-i18n-suffix=\" :\">'+tr('label_scl')+'</span>'+d.scl;}const rotDisplay=document.getElementById('oled-rotation-display');if(rotDisplay){rotDisplay.textContent=d.rotation;}if(document.getElementById('oledRotation')){document.getElementById('oledRotation').value=d.rotation;}}";
   js += "}catch(e){setStatus('oled-status',{key:'error_label',suffix:': '+String(e)},'error');}";
   js += "}";
 

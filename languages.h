@@ -90,6 +90,8 @@ extern Language currentLanguage;
   X(wifi_channel, "Canal WiFi", "WiFi Channel") \
   X(wifi_open_auth, "Ouvert", "Open") \
   X(bluetooth_section, "Bluetooth", "Bluetooth") \
+  // --- [NEW FEATURE] Descriptions supplémentaires pour l'onglet Sans fil --- \
+  X(bluetooth_desc, "Gérez l'état, le nom et la diffusion Bluetooth.", "Manage Bluetooth state, name, and advertising.") \
   X(bluetooth_status, "Statut Bluetooth", "Bluetooth Status") \
   X(bluetooth_name, "Nom diffusé", "Advertised Name") \
   X(bluetooth_mac, "Adresse MAC Bluetooth", "Bluetooth MAC Address") \
@@ -128,6 +130,8 @@ extern Language currentLanguage;
   X(detected_addresses, "Adresses détectées", "Detected Addresses") \
   X(rescan_i2c, "Relancer le scan I2C", "Re-scan I2C") \
   X(builtin_led, "LED intégrée", "Built-in LED") \
+  // --- [NEW FEATURE] Descriptions supplémentaires pour Affichage & Signal --- \
+  X(builtin_led_desc, "Contrôlez la LED embarquée et vérifiez sa réponse.", "Control the onboard LED and confirm it responds.") \
   X(gpio, "GPIO", "GPIO") \
   X(status, "Statut", "Status") \
   X(config, "Configuration", "Configuration") \
@@ -139,6 +143,7 @@ extern Language currentLanguage;
   X(fade, "Fondu", "Fade") \
   X(off, "Arrêt", "Off") \
   X(neopixel, "NeoPixel", "NeoPixel") \
+  X(neopixel_desc, "Pilotez vos bandes NeoPixel et testez les animations.", "Drive your NeoPixel strips and test animations.") \
   X(animations, "Animations", "Animations") \
   X(led_count, "Nombre de LEDs", "LED Count") \
   X(rainbow, "Arc-en-ciel", "Rainbow") \
@@ -148,6 +153,8 @@ extern Language currentLanguage;
   X(full_test, "Test complet", "Full Test") \
   X(oled_screen, "Écran OLED 0.96\" I2C", "OLED Screen 0.96\" I2C") \
   X(i2c_pins, "Pins I2C", "I2C Pins") \
+  X(label_sda, "SDA", "SDA") \
+  X(label_scl, "SCL", "SCL") \
   X(i2c_address, "Adresse I2C", "I2C Address") \
   X(rotation, "Rotation", "Rotation") \
   X(no_device, "Aucun périphérique", "No device") \
@@ -205,6 +212,7 @@ extern Language currentLanguage;
   X(gpio_warning, "Un GPIO en échec peut provenir de la configuration ou d'un périphérique externe : vérifiez câblage et alimentation avant de conclure à un défaut.", "A failed GPIO result may stem from configuration or external hardware—double-check wiring and power before assuming the pin is faulty.") \
   X(gpio_desc, "Teste automatiquement l'ensemble des broches GPIO.", "Automatically exercises every GPIO pin.") \
   X(wifi_scanner, "Scanner WiFi", "WiFi Scanner") \
+  X(wireless_intro, "Analysez et pilotez les interfaces WiFi et Bluetooth.", "Analyze and control the WiFi and Bluetooth interfaces.") \
   X(scan_networks, "Scanner les réseaux WiFi", "Scan WiFi Networks") \
   X(click_to_scan, "Cliquez pour scanner", "Click to scan") \
   X(wifi_desc, "Analyse les réseaux WiFi et leurs paramètres radio.", "Analyzes nearby WiFi networks and radio parameters.") \
@@ -217,6 +225,8 @@ extern Language currentLanguage;
   X(not_tested, "Non testé", "Not tested") \
   X(benchmark_desc, "Mesure les performances CPU et mémoire du module.", "Measures CPU and memory performance of the module.") \
   X(data_export, "Export des données", "Data Export") \
+  // --- [NEW FEATURE] Description supplémentaire pour l'export --- \
+  X(export_intro, "Téléchargez les rapports de diagnostic dans le format souhaité.", "Download diagnostic reports in the format you need.") \
   X(txt_file, "Fichier TXT", "TXT File") \
   X(readable_report, "Rapport texte lisible", "Readable text report") \
   X(download_txt, "Télécharger TXT", "Download TXT") \
@@ -332,6 +342,8 @@ extern Language currentLanguage;
   X(distance_sensor, "Capteur de distance", "Distance Sensor") \
   X(distance_sensor_desc, "Capteur ultrason HC-SR04", "HC-SR04 Ultrasonic Sensor") \
   X(distance_pins, "Pins (Trig, Echo)", "Pins (Trig, Echo)") \
+  X(label_trig, "Trig", "Trig") \
+  X(label_echo, "Echo", "Echo") \
   X(test_distance_sensor, "Mesurer la distance", "Measure Distance") \
   X(distance, "Distance", "Distance") \
   X(motion_sensor, "Capteur de présence", "Motion Sensor") \
@@ -341,7 +353,10 @@ extern Language currentLanguage;
   X(motion_detected, "Mouvement détecté", "Motion detected") \
   X(no_motion, "Aucun mouvement", "No motion") \
   X(sensors_section, "Tests des capteurs", "Sensor Tests") \
+  // --- [NEW FEATURE] Descriptions supplémentaires pour les capteurs --- \
+  X(sensors_intro, "Configurez et testez les capteurs connectés à l'ESP32.", "Configure and test the sensors connected to the ESP32.") \
   X(display_signal_section, "Affichage & Signal", "Display & Signal") \
+  X(display_signal_intro, "Préparez les sorties visuelles et sonores pour vos diagnostics.", "Prepare visual and audio outputs for your diagnostics.") \
   X(hardware_tests_section, "Tests matériel", "Hardware Tests") \
   X(apply_config, "Appliquer la configuration", "Apply Configuration") \
   X(pin_configuration, "Configuration des pins", "Pin Configuration") \
