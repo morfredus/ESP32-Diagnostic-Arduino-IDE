@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.6.16-dev
+ * ESP32 Diagnostic Suite v3.6.17-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.6.17-dev - Segment translation JSON builder to fix relocation overflow",
   "3.6.16-dev - Add configurable LED and NeoPixel pins via web UI, implement chase pattern",
   "3.6.15-dev - Add missing UI translations across wireless, sensors, export, and display tabs",
   "3.6.14-dev - Fix Bluetooth scan UI escaping for compilation",
@@ -243,7 +244,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.16-dev"
+#define DIAGNOSTIC_VERSION "3.6.17-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -3983,217 +3984,241 @@ void stopBluetooth() {
   bluetoothAdvertising = false;
 }
 
+// --- [NEW FEATURE] Segmentation du JSON de traduction ---
+static inline void appendOverviewTranslations(String& json, const TranslationAccessor& translations) {
+  json += jsonField("title", translations.title);
+  json += jsonField("version", translations.version);
+  json += jsonField("nav_overview", translations.nav_overview);
+  json += jsonField("nav_leds", translations.nav_leds);
+  json += jsonField("nav_screens", translations.nav_screens);
+  json += jsonField("nav_tests", translations.nav_tests);
+  json += jsonField("nav_gpio", translations.nav_gpio);
+  json += jsonField("nav_wireless", translations.nav_wireless);
+  json += jsonField("nav_benchmark", translations.nav_benchmark);
+  json += jsonField("nav_export", translations.nav_export);
+  json += jsonField("nav_select_label", translations.nav_select_label);
+  json += jsonField("chip_info", translations.chip_info);
+  json += jsonField("full_model", translations.full_model);
+  json += jsonField("cpu_cores", translations.cpu_cores);
+  json += jsonField("mac_wifi", translations.mac_wifi);
+  json += jsonField("last_reset", translations.last_reset);
+  json += jsonField("poweron", translations.poweron);
+  json += jsonField("software_reset", translations.software_reset);
+  json += jsonField("deepsleep_exit", translations.deepsleep_exit);
+  json += jsonField("brownout", translations.brownout);
+  json += jsonField("other", translations.other);
+  json += jsonField("chip_features", translations.chip_features);
+  json += jsonField("sdk_version", translations.sdk_version);
+  json += jsonField("idf_version", translations.idf_version);
+  json += jsonField("uptime", translations.uptime);
+  json += jsonField("cpu_temp", translations.cpu_temp);
+  json += jsonField("revision", translations.revision);
+  json += jsonField("days", translations.days);
+  json += jsonField("hours", translations.hours);
+  json += jsonField("minutes", translations.minutes);
+  json += jsonField("memory_details", translations.memory_details);
+  json += jsonField("flash_memory", translations.flash_memory);
+  json += jsonField("real_size", translations.real_size);
+  json += jsonField("configured_ide", translations.configured_ide);
+  json += jsonField("configuration", translations.configuration);
+  json += jsonField("correct", translations.correct);
+  json += jsonField("to_fix", translations.to_fix);
+  json += jsonField("flash_type", translations.flash_type);
+  json += jsonField("flash_speed", translations.flash_speed);
+  json += jsonField("psram_external", translations.psram_external);
+  json += jsonField("hardware_status", translations.hardware_status);
+  json += jsonField("detected_active", translations.detected_active);
+  json += jsonField("supported_not_enabled", translations.supported_not_enabled);
+  json += jsonField("ide_config", translations.ide_config);
+  json += jsonField("total_size", translations.total_size);
+  json += jsonField("free", translations.free);
+  json += jsonField("used", translations.used);
+  json += jsonField("excellent", translations.excellent);
+  json += jsonField("very_good", translations.very_good);
+  json += jsonField("good", translations.good);
+  json += jsonField("warning", translations.warning);
+  json += jsonField("critical", translations.critical);
+  json += jsonField("weak", translations.weak);
+  json += jsonField("very_weak", translations.very_weak);
+  json += jsonField("none", translations.none);
+  json += jsonField("unknown", translations.unknown);
+  json += jsonField("enable_psram_hint", translations.enable_psram_hint);
+  json += jsonField("not_detected", translations.not_detected);
+  json += jsonField("internal_sram", translations.internal_sram);
+  json += jsonField("memory_fragmentation", translations.memory_fragmentation);
+  json += jsonField("refresh_memory", translations.refresh_memory);
+  json += jsonField("wifi_connection", translations.wifi_connection);
+  json += jsonField("connected_ssid", translations.connected_ssid);
+  json += jsonField("signal_power", translations.signal_power);
+  json += jsonField("signal_quality", translations.signal_quality);
+  json += jsonField("ip_address", translations.ip_address);
+  json += jsonField("subnet_mask", translations.subnet_mask);
+  json += jsonField("gateway", translations.gateway);
+  json += jsonField("dns", translations.dns);
+  json += jsonField("ip_unavailable", translations.ip_unavailable);
+  json += jsonField("access", translations.access);
+  json += jsonField("bluetooth_section", translations.bluetooth_section);
+  json += jsonField("bluetooth_status", translations.bluetooth_status);
+  json += jsonField("bluetooth_name", translations.bluetooth_name);
+  json += jsonField("bluetooth_mac", translations.bluetooth_mac);
+  json += jsonField("bluetooth_actions", translations.bluetooth_actions);
+  json += jsonField("bluetooth_enable", translations.bluetooth_enable);
+  json += jsonField("bluetooth_disable", translations.bluetooth_disable);
+  json += jsonField("bluetooth_rename", translations.bluetooth_rename);
+  json += jsonField("bluetooth_reset", translations.bluetooth_reset);
+  json += jsonField("bluetooth_placeholder", translations.bluetooth_placeholder);
+  json += jsonField("bluetooth_not_supported", translations.bluetooth_not_supported);
+  json += jsonField("bluetooth_disabled", translations.bluetooth_disabled);
+  json += jsonField("bluetooth_enabled", translations.bluetooth_enabled);
+  json += jsonField("bluetooth_advertising", translations.bluetooth_advertising);
+  json += jsonField("bluetooth_not_advertising", translations.bluetooth_not_advertising);
+}
+
+static inline void appendBluetoothScanTranslations(String& json, const TranslationAccessor& translations) {
+  // --- [NEW FEATURE] Textes scan Bluetooth ---
+  json += jsonField("bluetooth_scan", translations.bluetooth_scan);
+  json += jsonField("bluetooth_scan_hint", translations.bluetooth_scan_hint);
+  json += jsonField("bluetooth_scan_in_progress", translations.bluetooth_scan_in_progress);
+  json += jsonField("bluetooth_devices_found", translations.bluetooth_devices_found);
+  json += jsonField("bluetooth_updated", translations.bluetooth_updated);
+  json += jsonField("bluetooth_error", translations.bluetooth_error);
+  json += jsonField("bluetooth_reset_done", translations.bluetooth_reset_done);
+  json += jsonField("bluetooth_support_label", translations.bluetooth_support_label);
+  json += jsonField("bluetooth_support_yes", translations.bluetooth_support_yes);
+  json += jsonField("bluetooth_support_no", translations.bluetooth_support_no);
+  json += jsonField("bluetooth_advertising_label", translations.bluetooth_advertising_label);
+  json += jsonField("bluetooth_connection_label", translations.bluetooth_connection_label);
+  json += jsonField("bluetooth_client_connected", translations.bluetooth_client_connected);
+  json += jsonField("bluetooth_client_disconnected", translations.bluetooth_client_disconnected);
+  json += jsonField("bluetooth_notifications_label", translations.bluetooth_notifications_label);
+}
+
+static inline void appendHardwareUiTranslations(String& json, const TranslationAccessor& translations) {
+  json += jsonField("gpio", translations.gpio);
+  json += jsonField("status", translations.status);
+  json += jsonField("config", translations.config);
+  json += jsonField("test", translations.test);
+  json += jsonField("turn_on", translations.turn_on);
+  json += jsonField("turn_off", translations.turn_off);
+  json += jsonField("turn_off_all", translations.turn_off_all);
+  json += jsonField("blink", translations.blink);
+  json += jsonField("fade", translations.fade);
+  json += jsonField("off", translations.off);
+  json += jsonField("neopixel", translations.neopixel);
+  json += jsonField("animations", translations.animations);
+  json += jsonField("led_count", translations.led_count);
+  json += jsonField("rainbow", translations.rainbow);
+  json += jsonField("chase", translations.chase);
+  json += jsonField("color", translations.color);
+  json += jsonField("custom_color", translations.custom_color);
+  json += jsonField("gpio_interfaces", translations.gpio_interfaces);
+  json += jsonField("total_gpio", translations.total_gpio);
+  json += jsonField("i2c_peripherals", translations.i2c_peripherals);
+  json += jsonField("device_count", translations.device_count);
+  json += jsonField("detected_addresses", translations.detected_addresses);
+  json += jsonField("builtin_led", translations.builtin_led);
+  json += jsonField("oled_screen", translations.oled_screen);
+  json += jsonField("status", translations.status);
+  json += jsonField("i2c_pins", translations.i2c_pins);
+  json += jsonField("rotation", translations.rotation);
+  json += jsonField("apply_redetect", translations.apply_redetect);
+  json += jsonField("full_test", translations.full_test);
+  json += jsonField("oled_step_welcome", translations.oled_step_welcome);
+  json += jsonField("oled_step_big_text", translations.oled_step_big_text);
+  json += jsonField("oled_step_text_sizes", translations.oled_step_text_sizes);
+  json += jsonField("oled_step_shapes", translations.oled_step_shapes);
+  json += jsonField("oled_step_horizontal_lines", translations.oled_step_horizontal_lines);
+  json += jsonField("oled_step_diagonals", translations.oled_step_diagonals);
+  json += jsonField("oled_step_moving_square", translations.oled_step_moving_square);
+  json += jsonField("oled_step_progress_bar", translations.oled_step_progress_bar);
+  json += jsonField("oled_step_scroll_text", translations.oled_step_scroll_text);
+  json += jsonField("oled_step_final_message", translations.oled_step_final_message);
+  json += jsonField("oled_step_running", translations.oled_step_running);
+  json += jsonField("oled_message_required", translations.oled_message_required);
+  json += jsonField("oled_displaying_message", translations.oled_displaying_message);
+  json += jsonField("custom_message", translations.custom_message);
+  json += jsonField("show_message", translations.show_message);
+}
+
+static inline void appendTestFlowTranslations(String& json, const TranslationAccessor& translations) {
+  json += jsonField("apply_color", translations.apply_color);
+  json += jsonField("adc_test", translations.adc_test);
+  json += jsonField("start_adc_test", translations.start_adc_test);
+  json += jsonField("pwm_test", translations.pwm_test);
+  json += jsonField("spi_bus", translations.spi_bus);
+  json += jsonField("flash_partitions", translations.flash_partitions);
+  json += jsonField("memory_stress", translations.memory_stress);
+  json += jsonField("stress_warning", translations.stress_warning);
+  json += jsonField("start_stress", translations.start_stress);
+  json += jsonField("gpio_test", translations.gpio_test);
+  json += jsonField("test_all_gpio", translations.test_all_gpio);
+  json += jsonField("click_to_test", translations.click_to_test);
+  json += jsonField("not_tested", translations.not_tested);
+  json += jsonField("gpio_warning", translations.gpio_warning);
+  json += jsonField("i2c_desc", translations.i2c_desc);
+  json += jsonField("adc_desc", translations.adc_desc);
+  json += jsonField("pwm_desc", translations.pwm_desc);
+  json += jsonField("spi_desc", translations.spi_desc);
+  json += jsonField("partitions_desc", translations.partitions_desc);
+  json += jsonField("stress_desc", translations.stress_desc);
+}
+
+static inline void appendStatusAndSummaryTranslations(String& json, const TranslationAccessor& translations) {
+  json += jsonField("gpio_desc", translations.gpio_desc);
+  json += jsonField("wifi_desc", translations.wifi_desc);
+  json += jsonField("benchmark_desc", translations.benchmark_desc);
+  json += jsonField("wifi_scanner", translations.wifi_scanner);
+  json += jsonField("performance_bench", translations.performance_bench);
+  json += jsonField("data_export", translations.data_export);
+  json += jsonField("click_to_scan", translations.click_to_scan);
+  json += jsonField("updating", translations.updating);
+  json += jsonField("online", translations.online);
+  json += jsonField("offline", translations.offline);
+  json += jsonField("check_network", translations.check_network);
+  json += jsonField("language_label", translations.language_label);
+  json += jsonField("language_updated", translations.language_updated);
+  json += jsonField("language_switch_error", translations.language_switch_error);
+  json += jsonField("translation_error", translations.translation_error);
+  json += jsonField("bluetooth_invalid_name", translations.bluetooth_invalid_name);
+  json += jsonField("bluetooth_enabling", translations.bluetooth_enabling);
+  json += jsonField("bluetooth_disabling", translations.bluetooth_disabling);
+  json += jsonField("bluetooth_updating", translations.bluetooth_updating);
+  json += jsonField("bluetooth_resetting", translations.bluetooth_resetting);
+  json += jsonField("loading", translations.loading);
+  json += jsonField("configuring", translations.configuring);
+  json += jsonField("reconfiguring", translations.reconfiguring);
+  json += jsonField("transmission", translations.transmission);
+  json += jsonField("error_label", translations.error_label);
+  json += jsonField("test_failed", translations.test_failed);
+  json += jsonField("gpio_summary_template", translations.gpio_summary_template);
+  json += jsonField("wifi_networks_found", translations.wifi_networks_found);
+  json += jsonField("i2c_scan_result", translations.i2c_scan_result);
+  json += jsonField("gpio_invalid", translations.gpio_invalid);
+  json += jsonField("configuration_invalid", translations.configuration_invalid);
+  json += jsonField("testing", translations.testing);
+  json += jsonField("scan", translations.scan);
+  json += jsonField("scanning", translations.scanning);
+  json += jsonField("completed", translations.completed);
+  json += jsonField("cores", translations.cores);
+  json += jsonField("pins", translations.pins);
+  json += jsonField("devices", translations.devices);
+  json += jsonField("networks", translations.networks);
+  json += jsonField("tested", translations.tested);
+  json += jsonField("channels", translations.channels);
+  json += jsonField("oled_test_running", translations.oled_test_running, true);
+}
+
 String buildTranslationsJSON() {
+  const TranslationAccessor translations = T();
   String json = "{";
   json.reserve(8000);  // Increased reserve to avoid reallocations (~200+ fields)
-  json += jsonField("title", T().title);
-  json += jsonField("version", T().version);
-  json += jsonField("nav_overview", T().nav_overview);
-  json += jsonField("nav_leds", T().nav_leds);
-  json += jsonField("nav_screens", T().nav_screens);
-  json += jsonField("nav_tests", T().nav_tests);
-  json += jsonField("nav_gpio", T().nav_gpio);
-  json += jsonField("nav_wireless", T().nav_wireless);
-  json += jsonField("nav_benchmark", T().nav_benchmark);
-  json += jsonField("nav_export", T().nav_export);
-  json += jsonField("nav_select_label", T().nav_select_label);
-  json += jsonField("chip_info", T().chip_info);
-  json += jsonField("full_model", T().full_model);
-  json += jsonField("cpu_cores", T().cpu_cores);
-  json += jsonField("mac_wifi", T().mac_wifi);
-  json += jsonField("last_reset", T().last_reset);
-  json += jsonField("poweron", T().poweron);
-  json += jsonField("software_reset", T().software_reset);
-  json += jsonField("deepsleep_exit", T().deepsleep_exit);
-  json += jsonField("brownout", T().brownout);
-  json += jsonField("other", T().other);
-  json += jsonField("chip_features", T().chip_features);
-  json += jsonField("sdk_version", T().sdk_version);
-  json += jsonField("idf_version", T().idf_version);
-  json += jsonField("uptime", T().uptime);
-  json += jsonField("cpu_temp", T().cpu_temp);
-  json += jsonField("revision", T().revision);
-  json += jsonField("days", T().days);
-  json += jsonField("hours", T().hours);
-  json += jsonField("minutes", T().minutes);
-  json += jsonField("memory_details", T().memory_details);
-  json += jsonField("flash_memory", T().flash_memory);
-  json += jsonField("real_size", T().real_size);
-  json += jsonField("configured_ide", T().configured_ide);
-  json += jsonField("configuration", T().configuration);
-  json += jsonField("correct", T().correct);
-  json += jsonField("to_fix", T().to_fix);
-  json += jsonField("flash_type", T().flash_type);
-  json += jsonField("flash_speed", T().flash_speed);
-  json += jsonField("psram_external", T().psram_external);
-  json += jsonField("hardware_status", T().hardware_status);
-  json += jsonField("detected_active", T().detected_active);
-  json += jsonField("supported_not_enabled", T().supported_not_enabled);
-  json += jsonField("ide_config", T().ide_config);
-  json += jsonField("total_size", T().total_size);
-  json += jsonField("free", T().free);
-  json += jsonField("used", T().used);
-  json += jsonField("excellent", T().excellent);
-  json += jsonField("very_good", T().very_good);
-  json += jsonField("good", T().good);
-  json += jsonField("warning", T().warning);
-  json += jsonField("critical", T().critical);
-  json += jsonField("weak", T().weak);
-  json += jsonField("very_weak", T().very_weak);
-  json += jsonField("none", T().none);
-  json += jsonField("unknown", T().unknown);
-  json += jsonField("enable_psram_hint", T().enable_psram_hint);
-  json += jsonField("not_detected", T().not_detected);
-  json += jsonField("internal_sram", T().internal_sram);
-  json += jsonField("memory_fragmentation", T().memory_fragmentation);
-  json += jsonField("refresh_memory", T().refresh_memory);
-  json += jsonField("wifi_connection", T().wifi_connection);
-  json += jsonField("connected_ssid", T().connected_ssid);
-  json += jsonField("signal_power", T().signal_power);
-  json += jsonField("signal_quality", T().signal_quality);
-  json += jsonField("ip_address", T().ip_address);
-  json += jsonField("subnet_mask", T().subnet_mask);
-  json += jsonField("gateway", T().gateway);
-  json += jsonField("dns", T().dns);
-  json += jsonField("ip_unavailable", T().ip_unavailable);
-  json += jsonField("access", T().access);
-  json += jsonField("bluetooth_section", T().bluetooth_section);
-  json += jsonField("bluetooth_status", T().bluetooth_status);
-  json += jsonField("bluetooth_name", T().bluetooth_name);
-  json += jsonField("bluetooth_mac", T().bluetooth_mac);
-  json += jsonField("bluetooth_actions", T().bluetooth_actions);
-  json += jsonField("bluetooth_enable", T().bluetooth_enable);
-  json += jsonField("bluetooth_disable", T().bluetooth_disable);
-  json += jsonField("bluetooth_rename", T().bluetooth_rename);
-  json += jsonField("bluetooth_reset", T().bluetooth_reset);
-  json += jsonField("bluetooth_placeholder", T().bluetooth_placeholder);
-  json += jsonField("bluetooth_not_supported", T().bluetooth_not_supported);
-  json += jsonField("bluetooth_disabled", T().bluetooth_disabled);
-  json += jsonField("bluetooth_enabled", T().bluetooth_enabled);
-  json += jsonField("bluetooth_advertising", T().bluetooth_advertising);
-  json += jsonField("bluetooth_not_advertising", T().bluetooth_not_advertising);
-  // --- [NEW FEATURE] Textes scan Bluetooth ---
-  json += jsonField("bluetooth_scan", T().bluetooth_scan);
-  json += jsonField("bluetooth_scan_hint", T().bluetooth_scan_hint);
-  json += jsonField("bluetooth_scan_in_progress", T().bluetooth_scan_in_progress);
-  json += jsonField("bluetooth_devices_found", T().bluetooth_devices_found);
-  json += jsonField("bluetooth_updated", T().bluetooth_updated);
-  json += jsonField("bluetooth_error", T().bluetooth_error);
-  json += jsonField("bluetooth_reset_done", T().bluetooth_reset_done);
-  json += jsonField("bluetooth_support_label", T().bluetooth_support_label);
-  json += jsonField("bluetooth_support_yes", T().bluetooth_support_yes);
-  json += jsonField("bluetooth_support_no", T().bluetooth_support_no);
-  json += jsonField("bluetooth_advertising_label", T().bluetooth_advertising_label);
-  json += jsonField("bluetooth_connection_label", T().bluetooth_connection_label);
-  json += jsonField("bluetooth_client_connected", T().bluetooth_client_connected);
-  json += jsonField("bluetooth_client_disconnected", T().bluetooth_client_disconnected);
-  json += jsonField("bluetooth_notifications_label", T().bluetooth_notifications_label);
-  json += jsonField("gpio", T().gpio);
-  json += jsonField("status", T().status);
-  json += jsonField("config", T().config);
-  json += jsonField("test", T().test);
-  json += jsonField("turn_on", T().turn_on);
-  json += jsonField("turn_off", T().turn_off);
-  json += jsonField("turn_off_all", T().turn_off_all);
-  json += jsonField("blink", T().blink);
-  json += jsonField("fade", T().fade);
-  json += jsonField("off", T().off);
-  json += jsonField("neopixel", T().neopixel);
-  json += jsonField("animations", T().animations);
-  json += jsonField("led_count", T().led_count);
-  json += jsonField("rainbow", T().rainbow);
-  json += jsonField("chase", T().chase);
-  json += jsonField("color", T().color);
-  json += jsonField("custom_color", T().custom_color);
-  json += jsonField("gpio_interfaces", T().gpio_interfaces);
-  json += jsonField("total_gpio", T().total_gpio);
-  json += jsonField("i2c_peripherals", T().i2c_peripherals);
-  json += jsonField("device_count", T().device_count);
-  json += jsonField("detected_addresses", T().detected_addresses);
-  json += jsonField("builtin_led", T().builtin_led);
-  json += jsonField("oled_screen", T().oled_screen);
-  json += jsonField("status", T().status);
-  json += jsonField("i2c_pins", T().i2c_pins);
-  json += jsonField("rotation", T().rotation);
-  json += jsonField("apply_redetect", T().apply_redetect);
-  json += jsonField("full_test", T().full_test);
-  json += jsonField("oled_step_welcome", T().oled_step_welcome);
-  json += jsonField("oled_step_big_text", T().oled_step_big_text);
-  json += jsonField("oled_step_text_sizes", T().oled_step_text_sizes);
-  json += jsonField("oled_step_shapes", T().oled_step_shapes);
-  json += jsonField("oled_step_horizontal_lines", T().oled_step_horizontal_lines);
-  json += jsonField("oled_step_diagonals", T().oled_step_diagonals);
-  json += jsonField("oled_step_moving_square", T().oled_step_moving_square);
-  json += jsonField("oled_step_progress_bar", T().oled_step_progress_bar);
-  json += jsonField("oled_step_scroll_text", T().oled_step_scroll_text);
-  json += jsonField("oled_step_final_message", T().oled_step_final_message);
-  json += jsonField("oled_step_running", T().oled_step_running);
-  json += jsonField("oled_message_required", T().oled_message_required);
-  json += jsonField("oled_displaying_message", T().oled_displaying_message);
-  json += jsonField("custom_message", T().custom_message);
-  json += jsonField("show_message", T().show_message);
-  json += jsonField("apply_color", T().apply_color);
-  json += jsonField("adc_test", T().adc_test);
-  json += jsonField("start_adc_test", T().start_adc_test);
-  json += jsonField("pwm_test", T().pwm_test);
-  json += jsonField("spi_bus", T().spi_bus);
-  json += jsonField("flash_partitions", T().flash_partitions);
-  json += jsonField("memory_stress", T().memory_stress);
-  json += jsonField("stress_warning", T().stress_warning);
-  json += jsonField("start_stress", T().start_stress);
-  json += jsonField("gpio_test", T().gpio_test);
-  json += jsonField("test_all_gpio", T().test_all_gpio);
-  json += jsonField("click_to_test", T().click_to_test);
-  json += jsonField("not_tested", T().not_tested);
-  json += jsonField("gpio_warning", T().gpio_warning);
-  json += jsonField("i2c_desc", T().i2c_desc);
-  json += jsonField("adc_desc", T().adc_desc);
-  json += jsonField("pwm_desc", T().pwm_desc);
-  json += jsonField("spi_desc", T().spi_desc);
-  json += jsonField("partitions_desc", T().partitions_desc);
-  json += jsonField("stress_desc", T().stress_desc);
-  json += jsonField("gpio_desc", T().gpio_desc);
-  json += jsonField("wifi_desc", T().wifi_desc);
-  json += jsonField("benchmark_desc", T().benchmark_desc);
-  json += jsonField("wifi_scanner", T().wifi_scanner);
-  json += jsonField("performance_bench", T().performance_bench);
-  json += jsonField("data_export", T().data_export);
-  json += jsonField("click_to_scan", T().click_to_scan);
-  json += jsonField("updating", T().updating);
-  json += jsonField("online", T().online);
-  json += jsonField("offline", T().offline);
-  json += jsonField("check_network", T().check_network);
-  json += jsonField("language_label", T().language_label);
-  json += jsonField("language_updated", T().language_updated);
-  json += jsonField("language_switch_error", T().language_switch_error);
-  json += jsonField("translation_error", T().translation_error);
-  json += jsonField("bluetooth_invalid_name", T().bluetooth_invalid_name);
-  json += jsonField("bluetooth_enabling", T().bluetooth_enabling);
-  json += jsonField("bluetooth_disabling", T().bluetooth_disabling);
-  json += jsonField("bluetooth_updating", T().bluetooth_updating);
-  json += jsonField("bluetooth_resetting", T().bluetooth_resetting);
-  json += jsonField("loading", T().loading);
-  json += jsonField("configuring", T().configuring);
-  json += jsonField("reconfiguring", T().reconfiguring);
-  json += jsonField("transmission", T().transmission);
-  json += jsonField("error_label", T().error_label);
-  json += jsonField("test_failed", T().test_failed);
-  json += jsonField("gpio_summary_template", T().gpio_summary_template);
-  json += jsonField("wifi_networks_found", T().wifi_networks_found);
-  json += jsonField("i2c_scan_result", T().i2c_scan_result);
-  json += jsonField("gpio_invalid", T().gpio_invalid);
-  json += jsonField("configuration_invalid", T().configuration_invalid);
-  json += jsonField("testing", T().testing);
-  json += jsonField("scan", T().scan);
-  json += jsonField("scanning", T().scanning);
-  json += jsonField("completed", T().completed);
-  json += jsonField("cores", T().cores);
-  json += jsonField("pins", T().pins);
-  json += jsonField("devices", T().devices);
-  json += jsonField("networks", T().networks);
-  json += jsonField("tested", T().tested);
-  json += jsonField("channels", T().channels);
-  json += jsonField("oled_test_running", T().oled_test_running, true);
+
+  appendOverviewTranslations(json, translations);
+  appendBluetoothScanTranslations(json, translations);
+  appendHardwareUiTranslations(json, translations);
+  appendTestFlowTranslations(json, translations);
+  appendStatusAndSummaryTranslations(json, translations);
+
   json += "}";
 
   return json;
