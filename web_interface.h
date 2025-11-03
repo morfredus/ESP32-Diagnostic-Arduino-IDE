@@ -509,6 +509,9 @@ String generateJavaScript() {
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"gpio\">'+tr('gpio')+'</div><div class=\"info-value\"><span data-i18n=\"gpio\">'+tr('gpio')+'</span> '+d.builtin.pin+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"status\">'+tr('status')+'</div><div class=\"info-value\" id=\"builtin-led-status\">'+(d.builtin.status||'')+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
+  js += "h+='<strong data-i18n=\"configure_led_pin\">'+tr('configure_led_pin')+'</strong><br>';";
+  js += "h+='<span data-i18n=\"gpio\">'+tr('gpio')+'</span>: <input type=\"number\" id=\"builtin-led-gpio\" value=\"'+d.builtin.pin+'\" min=\"0\" max=\"48\" style=\"width:80px;padding:5px;margin:5px;border:1px solid #ccc;border-radius:5px\"> ';";
+  js += "h+='<button class=\"btn btn-primary\" data-i18n=\"apply_configuration\" data-i18n-prefix=\"⚙️\" onclick=\"configBuiltinLED()\">'+tr('apply_configuration')+'</button><br><br>';";
   js += "h+='<button class=\"btn btn-primary\" data-i18n=\"full_test\" data-i18n-prefix=\"🧪\" onclick=\"testBuiltinLED()\">'+tr('full_test')+'</button> ';";
   js += "h+='<button class=\"btn btn-success\" data-i18n=\"blink\" data-i18n-prefix=\"⚡\" onclick=\"ledBlink()\">'+tr('blink')+'</button> ';";
   js += "h+='<button class=\"btn btn-info\" data-i18n=\"fade\" data-i18n-prefix=\"🌊\" onclick=\"ledFade()\">'+tr('fade')+'</button> ';";
@@ -521,6 +524,10 @@ String generateJavaScript() {
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"led_count\">'+tr('led_count')+'</div><div class=\"info-value\">'+d.neopixel.count+'</div></div>';";
   js += "h+='<div class=\"info-item\"><div class=\"info-label\" data-i18n=\"status\">'+tr('status')+'</div><div class=\"info-value\" id=\"neopixel-status\">'+(d.neopixel.status||'')+'</div></div>';";
   js += "h+='<div class=\"info-item\" style=\"grid-column:1/-1;text-align:center\">';";
+  js += "h+='<strong data-i18n=\"configure_neopixel\">'+tr('configure_neopixel')+'</strong><br>';";
+  js += "h+='<span data-i18n=\"gpio\">'+tr('gpio')+'</span>: <input type=\"number\" id=\"neopixel-gpio\" value=\"'+d.neopixel.pin+'\" min=\"0\" max=\"48\" style=\"width:80px;padding:5px;margin:5px;border:1px solid #ccc;border-radius:5px\"> ';";
+  js += "h+='<span data-i18n=\"led_count\">'+tr('led_count')+'</span>: <input type=\"number\" id=\"neopixel-count\" value=\"'+d.neopixel.count+'\" min=\"1\" max=\"100\" style=\"width:80px;padding:5px;margin:5px;border:1px solid #ccc;border-radius:5px\"> ';";
+  js += "h+='<button class=\"btn btn-primary\" data-i18n=\"apply_configuration\" data-i18n-prefix=\"⚙️\" onclick=\"configNeoPixel()\">'+tr('apply_configuration')+'</button><br><br>';";
   js += "h+='<button class=\"btn btn-primary\" data-i18n=\"full_test\" data-i18n-prefix=\"🧪\" onclick=\"testNeoPixel()\">'+tr('full_test')+'</button><br><br>';";
   js += "h+='<strong data-i18n=\"animations\" data-i18n-suffix=\" :\">'+tr('animations')+'</strong><br>';";
   js += "h+='<button class=\"btn btn-primary\" data-i18n=\"rainbow\" data-i18n-prefix=\"🌈\" onclick=\"neoPattern(\\'rainbow\\')\">'+tr('rainbow')+'</button> ';";
@@ -809,7 +816,15 @@ String generateJavaScript() {
   js += "setStatus('builtin-led-status',{key:'transmission'},null);";
   js += "const r=await fetch('/api/builtin-led-control?action=on');const d=await r.json();";
   js += "setStatus('builtin-led-status',d.message,null);";
-  js += "}"; 
+  js += "}";
+  // --- [NEW FEATURE] Configuration du pin LED intégrée ---
+  js += "async function configBuiltinLED(){";
+  js += "const gpio=document.getElementById('builtin-led-gpio').value;";
+  js += "setStatus('builtin-led-status',{key:'transmission'},null);";
+  js += "const r=await fetch('/api/builtin-led-config?gpio='+gpio);const d=await r.json();";
+  js += "setStatus('builtin-led-status',d.message,d.success?'success':'error');";
+  js += "if(d.success){setTimeout(()=>location.reload(),1500);}";
+  js += "}";
 
   // NeoPixel couleur personnalisée
   js += "async function neoCustomColor(){";
@@ -832,7 +847,16 @@ String generateJavaScript() {
   js += "setStatus('neopixel-status',{key:'transmission'},null);";
   js += "const r=await fetch('/api/neopixel-pattern?pattern='+p);const d=await r.json();";
   js += "setStatus('neopixel-status',d.message,null);";
-  js += "}"; 
+  js += "}";
+  // --- [NEW FEATURE] Configuration du NeoPixel ---
+  js += "async function configNeoPixel(){";
+  js += "const gpio=document.getElementById('neopixel-gpio').value;";
+  js += "const count=document.getElementById('neopixel-count').value;";
+  js += "setStatus('neopixel-status',{key:'transmission'},null);";
+  js += "const r=await fetch('/api/neopixel-config?gpio='+gpio+'&count='+count);const d=await r.json();";
+  js += "setStatus('neopixel-status',d.message,d.success?'success':'error');";
+  js += "if(d.success){setTimeout(()=>location.reload(),1500);}";
+  js += "}";
 
   // FONCTIONS API - OLED
   // --- [NEW FEATURE] Localisation complète des statuts OLED ---
