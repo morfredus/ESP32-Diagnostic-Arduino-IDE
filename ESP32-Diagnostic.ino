@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.6.17-dev
+ * ESP32 Diagnostic Suite v3.6.18-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.6.18-dev - Restore language switch helper after translation refactor",
   "3.6.17-dev - Segment translation JSON builder to fix relocation overflow",
   "3.6.16-dev - Add configurable LED and NeoPixel pins via web UI, implement chase pattern",
   "3.6.15-dev - Add missing UI translations across wireless, sensors, export, and display tabs",
@@ -212,6 +213,18 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 
 Language currentLanguage = LANG_FR;
 
+// --- [BUGFIX] Restauration du sélecteur de langue ---
+static inline void setLanguage(Language lang) {
+  switch (lang) {
+    case LANG_FR:
+    case LANG_EN:
+      currentLanguage = lang;
+      break;
+    default:
+      break;
+  }
+}
+
 static String buildActionResponseJson(bool success,
                                       const String& message,
                                       std::initializer_list<JsonFieldSpec> extraFields = {});
@@ -244,7 +257,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.17-dev"
+#define DIAGNOSTIC_VERSION "3.6.18-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
