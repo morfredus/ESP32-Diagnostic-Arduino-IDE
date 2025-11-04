@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.6.23-dev
+ * ESP32 Diagnostic Suite v3.6.24-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.6.24-dev - Reduce firmware size by trimming version history to last 15 entries",
   "3.6.23-dev - Replace template with classic function to fix 'N' not declared error",
   "3.6.22-dev - Remove duplicate async test runner definitions to fix compilation errors",
   "3.6.21-dev - Restore async test runner declarations for compilation",
@@ -26,74 +27,7 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
   "3.6.13-dev - Fix translation map continuation and stabilize BLE scanning",
   "3.6.12-dev - Add Bluetooth overview metrics and wireless controls",
   "3.6.11-dev - Provide MDNS_HOSTNAME_STR definition for consistent linkage",
-  "3.6.10-dev - Replace handleRoot() to use modern generateHTML() with dynamic tab navigation",
-  "3.6.09-dev - Fix DiagnosticInfo incomplete type by reordering web_interface.h inclusion",
-  "3.6.08-dev - Fix emoji prefix escaping in test sections and resolve handleRoot() duplication",
-  "3.6.07-dev - Systematic fix of quote escaping in web_interface.h for successful compilation",
-  "3.6.06-dev - Correction echappement guillemets et emojis dans web_interface.h pour compilation",
-  "3.6.05-dev - Correction echappement emojis dans data-i18n-prefix pour compilation",
-  "3.6.04-dev - Remplacement des icones OLED non ASCII pour compilation",
-  "3.6.03-dev - Inclusion interface web pour exposer handleJavaScript()",
-  "3.6.02-dev - Correction route /js/app.js manquante pour chargement JavaScript UI",
-  "3.6.01-dev - Reorganisation UI ergonomique par themes (Affichage, Capteurs, Tests materiel)",
-  "3.6.00-dev - Ajout gestion capteurs (LED RGB, Buzzer, DHT11, Luminosite, Distance, Mouvement)",
-  "3.5.3-dev - Correction traductions hardcodées (Message affiche, Inconnu, WiFi Open)",
-  "3.5.2-dev - Ajout endpoints API manquants et correction traductions Overview",
-  "3.5.1 - Restauration historique des versions",
-  "3.5.0 - Publication de la version 3.5.0 pour mise en production",
-  "3.4.11 - Publication documentation et harmonisation finale des traductions dynamiques",
-  "3.4.11-dev - Harmonisation des traductions dynamiques",
-  "3.4.10-dev - Localisation instantanée des tests avancés",
-  "3.4.09-dev - Actualisation instantanée des traductions",
-  "3.4.08-dev - Localisation des tests avancés",
-  "3.4.07-dev - Harmonisation des traductions OLED",
-  "3.4.06-dev - Localisation des statuts et actions OLED",
-  "3.4.05-dev - Centralisation des traductions OLED dans languages.h",
-  "3.4.04-dev - Correction des traductions des commandes écran",
-  "3.4.03-dev - Traduction dynamique des actions écran OLED",
-  "3.4.02-dev - Repli HTTP automatique si HTTPS indisponible",
-  "3.4.01-dev - Préférence HTTPS et repli intelligent",
-  "3.4.0 - Stabilisation JSON et documentation 3.4.x",
-  "3.4.0-dev - Nettoyage des commentaires et harmonisation Bluetooth",
-  "3.3.10-dev - Prototypes des helpers JSON mutualisés",
-  "3.3.09-dev - Unification des handlers périphériques",
-  "3.3.08-dev - Correctifs compilation helpers JSON",
-  "3.3.07-dev - Mutualisation des réponses HTTP JSON",
-  "3.3.06-dev - Corrections des retours String après optimisation de la traduction",
-  "3.3.05-dev - Levée de l'ambiguïté String/const char* des traductions",
-  "3.3.04-dev - Conversion String pour la table de traduction",
-  "3.3.03-dev - Optimisation de la table de traduction",
-  "3.3.02-dev - Harmonisation bilingue des libellés UI",
-  "3.3.01-dev - Retrait du diagnostic touchpad devenu obsolète",
-  "3.2.21-maint - Nettoyage des bannières et consolidation de l'historique",
-  "3.2.20-dev - Correction de l'attribut data-i18n dans appendInfoItem",
-  "3.2.19-dev - Correction de la collision tr() lors du changement de langue",
-  "3.2.18-dev - Suppression du double échappement JS dynamique",
-  "3.2.17-dev - Correction des chaînes JS des tests dynamiques",
-  "3.2.16-dev - Localisation étendue des chaînes UI dynamiques",
-  "3.2.15-dev - Réduction du gabarit HTML et allègement du sketch",
-  "3.2.14-dev - Harmonisation des traductions UI dynamiques",
-  "3.2.13-dev - Retrait final du doublon IP sur le bandeau legacy",
-  "3.2.12-dev - Bandeau sans doublon IP",
-  "3.2.11-dev - Bandeau d'accès compact et lien IP unique",
-  "3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi",
-  "3.2.09-dev - Restauration complète de mDNS sur ESP32-S3",
-  "3.2.08-dev - Correction de l'initialisation WiFi pour mDNS",
-  "3.2.07-dev - Compatibilité mDNS multi-environnements",
-  "3.2.06-dev - Restauration mDNS fiable et lien d'accès constant",
-  "3.2.05-dev - Suppression du service mDNS instable",
-  "3.2.04-dev - Reconstruction du serveur mDNS",
-  "3.2.02-dev - Ajustement du maintien mDNS sans appel update()",
-  "3.2.01-dev - Correction de la publication mDNS",
-  "3.2.0-doc - Consolidation des guides après la campagne de tests",
-  "3.1.19-doc - Scission du changelog FR/EN et rafraîchissement de la documentation",
-  "3.1.18-doc - Documentation 3.1.18 et durcissement du changement de langue",
-  "3.1.17-maint - Nettoyage de commentaires superflus et renforcement de la sélection de langue",
-  "3.1.16 - Bandeau sticky unifié et correctifs navigation/traductions",
-  "3.1.15-maint - Harmonisation de la documentation et rappel des libellés par défaut",
-  "3.1.14-maint - Corrections de messages d'état et amélioration de l'échappement HTML",
-  "3.1.13-dev - Bandeau sticky unifié et retrait du test tactile des exports",
-  "3.1.12-dev - Alignement du numéro de version dans le bandeau principal"
+  "3.6.10-dev - Replace handleRoot() to use modern generateHTML() with dynamic tab navigation"
 };
 
 #undef DIAGNOSTIC_UNUSED
@@ -266,7 +200,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.23-dev"
+#define DIAGNOSTIC_VERSION "3.6.24-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
