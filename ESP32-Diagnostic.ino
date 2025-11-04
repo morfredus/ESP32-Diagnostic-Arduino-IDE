@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.6.22-dev
+ * ESP32 Diagnostic Suite v3.6.23-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
@@ -13,6 +13,7 @@
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
+  "3.6.23-dev - Replace template with classic function to fix 'N' not declared error",
   "3.6.22-dev - Remove duplicate async test runner definitions to fix compilation errors",
   "3.6.21-dev - Restore async test runner declarations for compilation",
   "3.6.20-dev - Reduce hardware test latency with faster routines",
@@ -265,7 +266,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.22-dev"
+#define DIAGNOSTIC_VERSION "3.6.23-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -3896,11 +3897,12 @@ static inline void appendTranslationEntry(String& json,
   json += '"';
 }
 
-template <size_t N>
-static inline void appendTranslationEntries(String& json,
-                                            const TranslationAccessor& translations,
-                                            const TranslationJsonEntry (&entries)[N]) {
-  for (size_t i = 0; i < N; ++i) {
+static inline void appendTranslationEntries(
+    String& json,
+    const TranslationAccessor& translations,
+    const TranslationJsonEntry* entries,
+    size_t count) {
+  for (size_t i = 0; i < count; ++i) {
     appendTranslationEntry(json, translations, entries[i]);
   }
 }
@@ -4331,7 +4333,7 @@ static inline void appendOverviewTranslations(String& json, const TranslationAcc
       {"bluetooth_advertising", &TranslationAccessor::bluetooth_advertising},
       {"bluetooth_not_advertising", &TranslationAccessor::bluetooth_not_advertising},
   };
-  appendTranslationEntries(json, translations, kEntries);
+  appendTranslationEntries(json, translations, kEntries, sizeof(kEntries) / sizeof(kEntries[0]));
 }
 
 static inline void appendBluetoothScanTranslations(String& json, const TranslationAccessor& translations) {
@@ -4352,7 +4354,7 @@ static inline void appendBluetoothScanTranslations(String& json, const Translati
       {"bluetooth_client_disconnected", &TranslationAccessor::bluetooth_client_disconnected},
       {"bluetooth_notifications_label", &TranslationAccessor::bluetooth_notifications_label},
   };
-  appendTranslationEntries(json, translations, kEntries);
+  appendTranslationEntries(json, translations, kEntries, sizeof(kEntries) / sizeof(kEntries[0]));
 }
 
 static inline void appendHardwareUiTranslations(String& json, const TranslationAccessor& translations) {
@@ -4402,7 +4404,7 @@ static inline void appendHardwareUiTranslations(String& json, const TranslationA
       {"custom_message", &TranslationAccessor::custom_message},
       {"show_message", &TranslationAccessor::show_message},
   };
-  appendTranslationEntries(json, translations, kEntries);
+  appendTranslationEntries(json, translations, kEntries, sizeof(kEntries) / sizeof(kEntries[0]));
 }
 
 static inline void appendTestFlowTranslations(String& json, const TranslationAccessor& translations) {
@@ -4428,7 +4430,7 @@ static inline void appendTestFlowTranslations(String& json, const TranslationAcc
       {"partitions_desc", &TranslationAccessor::partitions_desc},
       {"stress_desc", &TranslationAccessor::stress_desc},
   };
-  appendTranslationEntries(json, translations, kEntries);
+  appendTranslationEntries(json, translations, kEntries, sizeof(kEntries) / sizeof(kEntries[0]));
 }
 
 static inline void appendStatusAndSummaryTranslations(String& json, const TranslationAccessor& translations) {
@@ -4476,7 +4478,7 @@ static inline void appendStatusAndSummaryTranslations(String& json, const Transl
       {"channels", &TranslationAccessor::channels},
       {"oled_test_running", &TranslationAccessor::oled_test_running},
   };
-  appendTranslationEntries(json, translations, kEntries);
+  appendTranslationEntries(json, translations, kEntries, sizeof(kEntries) / sizeof(kEntries[0]));
 }
 
 String buildTranslationsJSON() {
