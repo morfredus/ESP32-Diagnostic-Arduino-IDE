@@ -1,103 +1,10 @@
 /*
- * ESP32 Diagnostic Suite v3.6.24-dev
+ * ESP32 Diagnostic Suite v3.7.0-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 avec PSRAM OPI
  * Auteur: morfredus
  */
-
-#if defined(__GNUC__)
-  #define DIAGNOSTIC_UNUSED __attribute__((unused))
-#else
-  #define DIAGNOSTIC_UNUSED
-#endif
-
-static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
-  "3.6.24-dev - Stream JavaScript from PROGMEM to shrink firmware footprint",
-  "3.6.23-dev - Replace template with classic function to fix 'N' not declared error",
-  "3.6.22-dev - Remove duplicate async test runner definitions to fix compilation errors",
-  "3.6.21-dev - Restore async test runner declarations for compilation",
-  "3.6.20-dev - Reduce hardware test latency with faster routines",
-  "3.6.19-dev - Compact translation JSON map to shrink firmware size",
-  "3.6.18-dev - Restore language switch helper after translation refactor",
-  "3.6.17-dev - Segment translation JSON builder to fix relocation overflow",
-  "3.6.16-dev - Add configurable LED and NeoPixel pins via web UI, implement chase pattern",
-  "3.6.15-dev - Add missing UI translations across wireless, sensors, export, and display tabs",
-  "3.6.14-dev - Fix Bluetooth scan UI escaping for compilation",
-  "3.6.13-dev - Fix translation map continuation and stabilize BLE scanning",
-  "3.6.12-dev - Add Bluetooth overview metrics and wireless controls",
-  "3.6.11-dev - Provide MDNS_HOSTNAME_STR definition for consistent linkage",
-  "3.6.10-dev - Replace handleRoot() to use modern generateHTML() with dynamic tab navigation",
-  "3.6.09-dev - Fix DiagnosticInfo incomplete type by reordering web_interface.h inclusion",
-  "3.6.08-dev - Fix emoji prefix escaping in test sections and resolve handleRoot() duplication",
-  "3.6.07-dev - Systematic fix of quote escaping in web_interface.h for successful compilation",
-  "3.6.06-dev - Correction echappement guillemets et emojis dans web_interface.h pour compilation",
-  "3.6.05-dev - Correction echappement emojis dans data-i18n-prefix pour compilation",
-  "3.6.04-dev - Remplacement des icones OLED non ASCII pour compilation",
-  "3.6.03-dev - Inclusion interface web pour exposer handleJavaScript()",
-  "3.6.02-dev - Correction route /js/app.js manquante pour chargement JavaScript UI",
-  "3.6.01-dev - Reorganisation UI ergonomique par themes (Affichage, Capteurs, Tests materiel)",
-  "3.6.00-dev - Ajout gestion capteurs (LED RGB, Buzzer, DHT11, Luminosite, Distance, Mouvement)",
-  "3.5.3-dev - Correction traductions hardcodées (Message affiche, Inconnu, WiFi Open)",
-  "3.5.2-dev - Ajout endpoints API manquants et correction traductions Overview",
-  "3.5.1 - Restauration historique des versions",
-  "3.5.0 - Publication de la version 3.5.0 pour mise en production",
-  "3.4.11 - Publication documentation et harmonisation finale des traductions dynamiques",
-  "3.4.11-dev - Harmonisation des traductions dynamiques",
-  "3.4.10-dev - Localisation instantanée des tests avancés",
-  "3.4.09-dev - Actualisation instantanée des traductions",
-  "3.4.08-dev - Localisation des tests avancés",
-  "3.4.07-dev - Harmonisation des traductions OLED",
-  "3.4.06-dev - Localisation des statuts et actions OLED",
-  "3.4.05-dev - Centralisation des traductions OLED dans languages.h",
-  "3.4.04-dev - Correction des traductions des commandes écran",
-  "3.4.03-dev - Traduction dynamique des actions écran OLED",
-  "3.4.02-dev - Repli HTTP automatique si HTTPS indisponible",
-  "3.4.01-dev - Préférence HTTPS et repli intelligent",
-  "3.4.0 - Stabilisation JSON et documentation 3.4.x",
-  "3.4.0-dev - Nettoyage des commentaires et harmonisation Bluetooth",
-  "3.3.10-dev - Prototypes des helpers JSON mutualisés",
-  "3.3.09-dev - Unification des handlers périphériques",
-  "3.3.08-dev - Correctifs compilation helpers JSON",
-  "3.3.07-dev - Mutualisation des réponses HTTP JSON",
-  "3.3.06-dev - Corrections des retours String après optimisation de la traduction",
-  "3.3.05-dev - Levée de l'ambiguïté String/const char* des traductions",
-  "3.3.04-dev - Conversion String pour la table de traduction",
-  "3.3.03-dev - Optimisation de la table de traduction",
-  "3.3.02-dev - Harmonisation bilingue des libellés UI",
-  "3.3.01-dev - Retrait du diagnostic touchpad devenu obsolète",
-  "3.2.21-maint - Nettoyage des bannières et consolidation de l'historique",
-  "3.2.20-dev - Correction de l'attribut data-i18n dans appendInfoItem",
-  "3.2.19-dev - Correction de la collision tr() lors du changement de langue",
-  "3.2.18-dev - Suppression du double échappement JS dynamique",
-  "3.2.17-dev - Correction des chaînes JS des tests dynamiques",
-  "3.2.16-dev - Localisation étendue des chaînes UI dynamiques",
-  "3.2.15-dev - Réduction du gabarit HTML et allègement du sketch",
-  "3.2.14-dev - Harmonisation des traductions UI dynamiques",
-  "3.2.13-dev - Retrait final du doublon IP sur le bandeau legacy",
-  "3.2.12-dev - Bandeau sans doublon IP",
-  "3.2.11-dev - Bandeau d'accès compact et lien IP unique",
-  "3.2.10-dev - Pré-configuration du nom d'hôte mDNS avant le WiFi",
-  "3.2.09-dev - Restauration complète de mDNS sur ESP32-S3",
-  "3.2.08-dev - Correction de l'initialisation WiFi pour mDNS",
-  "3.2.07-dev - Compatibilité mDNS multi-environnements",
-  "3.2.06-dev - Restauration mDNS fiable et lien d'accès constant",
-  "3.2.05-dev - Suppression du service mDNS instable",
-  "3.2.04-dev - Reconstruction du serveur mDNS",
-  "3.2.02-dev - Ajustement du maintien mDNS sans appel update()",
-  "3.2.01-dev - Correction de la publication mDNS",
-  "3.2.0-doc - Consolidation des guides après la campagne de tests",
-  "3.1.19-doc - Scission du changelog FR/EN et rafraîchissement de la documentation",
-  "3.1.18-doc - Documentation 3.1.18 et durcissement du changement de langue",
-  "3.1.17-maint - Nettoyage de commentaires superflus et renforcement de la sélection de langue",
-  "3.1.16 - Bandeau sticky unifié et correctifs navigation/traductions",
-  "3.1.15-maint - Harmonisation de la documentation et rappel des libellés par défaut",
-  "3.1.14-maint - Corrections de messages d'état et amélioration de l'échappement HTML",
-  "3.1.13-dev - Bandeau sticky unifié et retrait du test tactile des exports",
-  "3.1.12-dev - Alignement du numéro de version dans le bandeau principal"
-};
-
-#undef DIAGNOSTIC_UNUSED
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -169,9 +76,8 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
   #include <soc/soc_caps.h>
 #endif
 #include <Wire.h>
-#include <Adafruit_NeoPixel.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <FastLED.h>
+#include <U8g2lib.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
@@ -267,7 +173,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.6.24-dev"
+#define DIAGNOSTIC_VERSION "3.7.0-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -394,12 +300,13 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
   }
 };
 #endif
-Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
 
-// NeoPixel
+// NeoPixel with FastLED
 int LED_PIN = CUSTOM_LED_PIN;
 int LED_COUNT = CUSTOM_LED_COUNT;
-Adafruit_NeoPixel *strip = nullptr;
+CRGB *leds = nullptr;
+bool ledsInitialized = false;
 
 bool neopixelTested = false;
 bool neopixelAvailable = false;
@@ -1509,42 +1416,49 @@ void detectNeoPixelSupport() {
     neopixelSupported = false;
   }
   
-  if (strip != nullptr) delete strip;
-  strip = new Adafruit_NeoPixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+  if (leds != nullptr) {
+    delete[] leds;
+    leds = nullptr;
+    ledsInitialized = false;
+  }
+  leds = new CRGB[LED_COUNT];
   neopixelTestResult = String(T().gpio) + " " + String(LED_PIN) + " - " + String(T().not_tested);
   Serial.printf("NeoPixel: GPIO %d\r\n", LED_PIN);
 }
 
 void testNeoPixel() {
-  if (!strip) return;
-  
+  if (!leds) return;
+
   Serial.println("\r\n=== TEST NEOPIXEL ===");
-  strip->begin();
-  strip->clear();
-  strip->show();
-  
-  strip->setPixelColor(0, strip->Color(255, 0, 0));
-  strip->show();
+  if (!ledsInitialized) {
+    FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, LED_COUNT);
+    ledsInitialized = true;
+  }
+  FastLED.clear();
+  FastLED.show();
+
+  leds[0] = CRGB(255, 0, 0);
+  FastLED.show();
   delay(160);
 
-  strip->setPixelColor(0, strip->Color(0, 255, 0));
-  strip->show();
+  leds[0] = CRGB(0, 255, 0);
+  FastLED.show();
   delay(160);
 
-  strip->setPixelColor(0, strip->Color(0, 0, 255));
-  strip->show();
+  leds[0] = CRGB(0, 0, 255);
+  FastLED.show();
   delay(160);
 
   for(int i = 0; i < 256; i += 64) {
-    strip->setPixelColor(0, strip->gamma32(strip->ColorHSV(i * 256)));
-    strip->show();
+    leds[0] = CHSV(i, 255, 255);
+    FastLED.show();
     delay(28);
     yield();
   }
-  
-  strip->clear();
-  strip->show();
-  
+
+  FastLED.clear();
+  FastLED.show();
+
   neopixelAvailable = true;
   neopixelTestResult = String(T().test) + " " + String(T().ok) + " - GPIO " + String(LED_PIN);
   neopixelTested = true;
@@ -1554,88 +1468,95 @@ void testNeoPixel() {
 void resetNeoPixelTest() {
   neopixelTested = false;
   neopixelAvailable = false;
-  if (strip) {
-    strip->clear();
-    strip->show();
+  if (leds && ledsInitialized) {
+    FastLED.clear();
+    FastLED.show();
   }
 }
 
 void neopixelRainbow() {
-  if (!strip) return;
+  if (!leds || !ledsInitialized) return;
   for(int i = 0; i < 256; i++) {
     for(int j = 0; j < LED_COUNT; j++) {
-      strip->setPixelColor(j, strip->gamma32(strip->ColorHSV(i * 256)));
+      leds[j] = CHSV(i, 255, 255);
     }
-    strip->show();
+    FastLED.show();
     delay(10);
   }
 }
 
 void neopixelBlink(uint32_t color, int times) {
-  if (!strip) return;
+  if (!leds || !ledsInitialized) return;
+  CRGB rgb((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
   for(int i = 0; i < times; i++) {
-    strip->fill(color);
-    strip->show();
+    fill_solid(leds, LED_COUNT, rgb);
+    FastLED.show();
     delay(120);
-    strip->clear();
-    strip->show();
+    FastLED.clear();
+    FastLED.show();
     delay(120);
   }
 }
 
 void neopixelFade(uint32_t color) {
-  if (!strip) return;
+  if (!leds || !ledsInitialized) return;
+  CRGB rgb((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
   for(int brightness = 0; brightness <= 255; brightness += 5) {
-    strip->setBrightness(brightness);
-    strip->fill(color);
-    strip->show();
+    FastLED.setBrightness(brightness);
+    fill_solid(leds, LED_COUNT, rgb);
+    FastLED.show();
     delay(20);
   }
   for(int brightness = 255; brightness >= 0; brightness -= 5) {
-    strip->setBrightness(brightness);
-    strip->fill(color);
-    strip->show();
+    FastLED.setBrightness(brightness);
+    fill_solid(leds, LED_COUNT, rgb);
+    FastLED.show();
     delay(20);
   }
-  strip->setBrightness(255);
+  FastLED.setBrightness(255);
 }
 
-// --- [NEW FEATURE] Effet chenillard pour NeoPixel ---
 void neopixelChase() {
-  if (!strip) return;
-  uint32_t colors[] = {
-    strip->Color(255, 0, 0),    // Rouge
-    strip->Color(0, 255, 0),    // Vert
-    strip->Color(0, 0, 255),    // Bleu
-    strip->Color(255, 255, 0),  // Jaune
-    strip->Color(255, 0, 255),  // Magenta
-    strip->Color(0, 255, 255)   // Cyan
+  if (!leds || !ledsInitialized) return;
+  CRGB colors[] = {
+    CRGB(255, 0, 0),
+    CRGB(0, 255, 0),
+    CRGB(0, 0, 255),
+    CRGB(255, 255, 0),
+    CRGB(255, 0, 255),
+    CRGB(0, 255, 255)
   };
   int numColors = sizeof(colors) / sizeof(colors[0]);
 
   for(int cycle = 0; cycle < 3; cycle++) {
     for(int colorIndex = 0; colorIndex < numColors; colorIndex++) {
       for(int pos = 0; pos < LED_COUNT; pos++) {
-        strip->clear();
+        FastLED.clear();
         for(int i = 0; i < LED_COUNT; i++) {
           if((i + pos) % 3 == 0) {
-            strip->setPixelColor(i, colors[colorIndex]);
+            leds[i] = colors[colorIndex];
           }
         }
-        strip->show();
+        FastLED.show();
         delay(100);
       }
     }
   }
-  strip->clear();
-  strip->show();
+  FastLED.clear();
+  FastLED.show();
 }
 
 void applyOLEDOrientation() {
-  oled.setRotation(oledRotation & 0x03);
+  u8g2_uint_t rotation = U8G2_R0;
+  switch(oledRotation & 0x03) {
+    case 0: rotation = U8G2_R0; break;
+    case 1: rotation = U8G2_R1; break;
+    case 2: rotation = U8G2_R2; break;
+    case 3: rotation = U8G2_R3; break;
+  }
+  oled.setDisplayRotation(rotation);
 }
 
-// ========== OLED 0.96" ==========
 void detectOLED() {
   Serial.println("\r\n=== DETECTION OLED ===");
   ensureI2CBusConfigured();
@@ -1644,7 +1565,7 @@ void detectOLED() {
   Wire.beginTransmission(SCREEN_ADDRESS);
   bool i2cDetected = (Wire.endTransmission() == 0);
 
-  if(i2cDetected && oled.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+  if(i2cDetected && oled.begin()) {
     oledAvailable = true;
     applyOLEDOrientation();
     oledTestResult = String(T().detected) + " @ 0x" + String(SCREEN_ADDRESS, HEX);
@@ -1663,80 +1584,76 @@ void detectOLED() {
 void oledStepWelcome() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
-  oled.clearDisplay();
-  oled.setTextSize(1);
-  oled.setTextColor(SSD1306_WHITE);
-  oled.setCursor(0, 0);
-  oled.println("TEST OLED 0.96\"");
-  oled.println();
-  oled.println("128x64 pixels");
-  oled.printf("I2C: 0x%02X\r\n", SCREEN_ADDRESS);
-  oled.printf("SDA:%d SCL:%d", I2C_SDA, I2C_SCL);
-  oled.display();
+  oled.clearBuffer();
+  oled.setFont(u8g2_font_6x10_tf);
+  oled.drawStr(0, 10, "TEST OLED 0.96\"");
+  oled.drawStr(0, 30, "128x64 pixels");
+  char buf[32];
+  snprintf(buf, sizeof(buf), "I2C: 0x%02X", SCREEN_ADDRESS);
+  oled.drawStr(0, 45, buf);
+  snprintf(buf, sizeof(buf), "SDA:%d SCL:%d", I2C_SDA, I2C_SCL);
+  oled.drawStr(0, 60, buf);
+  oled.sendBuffer();
   delay(700);
 }
 
 void oledStepBigText() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
-  oled.clearDisplay();
-  oled.setTextSize(2);
-  oled.setTextColor(SSD1306_WHITE);
-  oled.setCursor(20, 20);
-  oled.println("ESP32");
-  oled.display();
+  oled.clearBuffer();
+  oled.setFont(u8g2_font_ncenB14_tr);
+  oled.drawStr(20, 35, "ESP32");
+  oled.sendBuffer();
   delay(450);
 }
 
 void oledStepTextSizes() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
-  oled.clearDisplay();
-  oled.setTextSize(1);
-  oled.setTextColor(SSD1306_WHITE);
-  oled.setCursor(0, 0);
-  oled.println("Taille 1");
-  oled.setTextSize(2);
-  oled.println("Taille 2");
-  oled.setTextSize(1);
-  oled.println("Retour taille 1");
-  oled.display();
+  oled.clearBuffer();
+  oled.setFont(u8g2_font_6x10_tf);
+  oled.drawStr(0, 10, "Taille 1");
+  oled.setFont(u8g2_font_ncenB14_tr);
+  oled.drawStr(0, 30, "Taille 2");
+  oled.setFont(u8g2_font_6x10_tf);
+  oled.drawStr(0, 50, "Retour taille 1");
+  oled.sendBuffer();
   delay(550);
 }
 
 void oledStepShapes() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
-  oled.clearDisplay();
-  oled.drawRect(10, 10, 30, 20, SSD1306_WHITE);
-  oled.fillRect(50, 10, 30, 20, SSD1306_WHITE);
-  oled.drawCircle(25, 50, 10, SSD1306_WHITE);
-  oled.fillCircle(65, 50, 10, SSD1306_WHITE);
-  oled.drawTriangle(95, 30, 85, 10, 105, 10, SSD1306_WHITE);
-  oled.display();
+  oled.clearBuffer();
+  oled.drawFrame(10, 10, 30, 20);
+  oled.drawBox(50, 10, 30, 20);
+  oled.drawCircle(25, 50, 10);
+  oled.drawDisc(65, 50, 10);
+  oled.drawTriangle(95, 30, 85, 10, 105, 10);
+  oled.sendBuffer();
   delay(550);
 }
 
 void oledStepHorizontalLines() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
-  oled.clearDisplay();
+  oled.clearBuffer();
   for (int i = 0; i < SCREEN_HEIGHT; i += 4) {
-    oled.drawLine(0, i, SCREEN_WIDTH, i, SSD1306_WHITE);
+    oled.drawLine(0, i, SCREEN_WIDTH - 1, i);
   }
-  oled.display();
+  oled.sendBuffer();
   delay(350);
 }
 
 void oledStepDiagonals() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
-  oled.clearDisplay();
+  oled.clearBuffer();
   for (int i = 0; i < SCREEN_WIDTH; i += 8) {
-    oled.drawLine(0, 0, i, SCREEN_HEIGHT - 1, SSD1306_WHITE);
-    oled.drawLine(SCREEN_WIDTH - 1, 0, i, SCREEN_HEIGHT - 1, SSD1306_WHITE);
+    oled.drawLine(0, 0, i, SCREEN_HEIGHT - 1);
+    oled.drawLine(SCREEN_WIDTH - 1, 0, i, SCREEN_HEIGHT - 1);
   }
-  oled.display();
+  oled.sendBuffer();
   delay(350);
 }
 
@@ -1744,9 +1661,9 @@ void oledStepMovingSquare() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
   for (int x = 0; x < SCREEN_WIDTH - 20; x += 6) {
-    oled.clearDisplay();
-    oled.fillRect(x, 22, 20, 20, SSD1306_WHITE);
-    oled.display();
+    oled.clearBuffer();
+    oled.drawBox(x, 22, 20, 20);
+    oled.sendBuffer();
     delay(12);
     yield();
   }
@@ -1755,23 +1672,24 @@ void oledStepMovingSquare() {
 void oledStepProgressBar() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
-  oled.clearDisplay();
-  oled.setTextSize(1);
-  oled.setTextColor(SSD1306_WHITE);
-  oled.setCursor(20, 10);
-  oled.println(String(T().loading));
+  oled.clearBuffer();
+  oled.setFont(u8g2_font_6x10_tf);
+  String loadingText = String(T().loading);
+  oled.drawStr(20, 15, loadingText.c_str());
+  oled.sendBuffer();
+
   for (int i = 0; i <= 100; i += 10) {
-    oled.drawRect(10, 30, 108, 15, SSD1306_WHITE);
-    oled.fillRect(12, 32, i, 11, SSD1306_WHITE);
-    oled.setCursor(45, 50);
-    oled.printf("%d%%", i);
-    oled.display();
+    oled.clearBuffer();
+    oled.setFont(u8g2_font_6x10_tf);
+    oled.drawStr(20, 15, loadingText.c_str());
+    oled.drawFrame(10, 30, 108, 15);
+    oled.drawBox(12, 32, i, 11);
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%d%%", i);
+    oled.drawStr(45, 55, buf);
+    oled.sendBuffer();
     delay(45);
     yield();
-    if (i < 100) {
-      oled.fillRect(12, 32, i, 11, SSD1306_BLACK);
-      oled.fillRect(45, 50, 40, 10, SSD1306_BLACK);
-    }
   }
   delay(300);
 }
@@ -1780,13 +1698,13 @@ void oledStepScrollText() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
   String scrollText = "  DIAGNOSTIC ESP32 COMPLET - OLED 0.96 pouces I2C  ";
-  for (int offset = 0; offset < scrollText.length() * 6; offset += 6) {
-    oled.clearDisplay();
-    oled.setTextSize(1);
-    oled.setTextColor(SSD1306_WHITE);
-    oled.setCursor(-offset, 28);
+  int textWidth = scrollText.length() * 6;
+  for (int offset = 0; offset < textWidth; offset += 6) {
+    oled.clearBuffer();
+    oled.setFont(u8g2_font_6x10_tf);
+    oled.setCursor(-offset, 35);
     oled.print(scrollText);
-    oled.display();
+    oled.sendBuffer();
     delay(12);
     yield();
   }
@@ -1795,16 +1713,14 @@ void oledStepScrollText() {
 void oledStepFinalMessage() {
   if (!oledAvailable) return;
   applyOLEDOrientation();
-  oled.clearDisplay();
-  oled.setTextSize(1);
-  oled.setTextColor(SSD1306_WHITE);
-  oled.setCursor(30, 20);
-  oled.println("TEST OK!");
-  oled.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
-  oled.display();
+  oled.clearBuffer();
+  oled.setFont(u8g2_font_6x10_tf);
+  oled.drawStr(30, 30, "TEST OK!");
+  oled.drawFrame(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+  oled.sendBuffer();
   delay(600);
-  oled.clearDisplay();
-  oled.display();
+  oled.clearBuffer();
+  oled.sendBuffer();
 }
 
 bool performOLEDStep(const String &stepId) {
@@ -1877,20 +1793,18 @@ void testOLED() {
 void resetOLEDTest() {
   oledTested = false;
   if (oledAvailable) {
-    oled.clearDisplay();
-    oled.display();
+    oled.clearBuffer();
+    oled.sendBuffer();
   }
 }
 
 void oledShowMessage(String message) {
   if (!oledAvailable) return;
   applyOLEDOrientation();
-  oled.clearDisplay();
-  oled.setTextSize(1);
-  oled.setTextColor(SSD1306_WHITE);
-  oled.setCursor(0, 0);
-  oled.println(message);
-  oled.display();
+  oled.clearBuffer();
+  oled.setFont(u8g2_font_6x10_tf);
+  oled.drawStr(0, 10, message.c_str());
+  oled.sendBuffer();
 }
 
 // ========== TEST ADC ==========
@@ -2559,8 +2473,12 @@ void handleNeoPixelConfig() {
     if (newGPIO >= 0 && newGPIO <= 48 && newCount > 0 && newCount <= 100) {
       LED_PIN = newGPIO;
       LED_COUNT = newCount;
-      if (strip) delete strip;
-      strip = new Adafruit_NeoPixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+      if (leds) {
+        delete[] leds;
+        leds = nullptr;
+        ledsInitialized = false;
+      }
+      leds = new CRGB[LED_COUNT];
       resetNeoPixelTest();
       String message = String(T().config) + " " + String(T().gpio) + " " + String(LED_PIN);
       sendOperationSuccess(message);
@@ -2608,7 +2526,7 @@ void handleNeoPixelPattern() {
   }
 
   String pattern = server.arg("pattern");
-  if (!strip) {
+  if (!leds || !ledsInitialized) {
     String message = String(T().neopixel) + " - " + String(T().not_detected);
     sendOperationError(400, message);
     return;
@@ -2619,17 +2537,17 @@ void handleNeoPixelPattern() {
     neopixelRainbow();
     message = String(T().rainbow) + " " + String(T().ok);
   } else if (pattern == "blink") {
-    neopixelBlink(strip->Color(255, 0, 0), 5);
+    neopixelBlink(0xFF0000, 5);
     message = String(T().blink) + " " + String(T().ok);
   } else if (pattern == "fade") {
-    neopixelFade(strip->Color(0, 0, 255));
+    neopixelFade(0x0000FF);
     message = String(T().fade) + " " + String(T().ok);
   } else if (pattern == "chase") {
     neopixelChase();
     message = String(T().chase) + " " + String(T().ok);
   } else if (pattern == "off") {
-    strip->clear();
-    strip->show();
+    FastLED.clear();
+    FastLED.show();
     neopixelTested = false;
     message = String(T().off);
   } else {
@@ -2641,7 +2559,7 @@ void handleNeoPixelPattern() {
 }
 
 void handleNeoPixelColor() {
-  if (!server.hasArg("r") || !server.hasArg("g") || !server.hasArg("b") || !strip) {
+  if (!server.hasArg("r") || !server.hasArg("g") || !server.hasArg("b") || !leds || !ledsInitialized) {
     sendOperationError(400, T().configuration_invalid.str());
     return;
   }
@@ -2649,9 +2567,9 @@ void handleNeoPixelColor() {
   int r = server.arg("r").toInt();
   int g = server.arg("g").toInt();
   int b = server.arg("b").toInt();
-  
-  strip->fill(strip->Color(r, g, b));
-  strip->show();
+
+  fill_solid(leds, LED_COUNT, CRGB(r, g, b));
+  FastLED.show();
   neopixelTested = false;
 
   String message = "RGB(" + String(r) + "," + String(g) + "," + String(b) + ")";
@@ -4771,12 +4689,12 @@ void setup() {
   // Détections
   detectBuiltinLED();
   detectNeoPixelSupport();
-  
-  // Éteindre la NeoPixel au démarrage
-  if (strip != nullptr) {
-    strip->begin();
-    strip->clear();
-    strip->show();
+
+  if (leds != nullptr && !ledsInitialized) {
+    FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, LED_COUNT);
+    ledsInitialized = true;
+    FastLED.clear();
+    FastLED.show();
   }
   
   detectOLED();
