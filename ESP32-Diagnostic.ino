@@ -76,7 +76,7 @@
   #include <soc/soc_caps.h>
 #endif
 #include <Wire.h>
-#include <FastLED.h>
+#include <Adafruit_NeoPixel.h>
 #include <U8g2lib.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
@@ -302,11 +302,10 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
 #endif
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE);
 
-// NeoPixel with FastLED
+// NeoPixel
 int LED_PIN = CUSTOM_LED_PIN;
 int LED_COUNT = CUSTOM_LED_COUNT;
-CRGB *leds = nullptr;
-bool ledsInitialized = false;
+Adafruit_NeoPixel *strip = nullptr;
 
 bool neopixelTested = false;
 bool neopixelAvailable = false;
@@ -1416,48 +1415,41 @@ void detectNeoPixelSupport() {
     neopixelSupported = false;
   }
   
-  if (leds != nullptr) {
-    delete[] leds;
-    leds = nullptr;
-    ledsInitialized = false;
-  }
-  leds = new CRGB[LED_COUNT];
+  if (strip != nullptr) delete strip;
+  strip = new Adafruit_NeoPixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
   neopixelTestResult = String(T().gpio) + " " + String(LED_PIN) + " - " + String(T().not_tested);
   Serial.printf("NeoPixel: GPIO %d\r\n", LED_PIN);
 }
 
 void testNeoPixel() {
-  if (!leds) return;
+  if (!strip) return;
 
   Serial.println("\r\n=== TEST NEOPIXEL ===");
-  if (!ledsInitialized) {
-    FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, LED_COUNT);
-    ledsInitialized = true;
-  }
-  FastLED.clear();
-  FastLED.show();
+  strip->begin();
+  strip->clear();
+  strip->show();
 
-  leds[0] = CRGB(255, 0, 0);
-  FastLED.show();
+  strip->setPixelColor(0, strip->Color(255, 0, 0));
+  strip->show();
   delay(160);
 
-  leds[0] = CRGB(0, 255, 0);
-  FastLED.show();
+  strip->setPixelColor(0, strip->Color(0, 255, 0));
+  strip->show();
   delay(160);
 
-  leds[0] = CRGB(0, 0, 255);
-  FastLED.show();
+  strip->setPixelColor(0, strip->Color(0, 0, 255));
+  strip->show();
   delay(160);
 
   for(int i = 0; i < 256; i += 64) {
-    leds[0] = CHSV(i, 255, 255);
-    FastLED.show();
+    strip->setPixelColor(0, strip->gamma32(strip->ColorHSV(i * 256)));
+    strip->show();
     delay(28);
     yield();
   }
 
-  FastLED.clear();
-  FastLED.show();
+  strip->clear();
+  strip->show();
 
   neopixelAvailable = true;
   neopixelTestResult = String(T().test) + " " + String(T().ok) + " - GPIO " + String(LED_PIN);
@@ -1468,86 +1460,84 @@ void testNeoPixel() {
 void resetNeoPixelTest() {
   neopixelTested = false;
   neopixelAvailable = false;
-  if (leds && ledsInitialized) {
-    FastLED.clear();
-    FastLED.show();
+  if (strip) {
+    strip->clear();
+    strip->show();
   }
 }
 
 void neopixelRainbow() {
-  if (!leds || !ledsInitialized) return;
+  if (!strip) return;
   for(int i = 0; i < 256; i++) {
     for(int j = 0; j < LED_COUNT; j++) {
-      leds[j] = CHSV(i, 255, 255);
+      strip->setPixelColor(j, strip->gamma32(strip->ColorHSV(i * 256)));
     }
-    FastLED.show();
+    strip->show();
     delay(10);
   }
 }
 
 void neopixelBlink(uint32_t color, int times) {
-  if (!leds || !ledsInitialized) return;
-  CRGB rgb((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
+  if (!strip) return;
   for(int i = 0; i < times; i++) {
-    fill_solid(leds, LED_COUNT, rgb);
-    FastLED.show();
+    strip->fill(color);
+    strip->show();
     delay(120);
-    FastLED.clear();
-    FastLED.show();
+    strip->clear();
+    strip->show();
     delay(120);
   }
 }
 
 void neopixelFade(uint32_t color) {
-  if (!leds || !ledsInitialized) return;
-  CRGB rgb((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF);
+  if (!strip) return;
   for(int brightness = 0; brightness <= 255; brightness += 5) {
-    FastLED.setBrightness(brightness);
-    fill_solid(leds, LED_COUNT, rgb);
-    FastLED.show();
+    strip->setBrightness(brightness);
+    strip->fill(color);
+    strip->show();
     delay(20);
   }
   for(int brightness = 255; brightness >= 0; brightness -= 5) {
-    FastLED.setBrightness(brightness);
-    fill_solid(leds, LED_COUNT, rgb);
-    FastLED.show();
+    strip->setBrightness(brightness);
+    strip->fill(color);
+    strip->show();
     delay(20);
   }
-  FastLED.setBrightness(255);
+  strip->setBrightness(255);
 }
 
 void neopixelChase() {
-  if (!leds || !ledsInitialized) return;
-  CRGB colors[] = {
-    CRGB(255, 0, 0),
-    CRGB(0, 255, 0),
-    CRGB(0, 0, 255),
-    CRGB(255, 255, 0),
-    CRGB(255, 0, 255),
-    CRGB(0, 255, 255)
+  if (!strip) return;
+  uint32_t colors[] = {
+    strip->Color(255, 0, 0),
+    strip->Color(0, 255, 0),
+    strip->Color(0, 0, 255),
+    strip->Color(255, 255, 0),
+    strip->Color(255, 0, 255),
+    strip->Color(0, 255, 255)
   };
   int numColors = sizeof(colors) / sizeof(colors[0]);
 
   for(int cycle = 0; cycle < 3; cycle++) {
     for(int colorIndex = 0; colorIndex < numColors; colorIndex++) {
       for(int pos = 0; pos < LED_COUNT; pos++) {
-        FastLED.clear();
+        strip->clear();
         for(int i = 0; i < LED_COUNT; i++) {
           if((i + pos) % 3 == 0) {
-            leds[i] = colors[colorIndex];
+            strip->setPixelColor(i, colors[colorIndex]);
           }
         }
-        FastLED.show();
+        strip->show();
         delay(100);
       }
     }
   }
-  FastLED.clear();
-  FastLED.show();
+  strip->clear();
+  strip->show();
 }
 
 void applyOLEDOrientation() {
-  u8g2_uint_t rotation = U8G2_R0;
+  const u8g2_cb_t *rotation = U8G2_R0;
   switch(oledRotation & 0x03) {
     case 0: rotation = U8G2_R0; break;
     case 1: rotation = U8G2_R1; break;
@@ -2473,12 +2463,8 @@ void handleNeoPixelConfig() {
     if (newGPIO >= 0 && newGPIO <= 48 && newCount > 0 && newCount <= 100) {
       LED_PIN = newGPIO;
       LED_COUNT = newCount;
-      if (leds) {
-        delete[] leds;
-        leds = nullptr;
-        ledsInitialized = false;
-      }
-      leds = new CRGB[LED_COUNT];
+      if (strip) delete strip;
+      strip = new Adafruit_NeoPixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
       resetNeoPixelTest();
       String message = String(T().config) + " " + String(T().gpio) + " " + String(LED_PIN);
       sendOperationSuccess(message);
@@ -2526,7 +2512,7 @@ void handleNeoPixelPattern() {
   }
 
   String pattern = server.arg("pattern");
-  if (!leds || !ledsInitialized) {
+  if (!strip) {
     String message = String(T().neopixel) + " - " + String(T().not_detected);
     sendOperationError(400, message);
     return;
@@ -2537,17 +2523,17 @@ void handleNeoPixelPattern() {
     neopixelRainbow();
     message = String(T().rainbow) + " " + String(T().ok);
   } else if (pattern == "blink") {
-    neopixelBlink(0xFF0000, 5);
+    neopixelBlink(strip->Color(255, 0, 0), 5);
     message = String(T().blink) + " " + String(T().ok);
   } else if (pattern == "fade") {
-    neopixelFade(0x0000FF);
+    neopixelFade(strip->Color(0, 0, 255));
     message = String(T().fade) + " " + String(T().ok);
   } else if (pattern == "chase") {
     neopixelChase();
     message = String(T().chase) + " " + String(T().ok);
   } else if (pattern == "off") {
-    FastLED.clear();
-    FastLED.show();
+    strip->clear();
+    strip->show();
     neopixelTested = false;
     message = String(T().off);
   } else {
@@ -2559,7 +2545,7 @@ void handleNeoPixelPattern() {
 }
 
 void handleNeoPixelColor() {
-  if (!server.hasArg("r") || !server.hasArg("g") || !server.hasArg("b") || !leds || !ledsInitialized) {
+  if (!server.hasArg("r") || !server.hasArg("g") || !server.hasArg("b") || !strip) {
     sendOperationError(400, T().configuration_invalid.str());
     return;
   }
@@ -2568,8 +2554,8 @@ void handleNeoPixelColor() {
   int g = server.arg("g").toInt();
   int b = server.arg("b").toInt();
 
-  fill_solid(leds, LED_COUNT, CRGB(r, g, b));
-  FastLED.show();
+  strip->fill(strip->Color(r, g, b));
+  strip->show();
   neopixelTested = false;
 
   String message = "RGB(" + String(r) + "," + String(g) + "," + String(b) + ")";
@@ -4690,11 +4676,10 @@ void setup() {
   detectBuiltinLED();
   detectNeoPixelSupport();
 
-  if (leds != nullptr && !ledsInitialized) {
-    FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, LED_COUNT);
-    ledsInitialized = true;
-    FastLED.clear();
-    FastLED.show();
+  if (strip != nullptr) {
+    strip->begin();
+    strip->clear();
+    strip->show();
   }
   
   detectOLED();
