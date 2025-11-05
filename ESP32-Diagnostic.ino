@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.04-dev
+ * ESP32 Diagnostic Suite v3.7.05-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimisé pour ESP32 Arduino Core 3.3.2
  * Carte testée: ESP32-S3 DevkitC-1 R16 avec PSRAM OPI
@@ -173,7 +173,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.7.04-dev"
+#define DIAGNOSTIC_VERSION "3.7.05-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -4031,6 +4031,7 @@ static BLEAdvertisedDevice getScanResultDevice(BLEScanResults* results, int inde
 }
 #endif
 
+// --- [BUGFIX] Add watchdog resets to prevent CPU1 timeout during BLE init ---
 bool startBluetooth() {
   ensureBluetoothName();
 
@@ -4051,7 +4052,12 @@ bool startBluetooth() {
     return true;
   }
 
+  // Feed watchdog before BLE initialization (can take several seconds)
+  esp_task_wdt_reset();
+
   BLEDevice::init(bluetoothDeviceName.c_str());
+  esp_task_wdt_reset();  // Reset after BLE device init
+
   bluetoothServer = BLEDevice::createServer();
   if (!bluetoothServer) {
     bluetoothEnabled = false;
@@ -4061,6 +4067,7 @@ bool startBluetooth() {
     lastBluetoothNotify = 0;
     return false;
   }
+  esp_task_wdt_reset();  // Reset after server creation
 
   bluetoothServer->setCallbacks(new DiagnosticBLECallbacks());
 
@@ -4075,6 +4082,7 @@ bool startBluetooth() {
     lastBluetoothNotify = 0;
     return false;
   }
+  esp_task_wdt_reset();  // Reset after service creation
 
   bluetoothCharacteristic = bluetoothService->createCharacteristic(
       BLEUUID(DIAG_BLE_CHARACTERISTIC_UUID),
@@ -4083,8 +4091,11 @@ bool startBluetooth() {
     bluetoothCharacteristic->setValue("ESP32 Diagnostic prêt");
     bluetoothCharacteristic->addDescriptor(new BLE2902());
   }
+  esp_task_wdt_reset();  // Reset after characteristic creation
 
   bluetoothService->start();
+  esp_task_wdt_reset();  // Reset after service start
+
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   if (!advertising) {
     bluetoothService->stop();
@@ -4106,6 +4117,7 @@ bool startBluetooth() {
   advertising->setMinPreferred(0x12);
   advertising->start();
   BLEDevice::startAdvertising();
+  esp_task_wdt_reset();  // Reset after advertising start
 
   bluetoothEnabled = true;
   bluetoothAdvertising = true;
@@ -4631,6 +4643,7 @@ void handleBluetoothScan() {
   scanner->setActiveScan(true);
   // --- [BUGFIX] Harmonise BLE scan results pointer/object handling ---
   auto rawResults = scanner->start(5, false);
+  esp_task_wdt_reset();  // Reset after 5-second BLE scan
   int count = getScanResultCount(rawResults);
 
   String devicesJson;
