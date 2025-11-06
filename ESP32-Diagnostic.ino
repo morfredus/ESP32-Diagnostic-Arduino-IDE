@@ -2,7 +2,7 @@
  * ESP32 Diagnostic Suite v3.7.07-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimized for ESP32 Arduino Core 3.3.2
- * Tested board: ESP32-S3 with PSRAM OPI
+ * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI
  * Author: morfredus
  */
 
@@ -3758,11 +3758,359 @@ String buildTranslationsJSON() {
     String fieldValue = Texts::identifier.str();           \
     json += jsonEscape(fieldValue.c_str());                \
     json += '"';                                          \
-  } while (0)
+  } while (0);
   TEXT_RESOURCE_MAP(APPEND_TEXT);
 #undef APPEND_TEXT
   json += '}';
   return json;
+}
+
+// --- [NEW FEATURE] Bluetooth helper utilities (English-only interface) ---
+String sanitizeBluetoothName(const String& raw) {
+  String cleaned;
+  cleaned.reserve(raw.length());
+  for (size_t i = 0; i < raw.length(); ++i) {
+    char c = raw[i];
+    if (c >= 32 && c != 127) {
+      cleaned += c;
+    }
+    if (cleaned.length() >= 29) {
+      break;
+    }
+  }
+  cleaned.trim();
+  return cleaned;
+}
+
+void ensureBluetoothName() {
+  if (bluetoothDeviceName.length() == 0) {
+    bluetoothDeviceName = defaultBluetoothName.length() > 0 ? defaultBluetoothName : String("ESP32 Diagnostic");
+  }
+}
+
+void syncBluetoothDiagnostics() {
+  ensureBluetoothName();
+
+  bool supported = bluetoothCapable;
+  bool hasRadio = bluetoothCapable || diagnosticData.hasBLE || diagnosticData.hasBT;
+  diagnosticData.bluetoothName = bluetoothDeviceName;
+  diagnosticData.bluetoothEnabled = supported && bluetoothEnabled;
+  diagnosticData.bluetoothAdvertising = supported && (bluetoothAdvertising
+#if BLE_STACK_SUPPORTED
+      || bluetoothClientConnected
+#endif
+  );
+
+  if (hasRadio) {
+    uint8_t mac[6] = {0};
+    if (esp_read_mac(mac, ESP_MAC_BT) == ESP_OK) {
+      char macStr[18];
+      sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X",
+              mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+      diagnosticData.bluetoothAddress = String(macStr);
+    } else {
+      diagnosticData.bluetoothAddress = String("--:--:--:--:--:--");
+    }
+  } else {
+    diagnosticData.bluetoothAddress = String("--:--:--:--:--:--");
+  }
+}
+
+String getBluetoothStateLabel() {
+  if (!bluetoothCapable) {
+    return String(Texts::bluetooth_not_supported);
+  }
+  if (!bluetoothEnabled) {
+    return String(Texts::bluetooth_disabled);
+  }
+#if BLE_STACK_SUPPORTED
+  if (bluetoothClientConnected) {
+    return String(Texts::bluetooth_enabled);
+  }
+#endif
+  if (bluetoothAdvertising) {
+    return String(Texts::bluetooth_advertising);
+  }
+  return String(Texts::bluetooth_not_advertising);
+}
+
+String getBluetoothSummaryLabel() {
+  if (!bluetoothCapable) {
+    return String(Texts::bluetooth_not_supported);
+  }
+  if (!bluetoothEnabled) {
+    return String(Texts::bluetooth_disabled);
+  }
+
+  ensureBluetoothName();
+  String summary = bluetoothDeviceName;
+  summary += " • ";
+#if BLE_STACK_SUPPORTED
+  if (bluetoothClientConnected) {
+    summary += String(Texts::bluetooth_enabled);
+  } else
+#endif
+  {
+    summary += bluetoothAdvertising ? String(Texts::bluetooth_advertising)
+                                    : String(Texts::bluetooth_not_advertising);
+  }
+  return summary;
+}
+
+const char* getBluetoothStateKey() {
+  if (!bluetoothCapable) {
+    return "bluetooth_not_supported";
+  }
+  if (!bluetoothEnabled) {
+    return "bluetooth_disabled";
+  }
+#if BLE_STACK_SUPPORTED
+  if (bluetoothClientConnected) {
+    return "bluetooth_enabled";
+  }
+#endif
+  if (bluetoothAdvertising) {
+    return "bluetooth_advertising";
+  }
+  return "bluetooth_not_advertising";
+}
+
+const char* getBluetoothAdvertisingKey() {
+  if (!bluetoothCapable) {
+    return "bluetooth_not_supported";
+  }
+  return bluetoothAdvertising ? "bluetooth_advertising" : "bluetooth_not_advertising";
+}
+
+const char* getBluetoothSupportKey() {
+  return bluetoothCapable ? "bluetooth_support_yes" : "bluetooth_support_no";
+}
+
+#if BLE_STACK_SUPPORTED
+const char* getBluetoothConnectionKey() {
+  return bluetoothClientConnected ? "bluetooth_client_connected" : "bluetooth_client_disconnected";
+}
+#endif
+
+String buildBluetoothJSON(bool success, const String& message) {
+  syncBluetoothDiagnostics();
+
+  String status = getBluetoothStateLabel();
+  String summary = getBluetoothSummaryLabel();
+  String advertisingLabel = (bluetoothCapable && bluetoothAdvertising)
+                                ? String(Texts::bluetooth_advertising)
+                                : String(Texts::bluetooth_not_advertising);
+#if BLE_STACK_SUPPORTED
+  bool connected = bluetoothCapable && bluetoothClientConnected;
+  String connectionLabel = connected ? String(Texts::bluetooth_client_connected)
+                                     : String(Texts::bluetooth_client_disconnected);
+  const char* connectionKey = getBluetoothConnectionKey();
+#else
+  bool connected = false;
+  String connectionLabel = String(Texts::bluetooth_client_disconnected);
+  const char* connectionKey = "bluetooth_client_disconnected";
+#endif
+
+  String json = "{";
+  json += "\"success\":" + String(success ? "true" : "false") + ",";
+  json += "\"supported\":" + String(bluetoothCapable ? "true" : "false") + ",";
+  json += "\"enabled\":" + String((bluetoothCapable && bluetoothEnabled) ? "true" : "false") + ",";
+  json += "\"advertising\":" + String((bluetoothCapable && bluetoothAdvertising) ? "true" : "false") + ",";
+  json += "\"connected\":" + String(connected ? "true" : "false") + ",";
+  json += "\"support_key\":\"" + jsonEscape(getBluetoothSupportKey()) + "\",";
+  json += "\"status_key\":\"" + jsonEscape(getBluetoothStateKey()) + "\",";
+  json += "\"advertising_key\":\"" + jsonEscape(getBluetoothAdvertisingKey()) + "\",";
+  json += "\"connection_key\":\"" + jsonEscape(connectionKey) + "\",";
+  json += "\"name\":\"" + jsonEscape(bluetoothDeviceName.c_str()) + "\",";
+  json += "\"mac\":\"" + jsonEscape(diagnosticData.bluetoothAddress.c_str()) + "\",";
+  json += "\"status\":\"" + jsonEscape(status.c_str()) + "\",";
+  json += "\"summary\":\"" + jsonEscape(summary.c_str()) + "\",";
+  json += "\"advertising_label\":\"" + jsonEscape(advertisingLabel.c_str()) + "\",";
+  json += "\"connection_label\":\"" + jsonEscape(connectionLabel.c_str()) + "\",";
+  json += "\"message\":\"" + jsonEscape(message.c_str()) + "\"";
+  json += "}";
+  return json;
+}
+
+#if BLE_STACK_SUPPORTED
+void dispatchBluetoothTelemetry() {
+  if (!bluetoothEnabled || !bluetoothClientConnected || !bluetoothCharacteristic) {
+    return;
+  }
+
+  unsigned long now = millis();
+  if (now - lastBluetoothNotify < 2000) {
+    return;
+  }
+
+  lastBluetoothNotify = now;
+  bluetoothNotifyCounter++;
+
+  unsigned long uptimeSeconds = diagnosticData.uptime / 1000UL;
+  char payload[96];
+  int written = snprintf(payload, sizeof(payload),
+                         "Diag %lu | Uptime %lus",
+                         static_cast<unsigned long>(bluetoothNotifyCounter),
+                         static_cast<unsigned long>(uptimeSeconds));
+  if (written < 0) {
+    return;
+  }
+
+  size_t length = (written >= static_cast<int>(sizeof(payload))) ? sizeof(payload) - 1 : static_cast<size_t>(written);
+  if (length == 0) {
+    return;
+  }
+  bluetoothCharacteristic->setValue(reinterpret_cast<uint8_t*>(payload), length);
+  bluetoothCharacteristic->notify();
+  Serial.printf("[BLE] Notification #%lu sent (%lus)\n",
+                static_cast<unsigned long>(bluetoothNotifyCounter),
+                static_cast<unsigned long>(uptimeSeconds));
+}
+
+// --- [BUGFIX] Helpers to abstract BLE scan results across stacks ---
+static int getScanResultCount(BLEScanResults& results) {
+  return results.getCount();
+}
+
+static int getScanResultCount(BLEScanResults* results) {
+  return (results != nullptr) ? results->getCount() : 0;
+}
+
+static BLEAdvertisedDevice getScanResultDevice(BLEScanResults& results, int index) {
+  return results.getDevice(index);
+}
+
+static BLEAdvertisedDevice getScanResultDevice(BLEScanResults* results, int index) {
+  return (results != nullptr) ? results->getDevice(index) : BLEAdvertisedDevice();
+}
+#endif
+
+// --- [BUGFIX] Add watchdog resets to prevent CPU1 timeout during BLE init ---
+bool startBluetooth() {
+  ensureBluetoothName();
+
+  if (!bluetoothCapable) {
+    bluetoothEnabled = false;
+    bluetoothAdvertising = false;
+#if BLE_STACK_SUPPORTED
+    bluetoothClientConnected = false;
+    bluetoothNotifyCounter = 0;
+    lastBluetoothNotify = 0;
+#endif
+    return false;
+  }
+
+#if BLE_STACK_SUPPORTED
+  if (bluetoothAdvertising) {
+    bluetoothEnabled = true;
+    return true;
+  }
+
+  esp_task_wdt_reset();
+
+  BLEDevice::init(bluetoothDeviceName.c_str());
+  esp_task_wdt_reset();
+
+  bluetoothServer = BLEDevice::createServer();
+  if (!bluetoothServer) {
+    bluetoothEnabled = false;
+    bluetoothAdvertising = false;
+    bluetoothClientConnected = false;
+    bluetoothNotifyCounter = 0;
+    lastBluetoothNotify = 0;
+    return false;
+  }
+  esp_task_wdt_reset();
+
+  bluetoothServer->setCallbacks(new DiagnosticBLECallbacks());
+
+  bluetoothService = bluetoothServer->createService(BLEUUID(DIAG_BLE_SERVICE_UUID));
+  if (!bluetoothService) {
+    BLEDevice::deinit(true);
+    bluetoothServer = nullptr;
+    bluetoothEnabled = false;
+    bluetoothAdvertising = false;
+    bluetoothClientConnected = false;
+    bluetoothNotifyCounter = 0;
+    lastBluetoothNotify = 0;
+    return false;
+  }
+  esp_task_wdt_reset();
+
+  bluetoothCharacteristic = bluetoothService->createCharacteristic(
+      BLEUUID(DIAG_BLE_CHARACTERISTIC_UUID),
+      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
+  if (bluetoothCharacteristic) {
+    bluetoothCharacteristic->setValue("ESP32 Diagnostic ready");
+    bluetoothCharacteristic->addDescriptor(new BLE2902());
+  }
+  esp_task_wdt_reset();
+
+  bluetoothService->start();
+  esp_task_wdt_reset();
+
+  BLEAdvertising* advertising = BLEDevice::getAdvertising();
+  if (!advertising) {
+    bluetoothService->stop();
+    BLEDevice::deinit(true);
+    bluetoothServer = nullptr;
+    bluetoothService = nullptr;
+    bluetoothCharacteristic = nullptr;
+    bluetoothEnabled = false;
+    bluetoothAdvertising = false;
+    bluetoothClientConnected = false;
+    bluetoothNotifyCounter = 0;
+    lastBluetoothNotify = 0;
+    return false;
+  }
+
+  advertising->addServiceUUID(BLEUUID(DIAG_BLE_SERVICE_UUID));
+  advertising->setScanResponse(true);
+  advertising->setMinPreferred(0x06);
+  advertising->setMinPreferred(0x12);
+  advertising->start();
+  BLEDevice::startAdvertising();
+  esp_task_wdt_reset();
+
+  bluetoothEnabled = true;
+  bluetoothAdvertising = true;
+  bluetoothClientConnected = false;
+  bluetoothNotifyCounter = 0;
+  lastBluetoothNotify = millis();
+  return true;
+#else
+  return false;
+#endif
+}
+
+void stopBluetooth() {
+#if BLE_STACK_SUPPORTED
+  if (bluetoothAdvertising) {
+    BLEAdvertising* advertising = BLEDevice::getAdvertising();
+    if (advertising) {
+      advertising->stop();
+    }
+  }
+
+  bluetoothClientConnected = false;
+  bluetoothNotifyCounter = 0;
+  lastBluetoothNotify = 0;
+
+  if (bluetoothService) {
+    bluetoothService->stop();
+  }
+  if (bluetoothServer) {
+    bluetoothServer->disconnect(0);
+  }
+
+  BLEDevice::deinit(true);
+  bluetoothServer = nullptr;
+  bluetoothService = nullptr;
+  bluetoothCharacteristic = nullptr;
+#endif
+
+  bluetoothEnabled = false;
+  bluetoothAdvertising = false;
 }
 
 void handleGetTranslations() {
