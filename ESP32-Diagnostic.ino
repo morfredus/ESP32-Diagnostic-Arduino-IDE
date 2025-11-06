@@ -1,8 +1,8 @@
 /*
- * ESP32 Diagnostic Suite v3.7.07-dev
- * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
- * Optimized for ESP32 Arduino Core 3.3.2
- * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI
+ * ESP32 Diagnostic Suite v3.7.09-dev
+ * Compatible: ESP32, ESP32-S3
+ * Optimized for ESP32 Arduino Core 3.3.3
+ * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
  * Author: morfredus
  */
 
@@ -180,8 +180,8 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-// v3.7.08 - Add DHT sensor type selection (DHT11 or DHT22)
-#define DIAGNOSTIC_VERSION "3.7.08-dev"
+// v3.7.09 - Expand benchmarks and hardware diagnostics UI
+#define DIAGNOSTIC_VERSION "3.7.09-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -2943,6 +2943,7 @@ void handleBenchmark() {
   diagnosticData.cpuBenchmark = cpuTime;
   diagnosticData.memBenchmark = memTime;
 
+  // --- [NEW FEATURE] Provide derived benchmark metrics for richer telemetry ---
   double cpuPerf = 100000.0 / static_cast<double>(cpuTime);
   double memSpeed = (10000.0 * sizeof(int) * 2.0) / static_cast<double>(memTime);
   sendJsonResponse(200, {
