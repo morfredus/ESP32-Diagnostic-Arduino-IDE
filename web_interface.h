@@ -8,12 +8,13 @@
 #include <WebServer.h>
 #include <pgmspace.h>
 
+#include "languages.h"
+
 // Déclarations externes (définies dans le fichier principal)
 extern const char* DIAGNOSTIC_VERSION_STR;
 extern const char* MDNS_HOSTNAME_STR;
 extern WebServer server;
 extern DiagnosticInfo diagnosticData;
-extern Language currentLanguage;
 extern const char* const DIAGNOSTIC_SECURE_SCHEME;
 extern const char* const DIAGNOSTIC_LEGACY_SCHEME;
 
@@ -35,7 +36,7 @@ void handleJavaScript() {
 
 // Génère le HTML principal
 String generateHTML() {
-  const char* langCode = (currentLanguage == LANG_EN) ? "en" : "fr";
+  const char* langCode = "en";
   String html;
   html.reserve(9500);  // Reserve memory to avoid reallocations
   html = "<!DOCTYPE html><html lang='";
@@ -44,9 +45,9 @@ String generateHTML() {
   html += "<meta charset='UTF-8'>";
   html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
   html += "<title>";
-  html += htmlEscape(T().title.str());
+  html += htmlEscape(Texts::title.str());
   html += " ";
-  html += htmlEscape(T().version.str());
+  html += htmlEscape(Texts::version.str());
   html += DIAGNOSTIC_VERSION_STR;
   html += "</title>";
   html += "<style>";
@@ -67,11 +68,6 @@ String generateHTML() {
   html += ".access-link.disabled{opacity:.6;pointer-events:none}";
   html += ".access-sep{opacity:.7}";
   html += "@keyframes fadeIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}";
-  html += ".lang-switcher{position:absolute;top:16px;right:16px;display:flex;gap:5px}";
-  html += ".lang-btn{padding:8px 15px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.3);";
-  html += "border-radius:5px;color:#fff;cursor:pointer;font-weight:bold;transition:all .3s}";
-  html += ".lang-btn:hover{background:rgba(255,255,255,.3)}";
-  html += ".lang-btn.active{background:rgba(255,255,255,.4);border-color:rgba(255,255,255,.6)}";
   html += ".status-indicator{display:inline-block;width:12px;height:12px;border-radius:50%;";
   html += "margin-right:8px;animation:pulse 2s infinite}";
   html += ".status-online{background:#0f0;box-shadow:0 0 10px #0f0}";
@@ -150,38 +146,24 @@ String generateHTML() {
   html += ".info-grid{grid-template-columns:1fr}";
   html += ".nav{flex-direction:column}";
   html += ".nav-btn{width:100%}";
-  html += ".lang-switcher{position:static;margin-top:10px;justify-content:center}";
   html += "}";
   html += "@media print{";
-  html += ".nav,.btn,.lang-switcher{display:none}";
+  html += ".nav,.btn{display:none}";
   html += ".container{box-shadow:none}";
   html += "}";
   html += "</style>";
   html += "</head><body>";
   html += "<div class='update-indicator' id='updateIndicator' data-i18n='updating'>";
-  html += htmlEscape(T().updating.str());
+  html += htmlEscape(Texts::updating.str());
   html += "</div>";
   html += "<div class='container'>";
   html += "<div class='header'>";
-  html += "<div class='lang-switcher' role='group' aria-label='";
-  html += htmlEscape(T().language_label.str());
-  html += "'>";
-  html += "<button class='lang-btn";
-  if (currentLanguage == LANG_FR) {
-    html += " active";
-  }
-  html += "' data-lang='fr' onclick='changeLang(\"fr\",this)'>FR</button>";
-  html += "<button class='lang-btn";
-  if (currentLanguage == LANG_EN) {
-    html += " active";
-  }
-  html += "' data-lang='en' onclick='changeLang(\"en\",this)'>EN</button>";
-  html += "</div>";
+  // --- [CLEANUP] Language switcher removed (English-only interface) ---
   html += "<h1 id='main-title'>";
   html += "<span class='status-indicator status-online' id='statusIndicator'></span>";
-  html += htmlEscape(T().title.str());
+  html += htmlEscape(Texts::title.str());
   html += " ";
-  html += htmlEscape(T().version.str());
+  html += htmlEscape(Texts::version.str());
   html += DIAGNOSTIC_VERSION_STR;
   html += "</h1>";
   html += "<div style='font-size:1.2em;margin:6px 0' id='chipModel'>";
@@ -202,10 +184,10 @@ String generateHTML() {
     ipAccessClass += " disabled";
   }
   String ipAriaDisabled = ipAvailable ? String("false") : String("true");
-  String ipLabelValue = ipAvailable ? ipAccessHref : htmlEscape(String(T().ip_unavailable.str()));
+  String ipLabelValue = ipAvailable ? ipAccessHref : htmlEscape(String(Texts::ip_unavailable.str()));
   html += "<div class='access-row'>";
   html += "<span class='access-label' data-i18n='access' data-i18n-suffix=' :'>";
-  html += htmlEscape(T().access.str());
+  html += htmlEscape(Texts::access.str());
   html += "</span>";
   // --- [NEW FEATURE] Liens HTTPS avec repli automatique ---
   html += "<a class='access-link' id='mdnsLink' href='";
@@ -241,32 +223,32 @@ String generateHTML() {
   html += "' data-label-id='ipAddressText' aria-disabled='";
   html += ipAriaDisabled;
   html += "'><strong id='ipAddressText' data-placeholder='";
-  html += htmlEscape(T().ip_unavailable.str());
+  html += htmlEscape(Texts::ip_unavailable.str());
   html += "' data-placeholder-key='ip_unavailable'>";
   html += ipLabelValue;
   html += "</strong></a></div>";
   // --- [REORGANIZATION] Navigation ergonomique par thème fonctionnel ---
   html += "<div class='nav'>";
   html += "<button type='button' class='nav-btn active' data-tab='overview' data-i18n='nav_overview' onclick=\"showTab('overview',this);\">";
-  html += htmlEscape(T().nav_overview.str());
+  html += htmlEscape(Texts::nav_overview.str());
   html += "</button>";
   html += "<button type='button' class='nav-btn' data-tab='display-signal' data-i18n='nav_display_signal' onclick=\"showTab('display-signal',this);\">";
-  html += htmlEscape(T().nav_display_signal.str());
+  html += htmlEscape(Texts::nav_display_signal.str());
   html += "</button>";
   html += "<button type='button' class='nav-btn' data-tab='sensors' data-i18n='nav_sensors' onclick=\"showTab('sensors',this);\">";
-  html += htmlEscape(T().nav_sensors.str());
+  html += htmlEscape(Texts::nav_sensors.str());
   html += "</button>";
   html += "<button type='button' class='nav-btn' data-tab='hardware-tests' data-i18n='nav_hardware_tests' onclick=\"showTab('hardware-tests',this);\">";
-  html += htmlEscape(T().nav_hardware_tests.str());
+  html += htmlEscape(Texts::nav_hardware_tests.str());
   html += "</button>";
   html += "<button type='button' class='nav-btn' data-tab='wireless' data-i18n='nav_wireless' onclick=\"showTab('wireless',this);\">";
-  html += htmlEscape(T().nav_wireless.str());
+  html += htmlEscape(Texts::nav_wireless.str());
   html += "</button>";
   html += "<button type='button' class='nav-btn' data-tab='benchmark' data-i18n='nav_benchmark' onclick=\"showTab('benchmark',this);\">";
-  html += htmlEscape(T().nav_benchmark.str());
+  html += htmlEscape(Texts::nav_benchmark.str());
   html += "</button>";
   html += "<button type='button' class='nav-btn' data-tab='export' data-i18n='nav_export' onclick=\"showTab('export',this);\">";
-  html += htmlEscape(T().nav_export.str());
+  html += htmlEscape(Texts::nav_export.str());
   html += "</button>";
   html += "</div>";
   html += "</div>";
@@ -287,7 +269,7 @@ String generateJavaScript() {
   js = F("console.log('ESP32 Diagnostic v");
   js += DIAGNOSTIC_VERSION_STR;
   js += F(" - Initialisation');const UPDATE_INTERVAL=5000;let currentLang='");
-  js += (currentLanguage == LANG_EN) ? "en" : "fr";
+  js += "en";
   js += F("';let updateTimer=null;let isConnected=true;const DEFAULT_TRANSLATIONS=");
   js += buildTranslationsJSON();
   js += F(";let translationsCache=DEFAULT_TRANSLATIONS;");
