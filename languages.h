@@ -215,7 +215,9 @@ class TextField {
   X(i2c_address, "I2C Address") \
   X(wifi_channel, "Channel") \
   X(cpu_benchmark, "CPU Benchmark") \
+  X(cpu_perf_score, "CPU Performance Score") \
   X(memory_benchmark, "Memory Benchmark") \
+  X(memory_bandwidth, "Memory Bandwidth") \
   X(run_benchmarks, "Run Benchmarks") \
   X(iterations_label, "Iterations") \
   X(allocations_label, "Allocations") \
@@ -339,6 +341,8 @@ class TextField {
   X(poweron, "Power-on") \
   X(psram_external, "External PSRAM") \
   X(pwm_test, "PWM Test") \
+  X(pwm_test_desc, "Generate a duty-cycle sweep on the default PWM pin.") \
+  X(start_pwm_test, "Run PWM Test") \
   X(revision, "Revision") \
   X(signal_power, "Signal power") \
   X(signal_quality, "Signal quality") \
@@ -371,6 +375,9 @@ class TextField {
   X(check_wiring, "Check wiring") \
   X(click_to_scan, "Click to scan") \
   X(click_to_test, "Click to test") \
+  X(spi_scan, "SPI Bus Scan") \
+  X(spi_scan_desc, "List the SPI controllers detected for the active chip.") \
+  X(start_spi_scan, "Run SPI Scan") \
   X(configure_led_pin, "Configure LED Pin") \
   X(configure_neopixel, "Configure NeoPixel") \
   X(custom_color, "Custom Color") \
@@ -384,7 +391,7 @@ class TextField {
   X(distance_pins, "Distance Sensor Pins") \
   X(flash_speed, "Flash Speed") \
   X(full_test, "Full Test") \
-  X(gpio_warning, "GPIO Warning") \
+  X(gpio_warning, "Always disconnect sensitive hardware before toggling GPIO states.") \
   X(green, "Green") \
   X(i2c_pins, "I2C Pins") \
   X(ip_unavailable, "IP unavailable") \
