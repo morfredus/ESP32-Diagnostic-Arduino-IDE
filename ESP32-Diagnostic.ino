@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.06-dev
+ * ESP32 Diagnostic Suite v3.7.07-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimized for ESP32 Arduino Core 3.3.2
  * Tested board: ESP32-S3 with PSRAM OPI
@@ -160,7 +160,8 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.7.06-dev"
+// v3.7.07 - Restore missing translation entries to resolve build errors
+#define DIAGNOSTIC_VERSION "3.7.07-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
