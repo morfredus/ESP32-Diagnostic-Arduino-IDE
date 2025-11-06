@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.06-dev
+ * ESP32 Diagnostic Suite v3.7.07-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimized for ESP32 Arduino Core 3.3.2
  * Tested board: ESP32-S3 with PSRAM OPI
@@ -123,14 +123,34 @@
   #include "wifi-config.h"
 #endif
 
-// Système de traduction
+// --- [NEW FEATURE] English-only UI strings ---
 #include "languages.h"
-
-struct TranslationJsonEntry;
 
 static String buildActionResponseJson(bool success,
                                       const String& message,
                                       std::initializer_list<JsonFieldSpec> extraFields = {});
+String buildTranslationsJSON();
+String sanitizeBluetoothName(const String& raw);
+void ensureBluetoothName();
+void syncBluetoothDiagnostics();
+String getBluetoothStateLabel();
+String getBluetoothSummaryLabel();
+const char* getBluetoothStateKey();
+const char* getBluetoothAdvertisingKey();
+const char* getBluetoothSupportKey();
+#if BLE_STACK_SUPPORTED
+const char* getBluetoothConnectionKey();
+void dispatchBluetoothTelemetry();
+static int getScanResultCount(BLEScanResults& results);
+static int getScanResultCount(BLEScanResults* results);
+static BLEAdvertisedDevice getScanResultDevice(BLEScanResults& results, int index);
+static BLEAdvertisedDevice getScanResultDevice(BLEScanResults* results, int index);
+#else
+void dispatchBluetoothTelemetry();
+#endif
+String buildBluetoothJSON(bool success, const String& message);
+bool startBluetooth();
+void stopBluetooth();
 inline void sendActionResponse(int statusCode,
                                bool success,
                                const String& message,
@@ -160,7 +180,8 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.7.06-dev"
+// v3.7.08 - Add DHT sensor type selection (DHT11 or DHT22)
+#define DIAGNOSTIC_VERSION "3.7.08-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -221,8 +242,10 @@ int RGB_LED_PIN_B = 12;
 // --- [NEW FEATURE] Buzzer (pin modifiable via web) ---
 int BUZZER_PIN = 16;
 
-// --- [NEW FEATURE] DHT11 Temperature & Humidity Sensor (pin modifiable via web) ---
-int DHT11_PIN = 4;
+// --- [NEW FEATURE] DHT Temperature & Humidity Sensor (pin & type configurables via web) ---
+int DHT_PIN = 4;
+// --- [NEW FEATURE] DHT sensor type selection ---
+uint8_t DHT_SENSOR_TYPE = 11;
 
 // --- [NEW FEATURE] Light Sensor (pin modifiable via web) ---
 int LIGHT_SENSOR_PIN = 17;
@@ -297,18 +320,18 @@ Adafruit_NeoPixel *strip = nullptr;
 bool neopixelTested = false;
 bool neopixelAvailable = false;
 bool neopixelSupported = false;
-String neopixelTestResult = String(T().not_tested);
+String neopixelTestResult = String(Texts::not_tested);
 
 // LED intégrée
 int BUILTIN_LED_PIN = -1;
 bool builtinLedTested = false;
 bool builtinLedAvailable = false;
-String builtinLedTestResult = String(T().not_tested);
+String builtinLedTestResult = String(Texts::not_tested);
 
 // OLED
 bool oledTested = false;
 bool oledAvailable = false;
-String oledTestResult = String(T().not_tested);
+String oledTestResult = String(Texts::not_tested);
 
 // --- [NEW FEATURE] Exécution asynchrone des tests matériels ---
 typedef void (*TestRoutine)();
@@ -385,33 +408,33 @@ static AsyncTestRunner rgbLedTestRunner = {"RgbLedTest", nullptr, false};
 static AsyncTestRunner buzzerTestRunner = {"BuzzerTest", nullptr, false};
 
 // Tests additionnels
-String adcTestResult = String(T().not_tested);
-String pwmTestResult = String(T().not_tested);
+String adcTestResult = String(Texts::not_tested);
+String pwmTestResult = String(Texts::not_tested);
 String partitionsInfo = "";
 String spiInfo = "";
-String stressTestResult = String(T().not_tested);
+String stressTestResult = String(Texts::not_tested);
 
 // --- [NEW FEATURE] Résultats de tests des nouveaux capteurs ---
-String rgbLedTestResult = String(T().not_tested);
+String rgbLedTestResult = String(Texts::not_tested);
 bool rgbLedAvailable = false;
 
-String buzzerTestResult = String(T().not_tested);
+String buzzerTestResult = String(Texts::not_tested);
 bool buzzerAvailable = false;
 
-String dht11TestResult = String(T().not_tested);
-bool dht11Available = false;
-float dht11Temperature = -999.0;
-float dht11Humidity = -999.0;
+String dhtTestResult = String(Texts::not_tested);
+bool dhtAvailable = false;
+float dhtTemperature = -999.0;
+float dhtHumidity = -999.0;
 
-String lightSensorTestResult = String(T().not_tested);
+String lightSensorTestResult = String(Texts::not_tested);
 bool lightSensorAvailable = false;
 int lightSensorValue = -1;
 
-String distanceSensorTestResult = String(T().not_tested);
+String distanceSensorTestResult = String(Texts::not_tested);
 bool distanceSensorAvailable = false;
 float distanceValue = -1.0;
 
-String motionSensorTestResult = String(T().not_tested);
+String motionSensorTestResult = String(Texts::not_tested);
 bool motionSensorAvailable = false;
 bool motionDetected = false;
 
@@ -704,7 +727,7 @@ String getChipFeatures() {
   if (features.length() > 0) {
     features = features.substring(0, features.length() - 2);
   } else {
-    features = T().none.str();
+    features = Texts::none.str();
   }
   
   return features;
@@ -720,7 +743,7 @@ String getFlashType() {
   #elif defined(CONFIG_ESPTOOLPY_FLASHMODE_DOUT)
     return "DOUT";
   #else
-    return T().unknown.str();
+    return Texts::unknown.str();
   #endif
 }
 
@@ -734,7 +757,7 @@ String getFlashSpeed() {
   #elif defined(CONFIG_ESPTOOLPY_FLASHFREQ_20M)
     return "20 MHz";
   #else
-    return T().unknown.str();
+    return Texts::unknown.str();
   #endif
 }
 
@@ -752,40 +775,40 @@ const char* getResetReasonKey() {
 String getResetReason() {
   esp_reset_reason_t reason = esp_reset_reason();
   switch (reason) {
-    case ESP_RST_POWERON: return T().poweron.str();
-    case ESP_RST_SW: return T().software_reset.str();
-    case ESP_RST_DEEPSLEEP: return T().deepsleep_exit.str();
-    case ESP_RST_BROWNOUT: return T().brownout.str();
-    default: return T().other.str();
+    case ESP_RST_POWERON: return Texts::poweron.str();
+    case ESP_RST_SW: return Texts::software_reset.str();
+    case ESP_RST_DEEPSLEEP: return Texts::deepsleep_exit.str();
+    case ESP_RST_BROWNOUT: return Texts::brownout.str();
+    default: return Texts::other.str();
   }
 }
 
 String formatUptime(unsigned long days, unsigned long hours, unsigned long minutes) {
   String formatted;
   if (days > 0) {
-    formatted += String(days) + " " + String(T().days);
+    formatted += String(days) + " " + String(Texts::days);
   }
   if (hours > 0 || formatted.length() > 0) {
     if (formatted.length() > 0) {
       formatted += " ";
     }
-    formatted += String(hours) + " " + String(T().hours);
+    formatted += String(hours) + " " + String(Texts::hours);
   }
   if (minutes > 0 || formatted.length() == 0) {
     if (formatted.length() > 0) {
       formatted += " ";
     }
-    formatted += String(minutes) + " " + String(T().minutes);
+    formatted += String(minutes) + " " + String(Texts::minutes);
   }
   return formatted;
 }
 
 String getMemoryStatus() {
   float heapUsagePercent = ((float)(diagnosticData.heapSize - diagnosticData.freeHeap) / diagnosticData.heapSize) * 100;
-  if (heapUsagePercent < 50) return T().excellent.str();
-  else if (heapUsagePercent < 70) return T().good.str();
-  else if (heapUsagePercent < 85) return T().warning.str();
-  else return T().critical.str();
+  if (heapUsagePercent < 50) return Texts::excellent.str();
+  else if (heapUsagePercent < 70) return Texts::good.str();
+  else if (heapUsagePercent < 85) return Texts::warning.str();
+  else return Texts::critical.str();
 }
 
 const char* getWiFiSignalQualityKey() {
@@ -799,20 +822,20 @@ const char* getWiFiSignalQualityKey() {
 String getWiFiSignalQuality() {
   const char* key = getWiFiSignalQualityKey();
   if (key == nullptr) {
-    return T().unknown.str();
+    return Texts::unknown.str();
   }
-  if (strcmp(key, "excellent") == 0) return T().excellent.str();
-  if (strcmp(key, "very_good") == 0) return T().very_good.str();
-  if (strcmp(key, "good") == 0) return T().good.str();
-  if (strcmp(key, "weak") == 0) return T().weak.str();
-  if (strcmp(key, "very_weak") == 0) return T().very_weak.str();
-  return T().unknown.str();
+  if (strcmp(key, "excellent") == 0) return Texts::excellent.str();
+  if (strcmp(key, "very_good") == 0) return Texts::very_good.str();
+  if (strcmp(key, "good") == 0) return Texts::good.str();
+  if (strcmp(key, "weak") == 0) return Texts::weak.str();
+  if (strcmp(key, "very_weak") == 0) return Texts::very_weak.str();
+  return Texts::unknown.str();
 }
 
 // --- [TRANSLATION FIX] Use translation keys for WiFi auth modes ---
 String wifiAuthModeToString(wifi_auth_mode_t mode) {
   switch (mode) {
-    case WIFI_AUTH_OPEN: return T().wifi_open_auth.str();
+    case WIFI_AUTH_OPEN: return Texts::wifi_open_auth.str();
 #ifdef WIFI_AUTH_WEP
     case WIFI_AUTH_WEP: return "WEP";
 #endif
@@ -834,7 +857,7 @@ String wifiAuthModeToString(wifi_auth_mode_t mode) {
 #ifdef WIFI_AUTH_OWE
     case WIFI_AUTH_OWE: return "OWE";
 #endif
-    default: return T().unknown.str();
+    default: return Texts::unknown.str();
   }
 }
 
@@ -1069,13 +1092,13 @@ void collectDetailedMemory() {
   detailedMemory.psramTestPassed = testPSRAMQuick();
   
   if (detailedMemory.fragmentationPercent < 20) {
-    detailedMemory.memoryStatus = T().excellent.str();
+    detailedMemory.memoryStatus = Texts::excellent.str();
   } else if (detailedMemory.fragmentationPercent < 40) {
-    detailedMemory.memoryStatus = T().good.str();
+    detailedMemory.memoryStatus = Texts::good.str();
   } else if (detailedMemory.fragmentationPercent < 60) {
     detailedMemory.memoryStatus = "Moyen"; // Pas traduit (statut technique)
   } else {
-    detailedMemory.memoryStatus = T().critical.str();
+    detailedMemory.memoryStatus = Texts::critical.str();
   }
 }
 
@@ -1086,7 +1109,7 @@ void printPSRAMDiagnostic() {
   
   Serial.println("\r\nFlags de compilation detectes (indication du type supporte par la carte):");
   bool anyFlag = false;
-  String psramType = detailedMemory.psramType ? detailedMemory.psramType : T().unknown.str();
+  String psramType = detailedMemory.psramType ? detailedMemory.psramType : Texts::unknown.str();
   
   #ifdef CONFIG_SPIRAM
     Serial.println("  ✓ CONFIG_SPIRAM");
@@ -1321,7 +1344,7 @@ void testAllGPIOs() {
     result.tested = true;
     result.working = testSingleGPIO(gpios[i]);
     result.mode = "Digital I/O";
-    result.notes = result.working ? String(T().ok) : String(T().fail);
+    result.notes = result.working ? String(Texts::ok) : String(Texts::fail);
     gpioResults.push_back(result);
   }
   Serial.printf("GPIO: %d testes\r\n", numGPIO);
@@ -1340,7 +1363,7 @@ void detectBuiltinLED() {
     else BUILTIN_LED_PIN = 2;
   #endif
   
-  builtinLedTestResult = String(T().gpio) + " " + String(BUILTIN_LED_PIN) + " - " + String(T().not_tested);
+  builtinLedTestResult = String(Texts::gpio) + " " + String(BUILTIN_LED_PIN) + " - " + String(Texts::not_tested);
   Serial.printf("LED integree: GPIO %d\r\n", BUILTIN_LED_PIN);
 }
 
@@ -1370,7 +1393,7 @@ void testBuiltinLED() {
   
   digitalWrite(BUILTIN_LED_PIN, LOW);
   builtinLedAvailable = true;
-  builtinLedTestResult = String(T().test) + " " + String(T().ok) + " - GPIO " + String(BUILTIN_LED_PIN);
+  builtinLedTestResult = String(Texts::test) + " " + String(Texts::ok) + " - GPIO " + String(BUILTIN_LED_PIN);
   builtinLedTested = true;
   Serial.println("LED: OK");
 }
@@ -1404,7 +1427,7 @@ void detectNeoPixelSupport() {
   
   if (strip != nullptr) delete strip;
   strip = new Adafruit_NeoPixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
-  neopixelTestResult = String(T().gpio) + " " + String(LED_PIN) + " - " + String(T().not_tested);
+  neopixelTestResult = String(Texts::gpio) + " " + String(LED_PIN) + " - " + String(Texts::not_tested);
   Serial.printf("NeoPixel: GPIO %d\r\n", LED_PIN);
 }
 
@@ -1439,7 +1462,7 @@ void testNeoPixel() {
   strip->show();
 
   neopixelAvailable = true;
-  neopixelTestResult = String(T().test) + " " + String(T().ok) + " - GPIO " + String(LED_PIN);
+  neopixelTestResult = String(Texts::test) + " " + String(Texts::ok) + " - GPIO " + String(LED_PIN);
   neopixelTested = true;
   Serial.println("NeoPixel: OK");
 }
@@ -1545,14 +1568,14 @@ void detectOLED() {
   if(i2cDetected && oled.begin()) {
     oledAvailable = true;
     applyOLEDOrientation();
-    oledTestResult = String(T().detected) + " @ 0x" + String(SCREEN_ADDRESS, HEX);
+    oledTestResult = String(Texts::detected) + " @ 0x" + String(SCREEN_ADDRESS, HEX);
     Serial.println("OLED: Detecte!\r\n");
   } else {
     oledAvailable = false;
     if (i2cDetected) {
-      oledTestResult = String(T().i2c_peripherals) + " - " + String(T().fail);
+      oledTestResult = String(Texts::i2c_peripherals) + " - " + String(Texts::fail);
     } else {
-      oledTestResult = String(T().not_detected) + " (SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + ")";
+      oledTestResult = String(Texts::not_detected) + " (SDA:" + String(I2C_SDA) + " SCL:" + String(I2C_SCL) + ")";
     }
     Serial.println("OLED: Non detecte\r\n");
   }
@@ -1651,7 +1674,7 @@ void oledStepProgressBar() {
   applyOLEDOrientation();
   oled.clearBuffer();
   oled.setFont(u8g2_font_6x10_tf);
-  String loadingText = String(T().loading);
+  String loadingText = String(Texts::loading);
   oled.drawStr(20, 15, loadingText.c_str());
   oled.sendBuffer();
 
@@ -1733,16 +1756,16 @@ bool performOLEDStep(const String &stepId) {
 }
 
 String getOLEDStepLabel(const String &stepId) {
-  if (stepId == "welcome") return String(T().oled_step_welcome);
-  if (stepId == "big_text") return String(T().oled_step_big_text);
-  if (stepId == "text_sizes") return String(T().oled_step_text_sizes);
-  if (stepId == "shapes") return String(T().oled_step_shapes);
-  if (stepId == "horizontal_lines") return String(T().oled_step_horizontal_lines);
-  if (stepId == "diagonals") return String(T().oled_step_diagonals);
-  if (stepId == "moving_square") return String(T().oled_step_moving_square);
-  if (stepId == "progress_bar") return String(T().oled_step_progress_bar);
-  if (stepId == "scroll_text") return String(T().oled_step_scroll_text);
-  if (stepId == "final_message") return String(T().oled_step_final_message);
+  if (stepId == "welcome") return String(Texts::oled_step_welcome);
+  if (stepId == "big_text") return String(Texts::oled_step_big_text);
+  if (stepId == "text_sizes") return String(Texts::oled_step_text_sizes);
+  if (stepId == "shapes") return String(Texts::oled_step_shapes);
+  if (stepId == "horizontal_lines") return String(Texts::oled_step_horizontal_lines);
+  if (stepId == "diagonals") return String(Texts::oled_step_diagonals);
+  if (stepId == "moving_square") return String(Texts::oled_step_moving_square);
+  if (stepId == "progress_bar") return String(Texts::oled_step_progress_bar);
+  if (stepId == "scroll_text") return String(Texts::oled_step_scroll_text);
+  if (stepId == "final_message") return String(Texts::oled_step_final_message);
   return stepId;
 }
 
@@ -1763,7 +1786,7 @@ void testOLED() {
   oledStepFinalMessage();
 
   oledTested = true;
-  oledTestResult = String(T().test) + " " + String(T().ok) + " - 128x64";
+  oledTestResult = String(Texts::test) + " " + String(Texts::ok) + " - 128x64";
   Serial.println("OLED: Tests complets OK\r\n");
 }
 
@@ -1813,7 +1836,7 @@ void testADC() {
     Serial.printf("GPIO%d: %d (%.2fV)\r\n", reading.pin, reading.rawValue, reading.voltage);
   }
   
-  adcTestResult = String(numADC) + " " + String(T().channels) + " - " + String(T().ok);
+  adcTestResult = String(numADC) + " " + String(Texts::channels) + " - " + String(Texts::ok);
   Serial.printf("ADC: %d canaux testes\r\n", numADC);
 }
 
@@ -1843,7 +1866,7 @@ void testPWM() {
   ledcWrite(testPin, 0);
   ledcDetach(testPin);
   
-  pwmTestResult = String(T().test) + " " + String(T().ok) + " - GPIO " + String(testPin);
+  pwmTestResult = String(Texts::test) + " " + String(Texts::ok) + " - GPIO " + String(testPin);
   Serial.println("PWM: OK");
 }
 
@@ -1902,7 +1925,7 @@ void testRGBLed() {
   Serial.println("\r\n=== TEST LED RGB ===");
 
   if (RGB_LED_PIN_R < 0 || RGB_LED_PIN_G < 0 || RGB_LED_PIN_B < 0) {
-    rgbLedTestResult = String(T().configuration_invalid);
+    rgbLedTestResult = String(Texts::configuration_invalid);
     rgbLedAvailable = false;
     Serial.println("LED RGB: Configuration invalide");
     return;
@@ -1931,7 +1954,7 @@ void testRGBLed() {
   delay(150);
   digitalWrite(RGB_LED_PIN_B, LOW);
 
-  rgbLedTestResult = String(T().ok);
+  rgbLedTestResult = String(Texts::ok);
   rgbLedAvailable = true;
   Serial.println("LED RGB: OK");
 }
@@ -1949,7 +1972,7 @@ void testBuzzer() {
   Serial.println("\r\n=== TEST BUZZER ===");
 
   if (BUZZER_PIN < 0) {
-    buzzerTestResult = String(T().configuration_invalid);
+    buzzerTestResult = String(Texts::configuration_invalid);
     buzzerAvailable = false;
     Serial.println("Buzzer: Configuration invalide");
     return;
@@ -1966,7 +1989,7 @@ void testBuzzer() {
   delay(220);
   noTone(BUZZER_PIN);
 
-  buzzerTestResult = String(T().ok);
+  buzzerTestResult = String(Texts::ok);
   buzzerAvailable = true;
   Serial.println("Buzzer: OK");
 }
@@ -1977,68 +2000,74 @@ void playBuzzerTone(int frequency, int duration) {
   }
 }
 
-// --- [NEW FEATURE] TEST DHT11 ---
-void testDHT11() {
-  Serial.println("\r\n=== TEST DHT11 ===");
+// --- [NEW FEATURE] DHT sensor helpers ---
+static inline const char* getDhtSensorName() {
+  return (DHT_SENSOR_TYPE == 22) ? "DHT22" : "DHT11";
+}
 
-  if (DHT11_PIN < 0) {
-    dht11TestResult = String(T().configuration_invalid);
-    dht11Available = false;
-    Serial.println("DHT11: Configuration invalide");
+// --- [NEW FEATURE] TEST DHT SENSOR ---
+void testDHTSensor() {
+  const char* sensorName = getDhtSensorName();
+  Serial.printf("\r\n=== TEST %s ===\r\n", sensorName);
+
+  if (DHT_PIN < 0) {
+    dhtTestResult = String(Texts::configuration_invalid);
+    dhtAvailable = false;
+    Serial.printf("%s: Configuration invalide\r\n", sensorName);
     return;
   }
 
-  Serial.printf("Lecture DHT11 - Pin:%d\r\n", DHT11_PIN);
+  Serial.printf("Lecture %s - Pin:%d\r\n", sensorName, DHT_PIN);
 
-  pinMode(DHT11_PIN, OUTPUT);
-  digitalWrite(DHT11_PIN, LOW);
+  pinMode(DHT_PIN, OUTPUT);
+  digitalWrite(DHT_PIN, LOW);
   delay(20);
-  digitalWrite(DHT11_PIN, HIGH);
+  digitalWrite(DHT_PIN, HIGH);
   delayMicroseconds(40);
-  pinMode(DHT11_PIN, INPUT_PULLUP);
+  pinMode(DHT_PIN, INPUT_PULLUP);
 
   uint8_t data[5] = {0};
   uint8_t bits[40] = {0};
 
   unsigned long timeout = millis();
-  while (digitalRead(DHT11_PIN) == HIGH) {
+  while (digitalRead(DHT_PIN) == HIGH) {
     if (millis() - timeout > 100) {
-      dht11TestResult = String(T().error_label);
-      dht11Available = false;
-      Serial.println("DHT11: Timeout");
+      dhtTestResult = String(Texts::error_label);
+      dhtAvailable = false;
+      Serial.printf("%s: Timeout\r\n", sensorName);
       return;
     }
   }
 
   timeout = millis();
-  while (digitalRead(DHT11_PIN) == LOW) {
+  while (digitalRead(DHT_PIN) == LOW) {
     if (millis() - timeout > 100) {
-      dht11TestResult = String(T().error_label);
-      dht11Available = false;
-      Serial.println("DHT11: Timeout");
+      dhtTestResult = String(Texts::error_label);
+      dhtAvailable = false;
+      Serial.printf("%s: Timeout\r\n", sensorName);
       return;
     }
   }
 
   timeout = millis();
-  while (digitalRead(DHT11_PIN) == HIGH) {
+  while (digitalRead(DHT_PIN) == HIGH) {
     if (millis() - timeout > 100) {
-      dht11TestResult = String(T().error_label);
-      dht11Available = false;
-      Serial.println("DHT11: Timeout");
+      dhtTestResult = String(Texts::error_label);
+      dhtAvailable = false;
+      Serial.printf("%s: Timeout\r\n", sensorName);
       return;
     }
   }
 
   for (int i = 0; i < 40; i++) {
     timeout = micros();
-    while (digitalRead(DHT11_PIN) == LOW) {
+    while (digitalRead(DHT_PIN) == LOW) {
       if (micros() - timeout > 100) break;
     }
 
     unsigned long t = micros();
     timeout = micros();
-    while (digitalRead(DHT11_PIN) == HIGH) {
+    while (digitalRead(DHT_PIN) == HIGH) {
       if (micros() - timeout > 100) break;
     }
 
@@ -2056,15 +2085,29 @@ void testDHT11() {
   }
 
   if (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF)) {
-    dht11Humidity = data[0];
-    dht11Temperature = data[2];
-    dht11TestResult = String(T().ok);
-    dht11Available = true;
-    Serial.printf("DHT11: T=%.1f°C H=%.1f%%\r\n", dht11Temperature, dht11Humidity);
+    if (DHT_SENSOR_TYPE == 22) {
+      uint16_t rawHumidity = (static_cast<uint16_t>(data[0]) << 8) | data[1];
+      uint16_t rawTemperature = (static_cast<uint16_t>(data[2]) << 8) | data[3];
+      bool negative = rawTemperature & 0x8000;
+      if (negative) {
+        rawTemperature &= 0x7FFF;
+      }
+      dhtHumidity = rawHumidity * 0.1f;
+      dhtTemperature = rawTemperature * 0.1f;
+      if (negative) {
+        dhtTemperature = -dhtTemperature;
+      }
+    } else {
+      dhtHumidity = static_cast<float>(data[0]) + static_cast<float>(data[1]) * 0.1f;
+      dhtTemperature = static_cast<float>(data[2]) + static_cast<float>(data[3]) * 0.1f;
+    }
+    dhtTestResult = String(Texts::ok);
+    dhtAvailable = true;
+    Serial.printf("%s: T=%.1f°C H=%.1f%%\r\n", sensorName, dhtTemperature, dhtHumidity);
   } else {
-    dht11TestResult = String(T().error_label);
-    dht11Available = false;
-    Serial.println("DHT11: Checksum error");
+    dhtTestResult = String(Texts::error_label);
+    dhtAvailable = false;
+    Serial.printf("%s: Checksum error\r\n", sensorName);
   }
 }
 
@@ -2073,7 +2116,7 @@ void testLightSensor() {
   Serial.println("\r\n=== TEST LIGHT SENSOR ===");
 
   if (LIGHT_SENSOR_PIN < 0) {
-    lightSensorTestResult = String(T().configuration_invalid);
+    lightSensorTestResult = String(Texts::configuration_invalid);
     lightSensorAvailable = false;
     Serial.println("Light Sensor: Configuration invalide");
     return;
@@ -2091,7 +2134,7 @@ void testLightSensor() {
   }
   lightSensorValue = sum / samples;
 
-  lightSensorTestResult = String(T().ok);
+  lightSensorTestResult = String(Texts::ok);
   lightSensorAvailable = true;
   Serial.printf("Light Sensor: %d\r\n", lightSensorValue);
 }
@@ -2101,7 +2144,7 @@ void testDistanceSensor() {
   Serial.println("\r\n=== TEST DISTANCE SENSOR (HC-SR04) ===");
 
   if (DISTANCE_TRIG_PIN < 0 || DISTANCE_ECHO_PIN < 0) {
-    distanceSensorTestResult = String(T().configuration_invalid);
+    distanceSensorTestResult = String(Texts::configuration_invalid);
     distanceSensorAvailable = false;
     Serial.println("Distance Sensor: Configuration invalide");
     return;
@@ -2122,11 +2165,11 @@ void testDistanceSensor() {
 
   if (duration > 0) {
     distanceValue = duration * 0.034 / 2;
-    distanceSensorTestResult = String(T().ok);
+    distanceSensorTestResult = String(Texts::ok);
     distanceSensorAvailable = true;
     Serial.printf("Distance: %.2f cm\r\n", distanceValue);
   } else {
-    distanceSensorTestResult = String(T().error_label);
+    distanceSensorTestResult = String(Texts::error_label);
     distanceSensorAvailable = false;
     Serial.println("Distance Sensor: No echo");
   }
@@ -2137,7 +2180,7 @@ void testMotionSensor() {
   Serial.println("\r\n=== TEST MOTION SENSOR (PIR) ===");
 
   if (MOTION_SENSOR_PIN < 0) {
-    motionSensorTestResult = String(T().configuration_invalid);
+    motionSensorTestResult = String(Texts::configuration_invalid);
     motionSensorAvailable = false;
     Serial.println("Motion Sensor: Configuration invalide");
     return;
@@ -2150,7 +2193,7 @@ void testMotionSensor() {
   yield();
   motionDetected = digitalRead(MOTION_SENSOR_PIN);
 
-  motionSensorTestResult = String(T().ok);
+  motionSensorTestResult = String(Texts::ok);
   motionSensorAvailable = true;
   Serial.printf("Motion: %s\r\n", motionDetected ? "Detected" : "None");
 }
@@ -2182,7 +2225,7 @@ void memoryStressTest() {
     free(ptr);
   }
   
-  stressTestResult = String(T().max_alloc) + ": " + String(maxAllocs) + " KB";
+  stressTestResult = String(Texts::max_alloc) + ": " + String(maxAllocs) + " KB";
   Serial.println("Stress test: OK");
 }
 
@@ -2360,12 +2403,12 @@ void handleBuiltinLEDConfig() {
     if (newGPIO >= 0 && newGPIO <= 48) {
       BUILTIN_LED_PIN = newGPIO;
       resetBuiltinLEDTest();
-      String message = String(T().config) + " " + String(T().gpio) + " " + String(BUILTIN_LED_PIN);
+      String message = String(Texts::config) + " " + String(Texts::gpio) + " " + String(BUILTIN_LED_PIN);
       sendOperationSuccess(message);
       return;
     }
   }
-  sendOperationError(400, T().gpio_invalid.str());
+  sendOperationError(400, Texts::gpio_invalid.str());
 }
 
 void handleBuiltinLEDTest() {
@@ -2373,7 +2416,7 @@ void handleBuiltinLEDTest() {
   bool started = startAsyncTest(builtinLedTestRunner, runBuiltinLedTestTask, alreadyRunning);
 
   if (started) {
-    sendActionResponse(202, true, String(T().test_in_progress), {
+    sendActionResponse(202, true, String(Texts::test_in_progress), {
       jsonBoolField("running", true),
       jsonStringField("result", builtinLedTestResult)
     });
@@ -2381,7 +2424,7 @@ void handleBuiltinLEDTest() {
   }
 
   if (alreadyRunning) {
-    sendActionResponse(200, true, String(T().test_in_progress), {
+    sendActionResponse(200, true, String(Texts::test_in_progress), {
       jsonBoolField("running", true),
       jsonStringField("result", builtinLedTestResult)
     });
@@ -2398,13 +2441,13 @@ void handleBuiltinLEDTest() {
 
 void handleBuiltinLEDControl() {
   if (!server.hasArg("action")) {
-    sendOperationError(400, T().configuration_invalid.str());
+    sendOperationError(400, Texts::configuration_invalid.str());
     return;
   }
 
   String action = server.arg("action");
   if (BUILTIN_LED_PIN == -1) {
-    sendOperationError(400, T().gpio_invalid.str());
+    sendOperationError(400, Texts::gpio_invalid.str());
     return;
   }
 
@@ -2418,7 +2461,7 @@ void handleBuiltinLEDControl() {
       digitalWrite(BUILTIN_LED_PIN, LOW);
       delay(200);
     }
-    message = String(T().blink) + " " + String(T().ok);
+    message = String(Texts::blink) + " " + String(Texts::ok);
   } else if (action == "fade") {
     for(int i = 0; i <= 255; i += 5) {
       analogWrite(BUILTIN_LED_PIN, i);
@@ -2429,13 +2472,13 @@ void handleBuiltinLEDControl() {
       delay(10);
     }
     digitalWrite(BUILTIN_LED_PIN, LOW);
-    message = String(T().fade) + " " + String(T().ok);
+    message = String(Texts::fade) + " " + String(Texts::ok);
   } else if (action == "off") {
     digitalWrite(BUILTIN_LED_PIN, LOW);
     builtinLedTested = false;
-    message = String(T().off);
+    message = String(Texts::off);
   } else {
-    sendOperationError(400, T().configuration_invalid.str());
+    sendOperationError(400, Texts::configuration_invalid.str());
     return;
   }
 
@@ -2453,12 +2496,12 @@ void handleNeoPixelConfig() {
       if (strip) delete strip;
       strip = new Adafruit_NeoPixel(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
       resetNeoPixelTest();
-      String message = String(T().config) + " " + String(T().gpio) + " " + String(LED_PIN);
+      String message = String(Texts::config) + " " + String(Texts::gpio) + " " + String(LED_PIN);
       sendOperationSuccess(message);
       return;
     }
   }
-  sendOperationError(400, T().configuration_invalid.str());
+  sendOperationError(400, Texts::configuration_invalid.str());
 }
 
 void handleNeoPixelTest() {
@@ -2466,7 +2509,7 @@ void handleNeoPixelTest() {
   bool started = startAsyncTest(neopixelTestRunner, runNeopixelTestTask, alreadyRunning);
 
   if (started) {
-    sendActionResponse(202, true, String(T().test_in_progress), {
+    sendActionResponse(202, true, String(Texts::test_in_progress), {
       jsonBoolField("running", true),
       jsonBoolField("available", neopixelAvailable),
       jsonStringField("result", neopixelTestResult)
@@ -2475,7 +2518,7 @@ void handleNeoPixelTest() {
   }
 
   if (alreadyRunning) {
-    sendActionResponse(200, true, String(T().test_in_progress), {
+    sendActionResponse(200, true, String(Texts::test_in_progress), {
       jsonBoolField("running", true),
       jsonBoolField("available", neopixelAvailable),
       jsonStringField("result", neopixelTestResult)
@@ -2494,13 +2537,13 @@ void handleNeoPixelTest() {
 
 void handleNeoPixelPattern() {
   if (!server.hasArg("pattern")) {
-    sendOperationError(400, T().configuration_invalid.str());
+    sendOperationError(400, Texts::configuration_invalid.str());
     return;
   }
 
   String pattern = server.arg("pattern");
   if (!strip) {
-    String message = String(T().neopixel) + " - " + String(T().not_detected);
+    String message = String(Texts::neopixel) + " - " + String(Texts::not_detected);
     sendOperationError(400, message);
     return;
   }
@@ -2508,23 +2551,23 @@ void handleNeoPixelPattern() {
   String message = "";
   if (pattern == "rainbow") {
     neopixelRainbow();
-    message = String(T().rainbow) + " " + String(T().ok);
+    message = String(Texts::rainbow) + " " + String(Texts::ok);
   } else if (pattern == "blink") {
     neopixelBlink(strip->Color(255, 0, 0), 5);
-    message = String(T().blink) + " " + String(T().ok);
+    message = String(Texts::blink) + " " + String(Texts::ok);
   } else if (pattern == "fade") {
     neopixelFade(strip->Color(0, 0, 255));
-    message = String(T().fade) + " " + String(T().ok);
+    message = String(Texts::fade) + " " + String(Texts::ok);
   } else if (pattern == "chase") {
     neopixelChase();
-    message = String(T().chase) + " " + String(T().ok);
+    message = String(Texts::chase) + " " + String(Texts::ok);
   } else if (pattern == "off") {
     strip->clear();
     strip->show();
     neopixelTested = false;
-    message = String(T().off);
+    message = String(Texts::off);
   } else {
-    sendOperationError(400, T().configuration_invalid.str());
+    sendOperationError(400, Texts::configuration_invalid.str());
     return;
   }
 
@@ -2533,7 +2576,7 @@ void handleNeoPixelPattern() {
 
 void handleNeoPixelColor() {
   if (!server.hasArg("r") || !server.hasArg("g") || !server.hasArg("b") || !strip) {
-    sendOperationError(400, T().configuration_invalid.str());
+    sendOperationError(400, Texts::configuration_invalid.str());
     return;
   }
 
@@ -2580,7 +2623,7 @@ void handleOLEDConfig() {
       return;
     }
   }
-  sendOperationError(400, T().configuration_invalid.str());
+  sendOperationError(400, Texts::configuration_invalid.str());
 }
 
 void handleOLEDTest() {
@@ -2588,7 +2631,7 @@ void handleOLEDTest() {
   bool started = startAsyncTest(oledTestRunner, runOledTestTask, alreadyRunning, 6144, 1);
 
   if (started) {
-    sendActionResponse(202, true, String(T().test_in_progress), {
+    sendActionResponse(202, true, String(Texts::test_in_progress), {
       jsonBoolField("running", true),
       jsonBoolField("available", oledAvailable),
       jsonStringField("result", oledTestResult)
@@ -2597,7 +2640,7 @@ void handleOLEDTest() {
   }
 
   if (alreadyRunning) {
-    sendActionResponse(200, true, String(T().test_in_progress), {
+    sendActionResponse(200, true, String(Texts::test_in_progress), {
       jsonBoolField("running", true),
       jsonBoolField("available", oledAvailable),
       jsonStringField("result", oledTestResult)
@@ -2616,38 +2659,38 @@ void handleOLEDTest() {
 
 void handleOLEDStep() {
   if (!server.hasArg("step")) {
-    sendOperationError(400, T().oled_step_unknown.str());
+    sendOperationError(400, Texts::oled_step_unknown.str());
     return;
   }
 
   String stepId = server.arg("step");
 
   if (!oledAvailable) {
-    sendActionResponse(200, false, T().oled_step_unavailable.str());
+    sendActionResponse(200, false, Texts::oled_step_unavailable.str());
     return;
   }
 
   bool ok = performOLEDStep(stepId);
   if (!ok) {
-    sendOperationError(400, T().oled_step_unknown.str());
+    sendOperationError(400, Texts::oled_step_unknown.str());
     return;
   }
 
   String label = getOLEDStepLabel(stepId);
-  String message = String(T().oled_step_executed_prefix) + " " + label;
+  String message = String(Texts::oled_step_executed_prefix) + " " + label;
   sendOperationSuccess(message);
 }
 
 void handleOLEDMessage() {
   if (!server.hasArg("message")) {
-    sendOperationError(400, T().configuration_invalid.str());
+    sendOperationError(400, Texts::configuration_invalid.str());
     return;
   }
 
   String message = server.arg("message");
   oledShowMessage(message);
   // --- [TRANSLATION FIX] Use translation key instead of hardcoded string ---
-  sendOperationSuccess(T().message_displayed.str());
+  sendOperationSuccess(Texts::message_displayed.str());
 }
 
 void handleADCTest() {
@@ -2690,9 +2733,9 @@ void handleRGBLedConfig() {
     RGB_LED_PIN_R = server.arg("r").toInt();
     RGB_LED_PIN_G = server.arg("g").toInt();
     RGB_LED_PIN_B = server.arg("b").toInt();
-    sendActionResponse(200, true, String(T().ok));
+    sendActionResponse(200, true, String(Texts::ok));
   } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
+    sendActionResponse(400, false, String(Texts::configuration_invalid));
   }
 }
 
@@ -2734,16 +2777,16 @@ void handleRGBLedColor() {
     setRGBLedColor(r, g, b);
     sendActionResponse(200, true, "RGB(" + String(r) + "," + String(g) + "," + String(b) + ")");
   } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
+    sendActionResponse(400, false, String(Texts::configuration_invalid));
   }
 }
 
 void handleBuzzerConfig() {
   if (server.hasArg("pin")) {
     BUZZER_PIN = server.arg("pin").toInt();
-    sendActionResponse(200, true, String(T().ok));
+    sendActionResponse(200, true, String(Texts::ok));
   } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
+    sendActionResponse(400, false, String(Texts::configuration_invalid));
   }
 }
 
@@ -2784,35 +2827,66 @@ void handleBuzzerTone() {
     playBuzzerTone(freq, duration);
     sendActionResponse(200, true, String(freq) + "Hz");
   } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
+    sendActionResponse(400, false, String(Texts::configuration_invalid));
   }
 }
 
-void handleDHT11Config() {
+void handleDHTConfig() {
+  bool updated = false;
+
   if (server.hasArg("pin")) {
-    DHT11_PIN = server.arg("pin").toInt();
-    sendActionResponse(200, true, String(T().ok));
+    DHT_PIN = server.arg("pin").toInt();
+    updated = true;
+  }
+
+  if (server.hasArg("type")) {
+    String rawType = server.arg("type");
+    rawType.trim();
+    rawType.toUpperCase();
+
+    uint8_t candidate = 0;
+    if (rawType == "DHT22" || rawType == "22") {
+      candidate = 22;
+    } else if (rawType == "DHT11" || rawType == "11") {
+      candidate = 11;
+    }
+
+    if (candidate == 11 || candidate == 22) {
+      DHT_SENSOR_TYPE = candidate;
+      updated = true;
+    } else {
+      sendActionResponse(400, false, String(Texts::configuration_invalid));
+      return;
+    }
+  }
+
+  if (updated) {
+    sendActionResponse(200,
+                       true,
+                       String(Texts::ok),
+                       {jsonNumberField("type", static_cast<int>(DHT_SENSOR_TYPE))});
   } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
+    sendActionResponse(400, false, String(Texts::configuration_invalid));
   }
 }
 
-void handleDHT11Test() {
-  testDHT11();
+void handleDHTTest() {
+  testDHTSensor();
   sendJsonResponse(200, {
-    jsonBoolField("success", dht11Available),
-    jsonStringField("result", dht11TestResult),
-    jsonFloatField("temperature", dht11Temperature, 1),
-    jsonFloatField("humidity", dht11Humidity, 1)
+    jsonBoolField("success", dhtAvailable),
+    jsonStringField("result", dhtTestResult),
+    jsonFloatField("temperature", dhtTemperature, 1),
+    jsonFloatField("humidity", dhtHumidity, 1),
+    jsonNumberField("type", static_cast<int>(DHT_SENSOR_TYPE))
   });
 }
 
 void handleLightSensorConfig() {
   if (server.hasArg("pin")) {
     LIGHT_SENSOR_PIN = server.arg("pin").toInt();
-    sendActionResponse(200, true, String(T().ok));
+    sendActionResponse(200, true, String(Texts::ok));
   } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
+    sendActionResponse(400, false, String(Texts::configuration_invalid));
   }
 }
 
@@ -2829,9 +2903,9 @@ void handleDistanceSensorConfig() {
   if (server.hasArg("trig") && server.hasArg("echo")) {
     DISTANCE_TRIG_PIN = server.arg("trig").toInt();
     DISTANCE_ECHO_PIN = server.arg("echo").toInt();
-    sendActionResponse(200, true, String(T().ok));
+    sendActionResponse(200, true, String(Texts::ok));
   } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
+    sendActionResponse(400, false, String(Texts::configuration_invalid));
   }
 }
 
@@ -2847,9 +2921,9 @@ void handleDistanceSensorTest() {
 void handleMotionSensorConfig() {
   if (server.hasArg("pin")) {
     MOTION_SENSOR_PIN = server.arg("pin").toInt();
-    sendActionResponse(200, true, String(T().ok));
+    sendActionResponse(200, true, String(Texts::ok));
   } else {
-    sendActionResponse(400, false, String(T().configuration_invalid));
+    sendActionResponse(400, false, String(Texts::configuration_invalid));
   }
 }
 
@@ -2888,20 +2962,20 @@ void handleStatus() {
 
   String btStatus = getBluetoothStateLabel();
   String btAdvertisingLabel = (bluetoothCapable && bluetoothAdvertising)
-                                  ? String(T().bluetooth_advertising)
-                                  : String(T().bluetooth_not_advertising);
+                                  ? String(Texts::bluetooth_advertising)
+                                  : String(Texts::bluetooth_not_advertising);
   const char* btSupportKey = getBluetoothSupportKey();
   const char* btStatusKey = getBluetoothStateKey();
   const char* btAdvKey = getBluetoothAdvertisingKey();
 #if BLE_STACK_SUPPORTED
   bool btConnected = bluetoothCapable && bluetoothClientConnected;
   const char* btConnectionKey = getBluetoothConnectionKey();
-  String btConnectionLabel = btConnected ? String(T().bluetooth_client_connected)
-                                         : String(T().bluetooth_client_disconnected);
+  String btConnectionLabel = btConnected ? String(Texts::bluetooth_client_connected)
+                                         : String(Texts::bluetooth_client_disconnected);
 #else
   bool btConnected = false;
   const char* btConnectionKey = "bluetooth_client_disconnected";
-  String btConnectionLabel = String(T().bluetooth_client_disconnected);
+  String btConnectionLabel = String(Texts::bluetooth_client_disconnected);
 #endif
 
   String json;
@@ -3077,20 +3151,20 @@ void handleOverview() {
   // --- [NEW FEATURE] Synthèse Bluetooth ---
   String btStatus = getBluetoothStateLabel();
   String btAdvertisingLabel = (bluetoothCapable && bluetoothAdvertising)
-                                  ? String(T().bluetooth_advertising)
-                                  : String(T().bluetooth_not_advertising);
+                                  ? String(Texts::bluetooth_advertising)
+                                  : String(Texts::bluetooth_not_advertising);
   const char* btStatusKey = getBluetoothStateKey();
   const char* btAdvKey = getBluetoothAdvertisingKey();
   const char* btSupportKey = getBluetoothSupportKey();
 #if BLE_STACK_SUPPORTED
   bool btConnected = bluetoothCapable && bluetoothClientConnected;
   const char* btConnectionKey = getBluetoothConnectionKey();
-  String btConnectionLabel = btConnected ? String(T().bluetooth_client_connected)
-                                         : String(T().bluetooth_client_disconnected);
+  String btConnectionLabel = btConnected ? String(Texts::bluetooth_client_connected)
+                                         : String(Texts::bluetooth_client_disconnected);
 #else
   bool btConnected = false;
   const char* btConnectionKey = "bluetooth_client_disconnected";
-  String btConnectionLabel = String(T().bluetooth_client_disconnected);
+  String btConnectionLabel = String(Texts::bluetooth_client_disconnected);
 #endif
   json += "\"bluetooth\":{";
   json += "\"supported\":" + String(bluetoothCapable ? "true" : "false") + ",";
@@ -3128,7 +3202,7 @@ void handleMemoryDetails() {
   json += "\"psram\":{\"available\":" + String(detailedMemory.psramAvailable ? "true" : "false") +
           ",\"configured\":" + String(detailedMemory.psramConfigured ? "true" : "false") +
           ",\"supported\":" + String(detailedMemory.psramBoardSupported ? "true" : "false") +
-          ",\"type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : T().unknown.str()) + "\"" +
+          ",\"type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : Texts::unknown.str()) + "\"" +
           ",\"total\":" + String(detailedMemory.psramTotal) + ",\"free\":" + String(detailedMemory.psramFree) + "},";
   json += "\"sram\":{\"total\":" + String(detailedMemory.sramTotal) + ",\"free\":" + String(detailedMemory.sramFree) + "},";
   json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",\"status\":\"" + detailedMemory.memoryStatus + "\"}";
@@ -3144,38 +3218,38 @@ void handleExportTXT() {
   String txt;
   txt.reserve(4500);  // Reserve memory to avoid reallocations during export
   txt = "========================================\r\n";
-  txt += String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "\r\n";
+  txt += String(Texts::title) + " " + String(Texts::version) + String(DIAGNOSTIC_VERSION) + "\r\n";
   txt += "========================================\r\n\r\n";
   
   txt += "=== CHIP ===\r\n";
-  txt += String(T().model) + ": " + diagnosticData.chipModel + " " + String(T().revision) + diagnosticData.chipRevision + "\r\n";
-  txt += "CPU: " + String(diagnosticData.cpuCores) + " " + String(T().cores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz\r\n";
+  txt += String(Texts::model) + ": " + diagnosticData.chipModel + " " + String(Texts::revision) + diagnosticData.chipRevision + "\r\n";
+  txt += "CPU: " + String(diagnosticData.cpuCores) + " " + String(Texts::cores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz\r\n";
   txt += "MAC WiFi: " + diagnosticData.macAddress + "\r\n";
   txt += "SDK: " + diagnosticData.sdkVersion + "\r\n";
   txt += "ESP-IDF: " + diagnosticData.idfVersion + "\r\n";
   if (diagnosticData.temperature != -999) {
-    txt += String(T().cpu_temp) + ": " + String(diagnosticData.temperature, 1) + " °C\r\n";
+    txt += String(Texts::cpu_temp) + ": " + String(diagnosticData.temperature, 1) + " °C\r\n";
   }
   txt += "\r\n";
   
-  txt += "=== " + String(T().memory_details) + " ===\r\n";
-  txt += "Flash (" + String(T().board) + "): " + String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB\r\n";
+  txt += "=== " + String(Texts::memory_details) + " ===\r\n";
+  txt += "Flash (" + String(Texts::board) + "): " + String(detailedMemory.flashSizeReal / 1048576.0, 2) + " MB\r\n";
   txt += "Flash (IDE): " + String(detailedMemory.flashSizeChip / 1048576.0, 2) + " MB\r\n";
-  txt += String(T().flash_type) + ": " + getFlashType() + " @ " + getFlashSpeed() + "\r\n";
+  txt += String(Texts::flash_type) + ": " + getFlashType() + " @ " + getFlashSpeed() + "\r\n";
   txt += "PSRAM: " + String(detailedMemory.psramTotal / 1048576.0, 2) + " MB";
   if (detailedMemory.psramAvailable) {
-    txt += " (" + String(T().free) + ": " + String(detailedMemory.psramFree / 1048576.0, 2) + " MB)\r\n";
+    txt += " (" + String(Texts::free) + ": " + String(detailedMemory.psramFree / 1048576.0, 2) + " MB)\r\n";
   } else if (detailedMemory.psramBoardSupported) {
-    String psramHint = String(T().enable_psram_hint);
+    String psramHint = String(Texts::enable_psram_hint);
     psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
-    txt += " (" + String(T().supported_not_enabled) + " - " + psramHint + ")\r\n";
+    txt += " (" + String(Texts::supported_not_enabled) + " - " + psramHint + ")\r\n";
   } else {
-    txt += " (" + String(T().not_detected) + ")\r\n";
+    txt += " (" + String(Texts::not_detected) + ")\r\n";
   }
   txt += "SRAM: " + String(detailedMemory.sramTotal / 1024.0, 2) + " KB";
-  txt += " (" + String(T().free) + ": " + String(detailedMemory.sramFree / 1024.0, 2) + " KB)\r\n";
-  txt += String(T().memory_fragmentation) + ": " + String(detailedMemory.fragmentationPercent, 1) + "%\r\n";
-  txt += String(T().memory_status) + ": " + detailedMemory.memoryStatus + "\r\n";
+  txt += " (" + String(Texts::free) + ": " + String(detailedMemory.sramFree / 1024.0, 2) + " KB)\r\n";
+  txt += String(Texts::memory_fragmentation) + ": " + String(detailedMemory.fragmentationPercent, 1) + "%\r\n";
+  txt += String(Texts::memory_status) + ": " + detailedMemory.memoryStatus + "\r\n";
   txt += "\r\n";
   
   txt += "=== WIFI ===\r\n";
@@ -3183,46 +3257,46 @@ void handleExportTXT() {
   txt += "RSSI: " + String(diagnosticData.wifiRSSI) + " dBm (" + getWiFiSignalQuality() + ")\r\n";
   txt += "IP: " + diagnosticData.ipAddress + "\r\n";
   txt += "Lien constant: " + getStableAccessURL() + " (" + String(diagnosticData.mdnsAvailable ? "actif" : "en attente") + ")\r\n";
-  txt += String(T().subnet_mask) + ": " + WiFi.subnetMask().toString() + "\r\n";
-  txt += String(T().gateway) + ": " + WiFi.gatewayIP().toString() + "\r\n";
+  txt += String(Texts::subnet_mask) + ": " + WiFi.subnetMask().toString() + "\r\n";
+  txt += String(Texts::gateway) + ": " + WiFi.gatewayIP().toString() + "\r\n";
   txt += "DNS: " + WiFi.dnsIP().toString() + "\r\n";
   txt += "\r\n";
 
   txt += "=== BLUETOOTH ===\r\n";
   if (!bluetoothCapable) {
-    txt += String(T().bluetooth_not_supported) + "\r\n";
+    txt += String(Texts::bluetooth_not_supported) + "\r\n";
   } else {
-    txt += String(T().bluetooth_status) + ": " + getBluetoothStateLabel() + "\r\n";
-    txt += String(T().bluetooth_name) + ": " + bluetoothDeviceName + "\r\n";
-    txt += String(T().bluetooth_mac) + ": " + diagnosticData.bluetoothAddress + "\r\n";
-    txt += String(T().bluetooth_advertising) + ": " + String((bluetoothCapable && bluetoothAdvertising) ? "ON" : "OFF") + "\r\n";
+    txt += String(Texts::bluetooth_status) + ": " + getBluetoothStateLabel() + "\r\n";
+    txt += String(Texts::bluetooth_name) + ": " + bluetoothDeviceName + "\r\n";
+    txt += String(Texts::bluetooth_mac) + ": " + diagnosticData.bluetoothAddress + "\r\n";
+    txt += String(Texts::bluetooth_advertising) + ": " + String((bluetoothCapable && bluetoothAdvertising) ? "ON" : "OFF") + "\r\n";
   }
   txt += "\r\n";
 
   txt += "=== GPIO ===\r\n";
-  txt += String(T().total_gpio) + ": " + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "\r\n";
-  txt += String(T().gpio_list) + ": " + diagnosticData.gpioList + "\r\n";
+  txt += String(Texts::total_gpio) + ": " + String(diagnosticData.totalGPIO) + " " + String(Texts::pins) + "\r\n";
+  txt += String(Texts::gpio_list) + ": " + diagnosticData.gpioList + "\r\n";
   txt += "\r\n";
   
-  txt += "=== " + String(T().i2c_peripherals) + " ===\r\n";
-  txt += String(T().device_count) + ": " + String(diagnosticData.i2cCount) + " - " + diagnosticData.i2cDevices + "\r\n";
+  txt += "=== " + String(Texts::i2c_peripherals) + " ===\r\n";
+  txt += String(Texts::device_count) + ": " + String(diagnosticData.i2cCount) + " - " + diagnosticData.i2cDevices + "\r\n";
   txt += "SPI: " + spiInfo + "\r\n";
   txt += "\r\n";
   
-  txt += "=== " + String(T().test) + " ===\r\n";
-  txt += String(T().builtin_led) + ": " + builtinLedTestResult + "\r\n";
-  txt += String(T().neopixel) + ": " + neopixelTestResult + "\r\n";
+  txt += "=== " + String(Texts::test) + " ===\r\n";
+  txt += String(Texts::builtin_led) + ": " + builtinLedTestResult + "\r\n";
+  txt += String(Texts::neopixel) + ": " + neopixelTestResult + "\r\n";
   txt += "OLED: " + oledTestResult + "\r\n";
   txt += "ADC: " + adcTestResult + "\r\n";
   txt += "PWM: " + pwmTestResult + "\r\n";
   txt += "\r\n";
   
-  txt += "=== " + String(T().performance_bench) + " ===\r\n";
+  txt += "=== " + String(Texts::performance_bench) + " ===\r\n";
   if (diagnosticData.cpuBenchmark > 0) {
     txt += "CPU: " + String(diagnosticData.cpuBenchmark) + " us (" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + " MFLOPS)\r\n";
-    txt += String(T().memory_benchmark) + ": " + String(diagnosticData.memBenchmark) + " us\r\n";
+    txt += String(Texts::memory_benchmark) + ": " + String(diagnosticData.memBenchmark) + " us\r\n";
   } else {
-    txt += String(T().not_tested) + "\r\n";
+    txt += String(Texts::not_tested) + "\r\n";
   }
   txt += "Stress test: " + stressTestResult + "\r\n";
   txt += "\r\n";
@@ -3232,11 +3306,11 @@ void handleExportTXT() {
   unsigned long hours = minutes / 60;
   unsigned long days = hours / 24;
   txt += "=== SYSTEM ===\r\n";
-  txt += String(T().uptime) + ": " + String(days) + "d " + String(hours % 24) + "h " + String(minutes % 60) + "m\r\n";
-  txt += String(T().last_reset) + ": " + getResetReason() + "\r\n";
+  txt += String(Texts::uptime) + ": " + String(days) + "d " + String(hours % 24) + "h " + String(minutes % 60) + "m\r\n";
+  txt += String(Texts::last_reset) + ": " + getResetReason() + "\r\n";
   txt += "\r\n";
   txt += "========================================\r\n";
-  txt += String(T().export_generated) + " " + String(millis()/1000) + "s " + String(T().export_after_boot) + "\r\n";
+  txt += String(Texts::export_generated) + " " + String(millis()/1000) + "s " + String(Texts::export_after_boot) + "\r\n";
   txt += "========================================\r\n";
   
   server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v"+ String(DIAGNOSTIC_VERSION) +".txt");
@@ -3273,7 +3347,7 @@ void handleExportJSON() {
   json += "\"psram_free_mb\":" + String(detailedMemory.psramFree / 1048576.0, 2) + ",";
   json += "\"psram_available\":" + String(detailedMemory.psramAvailable ? "true" : "false") + ",";
   json += "\"psram_supported\":" + String(detailedMemory.psramBoardSupported ? "true" : "false") + ",";
-  json += "\"psram_type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : T().unknown.str()) + "\",";
+  json += "\"psram_type\":\"" + String(detailedMemory.psramType ? detailedMemory.psramType : Texts::unknown.str()) + "\",";
   json += "\"sram_kb\":" + String(detailedMemory.sramTotal / 1024.0, 2) + ",";
   json += "\"sram_free_kb\":" + String(detailedMemory.sramFree / 1024.0, 2) + ",";
   json += "\"fragmentation\":" + String(detailedMemory.fragmentationPercent, 1) + ",";
@@ -3359,64 +3433,64 @@ void handleExportCSV() {
 
   String csv;
   csv.reserve(4000);  // Reserve memory to avoid reallocations during export
-  csv = String(T().category) + "," + String(T().parameter) + "," + String(T().value) + "\r\n";
+  csv = String(Texts::category) + "," + String(Texts::parameter) + "," + String(Texts::value) + "\r\n";
   
-  csv += "Chip," + String(T().model) + "," + diagnosticData.chipModel + "\r\n";
-  csv += "Chip," + String(T().revision) + "," + diagnosticData.chipRevision + "\r\n";
-  csv += "Chip,CPU " + String(T().cores) + "," + String(diagnosticData.cpuCores) + "\r\n";
-  csv += "Chip," + String(T().frequency) + " MHz," + String(diagnosticData.cpuFreqMHz) + "\r\n";
+  csv += "Chip," + String(Texts::model) + "," + diagnosticData.chipModel + "\r\n";
+  csv += "Chip," + String(Texts::revision) + "," + diagnosticData.chipRevision + "\r\n";
+  csv += "Chip,CPU " + String(Texts::cores) + "," + String(diagnosticData.cpuCores) + "\r\n";
+  csv += "Chip," + String(Texts::frequency) + " MHz," + String(diagnosticData.cpuFreqMHz) + "\r\n";
   csv += "Chip,MAC," + diagnosticData.macAddress + "\r\n";
   if (diagnosticData.temperature != -999) {
-    csv += "Chip," + String(T().cpu_temp) + " C," + String(diagnosticData.temperature, 1) + "\r\n";
+    csv += "Chip," + String(Texts::cpu_temp) + " C," + String(diagnosticData.temperature, 1) + "\r\n";
   }
   
-  csv += String(T().memory_details) + ",Flash MB (" + String(T().board) + ")," + String(detailedMemory.flashSizeReal / 1048576.0, 2) + "\r\n";
-  csv += String(T().memory_details) + ",Flash MB (config)," + String(detailedMemory.flashSizeChip / 1048576.0, 2) + "\r\n";
-  csv += String(T().memory_details) + "," + String(T().flash_type) + "," + getFlashType() + "\r\n";
-  csv += String(T().memory_details) + ",PSRAM MB," + String(detailedMemory.psramTotal / 1048576.0, 2) + "\r\n";
-  csv += String(T().memory_details) + ",PSRAM " + String(T().free) + " MB," + String(detailedMemory.psramFree / 1048576.0, 2) + "\r\n";
-  String psramStatus = detailedMemory.psramAvailable ? String(T().detected_active)
-                                                    : (detailedMemory.psramBoardSupported ? String(T().supported_not_enabled)
-                                                                                        : String(T().not_detected));
-  csv += String(T().memory_details) + ",PSRAM Statut,\"" + psramStatus + "\"\r\n";
+  csv += String(Texts::memory_details) + ",Flash MB (" + String(Texts::board) + ")," + String(detailedMemory.flashSizeReal / 1048576.0, 2) + "\r\n";
+  csv += String(Texts::memory_details) + ",Flash MB (config)," + String(detailedMemory.flashSizeChip / 1048576.0, 2) + "\r\n";
+  csv += String(Texts::memory_details) + "," + String(Texts::flash_type) + "," + getFlashType() + "\r\n";
+  csv += String(Texts::memory_details) + ",PSRAM MB," + String(detailedMemory.psramTotal / 1048576.0, 2) + "\r\n";
+  csv += String(Texts::memory_details) + ",PSRAM " + String(Texts::free) + " MB," + String(detailedMemory.psramFree / 1048576.0, 2) + "\r\n";
+  String psramStatus = detailedMemory.psramAvailable ? String(Texts::detected_active)
+                                                    : (detailedMemory.psramBoardSupported ? String(Texts::supported_not_enabled)
+                                                                                        : String(Texts::not_detected));
+  csv += String(Texts::memory_details) + ",PSRAM Statut,\"" + psramStatus + "\"\r\n";
   if (!detailedMemory.psramAvailable && detailedMemory.psramBoardSupported) {
-    String psramHint = String(T().enable_psram_hint);
+    String psramHint = String(Texts::enable_psram_hint);
     psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
     psramHint.replace("\"", "'");
-    csv += String(T().memory_details) + ",PSRAM Conseils,\"" + psramHint + "\"\r\n";
+    csv += String(Texts::memory_details) + ",PSRAM Conseils,\"" + psramHint + "\"\r\n";
   }
-  csv += String(T().memory_details) + ",SRAM KB," + String(detailedMemory.sramTotal / 1024.0, 2) + "\r\n";
-  csv += String(T().memory_details) + ",SRAM " + String(T().free) + " KB," + String(detailedMemory.sramFree / 1024.0, 2) + "\r\n";
-  csv += String(T().memory_details) + "," + String(T().memory_fragmentation) + " %," + String(detailedMemory.fragmentationPercent, 1) + "\r\n";
+  csv += String(Texts::memory_details) + ",SRAM KB," + String(detailedMemory.sramTotal / 1024.0, 2) + "\r\n";
+  csv += String(Texts::memory_details) + ",SRAM " + String(Texts::free) + " KB," + String(detailedMemory.sramFree / 1024.0, 2) + "\r\n";
+  csv += String(Texts::memory_details) + "," + String(Texts::memory_fragmentation) + " %," + String(detailedMemory.fragmentationPercent, 1) + "\r\n";
   
   csv += "WiFi,SSID," + diagnosticData.wifiSSID + "\r\n";
   csv += "WiFi,RSSI dBm," + String(diagnosticData.wifiRSSI) + "\r\n";
   csv += "WiFi,IP," + diagnosticData.ipAddress + "\r\n";
-  csv += "WiFi," + String(T().gateway) + "," + WiFi.gatewayIP().toString() + "\r\n";
+  csv += "WiFi," + String(Texts::gateway) + "," + WiFi.gatewayIP().toString() + "\r\n";
 
-  csv += "Bluetooth," + String(T().bluetooth_status) + "," + getBluetoothStateLabel() + "\r\n";
-  csv += "Bluetooth," + String(T().bluetooth_name) + "," + bluetoothDeviceName + "\r\n";
-  csv += "Bluetooth," + String(T().bluetooth_mac) + "," + diagnosticData.bluetoothAddress + "\r\n";
-  csv += "Bluetooth," + String(T().bluetooth_advertising) + "," + String((bluetoothCapable && bluetoothAdvertising) ? "ON" : "OFF") + "\r\n";
+  csv += "Bluetooth," + String(Texts::bluetooth_status) + "," + getBluetoothStateLabel() + "\r\n";
+  csv += "Bluetooth," + String(Texts::bluetooth_name) + "," + bluetoothDeviceName + "\r\n";
+  csv += "Bluetooth," + String(Texts::bluetooth_mac) + "," + diagnosticData.bluetoothAddress + "\r\n";
+  csv += "Bluetooth," + String(Texts::bluetooth_advertising) + "," + String((bluetoothCapable && bluetoothAdvertising) ? "ON" : "OFF") + "\r\n";
 
-  csv += "GPIO," + String(T().total_gpio) + "," + String(diagnosticData.totalGPIO) + "\r\n";
+  csv += "GPIO," + String(Texts::total_gpio) + "," + String(diagnosticData.totalGPIO) + "\r\n";
   
-  csv += String(T().i2c_peripherals) + "," + String(T().device_count) + "," + String(diagnosticData.i2cCount) + "\r\n";
-  csv += String(T().i2c_peripherals) + "," + String(T().devices) + "," + diagnosticData.i2cDevices + "\r\n";
+  csv += String(Texts::i2c_peripherals) + "," + String(Texts::device_count) + "," + String(diagnosticData.i2cCount) + "\r\n";
+  csv += String(Texts::i2c_peripherals) + "," + String(Texts::devices) + "," + diagnosticData.i2cDevices + "\r\n";
   
-  csv += String(T().test) + "," + String(T().builtin_led) + "," + builtinLedTestResult + "\r\n";
-  csv += String(T().test) + "," + String(T().neopixel) + "," + neopixelTestResult + "\r\n";
-  csv += String(T().test) + ",OLED," + oledTestResult + "\r\n";
-  csv += String(T().test) + ",ADC," + adcTestResult + "\r\n";
-  csv += String(T().test) + ",PWM," + pwmTestResult + "\r\n";
+  csv += String(Texts::test) + "," + String(Texts::builtin_led) + "," + builtinLedTestResult + "\r\n";
+  csv += String(Texts::test) + "," + String(Texts::neopixel) + "," + neopixelTestResult + "\r\n";
+  csv += String(Texts::test) + ",OLED," + oledTestResult + "\r\n";
+  csv += String(Texts::test) + ",ADC," + adcTestResult + "\r\n";
+  csv += String(Texts::test) + ",PWM," + pwmTestResult + "\r\n";
   
   if (diagnosticData.cpuBenchmark > 0) {
-    csv += String(T().performance_bench) + ",CPU us," + String(diagnosticData.cpuBenchmark) + "\r\n";
-    csv += String(T().performance_bench) + "," + String(T().memory_benchmark) + " us," + String(diagnosticData.memBenchmark) + "\r\n";
+    csv += String(Texts::performance_bench) + ",CPU us," + String(diagnosticData.cpuBenchmark) + "\r\n";
+    csv += String(Texts::performance_bench) + "," + String(Texts::memory_benchmark) + " us," + String(diagnosticData.memBenchmark) + "\r\n";
   }
   
-  csv += "System," + String(T().uptime) + " ms," + String(diagnosticData.uptime) + "\r\n";
-  csv += "System," + String(T().last_reset) + "," + getResetReason() + "\r\n";
+  csv += "System," + String(Texts::uptime) + " ms," + String(diagnosticData.uptime) + "\r\n";
+  csv += "System," + String(Texts::last_reset) + "," + getResetReason() + "\r\n";
   
   server.sendHeader("Content-Disposition", "attachment; filename=esp32_diagnostic_v" + String(DIAGNOSTIC_VERSION) + ".csv");
   server.send(200, "text/csv; charset=utf-8", csv);
@@ -3426,7 +3500,7 @@ void handlePrintVersion() {
   collectDiagnosticInfo();
   collectDetailedMemory();
   
-  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</title>";
+  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>" + String(Texts::title) + " " + String(Texts::version) + String(DIAGNOSTIC_VERSION) + "</title>";
   html += "<style>";
   html += "@page{size:A4;margin:10mm}";
   html += "body{font:11px Arial;margin:10px;color:#333}";
@@ -3448,125 +3522,125 @@ void handlePrintVersion() {
   html += "<body onload='window.print()'>";
   
   // Header traduit
-  html += "<h1>" + String(T().title) + " " + String(T().version) + String(DIAGNOSTIC_VERSION) + "</h1>";
+  html += "<h1>" + String(Texts::title) + " " + String(Texts::version) + String(DIAGNOSTIC_VERSION) + "</h1>";
   html += "<div style='margin:10px 0;font-size:12px;color:#666'>";
-  html += String(T().export_generated) + " " + String(millis()/1000) + "s " + String(T().export_after_boot) + " | IP: " + diagnosticData.ipAddress;
+  html += String(Texts::export_generated) + " " + String(millis()/1000) + "s " + String(Texts::export_after_boot) + " | IP: " + diagnosticData.ipAddress;
   html += "</div>";
   
   // Chip
   html += "<div class='section'>";
-  html += "<h2>" + String(T().chip_info) + "</h2>";
+  html += "<h2>" + String(Texts::chip_info) + "</h2>";
   html += "<div class='grid'>";
-  html += "<div class='row'><b>" + String(T().full_model) + ":</b><span>" + diagnosticData.chipModel + " Rev" + diagnosticData.chipRevision + "</span></div>";
-  html += "<div class='row'><b>" + String(T().cpu_cores) + ":</b><span>" + String(diagnosticData.cpuCores) + " " + String(T().cores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz</span></div>";
-  html += "<div class='row'><b>" + String(T().mac_wifi) + ":</b><span>" + diagnosticData.macAddress + "</span></div>";
-  html += "<div class='row'><b>" + String(T().sdk_version) + ":</b><span>" + diagnosticData.sdkVersion + "</span></div>";
-  html += "<div class='row'><b>" + String(T().idf_version) + ":</b><span>" + diagnosticData.idfVersion + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::full_model) + ":</b><span>" + diagnosticData.chipModel + " Rev" + diagnosticData.chipRevision + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::cpu_cores) + ":</b><span>" + String(diagnosticData.cpuCores) + " " + String(Texts::cores) + " @ " + String(diagnosticData.cpuFreqMHz) + " MHz</span></div>";
+  html += "<div class='row'><b>" + String(Texts::mac_wifi) + ":</b><span>" + diagnosticData.macAddress + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::sdk_version) + ":</b><span>" + diagnosticData.sdkVersion + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::idf_version) + ":</b><span>" + diagnosticData.idfVersion + "</span></div>";
   if (diagnosticData.temperature != -999) {
-    html += "<div class='row'><b>" + String(T().cpu_temp) + ":</b><span>" + String(diagnosticData.temperature, 1) + " °C</span></div>";
+    html += "<div class='row'><b>" + String(Texts::cpu_temp) + ":</b><span>" + String(diagnosticData.temperature, 1) + " °C</span></div>";
   }
 
   unsigned long seconds = diagnosticData.uptime / 1000;
   unsigned long minutes = seconds / 60;
   unsigned long hours = minutes / 60;
   unsigned long days = hours / 24;
-  html += "<div class='row'><b>" + String(T().uptime) + ":</b><span>" + formatUptime(days, hours % 24, minutes % 60) + "</span></div>";
-  html += "<div class='row'><b>" + String(T().last_reset) + ":</b><span>" + getResetReason() + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::uptime) + ":</b><span>" + formatUptime(days, hours % 24, minutes % 60) + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::last_reset) + ":</b><span>" + getResetReason() + "</span></div>";
   html += "</div></div>";
 
   // Mémoire
   html += "<div class='section'>";
-  html += "<h2>" + String(T().memory_details) + "</h2>";
+  html += "<h2>" + String(Texts::memory_details) + "</h2>";
   html += "<table>";
-  html += "<tr><th>" + String(T().category) + "</th><th>" + String(T().total_size) + "</th><th>" + String(T().free) + "</th><th>" + String(T().used) + "</th><th>" + String(T().status) + "</th></tr>";
+  html += "<tr><th>" + String(Texts::category) + "</th><th>" + String(Texts::total_size) + "</th><th>" + String(Texts::free) + "</th><th>" + String(Texts::used) + "</th><th>" + String(Texts::status) + "</th></tr>";
 
   // Flash
   bool flashMatch = (detailedMemory.flashSizeReal == detailedMemory.flashSizeChip);
-  html += "<tr><td><b>" + String(T().flash_memory) + "</b></td>";
+  html += "<tr><td><b>" + String(Texts::flash_memory) + "</b></td>";
   html += "<td>" + String(detailedMemory.flashSizeReal / 1048576.0, 1) + " MB</td>";
   html += "<td>-</td><td>-</td>";
-  html += "<td><span class='badge " + String(flashMatch ? "badge-success'>" + String(T().ok) : "badge-warning'>" + String(T().ide_config)) + "</span></td></tr>";
+  html += "<td><span class='badge " + String(flashMatch ? "badge-success'>" + String(Texts::ok) : "badge-warning'>" + String(Texts::ide_config)) + "</span></td></tr>";
 
   // PSRAM
-  html += "<tr><td><b>" + String(T().psram_external) + "</b></td>";
+  html += "<tr><td><b>" + String(Texts::psram_external) + "</b></td>";
   html += "<td>" + String(detailedMemory.psramTotal / 1048576.0, 1) + " MB</td>";
   if (detailedMemory.psramAvailable) {
     html += "<td>" + String(detailedMemory.psramFree / 1048576.0, 1) + " MB</td>";
     html += "<td>" + String(detailedMemory.psramUsed / 1048576.0, 1) + " MB</td>";
-    html += "<td><span class='badge badge-success'>" + String(T().detected_active) + "</span></td>";
+    html += "<td><span class='badge badge-success'>" + String(Texts::detected_active) + "</span></td>";
   } else if (detailedMemory.psramBoardSupported) {
     html += "<td>-</td><td>-</td>";
-    String psramHint = String(T().enable_psram_hint);
+    String psramHint = String(Texts::enable_psram_hint);
     psramHint.replace("%TYPE%", detailedMemory.psramType ? detailedMemory.psramType : "PSRAM");
-    html += "<td><span class='badge badge-warning'>" + String(T().supported_not_enabled) + "</span><br><small>" + psramHint + "</small></td>";
+    html += "<td><span class='badge badge-warning'>" + String(Texts::supported_not_enabled) + "</span><br><small>" + psramHint + "</small></td>";
   } else {
     html += "<td>-</td><td>-</td>";
-    html += "<td><span class='badge badge-danger'>" + String(T().not_detected) + "</span></td>";
+    html += "<td><span class='badge badge-danger'>" + String(Texts::not_detected) + "</span></td>";
   }
   html += "</tr>";
 
   // SRAM
-  html += "<tr><td><b>" + String(T().internal_sram) + "</b></td>";
+  html += "<tr><td><b>" + String(Texts::internal_sram) + "</b></td>";
   html += "<td>" + String(detailedMemory.sramTotal / 1024.0, 1) + " KB</td>";
   html += "<td>" + String(detailedMemory.sramFree / 1024.0, 1) + " KB</td>";
   html += "<td>" + String(detailedMemory.sramUsed / 1024.0, 1) + " KB</td>";
   html += "<td><span class='badge badge-success'>" + detailedMemory.memoryStatus + "</span></td></tr>";
   html += "</table>";
-  html += "<div class='row'><b>" + String(T().memory_fragmentation) + ":</b><span>" + String(detailedMemory.fragmentationPercent, 1) + "% - " + detailedMemory.memoryStatus + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::memory_fragmentation) + ":</b><span>" + String(detailedMemory.fragmentationPercent, 1) + "% - " + detailedMemory.memoryStatus + "</span></div>";
   html += "</div>";
 
   // WiFi
   html += "<div class='section'>";
-  html += "<h2>" + String(T().wifi_connection) + "</h2>";
+  html += "<h2>" + String(Texts::wifi_connection) + "</h2>";
   html += "<div class='grid'>";
-  html += "<div class='row'><b>" + String(T().connected_ssid) + ":</b><span>" + diagnosticData.wifiSSID + "</span></div>";
-  html += "<div class='row'><b>" + String(T().signal_power) + ":</b><span>" + String(diagnosticData.wifiRSSI) + " dBm</span></div>";
-  html += "<div class='row'><b>" + String(T().signal_quality) + ":</b><span>" + getWiFiSignalQuality() + "</span></div>";
-  html += "<div class='row'><b>" + String(T().ip_address) + ":</b><span>" + diagnosticData.ipAddress + "</span></div>";
-  html += "<div class='row'><b>" + String(T().subnet_mask) + ":</b><span>" + WiFi.subnetMask().toString() + "</span></div>";
-  html += "<div class='row'><b>" + String(T().dns) + ":</b><span>" + WiFi.dnsIP().toString() + "</span></div>";
-  html += "<div class='row'><b>" + String(T().gateway) + ":</b><span>" + WiFi.gatewayIP().toString() + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::connected_ssid) + ":</b><span>" + diagnosticData.wifiSSID + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::signal_power) + ":</b><span>" + String(diagnosticData.wifiRSSI) + " dBm</span></div>";
+  html += "<div class='row'><b>" + String(Texts::signal_quality) + ":</b><span>" + getWiFiSignalQuality() + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::ip_address) + ":</b><span>" + diagnosticData.ipAddress + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::subnet_mask) + ":</b><span>" + WiFi.subnetMask().toString() + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::dns) + ":</b><span>" + WiFi.dnsIP().toString() + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::gateway) + ":</b><span>" + WiFi.gatewayIP().toString() + "</span></div>";
   html += "</div></div>";
 
   html += "<div class='section'>";
-  html += "<h2>" + String(T().bluetooth_section) + "</h2>";
+  html += "<h2>" + String(Texts::bluetooth_section) + "</h2>";
   html += "<div class='grid'>";
-  html += "<div class='row'><b>" + String(T().bluetooth_status) + ":</b><span>" + htmlEscape(getBluetoothStateLabel()) + "</span></div>";
-  html += "<div class='row'><b>" + String(T().bluetooth_name) + ":</b><span>" + htmlEscape(bluetoothDeviceName) + "</span></div>";
-  html += "<div class='row'><b>" + String(T().bluetooth_mac) + ":</b><span>" + htmlEscape(diagnosticData.bluetoothAddress) + "</span></div>";
-  String printAdvertising = bluetoothCapable && bluetoothAdvertising ? String(T().bluetooth_advertising) : String(T().bluetooth_not_advertising);
-  html += "<div class='row'><b>" + String(T().bluetooth_advertising_label) + ":</b><span>" + htmlEscape(printAdvertising) + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::bluetooth_status) + ":</b><span>" + htmlEscape(getBluetoothStateLabel()) + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::bluetooth_name) + ":</b><span>" + htmlEscape(bluetoothDeviceName) + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::bluetooth_mac) + ":</b><span>" + htmlEscape(diagnosticData.bluetoothAddress) + "</span></div>";
+  String printAdvertising = bluetoothCapable && bluetoothAdvertising ? String(Texts::bluetooth_advertising) : String(Texts::bluetooth_not_advertising);
+  html += "<div class='row'><b>" + String(Texts::bluetooth_advertising_label) + ":</b><span>" + htmlEscape(printAdvertising) + "</span></div>";
   html += "</div></div>";
 
   // GPIO et Périphériques
   html += "<div class='section'>";
-  html += "<h2>" + String(T().gpio_interfaces) + "</h2>";
+  html += "<h2>" + String(Texts::gpio_interfaces) + "</h2>";
   html += "<div class='grid'>";
-  html += "<div class='row'><b>" + String(T().total_gpio) + ":</b><span>" + String(diagnosticData.totalGPIO) + " " + String(T().pins) + "</span></div>";
-  html += "<div class='row'><b>" + String(T().i2c_peripherals) + ":</b><span>" + String(diagnosticData.i2cCount) + " " + String(T().devices) + " - " + diagnosticData.i2cDevices + "</span></div>";
-  html += "<div class='row'><b>" + String(T().spi_bus) + ":</b><span>" + spiInfo + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::total_gpio) + ":</b><span>" + String(diagnosticData.totalGPIO) + " " + String(Texts::pins) + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::i2c_peripherals) + ":</b><span>" + String(diagnosticData.i2cCount) + " " + String(Texts::devices) + " - " + diagnosticData.i2cDevices + "</span></div>";
+  html += "<div class='row'><b>" + String(Texts::spi_bus) + ":</b><span>" + spiInfo + "</span></div>";
   html += "</div></div>";
 
   // Tests Matériels
   html += "<div class='section'>";
-  html += "<h2>" + String(T().nav_tests) + "</h2>";
+  html += "<h2>" + String(Texts::nav_tests) + "</h2>";
   html += "<table>";
-  html += "<tr><th>" + String(T().parameter) + "</th><th>" + String(T().status) + "</th></tr>";
-  html += "<tr><td>" + String(T().builtin_led) + "</td><td>" + builtinLedTestResult + "</td></tr>";
-  html += "<tr><td>" + String(T().neopixel) + "</td><td>" + neopixelTestResult + "</td></tr>";
-  html += "<tr><td>" + String(T().oled_screen) + "</td><td>" + oledTestResult + "</td></tr>";
-  html += "<tr><td>" + String(T().adc_test) + "</td><td>" + adcTestResult + "</td></tr>";
-  html += "<tr><td>" + String(T().pwm_test) + "</td><td>" + pwmTestResult + "</td></tr>";
+  html += "<tr><th>" + String(Texts::parameter) + "</th><th>" + String(Texts::status) + "</th></tr>";
+  html += "<tr><td>" + String(Texts::builtin_led) + "</td><td>" + builtinLedTestResult + "</td></tr>";
+  html += "<tr><td>" + String(Texts::neopixel) + "</td><td>" + neopixelTestResult + "</td></tr>";
+  html += "<tr><td>" + String(Texts::oled_screen) + "</td><td>" + oledTestResult + "</td></tr>";
+  html += "<tr><td>" + String(Texts::adc_test) + "</td><td>" + adcTestResult + "</td></tr>";
+  html += "<tr><td>" + String(Texts::pwm_test) + "</td><td>" + pwmTestResult + "</td></tr>";
   html += "</table></div>";
 
   // Performance
   if (diagnosticData.cpuBenchmark > 0) {
     html += "<div class='section'>";
-    html += "<h2>" + String(T().performance_bench) + "</h2>";
+    html += "<h2>" + String(Texts::performance_bench) + "</h2>";
     html += "<div class='grid'>";
-    html += "<div class='row'><b>" + String(T().cpu_benchmark) + ":</b><span>" + String(diagnosticData.cpuBenchmark) + " µs (" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + " MFLOPS)</span></div>";
-    html += "<div class='row'><b>" + String(T().memory_benchmark) + ":</b><span>" + String(diagnosticData.memBenchmark) + " µs</span></div>";
-    html += "<div class='row'><b>" + String(T().memory_stress) + ":</b><span>" + stressTestResult + "</span></div>";
+    html += "<div class='row'><b>" + String(Texts::cpu_benchmark) + ":</b><span>" + String(diagnosticData.cpuBenchmark) + " µs (" + String(100000.0 / diagnosticData.cpuBenchmark, 2) + " MFLOPS)</span></div>";
+    html += "<div class='row'><b>" + String(Texts::memory_benchmark) + ":</b><span>" + String(diagnosticData.memBenchmark) + " µs</span></div>";
+    html += "<div class='row'><b>" + String(Texts::memory_stress) + ":</b><span>" + stressTestResult + "</span></div>";
     html += "</div></div>";
   }
   
@@ -3743,36 +3817,30 @@ static inline void appendInfoItem(String& chunk,
   chunk += F("</div></div>");
 }
 
-// --- [NEW FEATURE] Table de mapping JSON compacte ---
-struct TranslationJsonEntry {
-  const char* key;
-  TranslationField TranslationAccessor::* field;
-};
-
-static inline void appendTranslationEntry(String& json,
-                                          const TranslationAccessor& translations,
-                                          const TranslationJsonEntry& entry) {
-  if (json.length() > 1) {
-    json += ',';
-  }
-
-  json += '"';
-  json += entry.key;
-  json += "\":\"";
-  json += jsonEscape((translations.*(entry.field)).c_str());
-  json += '"';
+// --- [NEW FEATURE] English string export for the web interface ---
+String buildTranslationsJSON() {
+  String json;
+  json.reserve(20000);
+  json += '{';
+  bool first = true;
+#define APPEND_TEXT(identifier, value)                     \
+  do {                                                     \
+    if (!first) {                                          \
+      json += ',';                                         \
+    }                                                      \
+    first = false;                                         \
+    json += F("\"" #identifier "\":\"");             \
+    String fieldValue = Texts::identifier.str();           \
+    json += jsonEscape(fieldValue.c_str());                \
+    json += '"';                                          \
+  } while (0);
+  TEXT_RESOURCE_MAP(APPEND_TEXT);
+#undef APPEND_TEXT
+  json += '}';
+  return json;
 }
 
-static inline void appendTranslationEntries(
-    String& json,
-    const TranslationAccessor& translations,
-    const TranslationJsonEntry* entries,
-    size_t count) {
-  for (size_t i = 0; i < count; ++i) {
-    appendTranslationEntry(json, translations, entries[i]);
-  }
-}
-
+// --- [NEW FEATURE] Bluetooth helper utilities (English-only interface) ---
 String sanitizeBluetoothName(const String& raw) {
   String cleaned;
   cleaned.reserve(raw.length());
@@ -3825,28 +3893,28 @@ void syncBluetoothDiagnostics() {
 
 String getBluetoothStateLabel() {
   if (!bluetoothCapable) {
-    return String(T().bluetooth_not_supported);
+    return String(Texts::bluetooth_not_supported);
   }
   if (!bluetoothEnabled) {
-    return String(T().bluetooth_disabled);
+    return String(Texts::bluetooth_disabled);
   }
 #if BLE_STACK_SUPPORTED
   if (bluetoothClientConnected) {
-    return String(T().bluetooth_enabled);
+    return String(Texts::bluetooth_enabled);
   }
 #endif
   if (bluetoothAdvertising) {
-    return String(T().bluetooth_advertising);
+    return String(Texts::bluetooth_advertising);
   }
-  return String(T().bluetooth_not_advertising);
+  return String(Texts::bluetooth_not_advertising);
 }
 
 String getBluetoothSummaryLabel() {
   if (!bluetoothCapable) {
-    return String(T().bluetooth_not_supported);
+    return String(Texts::bluetooth_not_supported);
   }
   if (!bluetoothEnabled) {
-    return String(T().bluetooth_disabled);
+    return String(Texts::bluetooth_disabled);
   }
 
   ensureBluetoothName();
@@ -3854,16 +3922,16 @@ String getBluetoothSummaryLabel() {
   summary += " • ";
 #if BLE_STACK_SUPPORTED
   if (bluetoothClientConnected) {
-    summary += String(T().bluetooth_enabled);
+    summary += String(Texts::bluetooth_enabled);
   } else
 #endif
   {
-    summary += bluetoothAdvertising ? String(T().bluetooth_advertising) : String(T().bluetooth_not_advertising);
+    summary += bluetoothAdvertising ? String(Texts::bluetooth_advertising)
+                                    : String(Texts::bluetooth_not_advertising);
   }
   return summary;
 }
 
-// --- [NEW FEATURE] Clefs i18n pour l'état Bluetooth ---
 const char* getBluetoothStateKey() {
   if (!bluetoothCapable) {
     return "bluetooth_not_supported";
@@ -3905,16 +3973,16 @@ String buildBluetoothJSON(bool success, const String& message) {
   String status = getBluetoothStateLabel();
   String summary = getBluetoothSummaryLabel();
   String advertisingLabel = (bluetoothCapable && bluetoothAdvertising)
-                                ? String(T().bluetooth_advertising)
-                                : String(T().bluetooth_not_advertising);
+                                ? String(Texts::bluetooth_advertising)
+                                : String(Texts::bluetooth_not_advertising);
 #if BLE_STACK_SUPPORTED
   bool connected = bluetoothCapable && bluetoothClientConnected;
-  String connectionLabel = connected ? String(T().bluetooth_client_connected)
-                                     : String(T().bluetooth_client_disconnected);
+  String connectionLabel = connected ? String(Texts::bluetooth_client_connected)
+                                     : String(Texts::bluetooth_client_disconnected);
   const char* connectionKey = getBluetoothConnectionKey();
 #else
   bool connected = false;
-  String connectionLabel = String(T().bluetooth_client_disconnected);
+  String connectionLabel = String(Texts::bluetooth_client_disconnected);
   const char* connectionKey = "bluetooth_client_disconnected";
 #endif
 
@@ -3969,7 +4037,7 @@ void dispatchBluetoothTelemetry() {
   }
   bluetoothCharacteristic->setValue(reinterpret_cast<uint8_t*>(payload), length);
   bluetoothCharacteristic->notify();
-  Serial.printf("[BLE] Notification #%lu envoyée (%lus)\n",
+  Serial.printf("[BLE] Notification #%lu sent (%lus)\n",
                 static_cast<unsigned long>(bluetoothNotifyCounter),
                 static_cast<unsigned long>(uptimeSeconds));
 }
@@ -4013,11 +4081,10 @@ bool startBluetooth() {
     return true;
   }
 
-  // Feed watchdog before BLE initialization (can take several seconds)
   esp_task_wdt_reset();
 
   BLEDevice::init(bluetoothDeviceName.c_str());
-  esp_task_wdt_reset();  // Reset after BLE device init
+  esp_task_wdt_reset();
 
   bluetoothServer = BLEDevice::createServer();
   if (!bluetoothServer) {
@@ -4028,7 +4095,7 @@ bool startBluetooth() {
     lastBluetoothNotify = 0;
     return false;
   }
-  esp_task_wdt_reset();  // Reset after server creation
+  esp_task_wdt_reset();
 
   bluetoothServer->setCallbacks(new DiagnosticBLECallbacks());
 
@@ -4043,19 +4110,19 @@ bool startBluetooth() {
     lastBluetoothNotify = 0;
     return false;
   }
-  esp_task_wdt_reset();  // Reset after service creation
+  esp_task_wdt_reset();
 
   bluetoothCharacteristic = bluetoothService->createCharacteristic(
       BLEUUID(DIAG_BLE_CHARACTERISTIC_UUID),
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
   if (bluetoothCharacteristic) {
-    bluetoothCharacteristic->setValue("ESP32 Diagnostic prêt");
+    bluetoothCharacteristic->setValue("ESP32 Diagnostic ready");
     bluetoothCharacteristic->addDescriptor(new BLE2902());
   }
-  esp_task_wdt_reset();  // Reset after characteristic creation
+  esp_task_wdt_reset();
 
   bluetoothService->start();
-  esp_task_wdt_reset();  // Reset after service start
+  esp_task_wdt_reset();
 
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   if (!advertising) {
@@ -4078,7 +4145,7 @@ bool startBluetooth() {
   advertising->setMinPreferred(0x12);
   advertising->start();
   BLEDevice::startAdvertising();
-  esp_task_wdt_reset();  // Reset after advertising start
+  esp_task_wdt_reset();
 
   bluetoothEnabled = true;
   bluetoothAdvertising = true;
@@ -4121,338 +4188,6 @@ void stopBluetooth() {
   bluetoothAdvertising = false;
 }
 
-// --- [NEW FEATURE] Segmentation du JSON de traduction ---
-static inline void appendOverviewTranslations(String& json, const TranslationAccessor& translations) {
-  static const TranslationJsonEntry kEntries[] = {
-      {"title", &TranslationAccessor::title},
-      {"version", &TranslationAccessor::version},
-      {"nav_overview", &TranslationAccessor::nav_overview},
-      {"nav_leds", &TranslationAccessor::nav_leds},
-      {"nav_screens", &TranslationAccessor::nav_screens},
-      {"nav_tests", &TranslationAccessor::nav_tests},
-      {"nav_gpio", &TranslationAccessor::nav_gpio},
-      {"nav_wireless", &TranslationAccessor::nav_wireless},
-      {"nav_benchmark", &TranslationAccessor::nav_benchmark},
-      {"nav_export", &TranslationAccessor::nav_export},
-      {"nav_select_label", &TranslationAccessor::nav_select_label},
-      {"chip_info", &TranslationAccessor::chip_info},
-      {"full_model", &TranslationAccessor::full_model},
-      {"cpu_cores", &TranslationAccessor::cpu_cores},
-      {"mac_wifi", &TranslationAccessor::mac_wifi},
-      {"last_reset", &TranslationAccessor::last_reset},
-      {"poweron", &TranslationAccessor::poweron},
-      {"software_reset", &TranslationAccessor::software_reset},
-      {"deepsleep_exit", &TranslationAccessor::deepsleep_exit},
-      {"brownout", &TranslationAccessor::brownout},
-      {"other", &TranslationAccessor::other},
-      {"chip_features", &TranslationAccessor::chip_features},
-      {"sdk_version", &TranslationAccessor::sdk_version},
-      {"idf_version", &TranslationAccessor::idf_version},
-      {"uptime", &TranslationAccessor::uptime},
-      {"cpu_temp", &TranslationAccessor::cpu_temp},
-      {"revision", &TranslationAccessor::revision},
-      {"days", &TranslationAccessor::days},
-      {"hours", &TranslationAccessor::hours},
-      {"minutes", &TranslationAccessor::minutes},
-      {"memory_details", &TranslationAccessor::memory_details},
-      {"flash_memory", &TranslationAccessor::flash_memory},
-      {"real_size", &TranslationAccessor::real_size},
-      {"configured_ide", &TranslationAccessor::configured_ide},
-      {"configuration", &TranslationAccessor::configuration},
-      {"correct", &TranslationAccessor::correct},
-      {"to_fix", &TranslationAccessor::to_fix},
-      {"flash_type", &TranslationAccessor::flash_type},
-      {"flash_speed", &TranslationAccessor::flash_speed},
-      {"psram_external", &TranslationAccessor::psram_external},
-      {"hardware_status", &TranslationAccessor::hardware_status},
-      {"detected_active", &TranslationAccessor::detected_active},
-      {"supported_not_enabled", &TranslationAccessor::supported_not_enabled},
-      {"ide_config", &TranslationAccessor::ide_config},
-      {"total_size", &TranslationAccessor::total_size},
-      {"free", &TranslationAccessor::free},
-      {"used", &TranslationAccessor::used},
-      {"excellent", &TranslationAccessor::excellent},
-      {"very_good", &TranslationAccessor::very_good},
-      {"good", &TranslationAccessor::good},
-      {"warning", &TranslationAccessor::warning},
-      {"critical", &TranslationAccessor::critical},
-      {"weak", &TranslationAccessor::weak},
-      {"very_weak", &TranslationAccessor::very_weak},
-      {"none", &TranslationAccessor::none},
-      {"unknown", &TranslationAccessor::unknown},
-      {"enable_psram_hint", &TranslationAccessor::enable_psram_hint},
-      {"not_detected", &TranslationAccessor::not_detected},
-      {"internal_sram", &TranslationAccessor::internal_sram},
-      {"memory_fragmentation", &TranslationAccessor::memory_fragmentation},
-      {"refresh_memory", &TranslationAccessor::refresh_memory},
-      {"wifi_connection", &TranslationAccessor::wifi_connection},
-      {"connected_ssid", &TranslationAccessor::connected_ssid},
-      {"signal_power", &TranslationAccessor::signal_power},
-      {"signal_quality", &TranslationAccessor::signal_quality},
-      {"ip_address", &TranslationAccessor::ip_address},
-      {"subnet_mask", &TranslationAccessor::subnet_mask},
-      {"gateway", &TranslationAccessor::gateway},
-      {"dns", &TranslationAccessor::dns},
-      {"ip_unavailable", &TranslationAccessor::ip_unavailable},
-      {"access", &TranslationAccessor::access},
-      {"bluetooth_section", &TranslationAccessor::bluetooth_section},
-      {"bluetooth_status", &TranslationAccessor::bluetooth_status},
-      {"bluetooth_name", &TranslationAccessor::bluetooth_name},
-      {"bluetooth_mac", &TranslationAccessor::bluetooth_mac},
-      {"bluetooth_actions", &TranslationAccessor::bluetooth_actions},
-      {"bluetooth_enable", &TranslationAccessor::bluetooth_enable},
-      {"bluetooth_disable", &TranslationAccessor::bluetooth_disable},
-      {"bluetooth_rename", &TranslationAccessor::bluetooth_rename},
-      {"bluetooth_reset", &TranslationAccessor::bluetooth_reset},
-      {"bluetooth_placeholder", &TranslationAccessor::bluetooth_placeholder},
-      {"bluetooth_not_supported", &TranslationAccessor::bluetooth_not_supported},
-      {"bluetooth_disabled", &TranslationAccessor::bluetooth_disabled},
-      {"bluetooth_enabled", &TranslationAccessor::bluetooth_enabled},
-      {"bluetooth_advertising", &TranslationAccessor::bluetooth_advertising},
-      {"bluetooth_not_advertising", &TranslationAccessor::bluetooth_not_advertising},
-  };
-  appendTranslationEntries(json, translations, kEntries, sizeof(kEntries) / sizeof(kEntries[0]));
-}
-
-static inline void appendBluetoothScanTranslations(String& json, const TranslationAccessor& translations) {
-  static const TranslationJsonEntry kEntries[] = {
-      {"bluetooth_scan", &TranslationAccessor::bluetooth_scan},
-      {"bluetooth_scan_hint", &TranslationAccessor::bluetooth_scan_hint},
-      {"bluetooth_scan_in_progress", &TranslationAccessor::bluetooth_scan_in_progress},
-      {"bluetooth_devices_found", &TranslationAccessor::bluetooth_devices_found},
-      {"bluetooth_updated", &TranslationAccessor::bluetooth_updated},
-      {"bluetooth_error", &TranslationAccessor::bluetooth_error},
-      {"bluetooth_reset_done", &TranslationAccessor::bluetooth_reset_done},
-      {"bluetooth_support_label", &TranslationAccessor::bluetooth_support_label},
-      {"bluetooth_support_yes", &TranslationAccessor::bluetooth_support_yes},
-      {"bluetooth_support_no", &TranslationAccessor::bluetooth_support_no},
-      {"bluetooth_advertising_label", &TranslationAccessor::bluetooth_advertising_label},
-      {"bluetooth_connection_label", &TranslationAccessor::bluetooth_connection_label},
-      {"bluetooth_client_connected", &TranslationAccessor::bluetooth_client_connected},
-      {"bluetooth_client_disconnected", &TranslationAccessor::bluetooth_client_disconnected},
-      {"bluetooth_notifications_label", &TranslationAccessor::bluetooth_notifications_label},
-  };
-  appendTranslationEntries(json, translations, kEntries, sizeof(kEntries) / sizeof(kEntries[0]));
-}
-
-static inline void appendHardwareUiTranslations(String& json, const TranslationAccessor& translations) {
-  static const TranslationJsonEntry kEntries[] = {
-      {"gpio", &TranslationAccessor::gpio},
-      {"status", &TranslationAccessor::status},
-      {"config", &TranslationAccessor::config},
-      {"test", &TranslationAccessor::test},
-      {"turn_on", &TranslationAccessor::turn_on},
-      {"turn_off", &TranslationAccessor::turn_off},
-      {"turn_off_all", &TranslationAccessor::turn_off_all},
-      {"blink", &TranslationAccessor::blink},
-      {"fade", &TranslationAccessor::fade},
-      {"off", &TranslationAccessor::off},
-      {"neopixel", &TranslationAccessor::neopixel},
-      {"neopixel_desc", &TranslationAccessor::neopixel_desc},
-      {"configure_neopixel", &TranslationAccessor::configure_neopixel},
-      {"animations", &TranslationAccessor::animations},
-      {"led_count", &TranslationAccessor::led_count},
-      {"rainbow", &TranslationAccessor::rainbow},
-      {"chase", &TranslationAccessor::chase},
-      {"color", &TranslationAccessor::color},
-      {"custom_color", &TranslationAccessor::custom_color},
-      {"red", &TranslationAccessor::red},
-      {"green", &TranslationAccessor::green},
-      {"blue", &TranslationAccessor::blue},
-      {"white", &TranslationAccessor::white},
-      {"gpio_interfaces", &TranslationAccessor::gpio_interfaces},
-      {"total_gpio", &TranslationAccessor::total_gpio},
-      {"i2c_peripherals", &TranslationAccessor::i2c_peripherals},
-      {"device_count", &TranslationAccessor::device_count},
-      {"detected_addresses", &TranslationAccessor::detected_addresses},
-      {"builtin_led", &TranslationAccessor::builtin_led},
-      {"builtin_led_desc", &TranslationAccessor::builtin_led_desc},
-      {"configure_led_pin", &TranslationAccessor::configure_led_pin},
-      {"oled_screen", &TranslationAccessor::oled_screen},
-      {"i2c_pins", &TranslationAccessor::i2c_pins},
-      {"label_sda", &TranslationAccessor::label_sda},
-      {"label_scl", &TranslationAccessor::label_scl},
-      {"changes_pins", &TranslationAccessor::changes_pins},
-      {"check_wiring", &TranslationAccessor::check_wiring},
-      {"no_detected", &TranslationAccessor::no_detected},
-      {"rotation", &TranslationAccessor::rotation},
-      {"apply_redetect", &TranslationAccessor::apply_redetect},
-      {"apply_configuration", &TranslationAccessor::apply_configuration},
-      {"apply_config", &TranslationAccessor::apply_config},
-      {"full_test", &TranslationAccessor::full_test},
-      {"oled_step_welcome", &TranslationAccessor::oled_step_welcome},
-      {"oled_step_big_text", &TranslationAccessor::oled_step_big_text},
-      {"oled_step_text_sizes", &TranslationAccessor::oled_step_text_sizes},
-      {"oled_step_shapes", &TranslationAccessor::oled_step_shapes},
-      {"oled_step_horizontal_lines", &TranslationAccessor::oled_step_horizontal_lines},
-      {"oled_step_diagonals", &TranslationAccessor::oled_step_diagonals},
-      {"oled_step_moving_square", &TranslationAccessor::oled_step_moving_square},
-      {"oled_step_progress_bar", &TranslationAccessor::oled_step_progress_bar},
-      {"oled_step_scroll_text", &TranslationAccessor::oled_step_scroll_text},
-      {"oled_step_final_message", &TranslationAccessor::oled_step_final_message},
-      {"oled_step_running", &TranslationAccessor::oled_step_running},
-      {"oled_message_required", &TranslationAccessor::oled_message_required},
-      {"oled_displaying_message", &TranslationAccessor::oled_displaying_message},
-      {"custom_message", &TranslationAccessor::custom_message},
-      {"show_message", &TranslationAccessor::show_message},
-      {"rgb_led", &TranslationAccessor::rgb_led},
-      {"rgb_led_desc", &TranslationAccessor::rgb_led_desc},
-      {"rgb_led_pins", &TranslationAccessor::rgb_led_pins},
-      {"test_rgb_led", &TranslationAccessor::test_rgb_led},
-      {"buzzer", &TranslationAccessor::buzzer},
-      {"buzzer_desc", &TranslationAccessor::buzzer_desc},
-      {"buzzer_pin", &TranslationAccessor::buzzer_pin},
-      {"test_buzzer", &TranslationAccessor::test_buzzer},
-      {"beep", &TranslationAccessor::beep},
-      {"dht11_sensor", &TranslationAccessor::dht11_sensor},
-      {"dht11_desc", &TranslationAccessor::dht11_desc},
-      {"dht11_pin", &TranslationAccessor::dht11_pin},
-      {"test_dht11", &TranslationAccessor::test_dht11},
-      {"temperature", &TranslationAccessor::temperature},
-      {"humidity", &TranslationAccessor::humidity},
-      {"light_sensor", &TranslationAccessor::light_sensor},
-      {"light_sensor_desc", &TranslationAccessor::light_sensor_desc},
-      {"light_sensor_pin", &TranslationAccessor::light_sensor_pin},
-      {"test_light_sensor", &TranslationAccessor::test_light_sensor},
-      {"light_level", &TranslationAccessor::light_level},
-      {"distance_sensor", &TranslationAccessor::distance_sensor},
-      {"distance_sensor_desc", &TranslationAccessor::distance_sensor_desc},
-      {"distance_pins", &TranslationAccessor::distance_pins},
-      {"label_trig", &TranslationAccessor::label_trig},
-      {"label_echo", &TranslationAccessor::label_echo},
-      {"test_distance_sensor", &TranslationAccessor::test_distance_sensor},
-      {"distance", &TranslationAccessor::distance},
-      {"motion_sensor", &TranslationAccessor::motion_sensor},
-      {"motion_sensor_desc", &TranslationAccessor::motion_sensor_desc},
-      {"motion_sensor_pin", &TranslationAccessor::motion_sensor_pin},
-      {"test_motion_sensor", &TranslationAccessor::test_motion_sensor},
-      {"motion_detected", &TranslationAccessor::motion_detected},
-      {"no_motion", &TranslationAccessor::no_motion},
-      {"sensors_section", &TranslationAccessor::sensors_section},
-      {"sensors_intro", &TranslationAccessor::sensors_intro},
-      {"display_signal_intro", &TranslationAccessor::display_signal_intro},
-  };
-  appendTranslationEntries(json, translations, kEntries, sizeof(kEntries) / sizeof(kEntries[0]));
-}
-
-static inline void appendTestFlowTranslations(String& json, const TranslationAccessor& translations) {
-  static const TranslationJsonEntry kEntries[] = {
-      {"apply_color", &TranslationAccessor::apply_color},
-      {"adc_test", &TranslationAccessor::adc_test},
-      {"start_adc_test", &TranslationAccessor::start_adc_test},
-      {"pwm_test", &TranslationAccessor::pwm_test},
-      {"spi_bus", &TranslationAccessor::spi_bus},
-      {"flash_partitions", &TranslationAccessor::flash_partitions},
-      {"memory_stress", &TranslationAccessor::memory_stress},
-      {"stress_warning", &TranslationAccessor::stress_warning},
-      {"start_stress", &TranslationAccessor::start_stress},
-      {"gpio_test", &TranslationAccessor::gpio_test},
-      {"test_all_gpio", &TranslationAccessor::test_all_gpio},
-      {"click_to_test", &TranslationAccessor::click_to_test},
-      {"not_tested", &TranslationAccessor::not_tested},
-      {"gpio_warning", &TranslationAccessor::gpio_warning},
-      {"i2c_desc", &TranslationAccessor::i2c_desc},
-      {"adc_desc", &TranslationAccessor::adc_desc},
-      {"pwm_desc", &TranslationAccessor::pwm_desc},
-      {"spi_desc", &TranslationAccessor::spi_desc},
-      {"partitions_desc", &TranslationAccessor::partitions_desc},
-      {"stress_desc", &TranslationAccessor::stress_desc},
-      {"cpu_benchmark", &TranslationAccessor::cpu_benchmark},
-      {"memory_benchmark", &TranslationAccessor::memory_benchmark},
-      {"run_benchmarks", &TranslationAccessor::run_benchmarks},
-      {"allocations_label", &TranslationAccessor::allocations_label},
-      {"cpu_time", &TranslationAccessor::cpu_time},
-      {"memory_time", &TranslationAccessor::memory_time},
-      {"test_in_progress", &TranslationAccessor::test_in_progress},
-      {"gpio_test_complete", &TranslationAccessor::gpio_test_complete},
-      {"stress_running", &TranslationAccessor::stress_running},
-  };
-  appendTranslationEntries(json, translations, kEntries, sizeof(kEntries) / sizeof(kEntries[0]));
-}
-
-static inline void appendStatusAndSummaryTranslations(String& json, const TranslationAccessor& translations) {
-  static const TranslationJsonEntry kEntries[] = {
-      {"gpio_desc", &TranslationAccessor::gpio_desc},
-      {"wifi_desc", &TranslationAccessor::wifi_desc},
-      {"benchmark_desc", &TranslationAccessor::benchmark_desc},
-      {"wifi_scanner", &TranslationAccessor::wifi_scanner},
-      {"wireless_intro", &TranslationAccessor::wireless_intro},
-      {"scan_networks", &TranslationAccessor::scan_networks},
-      {"bluetooth_desc", &TranslationAccessor::bluetooth_desc},
-      {"wifi_channel", &TranslationAccessor::wifi_channel},
-      {"wifi_scan_in_progress", &TranslationAccessor::wifi_scan_in_progress},
-      {"performance_bench", &TranslationAccessor::performance_bench},
-      {"data_export", &TranslationAccessor::data_export},
-      {"export_intro", &TranslationAccessor::export_intro},
-      {"txt_file", &TranslationAccessor::txt_file},
-      {"json_file", &TranslationAccessor::json_file},
-      {"csv_file", &TranslationAccessor::csv_file},
-      {"readable_report", &TranslationAccessor::readable_report},
-      {"structured_format", &TranslationAccessor::structured_format},
-      {"for_excel", &TranslationAccessor::for_excel},
-      {"download_txt", &TranslationAccessor::download_txt},
-      {"download_json", &TranslationAccessor::download_json},
-      {"download_csv", &TranslationAccessor::download_csv},
-      {"printable_version", &TranslationAccessor::printable_version},
-      {"pdf_format", &TranslationAccessor::pdf_format},
-      {"open", &TranslationAccessor::open},
-      {"click_to_scan", &TranslationAccessor::click_to_scan},
-      {"updating", &TranslationAccessor::updating},
-      {"online", &TranslationAccessor::online},
-      {"offline", &TranslationAccessor::offline},
-      {"check_network", &TranslationAccessor::check_network},
-      {"language_label", &TranslationAccessor::language_label},
-      {"language_updated", &TranslationAccessor::language_updated},
-      {"language_switch_error", &TranslationAccessor::language_switch_error},
-      {"translation_error", &TranslationAccessor::translation_error},
-      {"bluetooth_invalid_name", &TranslationAccessor::bluetooth_invalid_name},
-      {"bluetooth_enabling", &TranslationAccessor::bluetooth_enabling},
-      {"bluetooth_disabling", &TranslationAccessor::bluetooth_disabling},
-      {"bluetooth_updating", &TranslationAccessor::bluetooth_updating},
-      {"bluetooth_resetting", &TranslationAccessor::bluetooth_resetting},
-      {"loading", &TranslationAccessor::loading},
-      {"interface_loaded", &TranslationAccessor::interface_loaded},
-      {"configuring", &TranslationAccessor::configuring},
-      {"reconfiguring", &TranslationAccessor::reconfiguring},
-      {"transmission", &TranslationAccessor::transmission},
-      {"error_label", &TranslationAccessor::error_label},
-      {"test_failed", &TranslationAccessor::test_failed},
-      {"gpio_summary_template", &TranslationAccessor::gpio_summary_template},
-      {"wifi_networks_found", &TranslationAccessor::wifi_networks_found},
-      {"i2c_scan_result", &TranslationAccessor::i2c_scan_result},
-      {"gpio_invalid", &TranslationAccessor::gpio_invalid},
-      {"configuration_invalid", &TranslationAccessor::configuration_invalid},
-      {"testing", &TranslationAccessor::testing},
-      {"scan", &TranslationAccessor::scan},
-      {"scanning", &TranslationAccessor::scanning},
-      {"completed", &TranslationAccessor::completed},
-      {"cores", &TranslationAccessor::cores},
-      {"pins", &TranslationAccessor::pins},
-      {"devices", &TranslationAccessor::devices},
-      {"networks", &TranslationAccessor::networks},
-      {"tested", &TranslationAccessor::tested},
-      {"channels", &TranslationAccessor::channels},
-      {"oled_test_running", &TranslationAccessor::oled_test_running},
-  };
-  appendTranslationEntries(json, translations, kEntries, sizeof(kEntries) / sizeof(kEntries[0]));
-}
-
-String buildTranslationsJSON() {
-  const TranslationAccessor translations = T();
-  String json = "{";
-  json.reserve(8000);  // Increased reserve to avoid reallocations (~200+ fields)
-
-  appendOverviewTranslations(json, translations);
-  appendBluetoothScanTranslations(json, translations);
-  appendHardwareUiTranslations(json, translations);
-  appendTestFlowTranslations(json, translations);
-  appendStatusAndSummaryTranslations(json, translations);
-
-  json += "}";
-
-  return json;
-}
-
 void handleGetTranslations() {
   server.send(200, "application/json; charset=utf-8", buildTranslationsJSON());
 }
@@ -4464,7 +4199,7 @@ void handleBluetoothStatus() {
 
 void handleBluetoothToggle() {
   if (!server.hasArg("state")) {
-    server.send(400, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
+    server.send(400, "application/json", buildBluetoothJSON(false, String(Texts::bluetooth_error)));
     return;
   }
 
@@ -4477,14 +4212,14 @@ void handleBluetoothToggle() {
   String message;
 
   if (!supported) {
-    message = String(T().bluetooth_not_supported);
+    message = String(Texts::bluetooth_not_supported);
   } else if (enable) {
     success = startBluetooth();
-    message = success ? String(T().bluetooth_enabled) : String(T().bluetooth_error);
+    message = success ? String(Texts::bluetooth_enabled) : String(Texts::bluetooth_error);
   } else {
     stopBluetooth();
     success = true;
-    message = String(T().bluetooth_disabled);
+    message = String(Texts::bluetooth_disabled);
   }
 
   if (!supported) {
@@ -4496,13 +4231,13 @@ void handleBluetoothToggle() {
 
 void handleBluetoothName() {
   if (!server.hasArg("name")) {
-    server.send(400, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
+    server.send(400, "application/json", buildBluetoothJSON(false, String(Texts::bluetooth_error)));
     return;
   }
 
   String candidate = sanitizeBluetoothName(server.arg("name"));
   if (candidate.length() == 0) {
-    server.send(400, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
+    server.send(400, "application/json", buildBluetoothJSON(false, String(Texts::bluetooth_error)));
     return;
   }
 
@@ -4522,10 +4257,10 @@ void handleBluetoothName() {
 
   String message;
   if (!supported) {
-    message = String(T().bluetooth_not_supported);
+    message = String(Texts::bluetooth_not_supported);
     success = false;
   } else {
-    message = success ? String(T().bluetooth_updated) : String(T().bluetooth_error);
+    message = success ? String(Texts::bluetooth_updated) : String(Texts::bluetooth_error);
   }
 
   server.send(200, "application/json", buildBluetoothJSON(success, message));
@@ -4549,10 +4284,10 @@ void handleBluetoothReset() {
 
   String message;
   if (!supported) {
-    message = String(T().bluetooth_not_supported);
+    message = String(Texts::bluetooth_not_supported);
     success = false;
   } else {
-    message = success ? String(T().bluetooth_reset_done) : String(T().bluetooth_error);
+    message = success ? String(Texts::bluetooth_reset_done) : String(Texts::bluetooth_error);
   }
 
   server.send(200, "application/json", buildBluetoothJSON(success, message));
@@ -4562,7 +4297,7 @@ void handleBluetoothReset() {
 void handleBluetoothScan() {
 #if BLE_STACK_SUPPORTED
   if (!bluetoothCapable) {
-    server.send(200, "application/json", buildBluetoothJSON(false, String(T().bluetooth_not_supported)));
+    server.send(200, "application/json", buildBluetoothJSON(false, String(Texts::bluetooth_not_supported)));
     return;
   }
 
@@ -4572,7 +4307,7 @@ void handleBluetoothScan() {
 
   if (!bluetoothEnabled) {
     if (!startBluetooth()) {
-      server.send(200, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
+      server.send(200, "application/json", buildBluetoothJSON(false, String(Texts::bluetooth_error)));
       return;
     }
     startedForScan = true;
@@ -4597,7 +4332,7 @@ void handleBluetoothScan() {
     if (startedForScan) {
       stopBluetooth();
     }
-    server.send(200, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
+    server.send(200, "application/json", buildBluetoothJSON(false, String(Texts::bluetooth_error)));
     return;
   }
 
@@ -4611,7 +4346,7 @@ void handleBluetoothScan() {
   devicesJson.reserve(static_cast<size_t>(count) * 80U);
   for (int i = 0; i < count; ++i) {
     BLEAdvertisedDevice device = getScanResultDevice(rawResults, i);
-    String name = device.haveName() ? String(device.getName().c_str()) : String(T().unknown);
+    String name = device.haveName() ? String(device.getName().c_str()) : String(Texts::unknown);
     String address = String(device.getAddress().toString().c_str());
     int rssi = device.getRSSI();
     if (i > 0) {
@@ -4635,7 +4370,7 @@ void handleBluetoothScan() {
     stopBluetooth();
   }
 
-  String message = String(T().bluetooth_devices_found);
+  String message = String(Texts::bluetooth_devices_found);
   message.replace("%COUNT%", String(count));
   message.replace("%count%", String(count));
 
@@ -4648,7 +4383,7 @@ void handleBluetoothScan() {
   }
   server.send(200, "application/json", base);
 #else
-  server.send(200, "application/json", buildBluetoothJSON(false, String(T().bluetooth_error)));
+  server.send(200, "application/json", buildBluetoothJSON(false, String(Texts::bluetooth_error)));
 #endif
 }
 
@@ -4817,8 +4552,8 @@ void setup() {
   server.on("/api/buzzer-test", handleBuzzerTest);
   server.on("/api/buzzer-tone", handleBuzzerTone);
 
-  server.on("/api/dht11-config", handleDHT11Config);
-  server.on("/api/dht11-test", handleDHT11Test);
+  server.on("/api/dht-config", handleDHTConfig);
+  server.on("/api/dht-test", handleDHTTest);
 
   server.on("/api/light-sensor-config", handleLightSensorConfig);
   server.on("/api/light-sensor-test", handleLightSensorTest);

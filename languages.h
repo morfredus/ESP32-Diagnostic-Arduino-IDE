@@ -1,14 +1,27 @@
+
 #ifndef LANGUAGES_H
 #define LANGUAGES_H
 
 #include <Arduino.h>
 #include <pgmspace.h>
 
-// ========== ENGLISH-ONLY TRANSLATION SYSTEM v3.7.06 ==========
-// Optimized for minimal memory footprint
-// Removed bilingual support to save ~50% flash memory
+// --- [NEW FEATURE] Static English UI string registry ---
+class TextField {
+ public:
+  TextField() : value(nullptr) {}
+  explicit TextField(const __FlashStringHelper* text) : value(text) {}
 
-#define TRANSLATION_MAP(X) \
+  operator const __FlashStringHelper*() const { return value; }
+
+  String str() const {
+    return value ? String(value) : String();
+  }
+
+ private:
+  const __FlashStringHelper* value;
+};
+
+#define TEXT_RESOURCE_MAP(X) \
   X(title, "ESP32 Complete Diagnostic") \
   X(version, "v") \
   X(access, "Access") \
@@ -128,9 +141,9 @@
   X(buzzer_desc, "Test an active or passive buzzer") \
   X(beep, "Beep") \
   X(melody, "Melody") \
-  X(sensors_intro, "Connect sensors to test them (DHT11, photoresistor, HC-SR04, PIR)") \
-  X(dht11_sensor, "DHT11 (Temperature & Humidity)") \
-  X(dht11_desc, "Digital temperature and humidity sensor") \
+  X(sensors_intro, "Connect sensors to test them (DHT11/DHT22, photoresistor, HC-SR04, PIR)") \
+  X(dht_sensor, "DHT Sensor") \
+  X(dht_sensor_desc, "Digital temperature and humidity sensor") \
   X(read_sensor, "Read Sensor") \
   X(temperature, "Temperature") \
   X(humidity, "Humidity") \
@@ -253,56 +266,160 @@
   X(gpio_available, "Available GPIO") \
   X(apply_config, "Apply Configuration") \
   X(pin_configuration, "Pin Configuration") \
-  X(refresh_data, "Refresh")
+  X(refresh_data, "Refresh") \
+  X(bluetooth_advertising_label, "Advertising") \
+  X(bluetooth_client_connected, "Client connected") \
+  X(bluetooth_client_disconnected, "Client disconnected") \
+  X(bluetooth_mac, "Bluetooth MAC") \
+  X(bluetooth_not_advertising, "Not advertising") \
+  X(bluetooth_section, "Bluetooth") \
+  X(bluetooth_status, "Bluetooth Status") \
+  X(board, "Board") \
+  X(brownout, "Brownout") \
+  X(category, "Category") \
+  X(channels, "Channels") \
+  X(chase, "Chase") \
+  X(config, "Config") \
+  X(configuration_invalid, "Invalid configuration") \
+  X(connected_ssid, "Connected SSID") \
+  X(cores, "Cores") \
+  X(critical, "Critical") \
+  X(days, "days") \
+  X(deepsleep_exit, "Deep sleep exit") \
+  X(detected_active, "Detected (active)") \
+  X(device_count, "Device count") \
+  X(devices, "Devices") \
+  X(dns, "DNS") \
+  X(enable_psram_hint, "Enable PSRAM in the IDE settings") \
+  X(error_label, "Error") \
+  X(export_after_boot, "Export after boot") \
+  X(export_generated, "Export generated") \
+  X(fade, "Fade") \
+  X(fail, "Fail") \
+  X(flash_type, "Flash Type") \
+  X(free, "Free") \
+  X(frequency, "Frequency") \
+  X(gateway, "Gateway") \
+  X(gpio_interfaces, "GPIO Interfaces") \
+  X(gpio_invalid, "Invalid GPIO") \
+  X(gpio_list, "GPIO List") \
+  X(hours, "hours") \
+  X(i2c_peripherals, "I2C Peripherals") \
+  X(ide_config, "IDE Configuration") \
+  X(internal_sram, "Internal SRAM") \
+  X(max_alloc, "Max Allocation") \
+  X(memory_fragmentation, "Memory Fragmentation") \
+  X(memory_status, "Memory Status") \
+  X(memory_stress, "Memory Stress") \
+  X(message_displayed, "Message displayed") \
+  X(minutes, "minutes") \
+  X(model, "Model") \
+  X(neopixel, "NeoPixel") \
+  X(none, "None") \
+  X(not_tested, "Not tested") \
+  X(off, "OFF") \
+  X(ok, "OK") \
+  X(oled_step_big_text, "Display large text") \
+  X(oled_step_diagonals, "Draw diagonals") \
+  X(oled_step_executed_prefix, "Step executed:") \
+  X(oled_step_final_message, "OLED test complete") \
+  X(oled_step_horizontal_lines, "Draw horizontal lines") \
+  X(oled_step_moving_square, "Animate moving square") \
+  X(oled_step_progress_bar, "Render progress bar") \
+  X(oled_step_scroll_text, "Scroll text") \
+  X(oled_step_shapes, "Draw shapes") \
+  X(oled_step_text_sizes, "Show text sizes") \
+  X(oled_step_unavailable, "OLED test unavailable") \
+  X(oled_step_unknown, "Unknown OLED step") \
+  X(oled_step_welcome, "OLED diagnostic sequence") \
+  X(other, "Other") \
+  X(parameter, "Parameter") \
+  X(performance_bench, "Performance Bench") \
+  X(pins, "Pins") \
+  X(poweron, "Power-on") \
+  X(psram_external, "External PSRAM") \
+  X(pwm_test, "PWM Test") \
+  X(revision, "Revision") \
+  X(signal_power, "Signal power") \
+  X(signal_quality, "Signal quality") \
+  X(software_reset, "Software reset") \
+  X(spi_bus, "SPI Bus") \
+  X(subnet_mask, "Subnet Mask") \
+  X(supported_not_enabled, "Supported but not enabled") \
+  X(total_gpio, "Total GPIO") \
+  X(used, "Used") \
+  X(very_good, "Very good") \
+  X(wifi_connection, "WiFi connection") \
+  X(wifi_open_auth, "Open authentication") \
+  X(adc_desc, "Analog input diagnostics") \
+  X(animations, "Animations") \
+  X(apply_color, "Apply Color") \
+  X(apply_redetect, "Apply & Redetect") \
+  X(benchmark_desc, "Run CPU and memory benchmarks") \
+  X(blue, "Blue") \
+  X(bluetooth_connection_label, "Connection") \
+  X(bluetooth_disable, "Disable Bluetooth") \
+  X(bluetooth_enable, "Enable Bluetooth") \
+  X(bluetooth_placeholder, "Enter Bluetooth name") \
+  X(bluetooth_rename, "Rename Bluetooth") \
+  X(bluetooth_reset, "Reset Bluetooth") \
+  X(bluetooth_scan, "Scan Bluetooth devices") \
+  X(bluetooth_scan_hint, "Start a BLE scan to discover nearby devices") \
+  X(bluetooth_support_label, "BLE Support") \
+  X(bluetooth_support_no, "Not supported") \
+  X(buzzer_pin, "Buzzer Pin") \
+  X(check_wiring, "Check wiring") \
+  X(click_to_scan, "Click to scan") \
+  X(click_to_test, "Click to test") \
+  X(configure_led_pin, "Configure LED Pin") \
+  X(configure_neopixel, "Configure NeoPixel") \
+  X(custom_color, "Custom Color") \
+  X(custom_message, "Custom Message") \
+  X(data_export, "Data Export") \
+  X(detected_addresses, "Detected Addresses") \
+  X(dht_sensor_pin, "DHT Sensor Pin") \
+  X(dht_sensor_type, "Sensor type") \
+  X(dht11_option, "DHT11") \
+  X(dht22_option, "DHT22") \
+  X(distance_pins, "Distance Sensor Pins") \
+  X(flash_speed, "Flash Speed") \
+  X(full_test, "Full Test") \
+  X(gpio_warning, "GPIO Warning") \
+  X(green, "Green") \
+  X(i2c_pins, "I2C Pins") \
+  X(ip_unavailable, "IP unavailable") \
+  X(label_echo, "Echo Pin") \
+  X(label_trig, "Trigger Pin") \
+  X(light_level, "Light Level") \
+  X(light_sensor_pin, "Light Sensor Pin") \
+  X(motion_sensor_pin, "Motion Sensor Pin") \
+  X(no_detected, "No devices detected") \
+  X(red, "Red") \
+  X(rgb_led_pins, "RGB LED Pins") \
+  X(rotation, "Rotation") \
+  X(sensors_section, "Sensors") \
+  X(show_message, "Show Message") \
+  X(start_adc_test, "Start ADC Test") \
+  X(stress_desc, "Run stress tests on the device") \
+  X(stress_warning, "Stress test may reboot the device") \
+  X(test_all_gpio, "Test all GPIO") \
+  X(test_buzzer, "Test Buzzer") \
+  X(test_dht_sensor, "Test DHT Sensor") \
+  X(test_distance_sensor, "Test Distance Sensor") \
+  X(test_light_sensor, "Test Light Sensor") \
+  X(test_motion_sensor, "Test Motion Sensor") \
+  X(test_rgb_led, "Test RGB LED") \
+  X(turn_off_all, "Turn off all") \
+  X(updating, "Updating...") \
+  X(white, "White") \
+  X(wifi_desc, "Scan nearby WiFi networks") \
+  X(wifi_scanner, "WiFi Scanner") \
 
-enum TranslationKey {
-#define DECL_KEY(identifier, en) TR_##identifier,
-  TRANSLATION_MAP(DECL_KEY)
-#undef DECL_KEY
-  TR_COUNT
-};
+namespace Texts {
+#define DECLARE_TEXT(identifier, value) \
+  inline const TextField identifier = TextField(F(value));
+  TEXT_RESOURCE_MAP(DECLARE_TEXT)
+#undef DECLARE_TEXT
+}  // namespace Texts
 
-#define T() TranslationAccessor()
-
-static const char* const TRANSLATIONS[] PROGMEM = {
-#define DECL_EN(identifier, en) en,
-  TRANSLATION_MAP(DECL_EN)
-#undef DECL_EN
-};
-
-inline const char* lookupTranslation(TranslationKey key) {
-  return TRANSLATIONS[key];
-}
-
-class TranslationField {
- public:
-  constexpr TranslationField() : key(static_cast<TranslationKey>(0)) {}
-  constexpr TranslationField(TranslationKey idx) : key(idx) {}
-
-  operator const char*() const { return c_str(); }
-
-  const char* c_str() const {
-    return lookupTranslation(key);
-  }
-
-  String str() const { return String(c_str()); }
-
- private:
-  TranslationKey key;
-};
-
-class TranslationAccessor {
- public:
-  TranslationAccessor() {
-#define INIT_FIELD(identifier, en) identifier = TranslationField(TR_##identifier);
-    TRANSLATION_MAP(INIT_FIELD)
-#undef INIT_FIELD
-  }
-
-  // Field declarations for access
-#define DECL_FIELD(identifier, en) TranslationField identifier;
-  TRANSLATION_MAP(DECL_FIELD)
-#undef DECL_FIELD
-};
-
-#endif // LANGUAGES_H
+#endif  // LANGUAGES_H
