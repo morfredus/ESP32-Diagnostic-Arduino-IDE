@@ -69,6 +69,8 @@ class TextField {
   X(spiram, "SPIRAM") \
   X(default_caps, "Default") \
   X(partition_list, "Partition List") \
+  X(partitions_desc, "Inspect the detected flash partitions and sizes") \
+  X(load_partitions, "Load Partition Table") \
   X(label, "Label") \
   X(type, "Type") \
   X(subtype, "Subtype") \
@@ -105,13 +107,9 @@ class TextField {
   X(hostname, "Hostname") \
   X(peripherals_detected, "Detected Peripherals") \
   X(no_peripherals, "No peripherals detected") \
-  X(builtin_led, "Built-in LED") \
-  X(builtin_led_desc, "Control the onboard LED of your ESP32 module") \
   X(available, "Available") \
   X(not_available, "Not available") \
   X(test, "Test") \
-  X(turn_on, "Turn ON") \
-  X(turn_off, "Turn OFF") \
   X(blink, "Blink") \
   X(ws2812b_led, "WS2812B LED Strip") \
   X(neopixel_desc, "Control an external addressable RGB LED strip (WS2812B/NeoPixel)") \
@@ -215,7 +213,11 @@ class TextField {
   X(i2c_address, "I2C Address") \
   X(wifi_channel, "Channel") \
   X(cpu_benchmark, "CPU Benchmark") \
+  X(cpu_score, "CPU Performance Score") \
   X(memory_benchmark, "Memory Benchmark") \
+  X(memory_throughput, "Memory Throughput") \
+  X(ops_per_us, "ops/µs") \
+  X(megabytes_per_sec, "MB/s") \
   X(run_benchmarks, "Run Benchmarks") \
   X(iterations_label, "Iterations") \
   X(allocations_label, "Allocations") \
@@ -339,11 +341,15 @@ class TextField {
   X(poweron, "Power-on") \
   X(psram_external, "External PSRAM") \
   X(pwm_test, "PWM Test") \
+  X(pwm_desc, "Generate a duty-cycle sweep on the default PWM pin") \
+  X(run_pwm_test, "Run PWM Test") \
   X(revision, "Revision") \
   X(signal_power, "Signal power") \
   X(signal_quality, "Signal quality") \
   X(software_reset, "Software reset") \
   X(spi_bus, "SPI Bus") \
+  X(spi_desc, "Identify available SPI controllers on the board") \
+  X(scan_spi, "Scan SPI Buses") \
   X(subnet_mask, "Subnet Mask") \
   X(supported_not_enabled, "Supported but not enabled") \
   X(total_gpio, "Total GPIO") \
@@ -371,7 +377,6 @@ class TextField {
   X(check_wiring, "Check wiring") \
   X(click_to_scan, "Click to scan") \
   X(click_to_test, "Click to test") \
-  X(configure_led_pin, "Configure LED Pin") \
   X(configure_neopixel, "Configure NeoPixel") \
   X(custom_color, "Custom Color") \
   X(custom_message, "Custom Message") \
@@ -384,7 +389,7 @@ class TextField {
   X(distance_pins, "Distance Sensor Pins") \
   X(flash_speed, "Flash Speed") \
   X(full_test, "Full Test") \
-  X(gpio_warning, "GPIO Warning") \
+  X(gpio_warning, "Warning: Automatic GPIO scans toggle every pin. Disconnect sensitive hardware before running this test.") \
   X(green, "Green") \
   X(i2c_pins, "I2C Pins") \
   X(ip_unavailable, "IP unavailable") \
