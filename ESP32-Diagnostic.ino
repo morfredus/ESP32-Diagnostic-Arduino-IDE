@@ -129,6 +129,28 @@
 static String buildActionResponseJson(bool success,
                                       const String& message,
                                       std::initializer_list<JsonFieldSpec> extraFields = {});
+String buildTranslationsJSON();
+String sanitizeBluetoothName(const String& raw);
+void ensureBluetoothName();
+void syncBluetoothDiagnostics();
+String getBluetoothStateLabel();
+String getBluetoothSummaryLabel();
+const char* getBluetoothStateKey();
+const char* getBluetoothAdvertisingKey();
+const char* getBluetoothSupportKey();
+#if BLE_STACK_SUPPORTED
+const char* getBluetoothConnectionKey();
+void dispatchBluetoothTelemetry();
+static int getScanResultCount(BLEScanResults& results);
+static int getScanResultCount(BLEScanResults* results);
+static BLEAdvertisedDevice getScanResultDevice(BLEScanResults& results, int index);
+static BLEAdvertisedDevice getScanResultDevice(BLEScanResults* results, int index);
+#else
+void dispatchBluetoothTelemetry();
+#endif
+String buildBluetoothJSON(bool success, const String& message);
+bool startBluetooth();
+void stopBluetooth();
 inline void sendActionResponse(int statusCode,
                                bool success,
                                const String& message,
