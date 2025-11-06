@@ -141,9 +141,9 @@ class TextField {
   X(buzzer_desc, "Test an active or passive buzzer") \
   X(beep, "Beep") \
   X(melody, "Melody") \
-  X(sensors_intro, "Connect sensors to test them (DHT11, photoresistor, HC-SR04, PIR)") \
-  X(dht11_sensor, "DHT11 (Temperature & Humidity)") \
-  X(dht11_desc, "Digital temperature and humidity sensor") \
+  X(sensors_intro, "Connect sensors to test them (DHT11/DHT22, photoresistor, HC-SR04, PIR)") \
+  X(dht_sensor, "DHT Sensor") \
+  X(dht_sensor_desc, "Digital temperature and humidity sensor") \
   X(read_sensor, "Read Sensor") \
   X(temperature, "Temperature") \
   X(humidity, "Humidity") \
@@ -377,7 +377,10 @@ class TextField {
   X(custom_message, "Custom Message") \
   X(data_export, "Data Export") \
   X(detected_addresses, "Detected Addresses") \
-  X(dht11_pin, "DHT11 Pin") \
+  X(dht_sensor_pin, "DHT Sensor Pin") \
+  X(dht_sensor_type, "Sensor type") \
+  X(dht11_option, "DHT11") \
+  X(dht22_option, "DHT22") \
   X(distance_pins, "Distance Sensor Pins") \
   X(flash_speed, "Flash Speed") \
   X(full_test, "Full Test") \
@@ -401,7 +404,7 @@ class TextField {
   X(stress_warning, "Stress test may reboot the device") \
   X(test_all_gpio, "Test all GPIO") \
   X(test_buzzer, "Test Buzzer") \
-  X(test_dht11, "Test DHT11") \
+  X(test_dht_sensor, "Test DHT Sensor") \
   X(test_distance_sensor, "Test Distance Sensor") \
   X(test_light_sensor, "Test Light Sensor") \
   X(test_motion_sensor, "Test Motion Sensor") \
