@@ -6,32 +6,6 @@
  * Author: morfredus
  */
 
-#if defined(__GNUC__)
-  #define DIAGNOSTIC_UNUSED __attribute__((unused))
-#else
-  #define DIAGNOSTIC_UNUSED
-#endif
-
-static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
-  "3.7.01-dev - Reduce firmware size by trimming version history to last 15 entries",
-  "3.6.23-dev - Replace template with classic function to fix 'N' not declared error",
-  "3.6.22-dev - Remove duplicate async test runner definitions to fix compilation errors",
-  "3.6.21-dev - Restore async test runner declarations for compilation",
-  "3.6.20-dev - Reduce hardware test latency with faster routines",
-  "3.6.19-dev - Compact translation JSON map to shrink firmware size",
-  "3.6.18-dev - Restore language switch helper after translation refactor",
-  "3.6.17-dev - Segment translation JSON builder to fix relocation overflow",
-  "3.6.16-dev - Add configurable LED and NeoPixel pins via web UI, implement chase pattern",
-  "3.6.15-dev - Add missing UI translations across wireless, sensors, export, and display tabs",
-  "3.6.14-dev - Fix Bluetooth scan UI escaping for compilation",
-  "3.6.13-dev - Fix translation map continuation and stabilize BLE scanning",
-  "3.6.12-dev - Add Bluetooth overview metrics and wireless controls",
-  "3.6.11-dev - Provide MDNS_HOSTNAME_STR definition for consistent linkage",
-  "3.6.10-dev - Replace handleRoot() to use modern generateHTML() with dynamic tab navigation"
-};
-
-#undef DIAGNOSTIC_UNUSED
-
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <WebServer.h>
