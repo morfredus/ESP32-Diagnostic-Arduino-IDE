@@ -1,9 +1,9 @@
 /*
- * ESP32 Diagnostic Suite v3.7.05-dev
+ * ESP32 Diagnostic Suite v3.7.06-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
- * Optimisé pour ESP32 Arduino Core 3.3.2
- * Carte testée: ESP32-S3 avec PSRAM OPI
- * Auteur: morfredus
+ * Optimized for ESP32 Arduino Core 3.3.2
+ * Tested board: ESP32-S3 with PSRAM OPI
+ * Author: morfredus
  */
 
 #if defined(__GNUC__)
@@ -152,21 +152,7 @@ static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
 // Système de traduction
 #include "languages.h"
 
-Language currentLanguage = LANG_FR;
-
 struct TranslationJsonEntry;
-
-// --- [BUGFIX] Restauration du sélecteur de langue ---
-static inline void setLanguage(Language lang) {
-  switch (lang) {
-    case LANG_FR:
-    case LANG_EN:
-      currentLanguage = lang;
-      break;
-    default:
-      break;
-  }
-}
 
 static String buildActionResponseJson(bool success,
                                       const String& message,
@@ -200,7 +186,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.7.05-dev"
+#define DIAGNOSTIC_VERSION "3.7.06-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -3384,7 +3370,7 @@ void handleExportJSON() {
   json += "\"system\":{";
   json += "\"uptime_ms\":" + String(diagnosticData.uptime) + ",";
   json += "\"reset_reason\":\"" + getResetReason() + "\",";
-  json += "\"language\":\"" + String(currentLanguage == LANG_FR ? "fr" : "en") + "\"";
+  json += "\"language\":\"en\"";
   json += "}";
   
   json += "}";
@@ -3618,32 +3604,6 @@ void handlePrintVersion() {
   html += "</body></html>";
   
   server.send(200, "text/html; charset=utf-8", html);
-}
-
-// ========== HANDLER CHANGEMENT DE LANGUE ==========
-void handleSetLanguage() {
-  if (server.hasArg("lang")) {
-    const String lang = server.arg("lang");
-    if (lang == "fr") {
-      setLanguage(LANG_FR);
-      sendActionResponse(200, true, String(), {
-        jsonStringField("lang", "fr")
-      });
-      return;
-    }
-    if (lang == "en") {
-      setLanguage(LANG_EN);
-      sendActionResponse(200, true, String(), {
-        jsonStringField("lang", "en")
-      });
-      return;
-    }
-    sendActionResponse(400, false, String(), {
-      jsonStringField("error", "unsupported_language")
-    });
-  } else {
-    sendOperationError(400, T().configuration_invalid.str());
-  }
 }
 
 String htmlEscape(const String& raw) {
@@ -4824,8 +4784,7 @@ void setup() {
   server.on("/", handleRoot);
   server.on("/js/app.js", handleJavaScript);
 
-  // **NOUVELLES ROUTES MULTILINGUES**
-  server.on("/api/set-language", handleSetLanguage);
+  // **TRANSLATION API**
   server.on("/api/get-translations", handleGetTranslations);
 
   // Data endpoints
