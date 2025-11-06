@@ -53,6 +53,7 @@
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
 #include <esp_wifi.h>
+#include <esp_task_wdt.h>
 #if defined(__has_include)
   #if __has_include(<esp_netif.h>)
     #include <esp_netif.h>
