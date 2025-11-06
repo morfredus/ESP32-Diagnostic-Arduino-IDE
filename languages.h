@@ -253,7 +253,91 @@
   X(gpio_available, "Available GPIO") \
   X(apply_config, "Apply Configuration") \
   X(pin_configuration, "Pin Configuration") \
-  X(refresh_data, "Refresh")
+  X(refresh_data, "Refresh") \
+  X(bluetooth_advertising_label, "Advertising") \
+  X(bluetooth_client_connected, "Client connected") \
+  X(bluetooth_client_disconnected, "Client disconnected") \
+  X(bluetooth_mac, "Bluetooth MAC") \
+  X(bluetooth_not_advertising, "Not advertising") \
+  X(bluetooth_section, "Bluetooth") \
+  X(bluetooth_status, "Bluetooth Status") \
+  X(board, "Board") \
+  X(brownout, "Brownout") \
+  X(category, "Category") \
+  X(channels, "Channels") \
+  X(chase, "Chase") \
+  X(config, "Config") \
+  X(configuration_invalid, "Invalid configuration") \
+  X(connected_ssid, "Connected SSID") \
+  X(cores, "Cores") \
+  X(critical, "Critical") \
+  X(days, "days") \
+  X(deepsleep_exit, "Deep sleep exit") \
+  X(detected_active, "Detected (active)") \
+  X(device_count, "Device count") \
+  X(devices, "Devices") \
+  X(dns, "DNS") \
+  X(enable_psram_hint, "Enable PSRAM in the IDE settings") \
+  X(error_label, "Error") \
+  X(export_after_boot, "Export after boot") \
+  X(export_generated, "Export generated") \
+  X(fade, "Fade") \
+  X(fail, "Fail") \
+  X(flash_type, "Flash Type") \
+  X(free, "Free") \
+  X(frequency, "Frequency") \
+  X(gateway, "Gateway") \
+  X(gpio_interfaces, "GPIO Interfaces") \
+  X(gpio_invalid, "Invalid GPIO") \
+  X(gpio_list, "GPIO List") \
+  X(hours, "hours") \
+  X(i2c_peripherals, "I2C Peripherals") \
+  X(ide_config, "IDE Configuration") \
+  X(internal_sram, "Internal SRAM") \
+  X(max_alloc, "Max Allocation") \
+  X(memory_fragmentation, "Memory Fragmentation") \
+  X(memory_status, "Memory Status") \
+  X(memory_stress, "Memory Stress") \
+  X(message_displayed, "Message displayed") \
+  X(minutes, "minutes") \
+  X(model, "Model") \
+  X(neopixel, "NeoPixel") \
+  X(none, "None") \
+  X(not_tested, "Not tested") \
+  X(off, "OFF") \
+  X(ok, "OK") \
+  X(oled_step_big_text, "Display large text") \
+  X(oled_step_diagonals, "Draw diagonals") \
+  X(oled_step_executed_prefix, "Step executed:") \
+  X(oled_step_final_message, "OLED test complete") \
+  X(oled_step_horizontal_lines, "Draw horizontal lines") \
+  X(oled_step_moving_square, "Animate moving square") \
+  X(oled_step_progress_bar, "Render progress bar") \
+  X(oled_step_scroll_text, "Scroll text") \
+  X(oled_step_shapes, "Draw shapes") \
+  X(oled_step_text_sizes, "Show text sizes") \
+  X(oled_step_unavailable, "OLED test unavailable") \
+  X(oled_step_unknown, "Unknown OLED step") \
+  X(oled_step_welcome, "OLED diagnostic sequence") \
+  X(other, "Other") \
+  X(parameter, "Parameter") \
+  X(performance_bench, "Performance Bench") \
+  X(pins, "Pins") \
+  X(poweron, "Power-on") \
+  X(psram_external, "External PSRAM") \
+  X(pwm_test, "PWM Test") \
+  X(revision, "Revision") \
+  X(signal_power, "Signal power") \
+  X(signal_quality, "Signal quality") \
+  X(software_reset, "Software reset") \
+  X(spi_bus, "SPI Bus") \
+  X(subnet_mask, "Subnet Mask") \
+  X(supported_not_enabled, "Supported but not enabled") \
+  X(total_gpio, "Total GPIO") \
+  X(used, "Used") \
+  X(very_good, "Very good") \
+  X(wifi_connection, "WiFi connection") \
+  X(wifi_open_auth, "Open authentication")
 
 enum TranslationKey {
 #define DECL_KEY(identifier, en) TR_##identifier,
