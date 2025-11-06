@@ -1,7 +1,7 @@
 /*
- * ESP32 Diagnostic Suite v3.7.07-dev
- * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
- * Optimized for ESP32 Arduino Core 3.3.2
+ * ESP32 Diagnostic Suite v3.7.10-dev
+ * Compatible: ESP32 (4MB+ Flash) & ESP32-S3 (PSRAM OPI recommended)
+ * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI
  * Author: morfredus
  */
@@ -180,8 +180,8 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-// v3.7.08 - Add DHT sensor type selection (DHT11 or DHT22)
-#define DIAGNOSTIC_VERSION "3.7.08-dev"
+// v3.7.10 - Remove legacy LED routines and lock UI to English
+#define DIAGNOSTIC_VERSION "3.7.10-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -322,12 +322,6 @@ bool neopixelAvailable = false;
 bool neopixelSupported = false;
 String neopixelTestResult = String(Texts::not_tested);
 
-// LED intégrée
-int BUILTIN_LED_PIN = -1;
-bool builtinLedTested = false;
-bool builtinLedAvailable = false;
-String builtinLedTestResult = String(Texts::not_tested);
-
 // OLED
 bool oledTested = false;
 bool oledAvailable = false;
@@ -401,7 +395,6 @@ static bool startAsyncTest(AsyncTestRunner& runner,
 }
 
 // --- [NEW FEATURE] Orchestrateurs asynchrones des tests lents ---
-static AsyncTestRunner builtinLedTestRunner = {"BuiltinLEDTest", nullptr, false};
 static AsyncTestRunner neopixelTestRunner = {"NeoPixelTest", nullptr, false};
 static AsyncTestRunner oledTestRunner = {"OLEDTest", nullptr, false};
 static AsyncTestRunner rgbLedTestRunner = {"RgbLedTest", nullptr, false};
@@ -479,6 +472,8 @@ struct DiagnosticInfo {
   
   unsigned long cpuBenchmark;
   unsigned long memBenchmark;
+  double cpuPerfScore;
+  double memThroughput;
   
   String i2cDevices;
   int i2cCount;
@@ -1348,60 +1343,6 @@ void testAllGPIOs() {
     gpioResults.push_back(result);
   }
   Serial.printf("GPIO: %d testes\r\n", numGPIO);
-}
-
-// ========== LED INTÉGRÉE ==========
-void detectBuiltinLED() {
-  String chipModel = detectChipModel();
-  
-  #ifdef LED_BUILTIN
-    BUILTIN_LED_PIN = LED_BUILTIN;
-  #else
-    if (chipModel == "ESP32-S3") BUILTIN_LED_PIN = 2;
-    else if (chipModel == "ESP32-C3") BUILTIN_LED_PIN = 8;
-    else if (chipModel == "ESP32-S2") BUILTIN_LED_PIN = 15;
-    else BUILTIN_LED_PIN = 2;
-  #endif
-  
-  builtinLedTestResult = String(Texts::gpio) + " " + String(BUILTIN_LED_PIN) + " - " + String(Texts::not_tested);
-  Serial.printf("LED integree: GPIO %d\r\n", BUILTIN_LED_PIN);
-}
-
-void testBuiltinLED() {
-  if (BUILTIN_LED_PIN == -1) return;
-  
-  Serial.println("\r\n=== TEST LED ===");
-  pinMode(BUILTIN_LED_PIN, OUTPUT);
-  
-  for(int i = 0; i < 5; i++) {
-    digitalWrite(BUILTIN_LED_PIN, HIGH);
-    delay(80);
-    digitalWrite(BUILTIN_LED_PIN, LOW);
-    delay(80);
-  }
-
-  for(int i = 0; i <= 255; i += 51) {
-    analogWrite(BUILTIN_LED_PIN, i);
-    delay(25);
-    yield();
-  }
-  for(int i = 255; i >= 0; i -= 51) {
-    analogWrite(BUILTIN_LED_PIN, i);
-    delay(25);
-    yield();
-  }
-  
-  digitalWrite(BUILTIN_LED_PIN, LOW);
-  builtinLedAvailable = true;
-  builtinLedTestResult = String(Texts::test) + " " + String(Texts::ok) + " - GPIO " + String(BUILTIN_LED_PIN);
-  builtinLedTested = true;
-  Serial.println("LED: OK");
-}
-
-void resetBuiltinLEDTest() {
-  builtinLedTested = false;
-  builtinLedAvailable = false;
-  if (BUILTIN_LED_PIN != -1) digitalWrite(BUILTIN_LED_PIN, LOW);
 }
 
 // ========== NEOPIXEL ==========
@@ -2334,12 +2275,6 @@ void collectDiagnosticInfo() {
   historyIndex = (historyIndex + 1) % HISTORY_SIZE;
 }
 
-// --- [NEW FEATURE] Routines de tests en tâche de fond ---
-static void runBuiltinLedTestTask() {
-  resetBuiltinLEDTest();
-  testBuiltinLED();
-}
-
 static void runNeopixelTestTask() {
   resetNeoPixelTest();
   testNeoPixel();
@@ -2395,94 +2330,6 @@ void handleI2CScan() {
     jsonNumberField("count", diagnosticData.i2cCount),
     jsonStringField("devices", diagnosticData.i2cDevices)
   });
-}
-
-void handleBuiltinLEDConfig() {
-  if (server.hasArg("gpio")) {
-    int newGPIO = server.arg("gpio").toInt();
-    if (newGPIO >= 0 && newGPIO <= 48) {
-      BUILTIN_LED_PIN = newGPIO;
-      resetBuiltinLEDTest();
-      String message = String(Texts::config) + " " + String(Texts::gpio) + " " + String(BUILTIN_LED_PIN);
-      sendOperationSuccess(message);
-      return;
-    }
-  }
-  sendOperationError(400, Texts::gpio_invalid.str());
-}
-
-void handleBuiltinLEDTest() {
-  bool alreadyRunning = false;
-  bool started = startAsyncTest(builtinLedTestRunner, runBuiltinLedTestTask, alreadyRunning);
-
-  if (started) {
-    sendActionResponse(202, true, String(Texts::test_in_progress), {
-      jsonBoolField("running", true),
-      jsonStringField("result", builtinLedTestResult)
-    });
-    return;
-  }
-
-  if (alreadyRunning) {
-    sendActionResponse(200, true, String(Texts::test_in_progress), {
-      jsonBoolField("running", true),
-      jsonStringField("result", builtinLedTestResult)
-    });
-    return;
-  }
-
-  resetBuiltinLEDTest();
-  testBuiltinLED();
-  sendActionResponse(200, builtinLedAvailable, builtinLedTestResult, {
-    jsonBoolField("running", false),
-    jsonStringField("result", builtinLedTestResult)
-  });
-}
-
-void handleBuiltinLEDControl() {
-  if (!server.hasArg("action")) {
-    sendOperationError(400, Texts::configuration_invalid.str());
-    return;
-  }
-
-  String action = server.arg("action");
-  if (BUILTIN_LED_PIN == -1) {
-    sendOperationError(400, Texts::gpio_invalid.str());
-    return;
-  }
-
-  pinMode(BUILTIN_LED_PIN, OUTPUT);
-  String message = "";
-  
-  if (action == "blink") {
-    for(int i = 0; i < 5; i++) {
-      digitalWrite(BUILTIN_LED_PIN, HIGH);
-      delay(200);
-      digitalWrite(BUILTIN_LED_PIN, LOW);
-      delay(200);
-    }
-    message = String(Texts::blink) + " " + String(Texts::ok);
-  } else if (action == "fade") {
-    for(int i = 0; i <= 255; i += 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
-    }
-    for(int i = 255; i >= 0; i -= 5) {
-      analogWrite(BUILTIN_LED_PIN, i);
-      delay(10);
-    }
-    digitalWrite(BUILTIN_LED_PIN, LOW);
-    message = String(Texts::fade) + " " + String(Texts::ok);
-  } else if (action == "off") {
-    digitalWrite(BUILTIN_LED_PIN, LOW);
-    builtinLedTested = false;
-    message = String(Texts::off);
-  } else {
-    sendOperationError(400, Texts::configuration_invalid.str());
-    return;
-  }
-
-  sendOperationSuccess(message);
 }
 
 void handleNeoPixelConfig() {
@@ -2943,13 +2790,19 @@ void handleBenchmark() {
   diagnosticData.cpuBenchmark = cpuTime;
   diagnosticData.memBenchmark = memTime;
 
-  double cpuPerf = 100000.0 / static_cast<double>(cpuTime);
-  double memSpeed = (10000.0 * sizeof(int) * 2.0) / static_cast<double>(memTime);
+  // --- [NEW FEATURE] Extended performance metrics for UI exports ---
+  double cpuPerfOpsPerUs = 100000.0 / static_cast<double>(cpuTime);
+  double rawMemSpeed = (10000.0 * sizeof(int) * 2.0) / static_cast<double>(memTime);
+  double memThroughputMBs = (rawMemSpeed * 1000000.0) / (1024.0 * 1024.0);
+
+  diagnosticData.cpuPerfScore = cpuPerfOpsPerUs;
+  diagnosticData.memThroughput = memThroughputMBs;
+
   sendJsonResponse(200, {
     jsonNumberField("cpu", cpuTime),
     jsonNumberField("memory", memTime),
-    jsonFloatField("cpuPerf", cpuPerf, 2),
-    jsonFloatField("memSpeed", memSpeed, 2)
+    jsonFloatField("cpuPerf", cpuPerfOpsPerUs, 2),
+    jsonFloatField("memSpeed", memThroughputMBs, 2)
   });
 }
 
@@ -3081,8 +2934,6 @@ void handleLedsInfo() {
   String json;
   json.reserve(400);
   json = "{";
-  json += "\"builtin\":{\"pin\":" + String(BUILTIN_LED_PIN) +
-          ",\"status\":\"" + builtinLedTestResult + "\"},";
   json += "\"neopixel\":{\"pin\":" + String(LED_PIN) +
           ",\"count\":" + String(LED_COUNT) +
           ",\"status\":\"" + neopixelTestResult + "\"}";
@@ -3284,7 +3135,6 @@ void handleExportTXT() {
   txt += "\r\n";
   
   txt += "=== " + String(Texts::test) + " ===\r\n";
-  txt += String(Texts::builtin_led) + ": " + builtinLedTestResult + "\r\n";
   txt += String(Texts::neopixel) + ": " + neopixelTestResult + "\r\n";
   txt += "OLED: " + oledTestResult + "\r\n";
   txt += "ADC: " + adcTestResult + "\r\n";
@@ -3397,7 +3247,6 @@ void handleExportJSON() {
   json += "},";
   
   json += "\"hardware_tests\":{";
-  json += "\"builtin_led\":\"" + builtinLedTestResult + "\",";
   json += "\"neopixel\":\"" + neopixelTestResult + "\",";
   json += "\"oled\":\"" + oledTestResult + "\",";
   json += "\"adc\":\"" + adcTestResult + "\",";
@@ -3478,7 +3327,6 @@ void handleExportCSV() {
   csv += String(Texts::i2c_peripherals) + "," + String(Texts::device_count) + "," + String(diagnosticData.i2cCount) + "\r\n";
   csv += String(Texts::i2c_peripherals) + "," + String(Texts::devices) + "," + diagnosticData.i2cDevices + "\r\n";
   
-  csv += String(Texts::test) + "," + String(Texts::builtin_led) + "," + builtinLedTestResult + "\r\n";
   csv += String(Texts::test) + "," + String(Texts::neopixel) + "," + neopixelTestResult + "\r\n";
   csv += String(Texts::test) + ",OLED," + oledTestResult + "\r\n";
   csv += String(Texts::test) + ",ADC," + adcTestResult + "\r\n";
@@ -3626,7 +3474,6 @@ void handlePrintVersion() {
   html += "<h2>" + String(Texts::nav_tests) + "</h2>";
   html += "<table>";
   html += "<tr><th>" + String(Texts::parameter) + "</th><th>" + String(Texts::status) + "</th></tr>";
-  html += "<tr><td>" + String(Texts::builtin_led) + "</td><td>" + builtinLedTestResult + "</td></tr>";
   html += "<tr><td>" + String(Texts::neopixel) + "</td><td>" + neopixelTestResult + "</td></tr>";
   html += "<tr><td>" + String(Texts::oled_screen) + "</td><td>" + oledTestResult + "</td></tr>";
   html += "<tr><td>" + String(Texts::adc_test) + "</td><td>" + adcTestResult + "</td></tr>";
@@ -4188,10 +4035,6 @@ void stopBluetooth() {
   bluetoothAdvertising = false;
 }
 
-void handleGetTranslations() {
-  server.send(200, "application/json; charset=utf-8", buildTranslationsJSON());
-}
-
 void handleBluetoothStatus() {
   String message = getBluetoothStateLabel();
   server.send(200, "application/json", buildBluetoothJSON(true, message));
@@ -4460,7 +4303,6 @@ void setup() {
   }
   
   // Détections
-  detectBuiltinLED();
   detectNeoPixelSupport();
 
   if (strip != nullptr) {
@@ -4493,9 +4335,6 @@ void setup() {
   server.on("/", handleRoot);
   server.on("/js/app.js", handleJavaScript);
 
-  // **TRANSLATION API**
-  server.on("/api/get-translations", handleGetTranslations);
-
   // Data endpoints
   server.on("/api/status", handleStatus);
   server.on("/api/overview", handleOverview);
@@ -4518,11 +4357,6 @@ void setup() {
   server.on("/api/bluetooth/reset", handleBluetoothReset);
   // --- [NEW FEATURE] Endpoint scan Bluetooth ---
   server.on("/api/bluetooth/scan", handleBluetoothScan);
-  
-  // LED intégrée
-  server.on("/api/builtin-led-config", handleBuiltinLEDConfig);
-  server.on("/api/builtin-led-test", handleBuiltinLEDTest);
-  server.on("/api/builtin-led-control", handleBuiltinLEDControl);
   
   // NeoPixel
   server.on("/api/neopixel-config", handleNeoPixelConfig);
@@ -4577,9 +4411,9 @@ void setup() {
   server.begin();
   Serial.println("Serveur Web OK!");
   Serial.println("\r\n===============================================");
-  Serial.println("            PRET - En attente");
-  Serial.println("   Langue par defaut: FRANCAIS");
-  Serial.println("   Changement dynamique via interface web");
+  Serial.println("            READY - Waiting");
+  Serial.println("   Interface language: ENGLISH (static)");
+  Serial.println("   Dynamic translation disabled to save flash");
   Serial.println("===============================================\r\n");
 }
 
