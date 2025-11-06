@@ -180,8 +180,8 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-// v3.7.07 - Restore missing translation entries to resolve build errors
-#define DIAGNOSTIC_VERSION "3.7.07-dev"
+// v3.7.08 - Add DHT sensor type selection (DHT11 or DHT22)
+#define DIAGNOSTIC_VERSION "3.7.08-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -242,8 +242,10 @@ int RGB_LED_PIN_B = 12;
 // --- [NEW FEATURE] Buzzer (pin modifiable via web) ---
 int BUZZER_PIN = 16;
 
-// --- [NEW FEATURE] DHT11 Temperature & Humidity Sensor (pin modifiable via web) ---
-int DHT11_PIN = 4;
+// --- [NEW FEATURE] DHT Temperature & Humidity Sensor (pin & type configurables via web) ---
+int DHT_PIN = 4;
+// --- [NEW FEATURE] DHT sensor type selection ---
+uint8_t DHT_SENSOR_TYPE = 11;
 
 // --- [NEW FEATURE] Light Sensor (pin modifiable via web) ---
 int LIGHT_SENSOR_PIN = 17;
@@ -419,10 +421,10 @@ bool rgbLedAvailable = false;
 String buzzerTestResult = String(Texts::not_tested);
 bool buzzerAvailable = false;
 
-String dht11TestResult = String(Texts::not_tested);
-bool dht11Available = false;
-float dht11Temperature = -999.0;
-float dht11Humidity = -999.0;
+String dhtTestResult = String(Texts::not_tested);
+bool dhtAvailable = false;
+float dhtTemperature = -999.0;
+float dhtHumidity = -999.0;
 
 String lightSensorTestResult = String(Texts::not_tested);
 bool lightSensorAvailable = false;
@@ -1998,68 +2000,74 @@ void playBuzzerTone(int frequency, int duration) {
   }
 }
 
-// --- [NEW FEATURE] TEST DHT11 ---
-void testDHT11() {
-  Serial.println("\r\n=== TEST DHT11 ===");
+// --- [NEW FEATURE] DHT sensor helpers ---
+static inline const char* getDhtSensorName() {
+  return (DHT_SENSOR_TYPE == 22) ? "DHT22" : "DHT11";
+}
 
-  if (DHT11_PIN < 0) {
-    dht11TestResult = String(Texts::configuration_invalid);
-    dht11Available = false;
-    Serial.println("DHT11: Configuration invalide");
+// --- [NEW FEATURE] TEST DHT SENSOR ---
+void testDHTSensor() {
+  const char* sensorName = getDhtSensorName();
+  Serial.printf("\r\n=== TEST %s ===\r\n", sensorName);
+
+  if (DHT_PIN < 0) {
+    dhtTestResult = String(Texts::configuration_invalid);
+    dhtAvailable = false;
+    Serial.printf("%s: Configuration invalide\r\n", sensorName);
     return;
   }
 
-  Serial.printf("Lecture DHT11 - Pin:%d\r\n", DHT11_PIN);
+  Serial.printf("Lecture %s - Pin:%d\r\n", sensorName, DHT_PIN);
 
-  pinMode(DHT11_PIN, OUTPUT);
-  digitalWrite(DHT11_PIN, LOW);
+  pinMode(DHT_PIN, OUTPUT);
+  digitalWrite(DHT_PIN, LOW);
   delay(20);
-  digitalWrite(DHT11_PIN, HIGH);
+  digitalWrite(DHT_PIN, HIGH);
   delayMicroseconds(40);
-  pinMode(DHT11_PIN, INPUT_PULLUP);
+  pinMode(DHT_PIN, INPUT_PULLUP);
 
   uint8_t data[5] = {0};
   uint8_t bits[40] = {0};
 
   unsigned long timeout = millis();
-  while (digitalRead(DHT11_PIN) == HIGH) {
+  while (digitalRead(DHT_PIN) == HIGH) {
     if (millis() - timeout > 100) {
-      dht11TestResult = String(Texts::error_label);
-      dht11Available = false;
-      Serial.println("DHT11: Timeout");
+      dhtTestResult = String(Texts::error_label);
+      dhtAvailable = false;
+      Serial.printf("%s: Timeout\r\n", sensorName);
       return;
     }
   }
 
   timeout = millis();
-  while (digitalRead(DHT11_PIN) == LOW) {
+  while (digitalRead(DHT_PIN) == LOW) {
     if (millis() - timeout > 100) {
-      dht11TestResult = String(Texts::error_label);
-      dht11Available = false;
-      Serial.println("DHT11: Timeout");
+      dhtTestResult = String(Texts::error_label);
+      dhtAvailable = false;
+      Serial.printf("%s: Timeout\r\n", sensorName);
       return;
     }
   }
 
   timeout = millis();
-  while (digitalRead(DHT11_PIN) == HIGH) {
+  while (digitalRead(DHT_PIN) == HIGH) {
     if (millis() - timeout > 100) {
-      dht11TestResult = String(Texts::error_label);
-      dht11Available = false;
-      Serial.println("DHT11: Timeout");
+      dhtTestResult = String(Texts::error_label);
+      dhtAvailable = false;
+      Serial.printf("%s: Timeout\r\n", sensorName);
       return;
     }
   }
 
   for (int i = 0; i < 40; i++) {
     timeout = micros();
-    while (digitalRead(DHT11_PIN) == LOW) {
+    while (digitalRead(DHT_PIN) == LOW) {
       if (micros() - timeout > 100) break;
     }
 
     unsigned long t = micros();
     timeout = micros();
-    while (digitalRead(DHT11_PIN) == HIGH) {
+    while (digitalRead(DHT_PIN) == HIGH) {
       if (micros() - timeout > 100) break;
     }
 
@@ -2077,15 +2085,29 @@ void testDHT11() {
   }
 
   if (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF)) {
-    dht11Humidity = data[0];
-    dht11Temperature = data[2];
-    dht11TestResult = String(Texts::ok);
-    dht11Available = true;
-    Serial.printf("DHT11: T=%.1f°C H=%.1f%%\r\n", dht11Temperature, dht11Humidity);
+    if (DHT_SENSOR_TYPE == 22) {
+      uint16_t rawHumidity = (static_cast<uint16_t>(data[0]) << 8) | data[1];
+      uint16_t rawTemperature = (static_cast<uint16_t>(data[2]) << 8) | data[3];
+      bool negative = rawTemperature & 0x8000;
+      if (negative) {
+        rawTemperature &= 0x7FFF;
+      }
+      dhtHumidity = rawHumidity * 0.1f;
+      dhtTemperature = rawTemperature * 0.1f;
+      if (negative) {
+        dhtTemperature = -dhtTemperature;
+      }
+    } else {
+      dhtHumidity = static_cast<float>(data[0]) + static_cast<float>(data[1]) * 0.1f;
+      dhtTemperature = static_cast<float>(data[2]) + static_cast<float>(data[3]) * 0.1f;
+    }
+    dhtTestResult = String(Texts::ok);
+    dhtAvailable = true;
+    Serial.printf("%s: T=%.1f°C H=%.1f%%\r\n", sensorName, dhtTemperature, dhtHumidity);
   } else {
-    dht11TestResult = String(Texts::error_label);
-    dht11Available = false;
-    Serial.println("DHT11: Checksum error");
+    dhtTestResult = String(Texts::error_label);
+    dhtAvailable = false;
+    Serial.printf("%s: Checksum error\r\n", sensorName);
   }
 }
 
@@ -2809,22 +2831,53 @@ void handleBuzzerTone() {
   }
 }
 
-void handleDHT11Config() {
+void handleDHTConfig() {
+  bool updated = false;
+
   if (server.hasArg("pin")) {
-    DHT11_PIN = server.arg("pin").toInt();
-    sendActionResponse(200, true, String(Texts::ok));
+    DHT_PIN = server.arg("pin").toInt();
+    updated = true;
+  }
+
+  if (server.hasArg("type")) {
+    String rawType = server.arg("type");
+    rawType.trim();
+    rawType.toUpperCase();
+
+    uint8_t candidate = 0;
+    if (rawType == "DHT22" || rawType == "22") {
+      candidate = 22;
+    } else if (rawType == "DHT11" || rawType == "11") {
+      candidate = 11;
+    }
+
+    if (candidate == 11 || candidate == 22) {
+      DHT_SENSOR_TYPE = candidate;
+      updated = true;
+    } else {
+      sendActionResponse(400, false, String(Texts::configuration_invalid));
+      return;
+    }
+  }
+
+  if (updated) {
+    sendActionResponse(200,
+                       true,
+                       String(Texts::ok),
+                       {jsonNumberField("type", static_cast<int>(DHT_SENSOR_TYPE))});
   } else {
     sendActionResponse(400, false, String(Texts::configuration_invalid));
   }
 }
 
-void handleDHT11Test() {
-  testDHT11();
+void handleDHTTest() {
+  testDHTSensor();
   sendJsonResponse(200, {
-    jsonBoolField("success", dht11Available),
-    jsonStringField("result", dht11TestResult),
-    jsonFloatField("temperature", dht11Temperature, 1),
-    jsonFloatField("humidity", dht11Humidity, 1)
+    jsonBoolField("success", dhtAvailable),
+    jsonStringField("result", dhtTestResult),
+    jsonFloatField("temperature", dhtTemperature, 1),
+    jsonFloatField("humidity", dhtHumidity, 1),
+    jsonNumberField("type", static_cast<int>(DHT_SENSOR_TYPE))
   });
 }
 
@@ -4499,8 +4552,8 @@ void setup() {
   server.on("/api/buzzer-test", handleBuzzerTest);
   server.on("/api/buzzer-tone", handleBuzzerTone);
 
-  server.on("/api/dht11-config", handleDHT11Config);
-  server.on("/api/dht11-test", handleDHT11Test);
+  server.on("/api/dht-config", handleDHTConfig);
+  server.on("/api/dht-test", handleDHTTest);
 
   server.on("/api/light-sensor-config", handleLightSensorConfig);
   server.on("/api/light-sensor-test", handleLightSensorTest);
