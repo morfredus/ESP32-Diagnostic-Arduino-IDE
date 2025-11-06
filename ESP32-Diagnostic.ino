@@ -2,7 +2,7 @@
  * ESP32 Diagnostic Suite v3.7.07-dev
  * Compatible: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2
  * Optimized for ESP32 Arduino Core 3.3.2
- * Tested board: ESP32-S3 with PSRAM OPI
+ * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI
  * Author: morfredus
  */
 
