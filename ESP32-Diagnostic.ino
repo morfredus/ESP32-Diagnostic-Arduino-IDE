@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.13-dev
+ * ESP32 Diagnostic Suite v3.7.14-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -189,7 +189,8 @@ inline void sendOperationError(int statusCode,
 // v3.7.11 - Performance tab localization fixes & stress telemetry refresh
 // v3.7.12 - Repair bilingual resources and JSON helpers
 // v3.7.13 - Fix translation registry macro to restore JSON + UI strings
-#define DIAGNOSTIC_VERSION "3.7.13-dev"
+// v3.7.14 - Fix TEXT_RESOURCE_MAP availability for buildTranslationsJSON
+#define DIAGNOSTIC_VERSION "3.7.14-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
