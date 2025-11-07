@@ -1,6 +1,6 @@
 /*
- * ESP32 Diagnostic Suite v3.7.09-dev
- * Compatible: ESP32, ESP32-S3
+ * ESP32 Diagnostic Suite v3.7.11-dev
+ * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
  * Author: morfredus
@@ -123,8 +123,10 @@
   #include "wifi-config.h"
 #endif
 
-// --- [NEW FEATURE] English-only UI strings ---
+// --- [NEW FEATURE] Dual-language UI strings ---
 #include "languages.h"
+
+Language currentLanguage = LANG_FR;
 
 static String buildActionResponseJson(bool success,
                                       const String& message,
@@ -180,8 +182,9 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-// v3.7.09 - Expand benchmarks and hardware diagnostics UI
-#define DIAGNOSTIC_VERSION "3.7.09-dev"
+// v3.7.10 - Restore bilingual UI and enhanced performance telemetry
+// v3.7.11 - Performance tab localization fixes & stress telemetry refresh
+#define DIAGNOSTIC_VERSION "3.7.11-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -413,6 +416,9 @@ String pwmTestResult = String(Texts::not_tested);
 String partitionsInfo = "";
 String spiInfo = "";
 String stressTestResult = String(Texts::not_tested);
+// --- [NEW FEATURE] Memory stress telemetry cache ---
+size_t stressAllocationCount = 0;
+unsigned long stressDurationMs = 0;
 
 // --- [NEW FEATURE] Résultats de tests des nouveaux capteurs ---
 String rgbLedTestResult = String(Texts::not_tested);
@@ -2202,6 +2208,10 @@ void testMotionSensor() {
 void memoryStressTest() {
   Serial.println("\r\n=== STRESS TEST MEMOIRE ===");
   
+  unsigned long startMs = millis();
+  stressAllocationCount = 0;
+  stressDurationMs = 0;
+
   const int allocSize = 1024;
   int maxAllocs = 0;
   std::vector<void*> allocations;
@@ -2225,6 +2235,9 @@ void memoryStressTest() {
     free(ptr);
   }
   
+  stressAllocationCount = maxAllocs;
+  stressDurationMs = millis() - startMs;
+
   stressTestResult = String(Texts::max_alloc) + ": " + String(maxAllocs) + " KB";
   Serial.println("Stress test: OK");
 }
@@ -2724,7 +2737,12 @@ void handlePartitionsList() {
 
 void handleStressTest() {
   memoryStressTest();
-  sendJsonResponse(200, { jsonStringField("result", stressTestResult) });
+  sendJsonResponse(200, {
+    jsonStringField("result", stressTestResult),
+    jsonNumberField("allocations", static_cast<unsigned long>(stressAllocationCount)),
+    jsonNumberField("durationMs", stressDurationMs),
+    jsonStringField("allocationsLabel", stressTestResult)
+  });
 }
 
 // --- [NEW FEATURE] Handlers API pour les nouveaux capteurs ---
@@ -2944,13 +2962,20 @@ void handleBenchmark() {
   diagnosticData.memBenchmark = memTime;
 
   // --- [NEW FEATURE] Provide derived benchmark metrics for richer telemetry ---
+  // --- [NEW FEATURE] Combined memory stress metrics for the benchmark API ---
+  memoryStressTest();
+
   double cpuPerf = 100000.0 / static_cast<double>(cpuTime);
   double memSpeed = (10000.0 * sizeof(int) * 2.0) / static_cast<double>(memTime);
   sendJsonResponse(200, {
     jsonNumberField("cpu", cpuTime),
     jsonNumberField("memory", memTime),
     jsonFloatField("cpuPerf", cpuPerf, 2),
-    jsonFloatField("memSpeed", memSpeed, 2)
+    jsonFloatField("memSpeed", memSpeed, 2),
+    jsonNumberField("allocations", static_cast<unsigned long>(stressAllocationCount)),
+    jsonNumberField("stressDuration", stressDurationMs),
+    jsonStringField("stress", stressTestResult),
+    jsonStringField("allocationsLabel", stressTestResult)
   });
 }
 
@@ -3818,13 +3843,13 @@ static inline void appendInfoItem(String& chunk,
   chunk += F("</div></div>");
 }
 
-// --- [NEW FEATURE] English string export for the web interface ---
+// --- [NEW FEATURE] Dynamic bilingual string export for the web interface ---
 String buildTranslationsJSON() {
   String json;
   json.reserve(20000);
   json += '{';
   bool first = true;
-#define APPEND_TEXT(identifier, value)                     \
+#define APPEND_TEXT(identifier, enValue, frValue)                     \
   do {                                                     \
     if (!first) {                                          \
       json += ',';                                         \
@@ -3841,7 +3866,7 @@ String buildTranslationsJSON() {
   return json;
 }
 
-// --- [NEW FEATURE] Bluetooth helper utilities (English-only interface) ---
+// --- [NEW FEATURE] Bluetooth helper utilities for the web interface ---
 String sanitizeBluetoothName(const String& raw) {
   String cleaned;
   cleaned.reserve(raw.length());
@@ -4189,6 +4214,39 @@ void stopBluetooth() {
   bluetoothAdvertising = false;
 }
 
+// --- [NEW FEATURE] Runtime language switching endpoint ---
+void handleSetLanguage() {
+  if (!server.hasArg("lang")) {
+    sendJsonResponse(400, {
+      jsonBoolField("success", false),
+      jsonStringField("error", String(Texts::language_switch_error))
+    });
+    return;
+  }
+
+  String lang = server.arg("lang");
+  lang.toLowerCase();
+  Language target = LANG_EN;
+  if (lang == "fr") {
+    target = LANG_FR;
+  } else if (lang == "en") {
+    target = LANG_EN;
+  } else {
+    sendJsonResponse(400, {
+      jsonBoolField("success", false),
+      jsonStringField("error", String(Texts::language_switch_error))
+    });
+    return;
+  }
+
+  setLanguage(target);
+
+  String response = F("{\"success\":true,\"language\":\"");
+  response += (target == LANG_FR) ? "fr" : "en";
+  response += F("\"}");
+  server.send(200, "application/json; charset=utf-8", response);
+}
+
 void handleGetTranslations() {
   server.send(200, "application/json; charset=utf-8", buildTranslationsJSON());
 }
@@ -4496,6 +4554,7 @@ void setup() {
 
   // **TRANSLATION API**
   server.on("/api/get-translations", handleGetTranslations);
+  server.on("/api/set-language", handleSetLanguage);
 
   // Data endpoints
   server.on("/api/status", handleStatus);
