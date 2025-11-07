@@ -459,6 +459,8 @@ inline Language getLanguage() {
   return currentLanguage;
 }
 
-#undef TEXT_RESOURCE_MAP
+// TEXT_RESOURCE_MAP is intentionally NOT undefined here to allow
+// other compilation units to reuse this macro with different operations.
+// #undef TEXT_RESOURCE_MAP
 
 #endif  // LANGUAGES_H
