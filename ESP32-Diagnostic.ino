@@ -4595,6 +4595,10 @@ void handleRoot() {
   server.send(200, "text/html; charset=utf-8", generateHTML());
 }
 
+void handleJavaScript() {
+  server.send(200, "application/javascript; charset=utf-8", generateJavaScript());
+}
+
 // ========== SETUP COMPLET ==========
 void setup() {
   Serial.begin(115200);
