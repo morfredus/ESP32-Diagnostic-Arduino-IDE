@@ -1,6 +1,6 @@
 /*
- * ESP32 Diagnostic Suite v3.7.09-dev
- * Compatible: ESP32, ESP32-S3
+ * ESP32 Diagnostic Suite v3.7.18-dev
+ * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
  * Author: morfredus
@@ -123,13 +123,19 @@
   #include "wifi-config.h"
 #endif
 
-// --- [NEW FEATURE] English-only UI strings ---
+// --- [NEW FEATURE] Dual-language UI strings ---
 #include "languages.h"
+
+Language currentLanguage = LANG_FR;
 
 static String buildActionResponseJson(bool success,
                                       const String& message,
                                       std::initializer_list<JsonFieldSpec> extraFields = {});
+String htmlEscape(const String& raw);
+String jsonEscape(const char* raw);
+inline void sendJsonResponse(int statusCode, std::initializer_list<JsonFieldSpec> fields);
 String buildTranslationsJSON();
+String buildTranslationsJSON(Language lang);
 String sanitizeBluetoothName(const String& raw);
 void ensureBluetoothName();
 void syncBluetoothDiagnostics();
@@ -180,8 +186,16 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-// v3.7.09 - Expand benchmarks and hardware diagnostics UI
-#define DIAGNOSTIC_VERSION "3.7.09-dev"
+// v3.7.10 - Restore bilingual UI and enhanced performance telemetry
+// v3.7.11 - Performance tab localization fixes & stress telemetry refresh
+// v3.7.12 - Repair bilingual resources and JSON helpers
+// v3.7.13 - Fix translation registry macro to restore JSON + UI strings
+// v3.7.14 - Harden translation registry iteration for bilingual exports
+// v3.7.15 - Add translation fetch retries with language-specific extraction
+// v3.7.16 - Fix JavaScript handler linkage to resolve duplicate definitions
+// v3.7.17 - Rename JavaScript route handler to avoid redundant definitions
+// v3.7.18 - Resume version sequencing after missed increments
+#define DIAGNOSTIC_VERSION "3.7.18-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -413,6 +427,9 @@ String pwmTestResult = String(Texts::not_tested);
 String partitionsInfo = "";
 String spiInfo = "";
 String stressTestResult = String(Texts::not_tested);
+// --- [NEW FEATURE] Memory stress telemetry cache ---
+size_t stressAllocationCount = 0;
+unsigned long stressDurationMs = 0;
 
 // --- [NEW FEATURE] Résultats de tests des nouveaux capteurs ---
 String rgbLedTestResult = String(Texts::not_tested);
@@ -2202,6 +2219,10 @@ void testMotionSensor() {
 void memoryStressTest() {
   Serial.println("\r\n=== STRESS TEST MEMOIRE ===");
   
+  unsigned long startMs = millis();
+  stressAllocationCount = 0;
+  stressDurationMs = 0;
+
   const int allocSize = 1024;
   int maxAllocs = 0;
   std::vector<void*> allocations;
@@ -2225,6 +2246,9 @@ void memoryStressTest() {
     free(ptr);
   }
   
+  stressAllocationCount = maxAllocs;
+  stressDurationMs = millis() - startMs;
+
   stressTestResult = String(Texts::max_alloc) + ": " + String(maxAllocs) + " KB";
   Serial.println("Stress test: OK");
 }
@@ -2724,7 +2748,12 @@ void handlePartitionsList() {
 
 void handleStressTest() {
   memoryStressTest();
-  sendJsonResponse(200, { jsonStringField("result", stressTestResult) });
+  sendJsonResponse(200, {
+    jsonStringField("result", stressTestResult),
+    jsonNumberField("allocations", static_cast<unsigned long>(stressAllocationCount)),
+    jsonNumberField("durationMs", stressDurationMs),
+    jsonStringField("allocationsLabel", stressTestResult)
+  });
 }
 
 // --- [NEW FEATURE] Handlers API pour les nouveaux capteurs ---
@@ -2944,13 +2973,20 @@ void handleBenchmark() {
   diagnosticData.memBenchmark = memTime;
 
   // --- [NEW FEATURE] Provide derived benchmark metrics for richer telemetry ---
+  // --- [NEW FEATURE] Combined memory stress metrics for the benchmark API ---
+  memoryStressTest();
+
   double cpuPerf = 100000.0 / static_cast<double>(cpuTime);
   double memSpeed = (10000.0 * sizeof(int) * 2.0) / static_cast<double>(memTime);
   sendJsonResponse(200, {
     jsonNumberField("cpu", cpuTime),
     jsonNumberField("memory", memTime),
     jsonFloatField("cpuPerf", cpuPerf, 2),
-    jsonFloatField("memSpeed", memSpeed, 2)
+    jsonFloatField("memSpeed", memSpeed, 2),
+    jsonNumberField("allocations", static_cast<unsigned long>(stressAllocationCount)),
+    jsonNumberField("stressDuration", stressDurationMs),
+    jsonStringField("stress", stressTestResult),
+    jsonStringField("allocationsLabel", stressTestResult)
   });
 }
 
@@ -3818,30 +3854,43 @@ static inline void appendInfoItem(String& chunk,
   chunk += F("</div></div>");
 }
 
-// --- [NEW FEATURE] English string export for the web interface ---
-String buildTranslationsJSON() {
+// --- [NEW FEATURE] Dynamic bilingual string export for the web interface ---
+String buildTranslationsJSON(Language lang) {
   String json;
   json.reserve(20000);
   json += '{';
   bool first = true;
-#define APPEND_TEXT(identifier, value)                     \
-  do {                                                     \
-    if (!first) {                                          \
-      json += ',';                                         \
-    }                                                      \
-    first = false;                                         \
-    json += F("\"" #identifier "\":\"");             \
-    String fieldValue = Texts::identifier.str();           \
-    json += jsonEscape(fieldValue.c_str());                \
-    json += '"';                                          \
-  } while (0);
-  TEXT_RESOURCE_MAP(APPEND_TEXT);
-#undef APPEND_TEXT
+  size_t count = 0;
+  const Texts::ResourceEntry* const entries = Texts::getResourceEntries(count);
+  for (size_t i = 0; i < count; ++i) {
+    const Texts::ResourceEntry& entry = entries[i];
+    if (entry.field == nullptr) {
+      continue;
+    }
+    if (!first) {
+      json += ',';
+    }
+    first = false;
+    json += '"';
+    json += entry.key;
+    json += F("\":\"");
+    const __FlashStringHelper* raw = entry.field->get(lang);
+    String fieldValue;
+    if (raw != nullptr) {
+      fieldValue = String(raw);
+    }
+    json += jsonEscape(fieldValue.c_str());
+    json += '"';
+  }
   json += '}';
   return json;
 }
 
-// --- [NEW FEATURE] Bluetooth helper utilities (English-only interface) ---
+String buildTranslationsJSON() {
+  return buildTranslationsJSON(currentLanguage);
+}
+
+// --- [NEW FEATURE] Bluetooth helper utilities for the web interface ---
 String sanitizeBluetoothName(const String& raw) {
   String cleaned;
   cleaned.reserve(raw.length());
@@ -4189,8 +4238,59 @@ void stopBluetooth() {
   bluetoothAdvertising = false;
 }
 
+// --- [NEW FEATURE] Runtime language switching endpoint ---
+void handleSetLanguage() {
+  if (!server.hasArg("lang")) {
+    sendJsonResponse(400, {
+      jsonBoolField("success", false),
+      jsonStringField("error", String(Texts::language_switch_error))
+    });
+    return;
+  }
+
+  String lang = server.arg("lang");
+  lang.toLowerCase();
+  Language target = LANG_EN;
+  if (lang == "fr") {
+    target = LANG_FR;
+  } else if (lang == "en") {
+    target = LANG_EN;
+  } else {
+    sendJsonResponse(400, {
+      jsonBoolField("success", false),
+      jsonStringField("error", String(Texts::language_switch_error))
+    });
+    return;
+  }
+
+  setLanguage(target);
+
+  String response = F("{\"success\":true,\"language\":\"");
+  response += (target == LANG_FR) ? "fr" : "en";
+  response += F("\"}");
+  server.send(200, "application/json; charset=utf-8", response);
+}
+
+// --- [NEW FEATURE] Language-aware translation extraction endpoint ---
 void handleGetTranslations() {
-  server.send(200, "application/json; charset=utf-8", buildTranslationsJSON());
+  Language target = currentLanguage;
+  if (server.hasArg("lang")) {
+    String requested = server.arg("lang");
+    requested.toLowerCase();
+    if (requested == "fr") {
+      target = LANG_FR;
+    } else if (requested == "en") {
+      target = LANG_EN;
+    } else {
+      sendJsonResponse(400, {
+        jsonBoolField("success", false),
+        jsonStringField("error", String(Texts::language_switch_error))
+      });
+      return;
+    }
+  }
+
+  server.send(200, "application/json; charset=utf-8", buildTranslationsJSON(target));
 }
 
 void handleBluetoothStatus() {
@@ -4389,6 +4489,11 @@ void handleBluetoothScan() {
 }
 
 // ========== INTERFACE WEB PRINCIPALE MULTILINGUE ==========
+// --- [BUGFIX] Unique JavaScript handler defined in sketch (handleJavaScriptRoute) ---
+void handleJavaScriptRoute() {
+  server.send(200, "application/javascript; charset=utf-8", generateJavaScript());
+}
+
 // --- [NEW FEATURE] Modern web interface with dynamic tabs ---
 void handleRoot() {
   server.send(200, "text/html; charset=utf-8", generateHTML());
@@ -4492,10 +4597,11 @@ void setup() {
 
   // ========== ROUTES SERVEUR ==========
   server.on("/", handleRoot);
-  server.on("/js/app.js", handleJavaScript);
+  server.on("/js/app.js", handleJavaScriptRoute);
 
   // **TRANSLATION API**
   server.on("/api/get-translations", handleGetTranslations);
+  server.on("/api/set-language", handleSetLanguage);
 
   // Data endpoints
   server.on("/api/status", handleStatus);
