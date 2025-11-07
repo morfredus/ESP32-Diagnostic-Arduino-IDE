@@ -389,6 +389,7 @@ class TextField {
   X(bluetooth_scan, "Scan Bluetooth devices", "Scanner les périphériques Bluetooth") \
   X(bluetooth_scan_hint, "Start a BLE scan to discover nearby devices", "Activez le BLE sur vos appareils proches avant de scanner.") \
   X(bluetooth_support_label, "BLE Support", "Compatibilité Bluetooth") \
+  X(bluetooth_support_yes, "Supported", "Pris en charge") \
   X(bluetooth_support_no, "Not supported", "Non pris en charge") \
   X(buzzer_pin, "Buzzer Pin", "Pin du buzzer") \
   X(check_wiring, "Check wiring", "Vérifiez le câblage et les pins I2C") \
