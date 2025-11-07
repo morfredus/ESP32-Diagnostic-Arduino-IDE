@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.16-dev
+ * ESP32 Diagnostic Suite v3.7.15-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -4495,6 +4495,10 @@ void handleJavaScript() {
 // --- [NEW FEATURE] Modern web interface with dynamic tabs ---
 void handleRoot() {
   server.send(200, "text/html; charset=utf-8", generateHTML());
+}
+
+void handleJavaScript() {
+  server.send(200, "application/javascript; charset=utf-8", generateJavaScript());
 }
 
 // ========== SETUP COMPLET ==========
