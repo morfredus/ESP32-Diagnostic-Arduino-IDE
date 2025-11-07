@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.11-dev
+ * ESP32 Diagnostic Suite v3.7.12-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -131,6 +131,9 @@ Language currentLanguage = LANG_FR;
 static String buildActionResponseJson(bool success,
                                       const String& message,
                                       std::initializer_list<JsonFieldSpec> extraFields = {});
+String htmlEscape(const String& raw);
+String jsonEscape(const char* raw);
+inline void sendJsonResponse(int statusCode, std::initializer_list<JsonFieldSpec> fields);
 String buildTranslationsJSON();
 String sanitizeBluetoothName(const String& raw);
 void ensureBluetoothName();
@@ -184,7 +187,8 @@ inline void sendOperationError(int statusCode,
 // ========== CONFIGURATION ==========
 // v3.7.10 - Restore bilingual UI and enhanced performance telemetry
 // v3.7.11 - Performance tab localization fixes & stress telemetry refresh
-#define DIAGNOSTIC_VERSION "3.7.11-dev"
+// v3.7.12 - Repair bilingual resources and JSON helpers
+#define DIAGNOSTIC_VERSION "3.7.12-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
