@@ -445,7 +445,8 @@ class TextField {
 
 
 namespace Texts {
-#define DECLARE_TEXT(identifier, en, fr) \n  inline const TextField identifier = TextField(F(en), F(fr));
+#define DECLARE_TEXT(identifier, en, fr) \
+  inline const TextField identifier = TextField(F(en), F(fr));
   TEXT_RESOURCE_MAP(DECLARE_TEXT)
 #undef DECLARE_TEXT
 }
