@@ -260,6 +260,8 @@ class TextField {
   X(printable_version, "Printable Version", "Version imprimable") \
   X(pdf_format, "PDF-optimized format for printing", "Format PDF") \
   X(open, "Open", "Ouvrir") \
+  X(language_label, "Language", "Langue") \
+  X(language_switch_error, "Language change failed", "Changement de langue impossible") \
   X(interface_loaded, "Interface loaded", "Interface chargée") \
   X(error_loading, "Error loading data", "Erreur de chargement") \
   X(loading, "Loading...", "Chargement...") \
@@ -278,7 +280,7 @@ class TextField {
   X(info, "Info", "Info") \
   X(close, "Close", "Fermer") \
   X(led_strip, "LED Strip", "Ruban LED") \
-  X(oled_screen, ", ", "Écran OLED 0.96\\") \
+  X(oled_screen, "OLED Screen", "Écran OLED 0.96\"") \
   X(detected, "Detected", "Détecté") \
   X(not_detected, "Not detected", "Non détectée") \
   X(i2c_devices, "I2C Devices", "Périphériques I2C") \
