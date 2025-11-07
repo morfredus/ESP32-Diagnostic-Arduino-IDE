@@ -135,6 +135,7 @@ String htmlEscape(const String& raw);
 String jsonEscape(const char* raw);
 inline void sendJsonResponse(int statusCode, std::initializer_list<JsonFieldSpec> fields);
 String buildTranslationsJSON();
+String buildTranslationsJSON(Language lang);
 String sanitizeBluetoothName(const String& raw);
 void ensureBluetoothName();
 void syncBluetoothDiagnostics();
@@ -189,8 +190,8 @@ inline void sendOperationError(int statusCode,
 // v3.7.11 - Performance tab localization fixes & stress telemetry refresh
 // v3.7.12 - Repair bilingual resources and JSON helpers
 // v3.7.13 - Fix translation registry macro to restore JSON + UI strings
-// v3.7.14 - Fix TEXT_RESOURCE_MAP availability for buildTranslationsJSON
-// v3.7.15 - Add missing handleJavaScript() handler for /js/app.js endpoint
+// v3.7.14 - Harden translation registry iteration for bilingual exports
+// v3.7.15 - Add translation fetch retries with language-specific extraction
 #define DIAGNOSTIC_VERSION "3.7.15-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
@@ -3851,26 +3852,39 @@ static inline void appendInfoItem(String& chunk,
 }
 
 // --- [NEW FEATURE] Dynamic bilingual string export for the web interface ---
-String buildTranslationsJSON() {
+String buildTranslationsJSON(Language lang) {
   String json;
   json.reserve(20000);
   json += '{';
   bool first = true;
-#define APPEND_TEXT(identifier, enValue, frValue)                     \
-  do {                                                     \
-    if (!first) {                                          \
-      json += ',';                                         \
-    }                                                      \
-    first = false;                                         \
-    json += F("\"" #identifier "\":\"");             \
-    String fieldValue = Texts::identifier.str();           \
-    json += jsonEscape(fieldValue.c_str());                \
-    json += '"';                                          \
-  } while (0);
-  TEXT_RESOURCE_MAP(APPEND_TEXT);
-#undef APPEND_TEXT
+  size_t count = 0;
+  const Texts::ResourceEntry* const entries = Texts::getResourceEntries(count);
+  for (size_t i = 0; i < count; ++i) {
+    const Texts::ResourceEntry& entry = entries[i];
+    if (entry.field == nullptr) {
+      continue;
+    }
+    if (!first) {
+      json += ',';
+    }
+    first = false;
+    json += '"';
+    json += entry.key;
+    json += F("\":\"");
+    const __FlashStringHelper* raw = entry.field->get(lang);
+    String fieldValue;
+    if (raw != nullptr) {
+      fieldValue = String(raw);
+    }
+    json += jsonEscape(fieldValue.c_str());
+    json += '"';
+  }
   json += '}';
   return json;
+}
+
+String buildTranslationsJSON() {
+  return buildTranslationsJSON(currentLanguage);
 }
 
 // --- [NEW FEATURE] Bluetooth helper utilities for the web interface ---
@@ -4254,8 +4268,26 @@ void handleSetLanguage() {
   server.send(200, "application/json; charset=utf-8", response);
 }
 
+// --- [NEW FEATURE] Language-aware translation extraction endpoint ---
 void handleGetTranslations() {
-  server.send(200, "application/json; charset=utf-8", buildTranslationsJSON());
+  Language target = currentLanguage;
+  if (server.hasArg("lang")) {
+    String requested = server.arg("lang");
+    requested.toLowerCase();
+    if (requested == "fr") {
+      target = LANG_FR;
+    } else if (requested == "en") {
+      target = LANG_EN;
+    } else {
+      sendJsonResponse(400, {
+        jsonBoolField("success", false),
+        jsonStringField("error", String(Texts::language_switch_error))
+      });
+      return;
+    }
+  }
+
+  server.send(200, "application/json; charset=utf-8", buildTranslationsJSON(target));
 }
 
 void handleBluetoothStatus() {

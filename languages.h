@@ -449,6 +449,21 @@ namespace Texts {
   inline const TextField identifier = TextField(F(en), F(fr));
   TEXT_RESOURCE_MAP(DECLARE_TEXT)
 #undef DECLARE_TEXT
+
+  struct ResourceEntry {
+    const char* key;
+    const TextField* field;
+  };
+
+  inline const ResourceEntry* getResourceEntries(size_t& count) {
+    static const ResourceEntry entries[] = {
+#define REGISTER_TEXT(identifier, en, fr) { #identifier, &identifier },
+      TEXT_RESOURCE_MAP(REGISTER_TEXT)
+#undef REGISTER_TEXT
+    };
+    count = sizeof(entries) / sizeof(entries[0]);
+    return entries;
+  }
 }
 
 inline void setLanguage(Language lang) {
@@ -459,8 +474,8 @@ inline Language getLanguage() {
   return currentLanguage;
 }
 
-// TEXT_RESOURCE_MAP is intentionally NOT undefined here to allow
-// other compilation units to reuse this macro with different operations.
-// #undef TEXT_RESOURCE_MAP
+#ifdef TEXT_RESOURCE_MAP
+#undef TEXT_RESOURCE_MAP
+#endif
 
 #endif  // LANGUAGES_H
