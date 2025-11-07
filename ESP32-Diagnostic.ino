@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.15-dev
+ * ESP32 Diagnostic Suite v3.7.17-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -193,7 +193,8 @@ inline void sendOperationError(int statusCode,
 // v3.7.14 - Harden translation registry iteration for bilingual exports
 // v3.7.15 - Add translation fetch retries with language-specific extraction
 // v3.7.16 - Fix JavaScript handler linkage to resolve duplicate definitions
-#define DIAGNOSTIC_VERSION "3.7.16-dev"
+// v3.7.17 - Rename JavaScript route handler to avoid redundant definitions
+#define DIAGNOSTIC_VERSION "3.7.17-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -4487,8 +4488,8 @@ void handleBluetoothScan() {
 }
 
 // ========== INTERFACE WEB PRINCIPALE MULTILINGUE ==========
-// --- [BUGFIX] Unique JavaScript handler defined in sketch ---
-void handleJavaScript() {
+// --- [BUGFIX] Unique JavaScript handler defined in sketch (handleJavaScriptRoute) ---
+void handleJavaScriptRoute() {
   server.send(200, "application/javascript; charset=utf-8", generateJavaScript());
 }
 
@@ -4599,7 +4600,7 @@ void setup() {
 
   // ========== ROUTES SERVEUR ==========
   server.on("/", handleRoot);
-  server.on("/js/app.js", handleJavaScript);
+  server.on("/js/app.js", handleJavaScriptRoute);
 
   // **TRANSLATION API**
   server.on("/api/get-translations", handleGetTranslations);
