@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.20-dev
+ * ESP32 Diagnostic Suite v3.7.21-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -105,14 +105,86 @@
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 #include <U8g2lib.h>
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLE2902.h>
-#include <BLEScan.h>
-#include <BLEAdvertisedDevice.h>
+#if defined(__has_include)
+  #if __has_include(<NimBLEDevice.h>)
+    #define DIAGNOSTIC_HAS_NIMBLE_HEADERS 1
+  #else
+    #define DIAGNOSTIC_HAS_NIMBLE_HEADERS 0
+  #endif
+  #if __has_include(<BLEDevice.h>)
+    #define DIAGNOSTIC_HAS_CLASSIC_BLE_HEADERS 1
+  #else
+    #define DIAGNOSTIC_HAS_CLASSIC_BLE_HEADERS 0
+  #endif
+#else
+  #define DIAGNOSTIC_HAS_NIMBLE_HEADERS 0
+  #define DIAGNOSTIC_HAS_CLASSIC_BLE_HEADERS 1
+#endif
 
-#define BLE_STACK_SUPPORTED 1
+#if DIAGNOSTIC_HAS_NIMBLE_HEADERS && (defined(CONFIG_BT_NIMBLE_ENABLED) ||               \
+    !DIAGNOSTIC_HAS_CLASSIC_BLE_HEADERS ||                                               \
+    defined(CONFIG_IDF_TARGET_ESP32S3) ||                                                \
+    defined(ARDUINO_ESP32S3_DEV) ||                                                     \
+    defined(ARDUINO_USB_MODE) ||                                                        \
+    defined(ARDUINO_USB_CDC_ON_BOOT))
+  #define DIAGNOSTIC_USE_NIMBLE 1
+#else
+  #define DIAGNOSTIC_USE_NIMBLE 0
+#endif
+
+#if DIAGNOSTIC_USE_NIMBLE
+  #include <NimBLEDevice.h>
+  #include <NimBLEServer.h>
+  #include <NimBLEUtils.h>
+  #include <NimBLE2902.h>
+  #include <NimBLEScan.h>
+  #include <NimBLEAdvertisedDevice.h>
+  #if defined(__has_include)
+    #if __has_include(<nimble/ble.h>)
+      #include <nimble/ble.h>
+      #define DIAGNOSTIC_HAS_NIMBLE_CONN_DESC 1
+    #else
+      #define DIAGNOSTIC_HAS_NIMBLE_CONN_DESC 0
+    #endif
+  #else
+    #include <nimble/ble.h>
+    #define DIAGNOSTIC_HAS_NIMBLE_CONN_DESC 1
+  #endif
+  using BLEDevice = NimBLEDevice;
+  using BLEServer = NimBLEServer;
+  using BLEService = NimBLEService;
+  using BLECharacteristic = NimBLECharacteristic;
+  using BLEDescriptor = NimBLEDescriptor;
+  using BLEAdvertising = NimBLEAdvertising;
+  using BLEScan = NimBLEScan;
+  using BLEScanResults = NimBLEScanResults;
+  using BLEAdvertisedDevice = NimBLEAdvertisedDevice;
+  using BLEUUID = NimBLEUUID;
+  using BLEAddress = NimBLEAddress;
+  using BLEServerCallbacks = NimBLEServerCallbacks;
+  using BLE2902 = NimBLE2902;
+  #define DIAGNOSTIC_BLE_PROPERTY_READ NIMBLE_PROPERTY::READ
+  #define DIAGNOSTIC_BLE_PROPERTY_NOTIFY NIMBLE_PROPERTY::NOTIFY
+  #define BLE_STACK_SUPPORTED 1
+#elif DIAGNOSTIC_HAS_CLASSIC_BLE_HEADERS
+  #include <BLEDevice.h>
+  #include <BLEServer.h>
+  #include <BLEUtils.h>
+  #include <BLE2902.h>
+  #include <BLEScan.h>
+  #include <BLEAdvertisedDevice.h>
+  #define DIAGNOSTIC_BLE_PROPERTY_READ BLECharacteristic::PROPERTY_READ
+  #define DIAGNOSTIC_BLE_PROPERTY_NOTIFY BLECharacteristic::PROPERTY_NOTIFY
+  #define BLE_STACK_SUPPORTED 1
+#else
+  #define DIAGNOSTIC_BLE_PROPERTY_READ 0
+  #define DIAGNOSTIC_BLE_PROPERTY_NOTIFY 0
+  #define BLE_STACK_SUPPORTED 0
+#endif
+
+#if !defined(DIAGNOSTIC_HAS_NIMBLE_CONN_DESC)
+  #define DIAGNOSTIC_HAS_NIMBLE_CONN_DESC 0
+#endif
 
 #if defined(SOC_BLE_SUPPORTED)
   static const bool TARGET_BLE_SUPPORTED = (SOC_BLE_SUPPORTED);
@@ -223,7 +295,8 @@ inline void sendOperationError(int statusCode,
 // v3.7.18 - Resume version sequencing after missed increments
 // v3.7.19 - Correct BLE status widgets and expose connected peer details
 // v3.7.20 - Guard BLE headers for Arduino-ESP32 3.3.3 compatibility
-#define DIAGNOSTIC_VERSION "3.7.20-dev"
+// v3.7.21 - Select NimBLE on supported targets while preserving legacy BLE
+#define DIAGNOSTIC_VERSION "3.7.21-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -371,7 +444,15 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
     handleConnect(server, nullptr);
   }
 
-#if DIAGNOSTIC_HAS_ESP_GATTS
+#if DIAGNOSTIC_USE_NIMBLE && DIAGNOSTIC_HAS_NIMBLE_CONN_DESC
+  void onConnect(BLEServer* server, ble_gap_conn_desc* desc) override {
+    const uint8_t* remote = nullptr;
+    if (desc) {
+      remote = desc->peer_ota_addr.val;
+    }
+    handleConnect(server, remote);
+  }
+#elif DIAGNOSTIC_HAS_ESP_GATTS
   void onConnect(BLEServer* server, esp_ble_gatts_cb_param_t* param) override {
     const uint8_t* remote = nullptr;
     if (param) {
@@ -4259,7 +4340,7 @@ bool startBluetooth() {
 
   bluetoothCharacteristic = bluetoothService->createCharacteristic(
       BLEUUID(DIAG_BLE_CHARACTERISTIC_UUID),
-      BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
+      DIAGNOSTIC_BLE_PROPERTY_READ | DIAGNOSTIC_BLE_PROPERTY_NOTIFY);
   if (bluetoothCharacteristic) {
     bluetoothCharacteristic->setValue("ESP32 Diagnostic ready");
     bluetoothCharacteristic->addDescriptor(new BLE2902());
