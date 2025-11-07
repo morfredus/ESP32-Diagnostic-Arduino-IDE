@@ -192,7 +192,8 @@ inline void sendOperationError(int statusCode,
 // v3.7.13 - Fix translation registry macro to restore JSON + UI strings
 // v3.7.14 - Harden translation registry iteration for bilingual exports
 // v3.7.15 - Add translation fetch retries with language-specific extraction
-#define DIAGNOSTIC_VERSION "3.7.15-dev"
+// v3.7.16 - Fix JavaScript handler linkage to resolve duplicate definitions
+#define DIAGNOSTIC_VERSION "3.7.16-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -4486,6 +4487,11 @@ void handleBluetoothScan() {
 }
 
 // ========== INTERFACE WEB PRINCIPALE MULTILINGUE ==========
+// --- [BUGFIX] Unique JavaScript handler defined in sketch ---
+void handleJavaScript() {
+  server.send(200, "application/javascript; charset=utf-8", generateJavaScript());
+}
+
 // --- [NEW FEATURE] Modern web interface with dynamic tabs ---
 void handleRoot() {
   server.send(200, "text/html; charset=utf-8", generateHTML());
