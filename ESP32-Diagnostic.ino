@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.19-dev
+ * ESP32 Diagnostic Suite v3.7.20-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -49,8 +49,32 @@
 #include <esp_chip_info.h>
 #include <esp_err.h>
 #include <esp_mac.h>
-#include <esp_bt_defs.h>
-#include <esp_gatts_api.h>
+// --- [NEW FEATURE] BLE header compatibility guard ---
+#if defined(__has_include)
+  #if __has_include(<esp_bt_defs.h>)
+    #include <esp_bt_defs.h>
+    #define DIAGNOSTIC_HAS_ESP_BT_DEFS 1
+  #else
+    #define DIAGNOSTIC_HAS_ESP_BT_DEFS 0
+  #endif
+  #if __has_include(<esp_gatts_api.h>)
+    #include <esp_gatts_api.h>
+    #define DIAGNOSTIC_HAS_ESP_GATTS 1
+  #else
+    #define DIAGNOSTIC_HAS_ESP_GATTS 0
+  #endif
+#else
+  #include <esp_bt_defs.h>
+  #include <esp_gatts_api.h>
+  #define DIAGNOSTIC_HAS_ESP_BT_DEFS 1
+  #define DIAGNOSTIC_HAS_ESP_GATTS 1
+#endif
+#if !defined(DIAGNOSTIC_HAS_ESP_BT_DEFS)
+  #define DIAGNOSTIC_HAS_ESP_BT_DEFS 0
+#endif
+#if !defined(DIAGNOSTIC_HAS_ESP_GATTS)
+  #define DIAGNOSTIC_HAS_ESP_GATTS 0
+#endif
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
@@ -198,7 +222,8 @@ inline void sendOperationError(int statusCode,
 // v3.7.17 - Rename JavaScript route handler to avoid redundant definitions
 // v3.7.18 - Resume version sequencing after missed increments
 // v3.7.19 - Correct BLE status widgets and expose connected peer details
-#define DIAGNOSTIC_VERSION "3.7.19-dev"
+// v3.7.20 - Guard BLE headers for Arduino-ESP32 3.3.3 compatibility
+#define DIAGNOSTIC_VERSION "3.7.20-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -346,6 +371,7 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
     handleConnect(server, nullptr);
   }
 
+#if DIAGNOSTIC_HAS_ESP_GATTS
   void onConnect(BLEServer* server, esp_ble_gatts_cb_param_t* param) override {
     const uint8_t* remote = nullptr;
     if (param) {
@@ -353,6 +379,7 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
     }
     handleConnect(server, remote);
   }
+#endif
 
   void onDisconnect(BLEServer* server) override {
     bluetoothClientConnected = false;
