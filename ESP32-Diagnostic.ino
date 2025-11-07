@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.18-dev
+ * ESP32 Diagnostic Suite v3.7.19-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -49,6 +49,8 @@
 #include <esp_chip_info.h>
 #include <esp_err.h>
 #include <esp_mac.h>
+#include <esp_bt_defs.h>
+#include <esp_gatts_api.h>
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
 #include <esp_partition.h>
@@ -195,7 +197,8 @@ inline void sendOperationError(int statusCode,
 // v3.7.16 - Fix JavaScript handler linkage to resolve duplicate definitions
 // v3.7.17 - Rename JavaScript route handler to avoid redundant definitions
 // v3.7.18 - Resume version sequencing after missed increments
-#define DIAGNOSTIC_VERSION "3.7.18-dev"
+// v3.7.19 - Correct BLE status widgets and expose connected peer details
+#define DIAGNOSTIC_VERSION "3.7.19-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -295,19 +298,60 @@ String bluetoothDeviceName = "";
 String defaultBluetoothName = "";
 #if BLE_STACK_SUPPORTED
 bool bluetoothClientConnected = false;
+String bluetoothConnectedPeer = "";
 uint32_t bluetoothNotifyCounter = 0;
 unsigned long lastBluetoothNotify = 0;
 
 static const char* DIAG_BLE_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 static const char* DIAG_BLE_CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
+// --- [NEW FEATURE] Suivi du client BLE connecté ---
+static String formatBluetoothAddress(const uint8_t* address) {
+  if (!address) {
+    return String();
+  }
+
+  char buffer[18];
+  snprintf(buffer,
+           sizeof(buffer),
+           "%02X:%02X:%02X:%02X:%02X:%02X",
+           address[0],
+           address[1],
+           address[2],
+           address[3],
+           address[4],
+           address[5]);
+  return String(buffer);
+}
+
+static void noteBluetoothPeer(const uint8_t* address) {
+  if (address) {
+    bluetoothConnectedPeer = formatBluetoothAddress(address);
+  } else {
+    bluetoothConnectedPeer = String(Texts::unknown);
+  }
+}
+
 class DiagnosticBLECallbacks : public BLEServerCallbacks {
-  void onConnect(BLEServer* server) override {
+  void handleConnect(BLEServer* server, const uint8_t* remoteAddress) {
     bluetoothClientConnected = true;
     bluetoothAdvertising = false;
     Serial.println("[BLE] Client connecté.");
     bluetoothNotifyCounter = 0;
     lastBluetoothNotify = millis();
+    noteBluetoothPeer(remoteAddress);
+  }
+
+  void onConnect(BLEServer* server) override {
+    handleConnect(server, nullptr);
+  }
+
+  void onConnect(BLEServer* server, esp_ble_gatts_cb_param_t* param) override {
+    const uint8_t* remote = nullptr;
+    if (param) {
+      remote = param->connect.remote_bda;
+    }
+    handleConnect(server, remote);
   }
 
   void onDisconnect(BLEServer* server) override {
@@ -321,6 +365,7 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
     bluetoothNotifyCounter = 0;
     lastBluetoothNotify = millis();
     bluetoothAdvertising = true;
+    bluetoothConnectedPeer = "";
   }
 };
 #endif
@@ -2998,21 +3043,27 @@ void handleStatus() {
   unsigned long currentUptime = millis();
 
   String btStatus = getBluetoothStateLabel();
-  String btAdvertisingLabel = (bluetoothCapable && bluetoothAdvertising)
-                                  ? String(Texts::bluetooth_advertising)
-                                  : String(Texts::bluetooth_not_advertising);
+  bool advertisingActive = bluetoothCapable && (bluetoothAdvertising || bluetoothClientConnected);
+  String btAdvertisingLabel = advertisingActive ? String(Texts::bluetooth_advertising)
+                                               : String(Texts::bluetooth_not_advertising);
   const char* btSupportKey = getBluetoothSupportKey();
   const char* btStatusKey = getBluetoothStateKey();
-  const char* btAdvKey = getBluetoothAdvertisingKey();
+  const char* btAdvKey = advertisingActive ? "bluetooth_advertising" : getBluetoothAdvertisingKey();
 #if BLE_STACK_SUPPORTED
   bool btConnected = bluetoothCapable && bluetoothClientConnected;
   const char* btConnectionKey = getBluetoothConnectionKey();
   String btConnectionLabel = btConnected ? String(Texts::bluetooth_client_connected)
                                          : String(Texts::bluetooth_client_disconnected);
+  String btConnectionDetail = btConnected ? bluetoothConnectedPeer : String();
+  if (btConnected && btConnectionDetail.length()) {
+    btConnectionLabel += " • ";
+    btConnectionLabel += btConnectionDetail;
+  }
 #else
   bool btConnected = false;
   const char* btConnectionKey = "bluetooth_client_disconnected";
   String btConnectionLabel = String(Texts::bluetooth_client_disconnected);
+  String btConnectionDetail;
 #endif
 
   String json;
@@ -3040,6 +3091,7 @@ void handleStatus() {
   json += "\"status\":\"" + jsonEscape(btStatus.c_str()) + "\",";
   json += "\"advertising_label\":\"" + jsonEscape(btAdvertisingLabel.c_str()) + "\",";
   json += "\"connection_label\":\"" + jsonEscape(btConnectionLabel.c_str()) + "\",";
+  json += "\"connection_detail\":\"" + jsonEscape(btConnectionDetail.c_str()) + "\",";
   json += "\"name\":\"" + jsonEscape(bluetoothDeviceName.c_str()) + "\",";
   json += "\"mac\":\"" + jsonEscape(diagnosticData.bluetoothAddress.c_str()) + "\"";
   json += "}";
@@ -3187,21 +3239,27 @@ void handleOverview() {
 
   // --- [NEW FEATURE] Synthèse Bluetooth ---
   String btStatus = getBluetoothStateLabel();
-  String btAdvertisingLabel = (bluetoothCapable && bluetoothAdvertising)
-                                  ? String(Texts::bluetooth_advertising)
-                                  : String(Texts::bluetooth_not_advertising);
+  bool advertisingActive = bluetoothCapable && (bluetoothAdvertising || bluetoothClientConnected);
+  String btAdvertisingLabel = advertisingActive ? String(Texts::bluetooth_advertising)
+                                               : String(Texts::bluetooth_not_advertising);
   const char* btStatusKey = getBluetoothStateKey();
-  const char* btAdvKey = getBluetoothAdvertisingKey();
+  const char* btAdvKey = advertisingActive ? "bluetooth_advertising" : getBluetoothAdvertisingKey();
   const char* btSupportKey = getBluetoothSupportKey();
 #if BLE_STACK_SUPPORTED
   bool btConnected = bluetoothCapable && bluetoothClientConnected;
   const char* btConnectionKey = getBluetoothConnectionKey();
   String btConnectionLabel = btConnected ? String(Texts::bluetooth_client_connected)
                                          : String(Texts::bluetooth_client_disconnected);
+  String btConnectionDetail = btConnected ? bluetoothConnectedPeer : String();
+  if (btConnected && btConnectionDetail.length()) {
+    btConnectionLabel += " • ";
+    btConnectionLabel += btConnectionDetail;
+  }
 #else
   bool btConnected = false;
   const char* btConnectionKey = "bluetooth_client_disconnected";
   String btConnectionLabel = String(Texts::bluetooth_client_disconnected);
+  String btConnectionDetail;
 #endif
   json += "\"bluetooth\":{";
   json += "\"supported\":" + String(bluetoothCapable ? "true" : "false") + ",";
@@ -3215,6 +3273,7 @@ void handleOverview() {
   json += "\"status\":\"" + jsonEscape(btStatus.c_str()) + "\",";
   json += "\"advertising_label\":\"" + jsonEscape(btAdvertisingLabel.c_str()) + "\",";
   json += "\"connection_label\":\"" + jsonEscape(btConnectionLabel.c_str()) + "\",";
+  json += "\"connection_detail\":\"" + jsonEscape(btConnectionDetail.c_str()) + "\",";
   json += "\"name\":\"" + jsonEscape(bluetoothDeviceName.c_str()) + "\",";
   json += "\"mac\":\"" + jsonEscape(diagnosticData.bluetoothAddress.c_str()) + "\"";
   json += "},";
@@ -4022,18 +4081,24 @@ String buildBluetoothJSON(bool success, const String& message) {
 
   String status = getBluetoothStateLabel();
   String summary = getBluetoothSummaryLabel();
-  String advertisingLabel = (bluetoothCapable && bluetoothAdvertising)
-                                ? String(Texts::bluetooth_advertising)
-                                : String(Texts::bluetooth_not_advertising);
+  bool advertisingActive = bluetoothCapable && (bluetoothAdvertising || bluetoothClientConnected);
+  String advertisingLabel = advertisingActive ? String(Texts::bluetooth_advertising)
+                                              : String(Texts::bluetooth_not_advertising);
 #if BLE_STACK_SUPPORTED
   bool connected = bluetoothCapable && bluetoothClientConnected;
   String connectionLabel = connected ? String(Texts::bluetooth_client_connected)
                                      : String(Texts::bluetooth_client_disconnected);
   const char* connectionKey = getBluetoothConnectionKey();
+  String connectionDetail = connected ? bluetoothConnectedPeer : String();
+  if (connected && connectionDetail.length()) {
+    connectionLabel += " • ";
+    connectionLabel += connectionDetail;
+  }
 #else
   bool connected = false;
   String connectionLabel = String(Texts::bluetooth_client_disconnected);
   const char* connectionKey = "bluetooth_client_disconnected";
+  String connectionDetail;
 #endif
 
   String json = "{";
@@ -4044,7 +4109,8 @@ String buildBluetoothJSON(bool success, const String& message) {
   json += "\"connected\":" + String(connected ? "true" : "false") + ",";
   json += "\"support_key\":\"" + jsonEscape(getBluetoothSupportKey()) + "\",";
   json += "\"status_key\":\"" + jsonEscape(getBluetoothStateKey()) + "\",";
-  json += "\"advertising_key\":\"" + jsonEscape(getBluetoothAdvertisingKey()) + "\",";
+  const char* advKey = advertisingActive ? "bluetooth_advertising" : getBluetoothAdvertisingKey();
+  json += "\"advertising_key\":\"" + jsonEscape(advKey) + "\",";
   json += "\"connection_key\":\"" + jsonEscape(connectionKey) + "\",";
   json += "\"name\":\"" + jsonEscape(bluetoothDeviceName.c_str()) + "\",";
   json += "\"mac\":\"" + jsonEscape(diagnosticData.bluetoothAddress.c_str()) + "\",";
@@ -4052,6 +4118,7 @@ String buildBluetoothJSON(bool success, const String& message) {
   json += "\"summary\":\"" + jsonEscape(summary.c_str()) + "\",";
   json += "\"advertising_label\":\"" + jsonEscape(advertisingLabel.c_str()) + "\",";
   json += "\"connection_label\":\"" + jsonEscape(connectionLabel.c_str()) + "\",";
+  json += "\"connection_detail\":\"" + jsonEscape(connectionDetail.c_str()) + "\",";
   json += "\"message\":\"" + jsonEscape(message.c_str()) + "\"";
   json += "}";
   return json;
@@ -4113,6 +4180,7 @@ static BLEAdvertisedDevice getScanResultDevice(BLEScanResults* results, int inde
 // --- [BUGFIX] Add watchdog resets to prevent CPU1 timeout during BLE init ---
 bool startBluetooth() {
   ensureBluetoothName();
+  bluetoothConnectedPeer = "";
 
   if (!bluetoothCapable) {
     bluetoothEnabled = false;
@@ -4236,6 +4304,7 @@ void stopBluetooth() {
 
   bluetoothEnabled = false;
   bluetoothAdvertising = false;
+  bluetoothConnectedPeer = "";
 }
 
 // --- [NEW FEATURE] Runtime language switching endpoint ---
