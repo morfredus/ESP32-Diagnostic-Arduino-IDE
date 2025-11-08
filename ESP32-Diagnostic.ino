@@ -4743,7 +4743,7 @@ void handleBluetoothScan() {
   bool scanStarted = false;
 #if DIAGNOSTIC_USE_NIMBLE
   scanStarted = scanner->start(5, false);
-  BLEScanResults& rawResults = scanner->getResults();
+  BLEScanResults rawResults = scanner->getResults();
 #else
   BLEScanResults rawResults = scanner->start(5);
   scanStarted = true;
