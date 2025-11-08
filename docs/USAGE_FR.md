@@ -20,7 +20,7 @@ Le tableau de bord est organisé en onglets :
 - **Performance** – historique des benchmarks et métriques temps réel.
 - **Export** – téléchargement des rapports TXT/JSON/CSV ou ouverture de la vue imprimable.
 
-La version 3.7.30 maintient la cohérence des widgets BLE, des scans et des tuiles de progression Wi-Fi que le firmware utilise Bluedroid ou NimBLE.
+La version 3.8.0 maintient la cohérence des widgets BLE, des scans et des tuiles de progression Wi-Fi que le firmware utilise Bluedroid ou NimBLE.
 
 La barre de navigation s'adapte aux mobiles et conserve l'onglet actif.
 
@@ -46,14 +46,14 @@ Toutes les routes renvoient du JSON sauf mention contraire :
 - La sortie série reflète les actions clés (Wi-Fi, BLE, résultats de tests).
 - Les exports incluent les informations carte, la mémoire, les benchmarks, le scan Wi-Fi, les GPIO et l'état OLED.
 - Utilisez le JSON pour l'analyse automatisée et TXT/CSV pour la consultation manuelle.
-- Exploitez l'endpoint `/api/memory-details` lorsque les exports signalent une fragmentation et, en 3.7.30, contrôlez que les réponses de scan BLE renvoient soit des résultats frais, soit un message d'erreur explicite si la radio est occupée.
+- Exploitez l'endpoint `/api/memory-details` lorsque les exports signalent une fragmentation et, en 3.8.0, contrôlez que les réponses de scan BLE renvoient soit des résultats frais, soit un message d'erreur explicite si la radio est occupée.
 
 ## 7. Bonnes pratiques
 - Relancez un scan Wi-Fi après tout déplacement pour rafraîchir les RSSI.
 - Arrêtez les animations NeoPixel avant de couper l'alimentation des LED externes.
 - Après changement des broches OLED, exécutez `/api/oled-config` puis `/api/oled-test` pour valider le câblage.
 
-## 8. Checklist de débogage post-release (3.7.30)
+## 8. Checklist de débogage post-release (3.8.0)
 - Redémarrez la carte avec un OLED connecté et vérifiez que l'écran de démarrage Wi-Fi progresse bien sur association, DHCP puis réussite avant chargement du tableau de bord.
 - Déclenchez `/api/wifi-scan` et `/api/ble-scan` (ou le bouton d'interface) pour confirmer que les builds NimBLE renvoient des résultats valides et reprennent la diffusion sans conversion erronée.
-- Téléchargez les rapports TXT/JSON/CSV et assurez-vous que les noms de fichiers incluent la version 3.7.30 tandis que les sections BLE et Wi-Fi reflètent les consignes de compatibilité renforcées.
+- Téléchargez les rapports TXT/JSON/CSV et assurez-vous que les noms de fichiers incluent la version 3.8.0 tandis que les sections BLE et Wi-Fi reflètent les consignes de compatibilité renforcées.
