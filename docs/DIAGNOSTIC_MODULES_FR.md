@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Modules de diagnostic (v3.7.30)
+# ESP32 Diagnostic Suite – Modules de diagnostic (v3.8.0)
 
-Ce guide détaille chaque module de diagnostic automatisé livré avec la version 3.7.30. Il décrit l'ordre d'exécution, les métriques
+Ce guide détaille chaque module de diagnostic automatisé livré avec la version 3.8.0. Il décrit l'ordre d'exécution, les métriques
 collectées et les clés d'exportation à surveiller lors de l'analyse des rapports.
 
 ## Pipeline d'exécution

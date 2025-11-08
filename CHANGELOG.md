@@ -2,6 +2,16 @@
 
 All notable changes to ESP32 Diagnostic Suite are documented here. This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Version 3.8.0] - 2025-11-08
+### Added
+- Production release based on 3.7.30 with version bump for deployment readiness.
+
+### Fixed
+- None.
+
+### Improved
+- Standardized version references across all documentation and firmware constants.
+
 ## [Version 3.7.30] - 2025-11-08
 ### Added
 - OLED-equipped boards now show Wi-Fi association, DHCP, and completion states during boot so the connection phase is visible without opening the serial monitor.

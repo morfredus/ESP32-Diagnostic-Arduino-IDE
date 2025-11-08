@@ -24,7 +24,7 @@ ESP32-Diagnostic/
 - **Gestionnaire BLE** – détecte les capacités du chip, configure le service GATT et expose l'état côté interface.
 - **Moteur de diagnostics** – exécute les tests matériels (GPIO, ADC, tactile, OLED, benchmarks) et formate les résultats pour le tableau de bord et les exports.
 - **Sous-système d'export** – assemble les charges TXT/JSON/CSV et la vue imprimable.
-- La version 3.7.30 introduit l'écran Wi-Fi de démarrage et des helpers de scan BLE mutualisés, maintenant le même ordonnanceur que la pile soit Bluedroid ou NimBLE.
+- La version 3.8.0 introduit l'écran Wi-Fi de démarrage et des helpers de scan BLE mutualisés, maintenant le même ordonnanceur que la pile soit Bluedroid ou NimBLE.
 
 ## Structure front-end
 - Les modèles HTML définissent chaque onglet avec des sections sémantiques.
