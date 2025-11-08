@@ -25,7 +25,7 @@ static const std::vector<std::pair<const char*, const char*>> WIFI_NETWORKS = {
 - Le français est la langue par défaut.
 - Utilisez `/api/set-language?lang=en` ou le sélecteur FR/EN dans l'interface pour basculer en anglais.
 - Les chaînes de traduction résident dans `languages.h` au sein de la structure `Translations`. Ajoutez une langue en étendant cette structure et en l'exposant dans l'interface.
-- La version 3.5.1 garantit que les intitulés (ex. « Non testé »), cartouches de statut et actions d'export réutilisent le catalogue commun et se mettent à jour instantanément lorsque vous changez de langue.
+- La version 3.8.0 conserve le catalogue partagé synchronisé tout en ajoutant l'écran Wi-Fi et les garde-fous NimBLE sans configuration supplémentaire.
 
 ## Configuration OLED
 - Broches par défaut : SDA=21, SCL=22 (standard ESP32).
@@ -40,4 +40,5 @@ static const std::vector<std::pair<const char*, const char*>> WIFI_NETWORKS = {
 ## Options avancées
 - Activez la PSRAM dans le menu carte de l'Arduino IDE pour les ESP32-S3 afin d'accéder aux diagnostics mémoire étendus.
 - Le firmware détecte automatiquement les variantes et active le support BLE sur les cibles compatibles (ESP32, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2).
-- Pour le debug, suivez le moniteur série : retraits Wi-Fi, états BLE et progression des tests y sont journalisés, puis interrogez `/api/memory-details` pour obtenir les métriques de fragmentation détaillées.
+- Pour le debug, suivez le moniteur série : les retraits Wi-Fi (également reflétés sur l'écran OLED), les états BLE et la progression des tests y sont journalisés, puis interrogez `/api/memory-details` pour obtenir les métriques de fragmentation détaillées.
+- NimBLE est sélectionné automatiquement sur les cartes ESP32-S3 et les cibles USB ; en 3.8.0, les résultats de scan sont validés avant exposition, évitant toute manipulation manuelle.
