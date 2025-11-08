@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.25-dev
+ * ESP32 Diagnostic Suite v3.7.26-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -153,7 +153,17 @@
   #include <NimBLEDevice.h>
   #include <NimBLEServer.h>
   #include <NimBLEUtils.h>
-  //#include <NimBLE2902.h>
+  #if defined(__has_include)
+    #if __has_include(<NimBLE2902.h>)
+      #include <NimBLE2902.h>
+      #define DIAGNOSTIC_HAS_BLE2902 1
+    #else
+      #define DIAGNOSTIC_HAS_BLE2902 0
+    #endif
+  #else
+    #include <NimBLE2902.h>
+    #define DIAGNOSTIC_HAS_BLE2902 1
+  #endif
   #include <NimBLEScan.h>
   #include <NimBLEAdvertisedDevice.h>
   #if defined(__has_include)
@@ -179,7 +189,9 @@
   using BLEUUID = NimBLEUUID;
   using BLEAddress = NimBLEAddress;
   using BLEServerCallbacks = NimBLEServerCallbacks;
-  using BLE2902 = NimBLE2902;
+  #if DIAGNOSTIC_HAS_BLE2902
+    using BLE2902 = NimBLE2902;
+  #endif
   #define DIAGNOSTIC_BLE_PROPERTY_READ NIMBLE_PROPERTY::READ
   #define DIAGNOSTIC_BLE_PROPERTY_NOTIFY NIMBLE_PROPERTY::NOTIFY
   #define BLE_STACK_SUPPORTED 1
@@ -187,7 +199,17 @@
   #include <BLEDevice.h>
   #include <BLEServer.h>
   #include <BLEUtils.h>
-  #include <BLE2902.h>
+  #if defined(__has_include)
+    #if __has_include(<BLE2902.h>)
+      #include <BLE2902.h>
+      #define DIAGNOSTIC_HAS_BLE2902 1
+    #else
+      #define DIAGNOSTIC_HAS_BLE2902 0
+    #endif
+  #else
+    #include <BLE2902.h>
+    #define DIAGNOSTIC_HAS_BLE2902 1
+  #endif
   #include <BLEScan.h>
   #include <BLEAdvertisedDevice.h>
   #define DIAGNOSTIC_BLE_PROPERTY_READ BLECharacteristic::PROPERTY_READ
@@ -197,6 +219,10 @@
   #define DIAGNOSTIC_BLE_PROPERTY_READ 0
   #define DIAGNOSTIC_BLE_PROPERTY_NOTIFY 0
   #define BLE_STACK_SUPPORTED 0
+#endif
+
+#if !defined(DIAGNOSTIC_HAS_BLE2902)
+  #define DIAGNOSTIC_HAS_BLE2902 0
 #endif
 
 #if DIAGNOSTIC_HAS_SDKCONFIG
@@ -331,7 +357,8 @@ inline void sendOperationError(int statusCode,
 // v3.7.23 - Streamline maintenance comment markers across UI assets
 // v3.7.24 - Restore BLE stack detection for ESP32-S3 DevKitC targets
 // v3.7.25 - Display WiFi connection status on OLED during startup
-#define DIAGNOSTIC_VERSION "3.7.25-dev"
+// v3.7.26 - Guard BLE2902 descriptor usage when NimBLE headers are unavailable
+#define DIAGNOSTIC_VERSION "3.7.26-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -4425,7 +4452,9 @@ bool startBluetooth() {
       DIAGNOSTIC_BLE_PROPERTY_READ | DIAGNOSTIC_BLE_PROPERTY_NOTIFY);
   if (bluetoothCharacteristic) {
     bluetoothCharacteristic->setValue("ESP32 Diagnostic ready");
-    bluetoothCharacteristic->addDescriptor(new BLE2902());
+    #if DIAGNOSTIC_HAS_BLE2902
+      bluetoothCharacteristic->addDescriptor(new BLE2902());
+    #endif
   }
   esp_task_wdt_reset();
 
