@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.21-dev
+ * ESP32 Diagnostic Suite v3.7.22-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -296,7 +296,8 @@ inline void sendOperationError(int statusCode,
 // v3.7.19 - Correct BLE status widgets and expose connected peer details
 // v3.7.20 - Guard BLE headers for Arduino-ESP32 3.3.3 compatibility
 // v3.7.21 - Select NimBLE on supported targets while preserving legacy BLE
-#define DIAGNOSTIC_VERSION "3.7.21-dev"
+// v3.7.22 - Keep BLE state flags accessible for advertising telemetry guards
+#define DIAGNOSTIC_VERSION "3.7.22-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -394,9 +395,10 @@ bool bluetoothEnabled = false;
 bool bluetoothAdvertising = false;
 String bluetoothDeviceName = "";
 String defaultBluetoothName = "";
-#if BLE_STACK_SUPPORTED
+// --- [BUGFIX] BLE client state available for all build targets ---
 bool bluetoothClientConnected = false;
 String bluetoothConnectedPeer = "";
+#if BLE_STACK_SUPPORTED
 uint32_t bluetoothNotifyCounter = 0;
 unsigned long lastBluetoothNotify = 0;
 
