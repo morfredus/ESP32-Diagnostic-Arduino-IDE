@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.23-dev
+ * ESP32 Diagnostic Suite v3.7.24-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -81,6 +81,10 @@
 #include <esp_wifi.h>
 #include <esp_task_wdt.h>
 #if defined(__has_include)
+  #if __has_include(<sdkconfig.h>)
+    #include <sdkconfig.h>
+    #define DIAGNOSTIC_HAS_SDKCONFIG 1
+  #endif
   #if __has_include(<esp_netif.h>)
     #include <esp_netif.h>
     #define DIAGNOSTIC_HAS_ESP_NETIF 1
@@ -92,6 +96,9 @@
 #else
   #include <esp_netif.h>
   #define DIAGNOSTIC_HAS_ESP_NETIF 1
+#endif
+#if !defined(DIAGNOSTIC_HAS_SDKCONFIG)
+  #define DIAGNOSTIC_HAS_SDKCONFIG 0
 #endif
 #include <soc/soc.h>
 #include <soc/rtc.h>
@@ -119,6 +126,16 @@
 #else
   #define DIAGNOSTIC_HAS_NIMBLE_HEADERS 0
   #define DIAGNOSTIC_HAS_CLASSIC_BLE_HEADERS 1
+#endif
+#if DIAGNOSTIC_HAS_SDKCONFIG
+  #if defined(CONFIG_BT_NIMBLE_ENABLED)
+    #undef DIAGNOSTIC_HAS_NIMBLE_HEADERS
+    #define DIAGNOSTIC_HAS_NIMBLE_HEADERS 1
+  #endif
+  #if defined(CONFIG_BT_BLUEDROID_ENABLED) || defined(CONFIG_BT_BLE_ENABLED) || defined(CONFIG_BT_ENABLED)
+    #undef DIAGNOSTIC_HAS_CLASSIC_BLE_HEADERS
+    #define DIAGNOSTIC_HAS_CLASSIC_BLE_HEADERS 1
+  #endif
 #endif
 
 #if DIAGNOSTIC_HAS_NIMBLE_HEADERS && (defined(CONFIG_BT_NIMBLE_ENABLED) ||               \
@@ -180,6 +197,16 @@
   #define DIAGNOSTIC_BLE_PROPERTY_READ 0
   #define DIAGNOSTIC_BLE_PROPERTY_NOTIFY 0
   #define BLE_STACK_SUPPORTED 0
+#endif
+
+#if DIAGNOSTIC_HAS_SDKCONFIG
+  #if defined(CONFIG_BT_NIMBLE_ENABLED) || defined(CONFIG_BT_BLE_ENABLED) || defined(CONFIG_BT_BLUEDROID_ENABLED) || defined(CONFIG_BT_ENABLED)
+    #define DIAGNOSTIC_IDF_BLE_STACK 1
+  #else
+    #define DIAGNOSTIC_IDF_BLE_STACK 0
+  #endif
+#else
+  #define DIAGNOSTIC_IDF_BLE_STACK BLE_STACK_SUPPORTED
 #endif
 
 #if !defined(DIAGNOSTIC_HAS_NIMBLE_CONN_DESC)
@@ -255,6 +282,10 @@ void dispatchBluetoothTelemetry();
 String buildBluetoothJSON(bool success, const String& message);
 bool startBluetooth();
 void stopBluetooth();
+// --- [BUGFIX] BLE stack availability helper for runtime detection ---
+static inline bool isBLEStackAvailable() {
+  return (BLE_STACK_SUPPORTED != 0) || (DIAGNOSTIC_IDF_BLE_STACK != 0);
+}
 inline void sendActionResponse(int statusCode,
                                bool success,
                                const String& message,
@@ -297,7 +328,9 @@ inline void sendOperationError(int statusCode,
 // v3.7.20 - Guard BLE headers for Arduino-ESP32 3.3.3 compatibility
 // v3.7.21 - Select NimBLE on supported targets while preserving legacy BLE
 // v3.7.22 - Keep BLE state flags accessible for advertising telemetry guards
-#define DIAGNOSTIC_VERSION "3.7.23-dev"
+// v3.7.23 - Streamline maintenance comment markers across UI assets
+// v3.7.24 - Restore BLE stack detection for ESP32-S3 DevKitC targets
+#define DIAGNOSTIC_VERSION "3.7.24-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -2464,8 +2497,10 @@ void collectDiagnosticInfo() {
     runtimeBLE = true;
   }
 #endif
-  diagnosticData.hasBLE = runtimeBLE;
-  bluetoothCapable = runtimeBLE && BLE_STACK_SUPPORTED;
+  bool bleStackAvailable = isBLEStackAvailable();
+  diagnosticData.hasBLE = runtimeBLE || bleStackAvailable;
+  // --- [BUGFIX] Use compiled stack presence to keep BLE enabled on ESP32-S3 ---
+  bluetoothCapable = runtimeBLE && bleStackAvailable;
   
   if (WiFi.status() == WL_CONNECTED) {
     diagnosticData.wifiSSID = WiFi.SSID();
