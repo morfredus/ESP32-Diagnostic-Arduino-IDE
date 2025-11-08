@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.27-dev
+ * ESP32 Diagnostic Suite v3.7.28-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -359,7 +359,8 @@ inline void sendOperationError(int statusCode,
 // v3.7.25 - Display WiFi connection status on OLED during startup
 // v3.7.26 - Guard BLE2902 descriptor usage when NimBLE headers are unavailable
 // v3.7.27 - Restore NimBLE callback and scan compatibility guards
-#define DIAGNOSTIC_VERSION "3.7.27-dev"
+// v3.7.28 - Fix NimBLE scan result accessors and start call signature alignment
+#define DIAGNOSTIC_VERSION "3.7.28-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -4387,11 +4388,11 @@ static int getScanResultCount(BLEScanResults* results) {
   return (results != nullptr) ? results->getCount() : 0;
 }
 
-// --- [BUGFIX] Align scan result helpers with NimBLE pointer-based accessors ---
+// --- [FIX] Align scan result helpers with NimBLE pointer-based accessors ---
 static BLEAdvertisedDevice getScanResultDevice(BLEScanResults& results, int index) {
 #if DIAGNOSTIC_USE_NIMBLE
-  BLEAdvertisedDevice* device = results.getDevice(index);
-  return device ? *device : BLEAdvertisedDevice();
+  const BLEAdvertisedDevice* device = results.getDevice(index);
+  return (device != nullptr) ? BLEAdvertisedDevice(*device) : BLEAdvertisedDevice();
 #else
   return results.getDevice(index);
 #endif
@@ -4402,8 +4403,8 @@ static BLEAdvertisedDevice getScanResultDevice(BLEScanResults* results, int inde
     return BLEAdvertisedDevice();
   }
 #if DIAGNOSTIC_USE_NIMBLE
-  BLEAdvertisedDevice* device = results->getDevice(index);
-  return device ? *device : BLEAdvertisedDevice();
+  const BLEAdvertisedDevice* device = results->getDevice(index);
+  return (device != nullptr) ? BLEAdvertisedDevice(*device) : BLEAdvertisedDevice();
 #else
   return results->getDevice(index);
 #endif
@@ -4749,12 +4750,8 @@ void handleBluetoothScan() {
   }
 
   scanner->setActiveScan(true);
-  // Harmonise BLE scan results pointer/object handling
-#if DIAGNOSTIC_USE_NIMBLE
-  BLEScanResults rawResults = scanner->start(5, static_cast<bool>(false));
-#else
+  // --- [FIX] Harmonise BLE scan start semantics across BLE stacks ---
   BLEScanResults rawResults = scanner->start(5);
-#endif
   esp_task_wdt_reset();  // Reset after 5-second BLE scan
   int count = getScanResultCount(rawResults);
 
