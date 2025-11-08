@@ -2,13 +2,13 @@
 
 Follow the steps below to deploy the ESP32 Diagnostic Suite on your board.
 
-> **Release 3.5.0:** Confirm the firmware banner and `DIAGNOSTIC_VERSION` constant report 3.5.0, then switch the dashboard language to verify the new live translation bindings refresh tests, wireless cards, and export buttons instantly.
+> **Release 3.8.0:** Confirm the firmware banner and `DIAGNOSTIC_VERSION` constant report 3.8.0, watch the OLED boot splash display Wi-Fi association/DHCP/progress (when a screen is attached), and verify NimBLE builds compile cleanly on your ESP32 or ESP32-S3 target.
 
 ## 1. Prerequisites
 - ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, or ESP32-H2 board (S3 recommended).
 - USB cable with data capability.
 - Optional: NeoPixel/WS2812B LED strip and 0.96" SSD1306 OLED screen for extended tests.
-- Arduino IDE 2.x or newer with the ESP32 Arduino Core 3.3.2 toolchain.
+- Arduino IDE 2.x or newer with the ESP32 Arduino Core 3.3.3 toolchain.
 
 ## 2. Install required libraries
 Install these libraries via the Arduino Library Manager:
@@ -45,4 +45,4 @@ Detailed configuration notes are available in [CONFIG.md](CONFIG.md).
 3. Ensure **PSRAM** is enabled for ESP32-S3 boards to unlock advanced diagnostics.
 4. Click **Verify** to compile, then **Upload** to flash the firmware.
 
-Upon success, the serial monitor will display the firmware version and connection status. Toggle between French and English on the web dashboard to ensure every status chip and export control updates without requiring a page reload.
+Upon success, the serial monitor will display the firmware version and connection status. The OLED (if present) mirrors the Wi-Fi handshake, and you can trigger a BLE scan from the dashboard to confirm NimBLE advertising resumes correctly when the scan completes.
