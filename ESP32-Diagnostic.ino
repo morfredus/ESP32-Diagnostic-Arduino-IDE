@@ -1,9 +1,10 @@
 /*
- * ESP32 Diagnostic Suite v3.8.0
+ * ESP32 Diagnostic Suite v3.8.01-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
  * Author: morfredus
+ * v3.8.01-dev - Modern responsive UI with sticky header
  */
 
 #include <WiFi.h>
@@ -341,7 +342,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.8.0"
+#define DIAGNOSTIC_VERSION "3.8.01-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
