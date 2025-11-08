@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.26-dev
+ * ESP32 Diagnostic Suite v3.7.27-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -358,7 +358,8 @@ inline void sendOperationError(int statusCode,
 // v3.7.24 - Restore BLE stack detection for ESP32-S3 DevKitC targets
 // v3.7.25 - Display WiFi connection status on OLED during startup
 // v3.7.26 - Guard BLE2902 descriptor usage when NimBLE headers are unavailable
-#define DIAGNOSTIC_VERSION "3.7.26-dev"
+// v3.7.27 - Restore NimBLE callback and scan compatibility guards
+#define DIAGNOSTIC_VERSION "3.7.27-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -493,6 +494,7 @@ static void noteBluetoothPeer(const uint8_t* address) {
   }
 }
 
+// --- [BUGFIX] Harmonise BLE callback signatures across NimBLE and Bluedroid stacks ---
 class DiagnosticBLECallbacks : public BLEServerCallbacks {
   void handleConnect(BLEServer* server, const uint8_t* remoteAddress) {
     bluetoothClientConnected = true;
@@ -503,12 +505,12 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
     noteBluetoothPeer(remoteAddress);
   }
 
-  void onConnect(BLEServer* server) override {
+  void onConnect(BLEServer* server) {
     handleConnect(server, nullptr);
   }
 
 #if DIAGNOSTIC_USE_NIMBLE && DIAGNOSTIC_HAS_NIMBLE_CONN_DESC
-  void onConnect(BLEServer* server, ble_gap_conn_desc* desc) override {
+  void onConnect(BLEServer* server, const ble_gap_conn_desc* desc) {
     const uint8_t* remote = nullptr;
     if (desc) {
       remote = desc->peer_ota_addr.val;
@@ -516,7 +518,7 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
     handleConnect(server, remote);
   }
 #elif DIAGNOSTIC_HAS_ESP_GATTS
-  void onConnect(BLEServer* server, esp_ble_gatts_cb_param_t* param) override {
+  void onConnect(BLEServer* server, esp_ble_gatts_cb_param_t* param) {
     const uint8_t* remote = nullptr;
     if (param) {
       remote = param->connect.remote_bda;
@@ -525,7 +527,7 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
   }
 #endif
 
-  void onDisconnect(BLEServer* server) override {
+  void onDisconnect(BLEServer* server) {
     bluetoothClientConnected = false;
     Serial.println("[BLE] Client déconnecté. Reprise de la diffusion...");
     if (server) {
@@ -4385,12 +4387,26 @@ static int getScanResultCount(BLEScanResults* results) {
   return (results != nullptr) ? results->getCount() : 0;
 }
 
+// --- [BUGFIX] Align scan result helpers with NimBLE pointer-based accessors ---
 static BLEAdvertisedDevice getScanResultDevice(BLEScanResults& results, int index) {
+#if DIAGNOSTIC_USE_NIMBLE
+  BLEAdvertisedDevice* device = results.getDevice(index);
+  return device ? *device : BLEAdvertisedDevice();
+#else
   return results.getDevice(index);
+#endif
 }
 
 static BLEAdvertisedDevice getScanResultDevice(BLEScanResults* results, int index) {
-  return (results != nullptr) ? results->getDevice(index) : BLEAdvertisedDevice();
+  if (results == nullptr) {
+    return BLEAdvertisedDevice();
+  }
+#if DIAGNOSTIC_USE_NIMBLE
+  BLEAdvertisedDevice* device = results->getDevice(index);
+  return device ? *device : BLEAdvertisedDevice();
+#else
+  return results->getDevice(index);
+#endif
 }
 #endif
 
@@ -4463,7 +4479,9 @@ bool startBluetooth() {
 
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   if (!advertising) {
+#if !DIAGNOSTIC_USE_NIMBLE
     bluetoothService->stop();
+#endif
     BLEDevice::deinit(true);
     bluetoothServer = nullptr;
     bluetoothService = nullptr;
@@ -4477,9 +4495,12 @@ bool startBluetooth() {
   }
 
   advertising->addServiceUUID(BLEUUID(DIAG_BLE_SERVICE_UUID));
+  // --- [BUGFIX] Guard legacy-only advertising tuning helpers on NimBLE ---
+#if !DIAGNOSTIC_USE_NIMBLE
   advertising->setScanResponse(true);
   advertising->setMinPreferred(0x06);
   advertising->setMinPreferred(0x12);
+#endif
   advertising->start();
   BLEDevice::startAdvertising();
   esp_task_wdt_reset();
@@ -4509,7 +4530,9 @@ void stopBluetooth() {
   lastBluetoothNotify = 0;
 
   if (bluetoothService) {
+#if !DIAGNOSTIC_USE_NIMBLE
     bluetoothService->stop();
+#endif
   }
   if (bluetoothServer) {
     bluetoothServer->disconnect(0);
@@ -4727,7 +4750,11 @@ void handleBluetoothScan() {
 
   scanner->setActiveScan(true);
   // Harmonise BLE scan results pointer/object handling
-  auto rawResults = scanner->start(5, false);
+#if DIAGNOSTIC_USE_NIMBLE
+  BLEScanResults rawResults = scanner->start(5, static_cast<bool>(false));
+#else
+  BLEScanResults rawResults = scanner->start(5);
+#endif
   esp_task_wdt_reset();  // Reset after 5-second BLE scan
   int count = getScanResultCount(rawResults);
 
