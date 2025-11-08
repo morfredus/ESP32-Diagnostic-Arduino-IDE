@@ -1,8 +1,8 @@
-# ESP32 Diagnostic Suite (v3.7.30)
+# ESP32 Diagnostic Suite (v3.8.0)
 
 Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de bord web interactif, tests matériels automatisés et contenus bilingues (FR/EN). Le firmware cible l'Arduino Core 3.3.3 et prend en charge les familles ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 et ESP32-H2.
 
-## Points clés de la version 3.7.30
+## Points clés de la version 3.8.0
 - Ajout d'un écran de démarrage OLED qui suit les étapes de connexion Wi-Fi (association, DHCP, réussite) afin d'afficher instantanément l'état sur les cartes équipées.
 - Correction des régressions NimBLE en protégeant les descripteurs optionnels, en alignant les callbacks et en validant les résultats de scan sur ESP32/ESP32-S3 avant utilisation.
 - Amélioration de la gestion du scan BLE grâce à la réutilisation sûre des tampons NimBLE, à la reprise de la diffusion après échec et à des réponses HTTP cohérentes lorsque le scan est indisponible.

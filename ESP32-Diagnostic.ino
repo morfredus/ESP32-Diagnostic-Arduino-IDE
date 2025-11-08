@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.30
+ * ESP32 Diagnostic Suite v3.8.0
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -341,7 +341,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-#define DIAGNOSTIC_VERSION "3.7.30"
+#define DIAGNOSTIC_VERSION "3.8.0"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -361,13 +361,8 @@ const char* const DIAGNOSTIC_LEGACY_SCHEME = "http://";
 #endif
 
 static const char* const DIAGNOSTIC_VERSION_HISTORY[] DIAGNOSTIC_UNUSED = {
-  "v3.7.25-dev - Wi-Fi connection progress shown on the OLED boot screen",
-  "v3.7.26-dev - Guarded optional NimBLE descriptors to avoid missing header builds",
-  "v3.7.27-dev - Unified BLE callbacks and scan helpers across NimBLE and Bluedroid",
-  "v3.7.28-dev - Resolved NimBLE advertised device pointer constness mismatches",
-  "v3.7.29-dev - Validated NimBLE scan start status before consuming results",
-  "v3.7.30-dev - Reused NimBLE scan buffers without implicit bool conversions",
-  "v3.7.30 - Stable release packaging for Wi-Fi OLED status and BLE compatibility fixes"
+  "v3.7.30 - Wi-Fi OLED status and BLE compatibility fixes",
+  "v3.8.0 - Production release with standardized version references"
 };
 
 static inline String buildAccessUrl(const String& hostOrAddress,

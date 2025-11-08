@@ -2,6 +2,16 @@
 
 Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Version 3.8.0] - 2025-11-08
+### Ajouts
+- Version de production basée sur 3.7.30 avec mise à jour de version pour le déploiement.
+
+### Corrections
+- Aucune.
+
+### Améliorations
+- Standardisation des références de version dans toute la documentation et les constantes firmware.
+
 ## [Version 3.7.30] - 2025-11-08
 ### Ajouts
 - Les cartes équipées d'un écran OLED affichent désormais les phases de connexion Wi-Fi (association, DHCP, réussite) dès le démarrage, sans passer par le moniteur série.

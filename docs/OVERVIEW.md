@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Overview (v3.7.30)
+# ESP32 Diagnostic Suite – Overview (v3.8.0)
 
-The ESP32 Diagnostic Suite delivers a production-ready toolkit for validating ESP32-based boards before deployment. Version 3.7.30 emphasises Wi-Fi visibility on OLED hardware, cross-stack BLE compatibility, and refreshed documentation for the latest toolchains.
+The ESP32 Diagnostic Suite delivers a production-ready toolkit for validating ESP32-based boards before deployment. Version 3.8.0 emphasises Wi-Fi visibility on OLED hardware, cross-stack BLE compatibility, and refreshed documentation for the latest toolchains.
 
 ## Mission statement
 - Provide a consistent methodology to qualify ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, and ESP32-H2 boards.
@@ -16,7 +16,7 @@ The ESP32 Diagnostic Suite delivers a production-ready toolkit for validating ES
 | Localisation | Runtime FR/EN switching at both the firmware (serial output) and interface levels. |
 | Extensibility | Modular test registry, event bus for user-defined callbacks, and optional OLED/NeoPixel helpers. |
 
-## Release 3.7.30 focus
+## Release 3.8.0 focus
 - Boot-time Wi-Fi splash on OLED-equipped boards to expose association, DHCP, and completion states without opening Serial.
 - Hardened NimBLE builds with guarded descriptors, aligned callbacks, and safer scan handling across ESP32/ESP32-S3 devices.
 - Documentation updates covering the splash workflow, BLE safeguards, and the move to Arduino Core 3.3.3.
