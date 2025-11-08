@@ -2,13 +2,13 @@
 
 Suivez ces étapes pour déployer ESP32 Diagnostic Suite sur votre carte.
 
-> **Version 3.5.1 :** Vérifiez que le bandeau de version et la constante `DIAGNOSTIC_VERSION` affichent 3.5.1, puis basculez la langue du tableau de bord pour confirmer que les nouveaux liens de traduction en direct actualisent instantanément tests, volets sans fil et boutons d'export.
+> **Version 3.7.30 :** Vérifiez que le bandeau de version et la constante `DIAGNOSTIC_VERSION` affichent 3.7.30, observez l'écran OLED (si présent) afficher les phases de connexion Wi-Fi (association, DHCP, réussite) et confirmez que la compilation NimBLE se déroule sans erreur sur votre ESP32 ou ESP32-S3.
 
 ## 1. Prérequis
 - Carte ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 ou ESP32-H2 (S3 recommandée).
 - Câble USB avec transfert de données.
 - Optionnel : bandeau NeoPixel/WS2812B et écran OLED 0,96" SSD1306 pour les tests avancés.
-- Arduino IDE 2.x ou supérieur avec l'Arduino Core ESP32 3.3.2.
+- Arduino IDE 2.x ou supérieur avec l'Arduino Core ESP32 3.3.3.
 
 ## 2. Bibliothèques nécessaires
 Installez ces bibliothèques via le Library Manager de l'Arduino IDE :
@@ -45,4 +45,4 @@ Les précisions de configuration sont détaillées dans [CONFIG_FR.md](CONFIG_FR
 3. Activez la **PSRAM** pour les cartes ESP32-S3 afin de profiter de tous les diagnostics.
 4. Cliquez sur **Vérifier** puis sur **Téléverser** pour flasher le firmware.
 
-En cas de succès, le moniteur série affiche la version du firmware et l'état de connexion. Alternez entre français et anglais dans l'interface web afin de vérifier que chaque cartouche de statut et bouton d'export se met à jour sans rechargement.
+En cas de succès, le moniteur série affiche la version du firmware et l'état de connexion. L'OLED reflète la poignée de main Wi-Fi et vous pouvez lancer un scan BLE depuis le tableau de bord pour confirmer que la diffusion NimBLE reprend correctement à la fin du scan.

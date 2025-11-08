@@ -1,11 +1,11 @@
-# ESP32 Diagnostic Suite (v3.5.1)
+# ESP32 Diagnostic Suite (v3.7.30)
 
-Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de bord web interactif, tests matériels automatisés et contenus bilingues (FR/EN). Le firmware cible l'Arduino Core 3.3.2 et prend en charge les familles ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 et ESP32-H2.
+Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de bord web interactif, tests matériels automatisés et contenus bilingues (FR/EN). Le firmware cible l'Arduino Core 3.3.3 et prend en charge les familles ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 et ESP32-H2.
 
-## Points clés de la version 3.5.1
-- Finalisation du rafraîchissement multilingue : chaque cartouche, statut et action d'export se met désormais à jour instantanément lors d'un changement de langue.
-- Réutilisation du catalogue de traduction pour les volets Wi-Fi, Bluetooth, GPIO et exports afin d'éliminer tout doublon de chaîne dans l'UI et l'API.
-- Documentation entièrement révisée pour refléter le processus de maintenance des traductions dynamiques introduit tout au long du cycle 3.4.x.
+## Points clés de la version 3.7.30
+- Ajout d'un écran de démarrage OLED qui suit les étapes de connexion Wi-Fi (association, DHCP, réussite) afin d'afficher instantanément l'état sur les cartes équipées.
+- Correction des régressions NimBLE en protégeant les descripteurs optionnels, en alignant les callbacks et en validant les résultats de scan sur ESP32/ESP32-S3 avant utilisation.
+- Amélioration de la gestion du scan BLE grâce à la réutilisation sûre des tampons NimBLE, à la reprise de la diffusion après échec et à des réponses HTTP cohérentes lorsque le scan est indisponible.
 
 ## Structure du projet
 - `ESP32-Diagnostic.ino` – point d'entrée du firmware et ordonnanceur des diagnostics.
@@ -44,7 +44,7 @@ Micrologiciel de diagnostic complet pour microcontrôleurs ESP32 avec tableau de
 
 ## Compatibilité & prérequis
 - **Cartes :** ESP32, ESP32-S2, ESP32-S3 (recommandée), ESP32-C3, ESP32-C6, ESP32-H2.
-- **Arduino IDE :** 2.x ou supérieur avec l'Arduino Core ESP32 3.3.2.
+- **Arduino IDE :** 2.x ou supérieur avec l'Arduino Core ESP32 3.3.3.
 - **Bibliothèques :** Adafruit BusIO, Adafruit GFX Library, Adafruit SSD1306, Adafruit NeoPixel (installées via Library Manager).
 
 ## Support
