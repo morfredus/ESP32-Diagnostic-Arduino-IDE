@@ -153,7 +153,7 @@
   #include <NimBLEDevice.h>
   #include <NimBLEServer.h>
   #include <NimBLEUtils.h>
-  #include <NimBLE2902.h>
+  //#include <NimBLE2902.h>
   #include <NimBLEScan.h>
   #include <NimBLEAdvertisedDevice.h>
   #if defined(__has_include)
