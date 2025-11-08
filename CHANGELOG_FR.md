@@ -2,7 +2,29 @@
 
 Toutes les évolutions notables d'ESP32 Diagnostic Suite sont documentées ici. Ce projet suit [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Version 3.5.0] - 2025-10-30
+## [Version 3.8.0] - 2025-11-08
+### Ajouts
+- Version de production basée sur 3.7.30 avec mise à jour de version pour le déploiement.
+
+### Corrections
+- Aucune.
+
+### Améliorations
+- Standardisation des références de version dans toute la documentation et les constantes firmware.
+
+## [Version 3.7.30] - 2025-11-08
+### Ajouts
+- Les cartes équipées d'un écran OLED affichent désormais les phases de connexion Wi-Fi (association, DHCP, réussite) dès le démarrage, sans passer par le moniteur série.
+
+### Corrections
+- Protection des descripteurs NimBLE optionnels et alignement des callbacks BLE pour supprimer les erreurs d'inclusion manquante et `override` sur ESP32 et ESP32-S3.
+- Validation du statut `start()` de NimBLE avant de copier les périphériques annoncés afin d'éviter toute conversion invalide.
+
+### Améliorations
+- Réutilisation sûre des tampons de scan NimBLE, reprise de la diffusion après un échec et réponses HTTP cohérentes lorsque le scan n'est pas disponible.
+- Documentation FR/EN actualisée pour détailler l'écran Wi-Fi de démarrage et les consignes de compatibilité BLE renforcées.
+
+## [Version 3.5.1] - 2025-10-30
 ### Ajouts
 - Extension des liaisons de traduction en direct sur les panneaux de diagnostics afin que les widgets sans fil, pager, GPIO et exports réutilisent le catalogue commun sans doublons.
 

@@ -24,7 +24,7 @@ ESP32-Diagnostic/
 - **BLE manager** – detects chip capabilities, configures the GATT service, and exposes status updates to the web UI.
 - **Diagnostics engine** – performs hardware tests (GPIO, ADC, touch, OLED, benchmarks) and formats results for the dashboard and exports.
 - **Export subsystem** – assembles TXT/JSON/CSV payloads for download and prints.
-- Release 3.5.0 emphasises the client translation refresher that reapplies catalog entries in real time across diagnostics tabs and exports while keeping the backend REST surface unchanged.
+- Release 3.8.0 introduces the Wi-Fi splash layer and shared BLE scan helpers, keeping the scheduler identical whether the board uses Bluedroid or NimBLE.
 
 ## Front-end structure
 - HTML templates define each tab with semantic sections.
