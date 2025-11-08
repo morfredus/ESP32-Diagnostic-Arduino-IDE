@@ -1,11 +1,11 @@
-# ESP32 Diagnostic Suite (v3.5.1)
+# ESP32 Diagnostic Suite (v3.8.0)
 
-Comprehensive diagnostic firmware for ESP32 microcontrollers featuring an interactive web dashboard, automated hardware tests, and bilingual content (FR/EN). The firmware targets Arduino Core 3.3.2 and supports the ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, and ESP32-H2 families.
+Comprehensive diagnostic firmware for ESP32 microcontrollers featuring an interactive web dashboard, automated hardware tests, and bilingual content (FR/EN). The firmware targets Arduino Core 3.3.3 and supports the ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, and ESP32-H2 families.
 
-## Highlights of version 3.5.1
-- Completed the multilingual refresh so every dashboard card, status chip, and export action updates instantly when switching languages.
-- Reused the shared translation catalog for Wi-Fi, Bluetooth, GPIO, and export prompts to eliminate duplicated strings across the UI and API.
-- Updated the documentation set to capture the live-translation maintenance workflow introduced throughout the 3.4.x cycle.
+## Highlights of version 3.8.0
+- Added an OLED boot splash that tracks Wi-Fi connection phases so boards with a screen immediately show association, DHCP, and completion states.
+- Fixed NimBLE build regressions by guarding optional descriptors, aligning callback signatures, and validating scan results before use on ESP32/ESP32-S3 targets.
+- Improved BLE scan handling by reusing NimBLE buffers safely, resuming advertising after failures, and keeping HTTP responses coherent when scans are unavailable.
 
 ## Project structure
 - `ESP32-Diagnostic.ino` – firmware entry point and diagnostic scheduler.
@@ -44,7 +44,7 @@ Comprehensive diagnostic firmware for ESP32 microcontrollers featuring an intera
 
 ## Compatibility & requirements
 - **Boards:** ESP32, ESP32-S2, ESP32-S3 (recommended), ESP32-C3, ESP32-C6, ESP32-H2.
-- **Arduino IDE:** 2.x or newer with ESP32 Arduino Core 3.3.2.
+- **Arduino IDE:** 2.x or newer with ESP32 Arduino Core 3.3.3.
 - **Libraries:** Adafruit BusIO, Adafruit GFX Library, Adafruit SSD1306, Adafruit NeoPixel (install via Library Manager).
 
 ## Support
