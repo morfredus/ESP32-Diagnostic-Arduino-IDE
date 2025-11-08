@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.24-dev
+ * ESP32 Diagnostic Suite v3.7.28-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -153,7 +153,17 @@
   #include <NimBLEDevice.h>
   #include <NimBLEServer.h>
   #include <NimBLEUtils.h>
-  #include <NimBLE2902.h>
+  #if defined(__has_include)
+    #if __has_include(<NimBLE2902.h>)
+      #include <NimBLE2902.h>
+      #define DIAGNOSTIC_HAS_BLE2902 1
+    #else
+      #define DIAGNOSTIC_HAS_BLE2902 0
+    #endif
+  #else
+    #include <NimBLE2902.h>
+    #define DIAGNOSTIC_HAS_BLE2902 1
+  #endif
   #include <NimBLEScan.h>
   #include <NimBLEAdvertisedDevice.h>
   #if defined(__has_include)
@@ -179,7 +189,9 @@
   using BLEUUID = NimBLEUUID;
   using BLEAddress = NimBLEAddress;
   using BLEServerCallbacks = NimBLEServerCallbacks;
-  using BLE2902 = NimBLE2902;
+  #if DIAGNOSTIC_HAS_BLE2902
+    using BLE2902 = NimBLE2902;
+  #endif
   #define DIAGNOSTIC_BLE_PROPERTY_READ NIMBLE_PROPERTY::READ
   #define DIAGNOSTIC_BLE_PROPERTY_NOTIFY NIMBLE_PROPERTY::NOTIFY
   #define BLE_STACK_SUPPORTED 1
@@ -187,7 +199,17 @@
   #include <BLEDevice.h>
   #include <BLEServer.h>
   #include <BLEUtils.h>
-  #include <BLE2902.h>
+  #if defined(__has_include)
+    #if __has_include(<BLE2902.h>)
+      #include <BLE2902.h>
+      #define DIAGNOSTIC_HAS_BLE2902 1
+    #else
+      #define DIAGNOSTIC_HAS_BLE2902 0
+    #endif
+  #else
+    #include <BLE2902.h>
+    #define DIAGNOSTIC_HAS_BLE2902 1
+  #endif
   #include <BLEScan.h>
   #include <BLEAdvertisedDevice.h>
   #define DIAGNOSTIC_BLE_PROPERTY_READ BLECharacteristic::PROPERTY_READ
@@ -197,6 +219,10 @@
   #define DIAGNOSTIC_BLE_PROPERTY_READ 0
   #define DIAGNOSTIC_BLE_PROPERTY_NOTIFY 0
   #define BLE_STACK_SUPPORTED 0
+#endif
+
+#if !defined(DIAGNOSTIC_HAS_BLE2902)
+  #define DIAGNOSTIC_HAS_BLE2902 0
 #endif
 
 #if DIAGNOSTIC_HAS_SDKCONFIG
@@ -330,7 +356,11 @@ inline void sendOperationError(int statusCode,
 // v3.7.22 - Keep BLE state flags accessible for advertising telemetry guards
 // v3.7.23 - Streamline maintenance comment markers across UI assets
 // v3.7.24 - Restore BLE stack detection for ESP32-S3 DevKitC targets
-#define DIAGNOSTIC_VERSION "3.7.24-dev"
+// v3.7.25 - Display WiFi connection status on OLED during startup
+// v3.7.26 - Guard BLE2902 descriptor usage when NimBLE headers are unavailable
+// v3.7.27 - Restore NimBLE callback and scan compatibility guards
+// v3.7.28 - Fix NimBLE scan result accessors and start call signature alignment
+#define DIAGNOSTIC_VERSION "3.7.28-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -465,6 +495,7 @@ static void noteBluetoothPeer(const uint8_t* address) {
   }
 }
 
+// --- [BUGFIX] Harmonise BLE callback signatures across NimBLE and Bluedroid stacks ---
 class DiagnosticBLECallbacks : public BLEServerCallbacks {
   void handleConnect(BLEServer* server, const uint8_t* remoteAddress) {
     bluetoothClientConnected = true;
@@ -475,12 +506,12 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
     noteBluetoothPeer(remoteAddress);
   }
 
-  void onConnect(BLEServer* server) override {
+  void onConnect(BLEServer* server) {
     handleConnect(server, nullptr);
   }
 
 #if DIAGNOSTIC_USE_NIMBLE && DIAGNOSTIC_HAS_NIMBLE_CONN_DESC
-  void onConnect(BLEServer* server, ble_gap_conn_desc* desc) override {
+  void onConnect(BLEServer* server, const ble_gap_conn_desc* desc) {
     const uint8_t* remote = nullptr;
     if (desc) {
       remote = desc->peer_ota_addr.val;
@@ -488,7 +519,7 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
     handleConnect(server, remote);
   }
 #elif DIAGNOSTIC_HAS_ESP_GATTS
-  void onConnect(BLEServer* server, esp_ble_gatts_cb_param_t* param) override {
+  void onConnect(BLEServer* server, esp_ble_gatts_cb_param_t* param) {
     const uint8_t* remote = nullptr;
     if (param) {
       remote = param->connect.remote_bda;
@@ -497,7 +528,7 @@ class DiagnosticBLECallbacks : public BLEServerCallbacks {
   }
 #endif
 
-  void onDisconnect(BLEServer* server) override {
+  void onDisconnect(BLEServer* server) {
     bluetoothClientConnected = false;
     Serial.println("[BLE] Client déconnecté. Reprise de la diffusion...");
     if (server) {
@@ -2009,6 +2040,50 @@ void oledShowMessage(String message) {
   oled.clearBuffer();
   oled.setFont(u8g2_font_6x10_tf);
   oled.drawStr(0, 10, message.c_str());
+  oled.sendBuffer();
+}
+
+// --- [NEW FEATURE] WiFi connection status banner on OLED ---
+void oledShowWiFiStatus(const String& title,
+                        const String& detail,
+                        const String& footer,
+                        int progressPercent) {
+  if (!oledAvailable) {
+    return;
+  }
+
+  int clampedProgress = progressPercent;
+  if (clampedProgress < 0) {
+    clampedProgress = -1;
+  } else if (clampedProgress > 100) {
+    clampedProgress = 100;
+  }
+
+  applyOLEDOrientation();
+  oled.clearBuffer();
+  oled.setFont(u8g2_font_6x10_tf);
+  oled.drawStr(0, 12, title.c_str());
+
+  if (detail.length() > 0) {
+    oled.drawStr(0, 28, detail.c_str());
+  }
+
+  if (footer.length() > 0) {
+    oled.drawStr(0, 44, footer.c_str());
+  }
+
+  if (clampedProgress >= 0) {
+    const int barX = 8;
+    const int barY = 52;
+    const int barWidth = SCREEN_WIDTH - (barX * 2);
+    const int barHeight = 10;
+    oled.drawFrame(barX, barY, barWidth, barHeight);
+    int fillWidth = (barWidth - 2) * clampedProgress / 100;
+    if (fillWidth > 0) {
+      oled.drawBox(barX + 1, barY + 1, fillWidth, barHeight - 2);
+    }
+  }
+
   oled.sendBuffer();
 }
 
@@ -4313,12 +4388,26 @@ static int getScanResultCount(BLEScanResults* results) {
   return (results != nullptr) ? results->getCount() : 0;
 }
 
+// --- [FIX] Align scan result helpers with NimBLE pointer-based accessors ---
 static BLEAdvertisedDevice getScanResultDevice(BLEScanResults& results, int index) {
+#if DIAGNOSTIC_USE_NIMBLE
+  const BLEAdvertisedDevice* device = results.getDevice(index);
+  return (device != nullptr) ? BLEAdvertisedDevice(*device) : BLEAdvertisedDevice();
+#else
   return results.getDevice(index);
+#endif
 }
 
 static BLEAdvertisedDevice getScanResultDevice(BLEScanResults* results, int index) {
-  return (results != nullptr) ? results->getDevice(index) : BLEAdvertisedDevice();
+  if (results == nullptr) {
+    return BLEAdvertisedDevice();
+  }
+#if DIAGNOSTIC_USE_NIMBLE
+  const BLEAdvertisedDevice* device = results->getDevice(index);
+  return (device != nullptr) ? BLEAdvertisedDevice(*device) : BLEAdvertisedDevice();
+#else
+  return results->getDevice(index);
+#endif
 }
 #endif
 
@@ -4380,7 +4469,9 @@ bool startBluetooth() {
       DIAGNOSTIC_BLE_PROPERTY_READ | DIAGNOSTIC_BLE_PROPERTY_NOTIFY);
   if (bluetoothCharacteristic) {
     bluetoothCharacteristic->setValue("ESP32 Diagnostic ready");
-    bluetoothCharacteristic->addDescriptor(new BLE2902());
+    #if DIAGNOSTIC_HAS_BLE2902
+      bluetoothCharacteristic->addDescriptor(new BLE2902());
+    #endif
   }
   esp_task_wdt_reset();
 
@@ -4389,7 +4480,9 @@ bool startBluetooth() {
 
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   if (!advertising) {
+#if !DIAGNOSTIC_USE_NIMBLE
     bluetoothService->stop();
+#endif
     BLEDevice::deinit(true);
     bluetoothServer = nullptr;
     bluetoothService = nullptr;
@@ -4403,9 +4496,12 @@ bool startBluetooth() {
   }
 
   advertising->addServiceUUID(BLEUUID(DIAG_BLE_SERVICE_UUID));
+  // --- [BUGFIX] Guard legacy-only advertising tuning helpers on NimBLE ---
+#if !DIAGNOSTIC_USE_NIMBLE
   advertising->setScanResponse(true);
   advertising->setMinPreferred(0x06);
   advertising->setMinPreferred(0x12);
+#endif
   advertising->start();
   BLEDevice::startAdvertising();
   esp_task_wdt_reset();
@@ -4435,7 +4531,9 @@ void stopBluetooth() {
   lastBluetoothNotify = 0;
 
   if (bluetoothService) {
+#if !DIAGNOSTIC_USE_NIMBLE
     bluetoothService->stop();
+#endif
   }
   if (bluetoothServer) {
     bluetoothServer->disconnect(0);
@@ -4652,8 +4750,8 @@ void handleBluetoothScan() {
   }
 
   scanner->setActiveScan(true);
-  // Harmonise BLE scan results pointer/object handling
-  auto rawResults = scanner->start(5, false);
+  // --- [FIX] Harmonise BLE scan start semantics across BLE stacks ---
+  BLEScanResults rawResults = scanner->start(5);
   esp_task_wdt_reset();  // Reset after 5-second BLE scan
   int count = getScanResultCount(rawResults);
 
@@ -4741,6 +4839,9 @@ void setup() {
 
   printPSRAMDiagnostic();
 
+  // --- [NEW FEATURE] Early OLED detection for WiFi status feedback ---
+  detectOLED();
+
   // WiFi
   WiFi.mode(WIFI_STA);
   WiFi.persistent(false);
@@ -4755,15 +4856,33 @@ void setup() {
 #endif
   wifiMulti.addAP(WIFI_SSID_1, WIFI_PASS_1);
   wifiMulti.addAP(WIFI_SSID_2, WIFI_PASS_2);
-  
+
   Serial.println("Connexion WiFi...");
+  const int maxWiFiAttempts = 40;
   int attempt = 0;
-  while (wifiMulti.run() != WL_CONNECTED && attempt < 40) {
+  if (oledAvailable) {
+    oledShowWiFiStatus(String(Texts::wifi_connection),
+                       String(Texts::loading),
+                       "",
+                       0);
+  }
+  while (wifiMulti.run() != WL_CONNECTED && attempt < maxWiFiAttempts) {
     delay(500);
     Serial.print(".");
     attempt++;
+    if (oledAvailable) {
+      int progress = (attempt * 100) / maxWiFiAttempts;
+      if (progress > 100) {
+        progress = 100;
+      }
+      String detail = String(Texts::loading) + " " + String(progress) + "%";
+      oledShowWiFiStatus(String(Texts::wifi_connection),
+                         detail,
+                         "",
+                         progress);
+    }
   }
-  
+
   bool wifiConnected = (WiFi.status() == WL_CONNECTED);
 #if DIAGNOSTIC_HAS_MDNS
   wifiPreviouslyConnected = wifiConnected;
@@ -4773,6 +4892,11 @@ void setup() {
     Serial.println("\r\n\r\nWiFi OK!");
     Serial.printf("SSID: %s\r\n", WiFi.SSID().c_str());
     Serial.printf("IP: %s\r\n\r\n", WiFi.localIP().toString().c_str());
+    if (oledAvailable) {
+      String detail = String(Texts::connected) + ": " + WiFi.SSID();
+      String footer = WiFi.localIP().toString();
+      oledShowWiFiStatus(String(Texts::wifi_connection), detail, footer, 100);
+    }
     if (startMDNSService(true)) {
       Serial.printf("[Accès] Lien constant : %s\r\n", getStableAccessURL().c_str());
     } else {
@@ -4781,8 +4905,14 @@ void setup() {
   } else {
     Serial.println("\r\n\r\nPas de WiFi\r\n");
     Serial.printf("[Accès] Lien constant disponible après connexion : %s\r\n", getStableAccessURL().c_str());
+    if (oledAvailable) {
+      oledShowWiFiStatus(String(Texts::wifi_connection),
+                         String(Texts::disconnected),
+                         getStableAccessURL(),
+                         -1);
+    }
   }
-  
+
   // Détections
   detectBuiltinLED();
   detectNeoPixelSupport();
@@ -4792,8 +4922,6 @@ void setup() {
     strip->clear();
     strip->show();
   }
-  
-  detectOLED();
   
   if (ENABLE_I2C_SCAN) {
     scanI2C();
