@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.28-dev
+ * ESP32 Diagnostic Suite v3.7.29-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -360,7 +360,8 @@ inline void sendOperationError(int statusCode,
 // v3.7.26 - Guard BLE2902 descriptor usage when NimBLE headers are unavailable
 // v3.7.27 - Restore NimBLE callback and scan compatibility guards
 // v3.7.28 - Fix NimBLE scan result accessors and start call signature alignment
-#define DIAGNOSTIC_VERSION "3.7.28-dev"
+// v3.7.29 - Stabilise NimBLE scan initiation and const-correct result handling
+#define DIAGNOSTIC_VERSION "3.7.29-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -4751,7 +4752,30 @@ void handleBluetoothScan() {
 
   scanner->setActiveScan(true);
   // --- [FIX] Harmonise BLE scan start semantics across BLE stacks ---
-  BLEScanResults rawResults = scanner->start(5);
+  BLEScanResults rawResults;
+  bool scanStarted = false;
+#if DIAGNOSTIC_USE_NIMBLE
+  // --- [FIX] Stabilise NimBLE scan initiation when start() returns a status flag ---
+  scanStarted = scanner->start(5, false);
+  rawResults = scanner->getResults();
+#else
+  rawResults = scanner->start(5);
+  scanStarted = true;
+#endif
+  if (!scanStarted) {
+    scanner->stop();
+    scanner->clearResults();
+    if (resumeAdvertising && advertising) {
+      advertising->start();
+      BLEDevice::startAdvertising();
+      bluetoothAdvertising = true;
+    }
+    if (startedForScan) {
+      stopBluetooth();
+    }
+    server.send(200, "application/json", buildBluetoothJSON(false, String(Texts::bluetooth_error)));
+    return;
+  }
   esp_task_wdt_reset();  // Reset after 5-second BLE scan
   int count = getScanResultCount(rawResults);
 
