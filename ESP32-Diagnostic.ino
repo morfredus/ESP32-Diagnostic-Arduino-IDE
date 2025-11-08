@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.29-dev
+ * ESP32 Diagnostic Suite v3.7.30-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -341,27 +341,7 @@ inline void sendOperationError(int statusCode,
 #endif
 
 // ========== CONFIGURATION ==========
-// v3.7.10 - Restore bilingual UI and enhanced performance telemetry
-// v3.7.11 - Performance tab localization fixes & stress telemetry refresh
-// v3.7.12 - Repair bilingual resources and JSON helpers
-// v3.7.13 - Fix translation registry macro to restore JSON + UI strings
-// v3.7.14 - Harden translation registry iteration for bilingual exports
-// v3.7.15 - Add translation fetch retries with language-specific extraction
-// v3.7.16 - Fix JavaScript handler linkage to resolve duplicate definitions
-// v3.7.17 - Rename JavaScript route handler to avoid redundant definitions
-// v3.7.18 - Resume version sequencing after missed increments
-// v3.7.19 - Correct BLE status widgets and expose connected peer details
-// v3.7.20 - Guard BLE headers for Arduino-ESP32 3.3.3 compatibility
-// v3.7.21 - Select NimBLE on supported targets while preserving legacy BLE
-// v3.7.22 - Keep BLE state flags accessible for advertising telemetry guards
-// v3.7.23 - Streamline maintenance comment markers across UI assets
-// v3.7.24 - Restore BLE stack detection for ESP32-S3 DevKitC targets
-// v3.7.25 - Display WiFi connection status on OLED during startup
-// v3.7.26 - Guard BLE2902 descriptor usage when NimBLE headers are unavailable
-// v3.7.27 - Restore NimBLE callback and scan compatibility guards
-// v3.7.28 - Fix NimBLE scan result accessors and start call signature alignment
-// v3.7.29 - Stabilise NimBLE scan initiation and const-correct result handling
-#define DIAGNOSTIC_VERSION "3.7.29-dev"
+#define DIAGNOSTIC_VERSION "3.7.30-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
@@ -4751,15 +4731,12 @@ void handleBluetoothScan() {
   }
 
   scanner->setActiveScan(true);
-  // --- [FIX] Harmonise BLE scan start semantics across BLE stacks ---
-  BLEScanResults rawResults;
   bool scanStarted = false;
 #if DIAGNOSTIC_USE_NIMBLE
-  // --- [FIX] Stabilise NimBLE scan initiation when start() returns a status flag ---
   scanStarted = scanner->start(5, false);
-  rawResults = scanner->getResults();
+  BLEScanResults& rawResults = scanner->getResults();
 #else
-  rawResults = scanner->start(5);
+  BLEScanResults rawResults = scanner->start(5);
   scanStarted = true;
 #endif
   if (!scanStarted) {
