@@ -4369,6 +4369,7 @@ static int getScanResultCount(BLEScanResults* results) {
   return (results != nullptr) ? results->getCount() : 0;
 }
 
+// --- [FIX] Align scan result helpers with NimBLE pointer-based accessors ---
 static BLEAdvertisedDevice getScanResultDevice(BLEScanResults& results, int index) {
 #if DIAGNOSTIC_USE_NIMBLE
   const BLEAdvertisedDevice* device = results.getDevice(index);
