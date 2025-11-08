@@ -1,5 +1,5 @@
 /*
- * ESP32 Diagnostic Suite v3.7.22-dev
+ * ESP32 Diagnostic Suite v3.7.23-dev
  * Compatible: ESP32 class targets with >=4MB Flash & >=8MB PSRAM (ESP32 / ESP32-S3)
  * Optimized for ESP32 Arduino Core 3.3.3
  * Tested board: ESP32-S3 DevKitC-1 N16R8 with PSRAM OPI (Core 3.3.3)
@@ -49,7 +49,7 @@
 #include <esp_chip_info.h>
 #include <esp_err.h>
 #include <esp_mac.h>
-// --- [NEW FEATURE] BLE header compatibility guard ---
+// BLE header compatibility guard
 #if defined(__has_include)
   #if __has_include(<esp_bt_defs.h>)
     #include <esp_bt_defs.h>
@@ -221,7 +221,7 @@
   #include "wifi-config.h"
 #endif
 
-// --- [NEW FEATURE] Dual-language UI strings ---
+// Dual-language UI strings
 #include "languages.h"
 
 Language currentLanguage = LANG_FR;
@@ -297,13 +297,13 @@ inline void sendOperationError(int statusCode,
 // v3.7.20 - Guard BLE headers for Arduino-ESP32 3.3.3 compatibility
 // v3.7.21 - Select NimBLE on supported targets while preserving legacy BLE
 // v3.7.22 - Keep BLE state flags accessible for advertising telemetry guards
-#define DIAGNOSTIC_VERSION "3.7.22-dev"
+#define DIAGNOSTIC_VERSION "3.7.23-dev"
 #define DIAGNOSTIC_HOSTNAME "esp32-diagnostic"
 #define CUSTOM_LED_PIN -1
 #define CUSTOM_LED_COUNT 1
 #define ENABLE_I2C_SCAN true
 const char* DIAGNOSTIC_VERSION_STR = DIAGNOSTIC_VERSION;
-// --- [BUGFIX] Définition centralisée du nom d'hôte mDNS ---
+// Définition centralisée du nom d'hôte mDNS
 const char* MDNS_HOSTNAME_STR = DIAGNOSTIC_HOSTNAME;
 
 #if !defined(DIAGNOSTIC_PREFER_SECURE)
@@ -350,27 +350,27 @@ int I2C_SDA = 21;
 
 uint8_t oledRotation = 0;
 
-// --- [NEW FEATURE] LED RGB (pins modifiables via web) ---
+// LED RGB (pins modifiables via web)
 int RGB_LED_PIN_R = 14;
 int RGB_LED_PIN_G = 13;
 int RGB_LED_PIN_B = 12;
 
-// --- [NEW FEATURE] Buzzer (pin modifiable via web) ---
+// Buzzer (pin modifiable via web)
 int BUZZER_PIN = 16;
 
-// --- [NEW FEATURE] DHT Temperature & Humidity Sensor (pin & type configurables via web) ---
+// DHT Temperature & Humidity Sensor (pin & type configurables via web)
 int DHT_PIN = 4;
-// --- [NEW FEATURE] DHT sensor type selection ---
+// DHT sensor type selection
 uint8_t DHT_SENSOR_TYPE = 11;
 
-// --- [NEW FEATURE] Light Sensor (pin modifiable via web) ---
+// Light Sensor (pin modifiable via web)
 int LIGHT_SENSOR_PIN = 17;
 
-// --- [NEW FEATURE] Ultrasonic Distance Sensor HC-SR04 (pins modifiables via web) ---
+// Ultrasonic Distance Sensor HC-SR04 (pins modifiables via web)
 int DISTANCE_TRIG_PIN = 7;
 int DISTANCE_ECHO_PIN = 8;
 
-// --- [NEW FEATURE] PIR Motion Sensor (pin modifiable via web) ---
+// PIR Motion Sensor (pin modifiable via web)
 int MOTION_SENSOR_PIN = 6;
 
 // ========== OBJETS GLOBAUX ==========
@@ -395,7 +395,7 @@ bool bluetoothEnabled = false;
 bool bluetoothAdvertising = false;
 String bluetoothDeviceName = "";
 String defaultBluetoothName = "";
-// --- [BUGFIX] BLE client state available for all build targets ---
+// BLE client state available for all build targets
 bool bluetoothClientConnected = false;
 String bluetoothConnectedPeer = "";
 #if BLE_STACK_SUPPORTED
@@ -405,7 +405,7 @@ unsigned long lastBluetoothNotify = 0;
 static const char* DIAG_BLE_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 static const char* DIAG_BLE_CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
-// --- [NEW FEATURE] Suivi du client BLE connecté ---
+// Suivi du client BLE connecté
 static String formatBluetoothAddress(const uint8_t* address) {
   if (!address) {
     return String();
@@ -502,7 +502,7 @@ bool oledTested = false;
 bool oledAvailable = false;
 String oledTestResult = String(Texts::not_tested);
 
-// --- [NEW FEATURE] Exécution asynchrone des tests matériels ---
+// Exécution asynchrone des tests matériels
 typedef void (*TestRoutine)();
 
 struct AsyncTestRunner {
@@ -569,7 +569,7 @@ static bool startAsyncTest(AsyncTestRunner& runner,
   return true;
 }
 
-// --- [NEW FEATURE] Orchestrateurs asynchrones des tests lents ---
+// Orchestrateurs asynchrones des tests lents
 static AsyncTestRunner builtinLedTestRunner = {"BuiltinLEDTest", nullptr, false};
 static AsyncTestRunner neopixelTestRunner = {"NeoPixelTest", nullptr, false};
 static AsyncTestRunner oledTestRunner = {"OLEDTest", nullptr, false};
@@ -582,11 +582,11 @@ String pwmTestResult = String(Texts::not_tested);
 String partitionsInfo = "";
 String spiInfo = "";
 String stressTestResult = String(Texts::not_tested);
-// --- [NEW FEATURE] Memory stress telemetry cache ---
+// Memory stress telemetry cache
 size_t stressAllocationCount = 0;
 unsigned long stressDurationMs = 0;
 
-// --- [NEW FEATURE] Résultats de tests des nouveaux capteurs ---
+// Résultats de tests des nouveaux capteurs
 String rgbLedTestResult = String(Texts::not_tested);
 bool rgbLedAvailable = false;
 
@@ -660,7 +660,7 @@ struct DiagnosticInfo {
   String oledResult;
 } diagnosticData;
 
-// --- [BUGFIX] Include web interface after DiagnosticInfo definition ---
+// Include web interface after DiagnosticInfo definition
 #include "web_interface.h"
 
 struct DetailedMemoryInfo {
@@ -1004,7 +1004,7 @@ String getWiFiSignalQuality() {
   return Texts::unknown.str();
 }
 
-// --- [TRANSLATION FIX] Use translation keys for WiFi auth modes ---
+// Use translation keys for WiFi auth modes
 String wifiAuthModeToString(wifi_auth_mode_t mode) {
   switch (mode) {
     case WIFI_AUTH_OPEN: return Texts::wifi_open_auth.str();
@@ -2092,7 +2092,7 @@ void listPartitions() {
   Serial.printf("Total: %d partitions\r\n", count);
 }
 
-// --- [NEW FEATURE] TEST LED RGB ---
+// TEST LED RGB
 void testRGBLed() {
   Serial.println("\r\n=== TEST LED RGB ===");
 
@@ -2139,7 +2139,7 @@ void setRGBLedColor(int r, int g, int b) {
   }
 }
 
-// --- [NEW FEATURE] TEST BUZZER ---
+// TEST BUZZER
 void testBuzzer() {
   Serial.println("\r\n=== TEST BUZZER ===");
 
@@ -2172,12 +2172,12 @@ void playBuzzerTone(int frequency, int duration) {
   }
 }
 
-// --- [NEW FEATURE] DHT sensor helpers ---
+// DHT sensor helpers
 static inline const char* getDhtSensorName() {
   return (DHT_SENSOR_TYPE == 22) ? "DHT22" : "DHT11";
 }
 
-// --- [NEW FEATURE] TEST DHT SENSOR ---
+// TEST DHT SENSOR
 void testDHTSensor() {
   const char* sensorName = getDhtSensorName();
   Serial.printf("\r\n=== TEST %s ===\r\n", sensorName);
@@ -2283,7 +2283,7 @@ void testDHTSensor() {
   }
 }
 
-// --- [NEW FEATURE] TEST LIGHT SENSOR ---
+// TEST LIGHT SENSOR
 void testLightSensor() {
   Serial.println("\r\n=== TEST LIGHT SENSOR ===");
 
@@ -2311,7 +2311,7 @@ void testLightSensor() {
   Serial.printf("Light Sensor: %d\r\n", lightSensorValue);
 }
 
-// --- [NEW FEATURE] TEST DISTANCE SENSOR ---
+// TEST DISTANCE SENSOR
 void testDistanceSensor() {
   Serial.println("\r\n=== TEST DISTANCE SENSOR (HC-SR04) ===");
 
@@ -2347,7 +2347,7 @@ void testDistanceSensor() {
   }
 }
 
-// --- [NEW FEATURE] TEST MOTION SENSOR ---
+// TEST MOTION SENSOR
 void testMotionSensor() {
   Serial.println("\r\n=== TEST MOTION SENSOR (PIR) ===");
 
@@ -2513,7 +2513,7 @@ void collectDiagnosticInfo() {
   historyIndex = (historyIndex + 1) % HISTORY_SIZE;
 }
 
-// --- [NEW FEATURE] Routines de tests en tâche de fond ---
+// Routines de tests en tâche de fond
 static void runBuiltinLedTestTask() {
   resetBuiltinLEDTest();
   testBuiltinLED();
@@ -2868,7 +2868,7 @@ void handleOLEDMessage() {
 
   String message = server.arg("message");
   oledShowMessage(message);
-  // --- [TRANSLATION FIX] Use translation key instead of hardcoded string ---
+  // Use translation key instead of hardcoded string
   sendOperationSuccess(Texts::message_displayed.str());
 }
 
@@ -2911,7 +2911,7 @@ void handleStressTest() {
   });
 }
 
-// --- [NEW FEATURE] Handlers API pour les nouveaux capteurs ---
+// Handlers API pour les nouveaux capteurs
 void handleRGBLedConfig() {
   if (server.hasArg("r") && server.hasArg("g") && server.hasArg("b")) {
     RGB_LED_PIN_R = server.arg("r").toInt();
@@ -3127,8 +3127,8 @@ void handleBenchmark() {
   diagnosticData.cpuBenchmark = cpuTime;
   diagnosticData.memBenchmark = memTime;
 
-  // --- [NEW FEATURE] Provide derived benchmark metrics for richer telemetry ---
-  // --- [NEW FEATURE] Combined memory stress metrics for the benchmark API ---
+  // Provide derived benchmark metrics for richer telemetry
+  // Combined memory stress metrics for the benchmark API
   memoryStressTest();
 
   double cpuPerf = 100000.0 / static_cast<double>(cpuTime);
@@ -3347,7 +3347,7 @@ void handleOverview() {
   json += "\"ip\":\"" + diagnosticData.ipAddress + "\"";
   json += "},";
 
-  // --- [NEW FEATURE] Synthèse Bluetooth ---
+  // Synthèse Bluetooth
   String btStatus = getBluetoothStateLabel();
   bool advertisingActive = bluetoothCapable && (bluetoothAdvertising || bluetoothClientConnected);
   String btAdvertisingLabel = advertisingActive ? String(Texts::bluetooth_advertising)
@@ -4023,7 +4023,7 @@ static inline void appendInfoItem(String& chunk,
   chunk += F("</div></div>");
 }
 
-// --- [NEW FEATURE] Dynamic bilingual string export for the web interface ---
+// Dynamic bilingual string export for the web interface
 String buildTranslationsJSON(Language lang) {
   String json;
   json.reserve(20000);
@@ -4059,7 +4059,7 @@ String buildTranslationsJSON() {
   return buildTranslationsJSON(currentLanguage);
 }
 
-// --- [NEW FEATURE] Bluetooth helper utilities for the web interface ---
+// Bluetooth helper utilities for the web interface
 String sanitizeBluetoothName(const String& raw) {
   String cleaned;
   cleaned.reserve(raw.length());
@@ -4269,7 +4269,7 @@ void dispatchBluetoothTelemetry() {
                 static_cast<unsigned long>(uptimeSeconds));
 }
 
-// --- [BUGFIX] Helpers to abstract BLE scan results across stacks ---
+// Helpers to abstract BLE scan results across stacks
 static int getScanResultCount(BLEScanResults& results) {
   return results.getCount();
 }
@@ -4287,7 +4287,7 @@ static BLEAdvertisedDevice getScanResultDevice(BLEScanResults* results, int inde
 }
 #endif
 
-// --- [BUGFIX] Add watchdog resets to prevent CPU1 timeout during BLE init ---
+// Add watchdog resets to prevent CPU1 timeout during BLE init
 bool startBluetooth() {
   ensureBluetoothName();
   bluetoothConnectedPeer = "";
@@ -4417,7 +4417,7 @@ void stopBluetooth() {
   bluetoothConnectedPeer = "";
 }
 
-// --- [NEW FEATURE] Runtime language switching endpoint ---
+// Runtime language switching endpoint
 void handleSetLanguage() {
   if (!server.hasArg("lang")) {
     sendJsonResponse(400, {
@@ -4450,7 +4450,7 @@ void handleSetLanguage() {
   server.send(200, "application/json; charset=utf-8", response);
 }
 
-// --- [NEW FEATURE] Language-aware translation extraction endpoint ---
+// Language-aware translation extraction endpoint
 void handleGetTranslations() {
   Language target = currentLanguage;
   if (server.hasArg("lang")) {
@@ -4573,7 +4573,7 @@ void handleBluetoothReset() {
   server.send(200, "application/json", buildBluetoothJSON(success, message));
 }
 
-// --- [NEW FEATURE] Scan Bluetooth depuis l'API ---
+// Scan Bluetooth depuis l'API
 void handleBluetoothScan() {
 #if BLE_STACK_SUPPORTED
   if (!bluetoothCapable) {
@@ -4617,7 +4617,7 @@ void handleBluetoothScan() {
   }
 
   scanner->setActiveScan(true);
-  // --- [BUGFIX] Harmonise BLE scan results pointer/object handling ---
+  // Harmonise BLE scan results pointer/object handling
   auto rawResults = scanner->start(5, false);
   esp_task_wdt_reset();  // Reset after 5-second BLE scan
   int count = getScanResultCount(rawResults);
@@ -4668,12 +4668,12 @@ void handleBluetoothScan() {
 }
 
 // ========== INTERFACE WEB PRINCIPALE MULTILINGUE ==========
-// --- [BUGFIX] Unique JavaScript handler defined in sketch (handleJavaScriptRoute) ---
+// Unique JavaScript handler defined in sketch (handleJavaScriptRoute)
 void handleJavaScriptRoute() {
   server.send(200, "application/javascript; charset=utf-8", generateJavaScript());
 }
 
-// --- [NEW FEATURE] Modern web interface with dynamic tabs ---
+// Modern web interface with dynamic tabs
 void handleRoot() {
   server.send(200, "text/html; charset=utf-8", generateHTML());
 }
@@ -4806,7 +4806,7 @@ void setup() {
   server.on("/api/bluetooth/toggle", handleBluetoothToggle);
   server.on("/api/bluetooth/name", handleBluetoothName);
   server.on("/api/bluetooth/reset", handleBluetoothReset);
-  // --- [NEW FEATURE] Endpoint scan Bluetooth ---
+  // Endpoint scan Bluetooth
   server.on("/api/bluetooth/scan", handleBluetoothScan);
   
   // LED intégrée
@@ -4833,7 +4833,7 @@ void setup() {
   server.on("/api/partitions-list", handlePartitionsList);
   server.on("/api/stress-test", handleStressTest);
 
-  // --- [NEW FEATURE] Routes API pour les nouveaux capteurs ---
+  // Routes API pour les nouveaux capteurs
   server.on("/api/rgb-led-config", handleRGBLedConfig);
   server.on("/api/rgb-led-test", handleRGBLedTest);
   server.on("/api/rgb-led-color", handleRGBLedColor);
