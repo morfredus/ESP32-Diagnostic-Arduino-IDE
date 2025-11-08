@@ -2,7 +2,7 @@
 
 Follow the steps below to deploy the ESP32 Diagnostic Suite on your board.
 
-> **Release 3.7.30:** Confirm the firmware banner and `DIAGNOSTIC_VERSION` constant report 3.7.30, watch the OLED boot splash display Wi-Fi association/DHCP/progress (when a screen is attached), and verify NimBLE builds compile cleanly on your ESP32 or ESP32-S3 target.
+> **Release 3.8.0:** Confirm the firmware banner and `DIAGNOSTIC_VERSION` constant report 3.8.0, watch the OLED boot splash display Wi-Fi association/DHCP/progress (when a screen is attached), and verify NimBLE builds compile cleanly on your ESP32 or ESP32-S3 target.
 
 ## 1. Prerequisites
 - ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, or ESP32-H2 board (S3 recommended).

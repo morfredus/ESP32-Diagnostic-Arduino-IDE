@@ -25,7 +25,7 @@ static const std::vector<std::pair<const char*, const char*>> WIFI_NETWORKS = {
 - French is the default language.
 - Use `/api/set-language?lang=en` or the UI toggle to switch to English.
 - Translation strings live in `languages.h` inside the `Translations` structure. Add new languages by extending this file and exposing them in the UI.
-- Release 3.7.30 keeps the shared catalog in sync while adding the Wi-Fi splash and NimBLE safeguards with no extra configuration required.
+- Release 3.8.0 keeps the shared catalog in sync while adding the Wi-Fi splash and NimBLE safeguards with no extra configuration required.
 
 ## OLED configuration
 - Default pins: SDA=21, SCL=22 (ESP32 standard).
@@ -41,4 +41,4 @@ static const std::vector<std::pair<const char*, const char*>> WIFI_NETWORKS = {
 - Enable PSRAM in the Arduino IDE board menu for ESP32-S3 boards to unlock extended memory diagnostics.
 - The firmware auto-detects chip variants and enables BLE support on compatible targets (ESP32, ESP32-S3, ESP32-C3, ESP32-C6, ESP32-H2).
 - For debugging, open the Serial Monitor to observe Wi-Fi retries (mirrored on the OLED splash), BLE state transitions, and diagnostic progress, then poll `/api/memory-details` if you need precise fragmentation metrics.
-- NimBLE is auto-selected on ESP32-S3 and USB-enabled boards; 3.7.30 now validates scan results before exposing them, so no manual toggles are necessary.
+- NimBLE is auto-selected on ESP32-S3 and USB-enabled boards; 3.8.0 now validates scan results before exposing them, so no manual toggles are necessary.
