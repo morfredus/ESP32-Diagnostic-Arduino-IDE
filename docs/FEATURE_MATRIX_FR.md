@@ -1,7 +1,7 @@
-# ESP32 Diagnostic Suite – Matrice des fonctionnalités (v3.5.1)
+# ESP32 Diagnostic Suite – Matrice des fonctionnalités (v3.7.30)
 
 Cette matrice résume la couverture des diagnostics pour les cartes Espressif les plus courantes prises en charge par la version
-3.5.1. Elle aide à planifier les campagnes de validation et à vérifier si des périphériques optionnels nécessitent un câblage
+3.7.30. Elle aide à planifier les campagnes de validation et à vérifier si des périphériques optionnels nécessitent un câblage
 supplémentaire.
 
 ## Légende
@@ -14,7 +14,7 @@ supplémentaire.
 |------------------|-----------|----------|-------------|-----------------|--------------|------------------|-------|
 | ESP32 (WROOM/DevKitC) | ✅ | ✅ | ⚙️ | ✅ | ✅ | ✅ | Détection PSRAM disponible sur les variantes WROVER équipées. |
 | ESP32-S2 | ✅ | ⛔ | ✅ | ✅ | ✅ | ✅ | USB natif supporté ; matériel BLE absent. |
-| ESP32-S3 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Double USB/Série ; utiliser Arduino Core 3.3.2 pour une couverture complète. |
+| ESP32-S3 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Double USB/Série ; utiliser Arduino Core 3.3.3 pour une couverture complète. |
 | ESP32-C3 | ✅ | ✅ | ⛔ | ✅ | ⚙️ | ⚙️ | Requiert un remappage de broches pour NeoPixel ; OLED via I2C uniquement. |
 | ESP32-C6 | ✅ | ✅ | ⛔ | ✅ | ⚙️ | ⚙️ | Radios Thread/Matter non exploitées ; configurer les broches LED/OLED. |
 | ESP32-H2 | ⛔ | ✅ | ⛔ | ✅ | ⛔ | ⚙️ | Wi-Fi absent ; privilégier les diagnostics BLE et la matrice GPIO. |
@@ -39,7 +39,7 @@ supplémentaire.
 | Moniteur d'énergie | `ENABLE_POWER_MONITOR` | Désactivé | Lit les capteurs INA219/INA3221 via I2C. |
 
 ## Hypothèses environnementales
-- Arduino Core ESP32 **3.3.2** (PlatformIO `espressif32@6.5.x` ou Boards Manager 3.0.2+).
+- Arduino Core ESP32 **3.3.3** (PlatformIO `espressif32@6.6.x` ou Boards Manager 3.1.x+).
 - Alimentation USB délivrant au moins 500 mA durant les stress tests OLED/NeoPixel.
 - Réseau Wi-Fi stable (2,4 GHz) pour les mesures de débit ; les portails captifs ne sont pas gérés.
 

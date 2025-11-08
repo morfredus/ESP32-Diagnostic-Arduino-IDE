@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Vue d'ensemble (v3.5.1)
+# ESP32 Diagnostic Suite – Vue d'ensemble (v3.7.30)
 
-La suite ESP32 Diagnostic fournit une boîte à outils prête pour la production afin de valider les cartes basées sur ESP32 avant déploiement. La version 3.5.1 met l'accent sur la stabilisation des opérations de maintenance, l'harmonisation des annotations du firmware et l'enrichissement d'une base de connaissances bilingue pour les équipes d'intégration et de support.
+La suite ESP32 Diagnostic fournit une boîte à outils prête pour la production afin de valider les cartes basées sur ESP32 avant déploiement. La version 3.7.30 met l'accent sur la visibilité Wi-Fi via l'écran OLED, la compatibilité BLE inter-piles et une documentation actualisée pour les derniers toolchains.
 
 ## Mission
 - Proposer une méthodologie homogène pour qualifier les cartes ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6 et ESP32-H2.
@@ -16,10 +16,10 @@ La suite ESP32 Diagnostic fournit une boîte à outils prête pour la production
 | Localisation | Bascule FR/EN à l'exécution côté firmware (sortie série) et interface web. |
 | Extensibilité | Registre modulaire de tests, bus d'événements pour callbacks personnalisés et helpers OLED/NeoPixel optionnels. |
 
-## Focus de la version 3.5.1
-- Centralisation des prototypes et builders JSON pour mutualiser l'entretien des exports diagnostics.
-- Correction des erreurs de compilation des helpers JSON et restauration des retours `String` sûrs dans la chaîne de traduction.
-- Mise à jour de la documentation bilingue pour refléter le retrait du diagnostic touchpad et l'harmonisation des libellés.
+## Focus de la version 3.7.30
+- Écran de démarrage Wi-Fi sur les cartes équipées d'OLED pour afficher association, DHCP et réussite sans ouvrir le port série.
+- Durcissement des builds NimBLE grâce aux descripteurs protégés, callbacks alignés et gestion de scan sécurisée sur ESP32/ESP32-S3.
+- Documentation enrichie couvrant le nouvel écran, les garde-fous BLE et la migration vers l'Arduino Core 3.3.3.
 
 ## Carte du wiki
 Consultez cette carte pour accéder directement à la bonne rubrique :

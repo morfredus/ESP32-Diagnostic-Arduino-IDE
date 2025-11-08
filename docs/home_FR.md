@@ -1,6 +1,6 @@
-# ESP32 Diagnostic Suite – Accueil du wiki (v3.5.1)
+# ESP32 Diagnostic Suite – Accueil du wiki (v3.7.30)
 
-Bienvenue sur le wiki officiel de la version **3.5.1**. Cet espace centralise tous les guides, références et checklists nécessaires
+Bienvenue sur le wiki officiel de la version **3.7.30**. Cet espace centralise tous les guides, références et checklists nécessaires
 pour exploiter, personnaliser et maintenir la suite ESP32 Diagnostic au sein d'équipes bilingues.
 
 ## Sommaire
@@ -15,10 +15,10 @@ pour exploiter, personnaliser et maintenir la suite ESP32 Diagnostic au sein d'�
 - Guides fondamentaux : [Installation](INSTALL_FR.md), [Configuration](CONFIG_FR.md), [Utilisation](USAGE_FR.md),
   [Dépannage](TROUBLESHOOTING_FR.md), [Architecture](ARCHITECTURE_FR.md), [Contribution](../CONTRIBUTING_FR.md)
 
-## Mise en avant – 3.5.1
-- Centralisation des prototypes et builders JSON pour offrir des exports cohérents sur l'ensemble des diagnostics.
-- Renforcement de la chaîne de traduction via des retours `String` sécurisés et l'alignement des libellés FR/EN.
-- Retrait du diagnostic touchpad historique et rafraîchissement de l'intégralité de la documentation bilingue.
+## Mise en avant – 3.7.30
+- Les cartes équipées d'un OLED affichent désormais les phases de connexion Wi-Fi (association, DHCP, réussite) dès le démarrage.
+- Les builds NimBLE compilent sans erreur sur ESP32/ESP32-S3 et relancent la diffusion automatiquement après chaque scan.
+- La documentation détaille le nouvel écran Wi-Fi, les garde-fous BLE et les prérequis toolchain mis à jour.
 
 ## Démarrage rapide
 1. Suivre le [guide d'installation](INSTALL_FR.md) pour préparer Arduino IDE, CLI ou PlatformIO.
@@ -51,4 +51,4 @@ pour exploiter, personnaliser et maintenir la suite ESP32 Diagnostic au sein d'�
 - Historique : [CHANGELOG.md](../CHANGELOG.md) / [CHANGELOG_FR.md](../CHANGELOG_FR.md)
 - Contributions : forkez le dépôt puis suivez le [guide de contribution](../CONTRIBUTING_FR.md).
 
-Bon diagnostic ! Pensez à relier vos procédures internes à ce wiki pour garantir l'alignement avec la version 3.5.1.
+Bon diagnostic ! Pensez à relier vos procédures internes à ce wiki pour garantir l'alignement avec la version 3.7.30.
