@@ -7,8 +7,12 @@
 **🇬🇧 English:**
 This repository is **no longer maintained**. Development has been migrated from Arduino IDE to PlatformIO for better dependency management, build consistency, and professional development workflow.
 
+**➡️ Please visit the new repository:** [ESP32-Diagnostic-PIO](https://github.com/morfredus/ESP32-Diagnostic-PIO)
+
 **🇫🇷 Français :**
 Ce dépôt n'est **plus maintenu**. Le développement a migré d'Arduino IDE vers PlatformIO pour une meilleure gestion des dépendances, une cohérence de compilation et un flux de travail de développement professionnel.
+
+**➡️ Veuillez visiter le nouveau dépôt :** [ESP32-Diagnostic-PIO](https://github.com/morfredus/ESP32-Diagnostic-PIO)
 
 ---
 
