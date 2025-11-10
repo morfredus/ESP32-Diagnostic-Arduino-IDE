@@ -1,5 +1,21 @@
 # ESP32 Diagnostic Suite (v3.8.0)
 
+---
+
+## ⚠️ NOTICE / AVIS IMPORTANT
+
+**🇬🇧 English:**
+This repository is **no longer maintained**. Development has been migrated from Arduino IDE to PlatformIO for better dependency management, build consistency, and professional development workflow.
+
+**➡️ Please visit the new repository:** [ESP32-Diagnostic-PIO](https://github.com/morfredus/ESP32-Diagnostic-PIO)
+
+**🇫🇷 Français :**
+Ce dépôt n'est **plus maintenu**. Le développement a migré d'Arduino IDE vers PlatformIO pour une meilleure gestion des dépendances, une cohérence de compilation et un flux de travail de développement professionnel.
+
+**➡️ Veuillez visiter le nouveau dépôt :** [ESP32-Diagnostic-PIO](https://github.com/morfredus/ESP32-Diagnostic-PIO)
+
+---
+
 Comprehensive diagnostic firmware for ESP32 microcontrollers featuring an interactive web dashboard, automated hardware tests, and bilingual content (FR/EN). The firmware targets Arduino Core 3.3.3 and supports the ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, and ESP32-H2 families.
 
 ## Highlights of version 3.8.0
