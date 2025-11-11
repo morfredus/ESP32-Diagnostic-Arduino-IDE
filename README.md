@@ -5,14 +5,18 @@
 ## ⚠️ NOTICE / AVIS IMPORTANT
 
 **🇬🇧 English:**
-This repository is **no longer maintained**. Development has been migrated from Arduino IDE to PlatformIO for better dependency management, build consistency, and professional development workflow.
+This repository **ESP32-Diagnostic-Arduino-IDE** (https://github.com/morfredus/ESP32-Diagnostic-Arduino-IDE) is **archived but remains accessible**. Development has been migrated from Arduino IDE to PlatformIO under Visual Studio Code for better dependency management, build consistency, and professional development workflow.
 
-**➡️ Please visit the new repository:** [ESP32-Diagnostic-PIO](https://github.com/morfredus/ESP32-Diagnostic-PIO)
+**➡️ Please visit the new repository:** [ESP32-Diagnostic](https://github.com/morfredus/ESP32-Diagnostic)
+
+**⚠️ Note:** Bluetooth functionality is **not supported** in the new PlatformIO version due to platform limitations. If you need to test Bluetooth features, please use this archived Arduino IDE version.
 
 **🇫🇷 Français :**
-Ce dépôt n'est **plus maintenu**. Le développement a migré d'Arduino IDE vers PlatformIO pour une meilleure gestion des dépendances, une cohérence de compilation et un flux de travail de développement professionnel.
+Ce dépôt **ESP32-Diagnostic-Arduino-IDE** (https://github.com/morfredus/ESP32-Diagnostic-Arduino-IDE) est **archivé mais reste accessible**. Le développement a migré d'Arduino IDE vers PlatformIO sous Visual Studio Code pour une meilleure gestion des dépendances, une cohérence de compilation et un flux de travail de développement professionnel.
 
-**➡️ Veuillez visiter le nouveau dépôt :** [ESP32-Diagnostic-PIO](https://github.com/morfredus/ESP32-Diagnostic-PIO)
+**➡️ Veuillez visiter le nouveau dépôt :** [ESP32-Diagnostic](https://github.com/morfredus/ESP32-Diagnostic)
+
+**⚠️ Note :** La fonctionnalité Bluetooth n'est **pas prise en charge** dans la nouvelle version PlatformIO en raison de limitations de la plateforme. Si vous devez tester les fonctionnalités Bluetooth, veuillez utiliser cette version Arduino IDE archivée.
 
 ---
 
@@ -65,5 +69,5 @@ Comprehensive diagnostic firmware for ESP32 microcontrollers featuring an intera
 
 ## Support
 - License: [MIT](LICENSE)
-- Issues & feature requests: [Open a GitHub issue](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/issues/new/choose) with reproduction steps and board details.
-- Contributions: [Fork the repository](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/fork) and see [CONTRIBUTING.md](CONTRIBUTING.md).
+- Issues & feature requests: [Open a GitHub issue](https://github.com/morfredus/ESP32-Diagnostic-Arduino-IDE/issues/new/choose) with reproduction steps and board details.
+- Contributions: [Fork the repository](https://github.com/morfredus/ESP32-Diagnostic-Arduino-IDE/fork) and see [CONTRIBUTING.md](CONTRIBUTING.md).
