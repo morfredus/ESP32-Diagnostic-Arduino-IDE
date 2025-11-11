@@ -1,5 +1,11 @@
 # ESP32 Diagnostic Suite – Overview (v3.8.0)
 
+## ⚠️ ARCHIVED REPOSITORY
+
+This **ESP32-Diagnostic-Arduino-IDE** repository is archived. Active development continues at [ESP32-Diagnostic](https://github.com/morfredus/ESP32-Diagnostic) (PlatformIO). **Bluetooth is not supported** in the new version; use this archived version for Bluetooth testing.
+
+---
+
 The ESP32 Diagnostic Suite delivers a production-ready toolkit for validating ESP32-based boards before deployment. Version 3.8.0 emphasises Wi-Fi visibility on OLED hardware, cross-stack BLE compatibility, and refreshed documentation for the latest toolchains.
 
 ## Mission statement
@@ -48,4 +54,4 @@ Use this map to jump directly to the right knowledge category:
 ## Related resources
 - [CHANGELOG.md](../CHANGELOG.md) – chronological list of fixes and enhancements.
 - [ESP-IDF compatibility table](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/) for comparing Arduino Core expectations.
-- [GitHub issues](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/issues) – track bugs or request enhancements.
+- [GitHub issues](https://github.com/morfredus/ESP32-Diagnostic-Arduino-IDE/issues) – track bugs or request enhancements.

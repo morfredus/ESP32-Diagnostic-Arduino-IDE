@@ -20,7 +20,7 @@ Installez ces bibliothèques via le Library Manager de l'Arduino IDE :
 Les bibliothèques suivantes sont fournies avec l'Arduino Core ESP32 : `WiFi`, `WebServer`, `ESPmDNS`, `Wire`, `SPI`, `esp_chip_info`, `esp_flash`, `esp_heap_caps`, `esp_partition`.
 
 ## 3. Récupérer le code source
-1. [Forkez le dépôt sur GitHub](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/fork), téléchargez l'archive du dépôt ou clonez-le dans votre dossier de croquis Arduino.
+1. [Forkez le dépôt sur GitHub](https://github.com/morfredus/ESP32-Diagnostic-Arduino-IDE/fork), téléchargez l'archive du dépôt ou clonez-le dans votre dossier de croquis Arduino.
 2. Vérifiez que le dossier se nomme `ESP32-Diagnostic` et contient `ESP32-Diagnostic.ino` à la racine.
 
 ```
