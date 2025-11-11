@@ -1,5 +1,11 @@
 # ESP32 Diagnostic Suite – FAQ (v3.8.0)
 
+## ⚠️ ARCHIVED REPOSITORY
+
+This repository is archived. Active development at [ESP32-Diagnostic](https://github.com/morfredus/ESP32-Diagnostic) (PlatformIO). **Bluetooth not supported** in new version; use this archived version for Bluetooth.
+
+---
+
 ## General
 **Q: Which boards are officially supported?**
 A: ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, and ESP32-H2. See [FEATURE_MATRIX.md](FEATURE_MATRIX.md) for capability details.
@@ -55,7 +61,7 @@ A: Submit pull requests updating `languages.h` with new strings and ensure both 
 
 ## Support
 **Q: Where can I report issues?**
-A: Use the [GitHub issue tracker](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/issues) and attach the latest JSON report.
+A: Use the [GitHub issue tracker](https://github.com/morfredus/ESP32-Diagnostic-Arduino-IDE/issues) and attach the latest JSON report.
 
 **Q: Is commercial support available?**
 A: Not officially. Community contributions are welcome via GitHub discussions and pull requests.

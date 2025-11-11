@@ -1,5 +1,11 @@
 # ESP32 Diagnostic Suite – Vue d'ensemble (v3.8.0)
 
+## ⚠️ DÉPÔT ARCHIVÉ
+
+Ce dépôt **ESP32-Diagnostic-Arduino-IDE** est archivé. Le développement actif continue sur [ESP32-Diagnostic](https://github.com/morfredus/ESP32-Diagnostic) (PlatformIO). **Le Bluetooth n'est pas pris en charge** dans la nouvelle version ; utilisez cette version archivée pour tester le Bluetooth.
+
+---
+
 La suite ESP32 Diagnostic fournit une boîte à outils prête pour la production afin de valider les cartes basées sur ESP32 avant déploiement. La version 3.8.0 met l'accent sur la visibilité Wi-Fi via l'écran OLED, la compatibilité BLE inter-piles et une documentation actualisée pour les derniers toolchains.
 
 ## Mission
@@ -48,4 +54,4 @@ Consultez cette carte pour accéder directement à la bonne rubrique :
 ## Ressources associées
 - [CHANGELOG_FR.md](../CHANGELOG_FR.md) – suivi chronologique des corrections et améliorations.
 - [Table de compatibilité ESP-IDF](https://docs.espressif.com/projects/esp-idf/fr/latest/esp32/) pour comparer avec l'Arduino Core.
-- [Issues GitHub](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/issues) – suivi des anomalies et propositions.
+- [Issues GitHub](https://github.com/morfredus/ESP32-Diagnostic-Arduino-IDE/issues) – suivi des anomalies et propositions.

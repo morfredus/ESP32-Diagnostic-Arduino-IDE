@@ -1,5 +1,13 @@
 # ESP32 Diagnostic Suite – Wiki Home (v3.8.0)
 
+## ⚠️ ARCHIVED REPOSITORY NOTICE
+
+This repository **ESP32-Diagnostic-Arduino-IDE** is **archived but remains accessible**. Development has migrated to [ESP32-Diagnostic](https://github.com/morfredus/ESP32-Diagnostic) using PlatformIO under Visual Studio Code.
+
+**Note:** Bluetooth functionality is **not supported** in the new PlatformIO version. If you need Bluetooth features, use this archived Arduino IDE version.
+
+---
+
 Welcome to the official wiki for firmware version **3.8.0**. This space centralises every guide, reference, and checklist required
 to operate, customise, and maintain the ESP32 Diagnostic Suite across multilingual teams.
 
@@ -47,7 +55,7 @@ to operate, customise, and maintain the ESP32 Diagnostic Suite across multilingu
 
 ## Support & escalation
 - License: [MIT](../LICENSE)
-- Issue tracker: [GitHub Issues](https://github.com/ESP32-Diagnostic/ESP32-Diagnostic/issues)
+- Issue tracker: [GitHub Issues](https://github.com/morfredus/ESP32-Diagnostic-Arduino-IDE/issues)
 - Release history: [CHANGELOG.md](../CHANGELOG.md) / [CHANGELOG_FR.md](../CHANGELOG_FR.md)
 - Community contributions: Fork the repository and submit pull requests following the [contribution guide](../CONTRIBUTING.md).
 
